@@ -3,543 +3,145 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Scrap Assembly Line</title>
-<meta name="description" content="Scrap by ScrapWorks: the game engine workshop. Hot-patch code while the game runs, wire logic in nodes that compile to native code, ship to five platforms.">
+<title>Scrap — Assembly Line</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@700;800&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="shared/scrap-brand.js"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <style>
-:root{
-  --bg:#09090a; --bg2:#111214; --panel:rgba(14,15,17,.78); --line:rgba(255,255,255,.08);
-  --steel:#c4c8cd; --steel-d:#6d7279; --text:#ebe8e2; --muted:#9c9a95;
-  --y:#ffc21a; --y-hot:#ffd95c; --amber:#ffb300; --glow:rgba(255,184,0,.45);
-  --display:'Oxanium',system-ui,sans-serif; --body:'Manrope',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--bg);color:var(--text);font:400 16px/1.6 var(--body);-webkit-font-smoothing:antialiased;overflow-x:hidden}
-body::before{content:"";position:fixed;inset:0;z-index:-1;
-  background:
-    radial-gradient(60% 55% at 72% 46%, rgba(255,170,0,.10), transparent 70%),
-    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px) 0 0/48px 48px,
-    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px) 0 0/48px 48px,
-    radial-gradient(120% 90% at 50% 40%, #121316, #070708 70%);}
-a{color:inherit}
-::selection{background:var(--y);color:#000}
+  :root {
+    --bg: #0a0a0b; --y: #ffc21a; --ink: #ecebe7; --mute: #8e8f93;
+    --display: 'Oxanium', sans-serif; --body: 'Manrope', system-ui, sans-serif;
+    --s-xl: clamp(44px, 5.4vw, 76px);  /* three sizes: xl, l, text */
+    --s-l: clamp(30px, 3vw, 42px);
+    --s-t: 17px;
+    --gut: max(24px, 6vw);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body { font: 400 var(--s-t)/1.6 var(--body); overflow-x: hidden; }
+  a { color: inherit; }
 
-/* ---------- 3D stage ---------- */
-#stage{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0;pointer-events:none;opacity:0;transition:opacity 1.2s ease}
-#stage.is-live{opacity:1}
-.fallback{position:fixed;right:8vw;top:50%;transform:translateY(-50%);width:min(34vw,420px);color:var(--y);z-index:0;
-  filter:drop-shadow(0 0 30px var(--glow));display:none}
-.fallback.on{display:block}
-.fallback svg{width:100%;height:auto}
+  #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
+  .shade { position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(120% 90% at 62% 48%, transparent 45%, rgba(10,10,11,.75) 100%); }
+  .fallback { display: none; position: fixed; z-index: 1; right: 12vw; top: 50%; margin-top: -120px;
+    font-size: 240px; color: var(--y); }
+  .no-webgl .fallback { display: block; }
+  .live .fallback { display: none; }
 
-/* ---------- nav ---------- */
-.nav{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:28px;padding:16px clamp(16px,4vw,48px);
-  background:linear-gradient(#09090acc,#09090a00)}
-.brand{display:flex;align-items:center;gap:12px;text-decoration:none}
-.brand .scrap-wordmark{font:800 30px/1 var(--display);color:var(--y);letter-spacing:.02em;filter:drop-shadow(0 0 10px rgba(255,190,0,.25))}
-.brand small{font:500 11px/1 var(--mono);color:var(--muted);letter-spacing:.14em;border-left:1px solid var(--line);padding-left:12px}
-.nav ul{display:flex;gap:26px;list-style:none;margin:0 0 0 auto;padding:0}
-.nav ul a{text-decoration:none;color:#c9c6c0;font-weight:600;font-size:14px}
-.nav ul a:hover{color:var(--y)}
+  nav { position: fixed; z-index: 3; top: 0; left: 0; right: 0; display: flex; align-items: center;
+    gap: 32px; padding: 26px var(--gut); }
+  .mark { font: 800 26px/1 var(--display); color: var(--y); text-decoration: none; margin-right: auto; }
+  nav a.l { text-decoration: none; color: var(--mute); transition: color .2s; }
+  nav a.l:hover { color: var(--ink); }
+  nav .btn { padding: 9px 16px; background: transparent; color: var(--y); border: 1px solid rgba(255,194,26,.6); }
+  nav .btn:hover { background: rgba(255,194,26,.08); box-shadow: none; }
 
-/* ---------- buttons ---------- */
-.btn{display:inline-flex;align-items:center;gap:10px;font:700 15px/1 var(--body);text-decoration:none;border-radius:6px;padding:15px 22px;cursor:pointer;border:0;transition:transform .15s, box-shadow .2s, background .2s}
-.btn-primary{color:#140f00;background:linear-gradient(#ffd75a,#ffc21a 45%,#e9a800);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 -2px 0 rgba(0,0,0,.25),0 0 0 1px #8a6200,0 8px 30px rgba(255,180,0,.28)}
-.btn-primary:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 -2px 0 rgba(0,0,0,.25),0 0 0 1px #8a6200,0 10px 44px rgba(255,180,0,.5)}
-.btn-steel{color:var(--text);background:linear-gradient(#2a2d32,#17191c);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 0 1px #3a3e44}
-.btn-steel:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 0 1px var(--y)}
-.nav .btn{padding:10px 16px;font-size:14px}
-.micro{font:500 12.5px/1.4 var(--mono);color:var(--muted);letter-spacing:.02em;margin-top:14px}
-.proof{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:26px;padding-top:18px;border-top:1px solid var(--line);font:600 13.5px/1.3 var(--body);color:#d7d3cc}
-.proof b{font-family:var(--display);color:var(--y);font-size:17px;margin-right:4px}
+  main { position: relative; z-index: 2; }
+  .screen { min-height: 100vh; min-height: 100svh; display: flex; align-items: center; padding: 0 var(--gut); }
+  .copy { max-width: 460px; opacity: 0; transition: opacity .9s ease; }
+  .hero .copy { max-width: 640px; }
+  .hero p:first-of-type { max-width: 34ch; }
+  .copy.in, .shot .copy, .hero .copy { opacity: 1; }
+  h1, h2 { font-family: var(--display); font-weight: 700; margin: 0 0 18px; letter-spacing: -0.01em; }
+  h1 { font-size: var(--s-xl); line-height: 1.02; }
+  h2 { font-size: var(--s-l); line-height: 1.1; }
+  p { margin: 0; color: #bdbcb7; }
+  .mute { color: var(--mute); }
 
-/* ---------- progress rail ---------- */
-.rail{position:fixed;left:clamp(14px,2.2vw,32px);top:50%;transform:translateY(-50%);z-index:15;display:flex;flex-direction:column;gap:0;list-style:none;margin:0;padding:0}
-.rail li{position:relative;display:flex;align-items:center;gap:12px;height:44px}
-.rail li::before{content:"";position:absolute;left:6px;top:-22px;height:44px;width:2px;background:#2a2c30}
-.rail li:first-child::before{display:none}
-.rail li.lit::before{background:linear-gradient(var(--amber),#7a5500)}
-.rail a{display:flex;align-items:center;gap:12px;text-decoration:none}
-.lamp{position:relative;z-index:1;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#4a4d52,#1b1c1f);box-shadow:0 0 0 2px #2c2f34,inset 0 -1px 2px #000;transition:all .35s}
-.rail li.lit .lamp{background:radial-gradient(circle at 35% 30%,#fff3c4,#ffc21a 45%,#b77d00);box-shadow:0 0 0 2px #5a4100,0 0 10px rgba(255,190,0,.5)}
-.rail li.active .lamp{box-shadow:0 0 0 2px #8a6200,0 0 18px 4px rgba(255,190,0,.75)}
-.rail .lbl{font:600 10.5px/1 var(--mono);letter-spacing:.14em;color:#5f6166;text-transform:uppercase;opacity:0;transform:translateX(-4px);transition:all .3s;white-space:nowrap}
-.rail li.active .lbl,.rail:hover .lbl{opacity:1;transform:none}
-.rail li.active .lbl{color:var(--y)}
-.topbar{position:fixed;left:0;top:0;height:3px;width:100%;z-index:30;transform-origin:0 50%;transform:scaleX(var(--p,0));background:linear-gradient(90deg,#b77d00,var(--y));box-shadow:0 0 12px var(--amber);display:none}
+  .btn { display: inline-block; padding: 14px 22px; background: var(--y); color: #121212; font-weight: 700;
+    text-decoration: none; border-radius: 2px; transition: box-shadow .25s; }
+  .btn:hover { box-shadow: 0 0 0 1px var(--y), 0 0 28px rgba(255,194,26,.35); }
+  .actions { display: flex; align-items: center; gap: 26px; margin: 34px 0 16px; flex-wrap: wrap; }
+  .actions a.t { text-underline-offset: 4px; text-decoration-thickness: 1px; }
 
-/* ---------- sections ---------- */
-main{position:relative;z-index:2}
-.scrim{position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,rgba(9,9,10,.82) 0,rgba(9,9,10,.55) 34%,rgba(9,9,10,0) 58%)}
-.station{min-height:100vh;display:flex;align-items:center;padding:110px clamp(16px,4vw,48px) 80px clamp(16px,12vw,190px)}
-.panel{position:relative;width:min(560px,100%);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:34px 34px 30px;
-  -webkit-backdrop-filter:blur(14px) saturate(120%);backdrop-filter:blur(14px) saturate(120%);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 30px 80px rgba(0,0,0,.5);
-  background-image:
-    radial-gradient(circle at 14px 14px,#7c8087 0 2.5px,#1e1f22 3px,transparent 4.5px),
-    radial-gradient(circle at calc(100% - 14px) 14px,#7c8087 0 2.5px,#1e1f22 3px,transparent 4.5px),
-    radial-gradient(circle at 14px calc(100% - 14px),#7c8087 0 2.5px,#1e1f22 3px,transparent 4.5px),
-    radial-gradient(circle at calc(100% - 14px) calc(100% - 14px),#7c8087 0 2.5px,#1e1f22 3px,transparent 4.5px),
-    linear-gradient(180deg,rgba(255,255,255,.035),transparent 30%);}
-.panel::after{content:"";position:absolute;left:24px;right:24px;top:-1px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,200,60,.55),transparent)}
-.plate{display:inline-flex;align-items:center;gap:10px;font:700 11px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:#1a1300;
-  background:linear-gradient(#ffd34d,#f2b200);padding:7px 10px 7px 8px;border-radius:3px;box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 0 0 1px #7a5600;margin-bottom:18px}
-.plate i{display:block;width:18px;height:11px;background:repeating-linear-gradient(-45deg,#1a1300 0 3px,transparent 3px 6px);opacity:.85}
-.plate em{font-style:normal;opacity:.65}
-h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:-.01em}
-h1{font-size:clamp(44px,6.2vw,88px);line-height:.98;font-weight:700}
-h1 .hot,h2 .hot{color:var(--y);text-shadow:0 0 28px rgba(255,180,0,.45)}
-h2{font-size:clamp(30px,3.4vw,46px);line-height:1.04;font-weight:700;margin-bottom:14px}
-h3{font-size:18px;font-weight:700}
-.lead{font-size:18.5px;color:#cfccc5;max-width:540px;margin:22px 0 30px}
-p{color:#bdbab3;margin:0 0 14px}
-.kicker{display:inline-flex;align-items:center;gap:10px;font:600 12px/1 var(--mono);letter-spacing:.16em;color:var(--muted);text-transform:uppercase;margin-bottom:24px}
-.kicker .dot{width:8px;height:8px;border-radius:50%;background:var(--y);box-shadow:0 0 10px var(--amber);animation:blink 1.6s infinite}
-@keyframes blink{50%{opacity:.35}}
-.hero{padding-top:120px;position:relative}
-.hero .panel{background:none;border:0;box-shadow:none;padding:0;width:min(640px,100%);-webkit-backdrop-filter:none;backdrop-filter:none}
-.hero .panel::after{display:none}
-.ctas{display:flex;flex-wrap:wrap;gap:12px}
-.scroll-cue{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);font:600 11px/1 var(--mono);letter-spacing:.2em;color:var(--muted);text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:10px}
-.scroll-cue span{width:2px;height:34px;background:linear-gradient(var(--y),transparent);animation:cue 1.8s infinite}
-@keyframes cue{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
-.claims{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:10px}
-.claims li{display:flex;gap:12px;align-items:baseline;color:#d6d2cb;font-size:15px}
-.claims li::before{content:"";flex:none;width:7px;height:7px;transform:translateY(-2px) rotate(45deg);background:var(--y);box-shadow:0 0 8px var(--amber)}
-.claims b{color:#fff}
+  .final { justify-content: center; align-items: flex-end; text-align: center; padding-bottom: 16vh; position: relative; }
+  .final .copy { max-width: none; }
+  .final .actions { justify-content: center; margin: 28px 0 14px; }
+  footer { position: absolute; left: 0; right: 0; bottom: 26px; text-align: center; color: var(--mute); }
 
-/* ---------- parts bin ---------- */
-.bin{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:22px}
-.chip{position:relative;border:1px solid #2b2e33;background:linear-gradient(#1a1c20,#121316);border-radius:6px;padding:10px 10px 9px;font:500 12px/1.3 var(--mono);color:#cfcbc4;overflow:hidden}
-.chip small{display:block;color:#6f7177;font-size:10.5px;margin-top:3px}
-.chip .st{position:absolute;right:8px;top:9px;width:8px;height:8px;border-radius:50%;background:#33363b}
-.chip::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:0;background:var(--y);box-shadow:0 0 8px var(--amber)}
-.in .chip::after{animation:fill .9s ease forwards;animation-delay:calc(var(--i)*.14s)}
-.in .chip .st{animation:lit .1s forwards;animation-delay:calc(var(--i)*.14s + .9s)}
-@keyframes fill{to{width:100%}}
-@keyframes lit{to{background:#7dff9a;box-shadow:0 0 8px #3dff73}}
-
-/* ---------- wiring ---------- */
-.tabs{display:inline-flex;margin:20px 0 12px;border:1px solid #2b2e33;border-radius:6px;padding:3px;background:#0e0f11}
-.tabs button{font:600 12.5px/1 var(--mono);color:var(--muted);background:none;border:0;padding:9px 14px;border-radius:4px;cursor:pointer;letter-spacing:.04em}
-.tabs button[aria-selected=true]{color:#140f00;background:linear-gradient(#ffd34d,#f2b200)}
-.view{border:1px solid #26292d;border-radius:8px;background:#0b0c0e;min-height:250px;position:relative;overflow:hidden}
-.view[hidden]{display:none}
-.nodes{height:250px}
-.nodes svg{position:absolute;inset:0;width:100%;height:100%}
-.nodes path{fill:none;stroke:var(--y);stroke-width:2;filter:drop-shadow(0 0 4px rgba(255,180,0,.8));stroke-dasharray:6 6;animation:flow 1s linear infinite}
-@keyframes flow{to{stroke-dashoffset:-12}}
-.node{position:absolute;width:150px;border-radius:6px;background:linear-gradient(#25282d,#1a1c20);border:1px solid #3a3e44;font:500 11.5px/1.3 var(--mono);color:#ddd;box-shadow:0 8px 20px rgba(0,0,0,.4)}
-.node b{display:block;padding:6px 9px;border-bottom:1px solid #33363b;font-weight:700;color:var(--y);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase}
-.node span{display:block;padding:7px 9px}
-pre{margin:0;padding:16px 18px;font:400 12.6px/1.62 var(--mono);color:#cfd3d8;overflow-x:auto}
-.k{color:#ffc21a}.f{color:#8fd3ff}.c{color:#6b6f76}.s{color:#9be59b}.n{color:#ff9e64}
-
-/* ---------- live patch ---------- */
-.editor{display:grid;grid-template-columns:1fr 1fr;border:1px solid #26292d;border-radius:8px;overflow:hidden;margin-top:22px;background:#0b0c0e}
-.editor .code{padding:14px 16px;font:400 12.5px/1.9 var(--mono);color:#cfd3d8;border-right:1px solid #26292d}
-.editor .code .hl{background:rgba(255,194,26,.1);margin:0 -16px;padding:0 16px;box-shadow:inset 2px 0 0 var(--y)}
-.game{position:relative;background:linear-gradient(#141821,#0c0e12);min-height:190px;overflow:hidden}
-.game::after{content:"";position:absolute;left:0;right:0;bottom:0;height:28px;background:repeating-linear-gradient(90deg,#2a2d33 0 18px,#22252a 18px 36px);border-top:2px solid #ffc21a55}
-.bot{position:absolute;left:calc(50% - 14px);bottom:28px;width:28px;height:30px;border-radius:5px 5px 3px 3px;background:linear-gradient(#ffd34d,#e3a400);box-shadow:0 0 14px rgba(255,180,0,.45);animation:jump 1.1s cubic-bezier(.3,0,.5,1) infinite}
-.bot::before{content:"";position:absolute;left:6px;top:8px;width:16px;height:6px;border-radius:3px;background:#111;box-shadow:inset 0 0 0 2px #111, 0 0 0 0 #000}
-.bot::after{content:"";position:absolute;left:9px;top:10px;width:4px;height:2px;background:#7df;box-shadow:6px 0 0 #7df}
-@keyframes jump{0%,100%{transform:translateY(0) scaleY(.94)}10%{transform:translateY(0) scaleY(1.05)}50%{transform:translateY(calc(var(--jh,4.5) * -14px))}}
-.game .hud{position:absolute;left:10px;top:9px;font:600 10px/1 var(--mono);color:#7d8189;letter-spacing:.1em}
-.slider{display:flex;align-items:center;gap:14px;margin-top:16px;font:600 12.5px/1 var(--mono);color:#cfcbc4}
-input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--y) var(--fill,40%),#2b2e33 var(--fill,40%));outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#c4c8cd 40%,#6d7279);box-shadow:0 0 0 3px #111,0 0 12px rgba(255,190,0,.6);cursor:grab}
-input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#c4c8cd;border:3px solid #111}
-.status{margin-top:12px;font:500 12px/1.4 var(--mono);color:var(--muted);display:flex;align-items:center;gap:8px}
-.status .led{width:8px;height:8px;border-radius:50%;background:#3dff73;box-shadow:0 0 8px #3dff73}
-.status.busy .led{background:var(--y);box-shadow:0 0 8px var(--amber)}
-.status b{color:var(--y)}
-
-/* ---------- chassis ---------- */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:22px 0 18px}
-.stat{border:1px solid #2b2e33;border-radius:6px;padding:12px;background:linear-gradient(#1a1c20,#121316)}
-.stat b{display:block;font:700 28px/1 var(--display);color:var(--y);text-shadow:0 0 18px rgba(255,180,0,.35)}
-.stat span{font:500 11px/1.3 var(--mono);color:var(--muted)}
-.prof{display:grid;gap:7px;font:500 11.5px/1 var(--mono);color:#bdbab3}
-.prof div{display:grid;grid-template-columns:70px 1fr 56px;align-items:center;gap:10px}
-.prof i{display:block;height:9px;border-radius:2px;background:linear-gradient(90deg,#b77d00,var(--y));box-shadow:0 0 8px rgba(255,180,0,.35);width:0;transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
-.in .prof i{width:var(--w)}
-.prof em{font-style:normal;text-align:right;color:#e6e2da}
-.budget{margin-top:10px;font:500 11.5px/1 var(--mono);color:var(--muted)}
-.budget b{color:#7dff9a}
-
-/* ---------- ship it ---------- */
-.platforms{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:22px 0 16px}
-.pf{border:1px solid #2b2e33;border-radius:6px;background:linear-gradient(#1d1f23,#131417);padding:12px 6px 10px;text-align:center;font:600 11.5px/1.2 var(--mono);color:#cfcbc4}
-.pf .lamp{display:block;margin:0 auto 9px;width:12px;height:12px}
-.in .pf .lamp{animation:pflit .2s forwards;animation-delay:calc(var(--i)*.35s + .3s)}
-@keyframes pflit{to{background:radial-gradient(circle at 35% 30%,#fff3c4,#ffc21a 45%,#b77d00);box-shadow:0 0 0 2px #5a4100,0 0 12px rgba(255,190,0,.7)}}
-.log{border:1px solid #26292d;border-radius:8px;background:#0b0c0e;padding:12px 14px;font:400 12px/1.75 var(--mono);color:#9fa3a9}
-.log div{opacity:0;transform:translateX(-6px);transition:all .3s}
-.in .log div{opacity:1;transform:none;transition-delay:calc(var(--i)*.35s + .4s)}
-.log .ok{color:#7dff9a}
-
-/* ---------- QA ---------- */
-.qa .panel{width:min(980px,100%)}
-.quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:22px}
-.quote{border:1px solid #2b2e33;border-radius:8px;padding:18px;background:linear-gradient(#18191d,#111215);display:flex;flex-direction:column}
-.quote p{color:#e2ded6;font-size:15px;flex:1}
-.quote footer{display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)}
-.quote footer b{display:block;color:#fff;font-size:13.5px}
-.av{width:34px;height:34px;border-radius:50%;flex:none;background:conic-gradient(from 30deg,#ffc21a,#7a5500,#ffc21a);box-shadow:0 0 0 2px #2b2e33}
-.pricing{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
-.plan{border:1px solid #2b2e33;border-radius:8px;padding:20px;background:linear-gradient(#18191d,#111215)}
-.plan.pro{border-color:#7a5600;box-shadow:0 0 0 1px #7a5600 inset,0 0 40px rgba(255,170,0,.08)}
-.plan .price{font:700 34px/1 var(--display);color:#fff;margin:8px 0 6px}
-.plan .price small{font:500 13px var(--body);color:var(--muted)}
-.plan ul{margin:12px 0 0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px;color:#cfcbc4}
-.plan li::before{content:"› ";color:var(--y);font-weight:700}
-
-/* ---------- final ---------- */
-.final{flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;padding-bottom:12vh;padding-left:clamp(16px,4vw,48px)}
-.final h2{font-size:clamp(36px,4.6vw,64px)}
-.final .lead{margin:14px auto 28px}
-.final .ctas{justify-content:center}
-.final .proof{justify-content:center;border-top:0}
-footer.site{position:relative;z-index:2;display:flex;flex-wrap:wrap;gap:16px 28px;align-items:center;justify-content:space-between;padding:28px clamp(16px,4vw,48px);border-top:1px solid var(--line);background:#070708;font-size:13px;color:var(--muted)}
-footer.site .scrap-wordmark{font:800 20px/1 var(--display);color:var(--y)}
-footer.site nav{display:flex;gap:20px}
-footer.site a{text-decoration:none}
-
-/* ---------- responsive ---------- */
-@media (max-width:1100px){
-  .quotes{grid-template-columns:1fr}
-}
-@media (max-width:820px){
-  .nav ul,.brand small{display:none}
-  .nav .btn{margin-left:auto}
-  .scrim{background:linear-gradient(180deg,rgba(9,9,10,0) 0,rgba(9,9,10,.15) 22%,rgba(9,9,10,.86) 48%,rgba(9,9,10,.9) 100%)}
-  .rail{display:none}
-  .topbar{display:block}
-  .station{padding:96px 16px 56px;align-items:flex-end}
-  .hero{align-items:flex-end;padding-bottom:110px}
-  .panel{padding:26px 20px 22px;background-color:rgba(12,13,15,.86)}
-  .hero .panel{background:none}
-  .bin{grid-template-columns:repeat(2,1fr)}
-  .editor{grid-template-columns:1fr}
-  .editor .code{border-right:0;border-bottom:1px solid #26292d}
-  .platforms{grid-template-columns:repeat(3,1fr)}
-  .stats{grid-template-columns:1fr 1fr 1fr}
-  .stat b{font-size:22px}
-  .pricing{grid-template-columns:1fr}
-  .fallback{right:50%;transform:translate(50%,0);top:14vh;width:60vw}
-}
-@media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation:none!important;transition:none!important}
-  html{scroll-behavior:auto}
-}
+  @media (max-width: 760px) {
+    nav { gap: 20px; padding: 20px 22px; }
+    nav a.l { display: none; }
+    .screen { align-items: flex-end; padding-bottom: 12vh; }
+    .final { padding-bottom: 14vh; }
+    .fallback { right: 50%; margin-right: -90px; top: 22%; font-size: 180px; }
+    .shade { background: radial-gradient(120% 80% at 50% 30%, transparent 40%, rgba(10,10,11,.8) 100%); }
+  }
 </style>
 </head>
 <body>
-<canvas id="stage" aria-hidden="true"></canvas>
-<div class="fallback" id="fallback" data-scrap-glyph aria-hidden="true"></div>
-<div class="scrim" aria-hidden="true"></div>
-<div class="topbar" aria-hidden="true"></div>
+<canvas id="scene" aria-hidden="true"></canvas>
+<div class="shade"></div>
+<div class="fallback" data-scrap-glyph="icon" aria-hidden="true"></div>
 
-<header class="nav">
-  <a class="brand" href="#intake" aria-label="Scrap home"><span data-scrap-wordmark></span><small>BY SCRAPWORKS</small></a>
-  <ul>
-    <li><a href="#parts">Features</a></li>
-    <li><a href="#">Docs</a></li>
-    <li><a href="#qa">Pricing</a></li>
-    <li><a href="#">Discord</a></li>
-  </ul>
-  <a class="btn btn-primary" href="#out">Download</a>
-</header>
-
-<ol class="rail" aria-label="Assembly line stations">
-  <li><a href="#intake"><span class="lamp"></span><span class="lbl">00 Intake</span></a></li>
-  <li><a href="#parts"><span class="lamp"></span><span class="lbl">01 Parts Bin</span></a></li>
-  <li><a href="#wiring"><span class="lamp"></span><span class="lbl">02 Wiring</span></a></li>
-  <li><a href="#patch"><span class="lamp"></span><span class="lbl">03 Live Patch</span></a></li>
-  <li><a href="#chassis"><span class="lamp"></span><span class="lbl">04 Chassis</span></a></li>
-  <li><a href="#ship"><span class="lamp"></span><span class="lbl">05 Ship It</span></a></li>
-  <li><a href="#qa"><span class="lamp"></span><span class="lbl">06 Inspection</span></a></li>
-  <li><a href="#out"><span class="lamp"></span><span class="lbl">07 Out the door</span></a></li>
-</ol>
+<nav>
+  <a class="mark" href="#" data-scrap-wordmark></a>
+  <a class="l" href="#">Docs</a>
+  <a class="l" href="#">GitHub</a>
+  <a class="btn" href="#download">Download</a>
+</nav>
 
 <main>
-  <!-- 00 -->
-  <section class="station hero" id="intake" data-station>
-    <div class="panel">
-      <div class="kicker"><span class="dot"></span>Scrap 1.0 · the game engine workshop</div>
-      <h1>Build games like you build <span class="hot">machines.</span></h1>
-      <p class="lead">Scrap hot-patches your code while the game keeps running, wires logic in nodes that compile to native code, and ships to five platforms from one editor.</p>
-      <div class="ctas">
-        <a class="btn btn-primary" href="#out">Download Scrap — free</a>
-        <a class="btn btn-steel" href="#">▶ Watch the 90 s teardown</a>
+  <section class="screen hero">
+    <div class="copy">
+      <h1>Build games like machines.</h1>
+      <p>Scrap is the game engine workshop. Patch, wire, and ship without stopping the game.</p>
+      <div class="actions">
+        <a class="btn" href="#download">Download Scrap — free</a>
+        <a class="t" href="#">Read the docs</a>
       </div>
-      <div class="micro">Windows · macOS · Linux &nbsp;—&nbsp; no account required</div>
-      <div class="proof"><span><b>12,400</b>games built</span><span><b>38k</b>developers on Discord</span><span><b>4.9</b>on itch.io</span></div>
-    </div>
-    <div class="scroll-cue">Scroll to run the line<span></span></div>
-  </section>
-
-  <!-- 01 -->
-  <section class="station" id="parts" data-station>
-    <div class="panel reveal">
-      <div class="plate"><i></i>Station 01 <em>/ Parts Bin</em></div>
-      <h2>Drop it in. It is <span class="hot">already imported.</span></h2>
-      <p>Drag a folder of source files onto the editor. Scrap imports, compresses, and builds LODs and atlases in the background while you keep working.</p>
-      <div class="bin">
-        <div class="chip" style="--i:0">mech_arm.blend<small>4 LODs · 0.6 s</small><span class="st"></span></div>
-        <div class="chip" style="--i:1">crate.fbx<small>collider · 0.2 s</small><span class="st"></span></div>
-        <div class="chip" style="--i:2">level_03.gltf<small>312 meshes · 1.9 s</small><span class="st"></span></div>
-        <div class="chip" style="--i:3">sprites/*.png<small>1 atlas · 0.4 s</small><span class="st"></span></div>
-        <div class="chip" style="--i:4">clank.wav<small>ogg 96k · 0.1 s</small><span class="st"></span></div>
-        <div class="chip" style="--i:5">ui_font.ttf<small>SDF · 0.3 s</small><span class="st"></span></div>
-      </div>
+      <p class="mute">Windows · macOS · Linux · no account</p>
     </div>
   </section>
 
-  <!-- 02 -->
-  <section class="station" id="wiring" data-station>
-    <div class="panel reveal">
-      <div class="plate"><i></i>Station 02 <em>/ Wiring</em></div>
-      <h2>Wire it in nodes. <span class="hot">Read it as code.</span></h2>
-      <p>Wiring is node-based scripting for designers. Every graph compiles to readable native code, so a programmer can review it, diff it, and step through it.</p>
-      <div class="tabs" role="tablist">
-        <button role="tab" aria-selected="true" data-tab="nodes">Nodes</button>
-        <button role="tab" aria-selected="false" data-tab="code">Native code</button>
-      </div>
-      <div class="view nodes" data-view="nodes">
-        <svg viewBox="0 0 490 250" preserveAspectRatio="none" aria-hidden="true">
-          <path d="M150 52 C 200 52, 180 120, 230 120"/>
-          <path d="M380 120 C 420 120, 330 190, 370 196"/>
-          <path d="M150 52 C 220 52, 150 200, 180 205"/>
-        </svg>
-        <div class="node" style="left:14px;top:22px"><b>Event</b><span>On Input · Jump</span></div>
-        <div class="node" style="left:230px;top:92px"><b>Branch</b><span>Is Grounded?</span></div>
-        <div class="node" style="left:30px;top:170px;width:150px"><b>Read</b><span>tuning.jump_height</span></div>
-        <div class="node" style="left:320px;top:172px;width:160px"><b>Action</b><span>Impulse + clank.wav</span></div>
-      </div>
-      <div class="view" data-view="code" hidden>
-<pre><span class="c">// generated by Wiring · player_jump.rs</span>
-<span class="k">pub fn</span> <span class="f">player_jump</span>(
-    input: Res&lt;Input&gt;,
-    <span class="k">mut</span> q: Query&lt;(&amp;<span class="k">mut</span> Velocity, &amp;Grounded, &amp;Tuning)&gt;,
-    audio: Res&lt;Audio&gt;,
-) {
-    <span class="k">if</span> !input.<span class="f">just_pressed</span>(Action::Jump) { <span class="k">return</span>; }
-    <span class="k">for</span> (<span class="k">mut</span> vel, grounded, tune) <span class="k">in</span> &amp;<span class="k">mut</span> q {
-        <span class="k">if</span> grounded.<span class="n">0</span> {
-            vel.y = tune.jump_height;
-            audio.<span class="f">play</span>(<span class="s">"clank.wav"</span>);
-        }
-    }
-}</pre>
-      </div>
+  <section class="screen">
+    <div class="copy">
+      <h2>Live Patch</h2>
+      <p>Code and assets reload in about 140 ms while the game keeps running.</p>
     </div>
   </section>
 
-  <!-- 03 -->
-  <section class="station" id="patch" data-station>
-    <div class="panel reveal">
-      <div class="plate"><i></i>Station 03 <em>/ Live Patch</em></div>
-      <h2>Change it while it <span class="hot">runs.</span></h2>
-      <p>Edit code, tuning, or assets and Scrap patches the running game in about 140 ms. Play mode keeps its state. Try it: drag the slider.</p>
-      <div class="editor">
-        <div class="code">
-          <span class="c">[player]</span><br>
-          <div class="hl">jump_height = <span class="n" id="jhv">4.5</span></div>
-          gravity &nbsp;&nbsp;&nbsp;&nbsp;= <span class="n">22.0</span><br>
-          coyote_ms &nbsp;&nbsp;= <span class="n">90</span><br>
-          <span class="c"># saved → patched live</span>
-        </div>
-        <div class="game" id="game"><div class="hud">PLAY MODE · 60 FPS</div><div class="bot"></div></div>
-      </div>
-      <label class="slider">jump_height <input type="range" id="jh" min="1.5" max="9" step="0.1" value="4.5"></label>
-      <div class="status" id="status"><span class="led"></span><span id="statusText">Play mode running · last patch <b>138 ms</b></span></div>
+  <section class="screen">
+    <div class="copy">
+      <h2>Visual Wiring</h2>
+      <p>Wire logic with nodes. Scrap compiles them to native code.</p>
     </div>
   </section>
 
-  <!-- 04 -->
-  <section class="station" id="chassis" data-station>
-    <div class="panel reveal">
-      <div class="plate"><i></i>Station 04 <em>/ Chassis + Teardown</em></div>
-      <h2>A runtime with <span class="hot">headroom.</span></h2>
-      <p>Chassis is a data-oriented ECS runtime. Teardown, the frame profiler, shows the cost of each system in every frame.</p>
-      <div class="stats">
-        <div class="stat"><b>100k</b><span>entities</span></div>
-        <div class="stat"><b>60 fps</b><span>sustained</span></div>
-        <div class="stat"><b>2019</b><span>laptop, iGPU</span></div>
-      </div>
-      <div class="prof">
-        <div>render<i style="--w:62%"></i><em>5.4 ms</em></div>
-        <div>physics<i style="--w:26%"></i><em>2.1 ms</em></div>
-        <div>scripts<i style="--w:22%"></i><em>1.9 ms</em></div>
-        <div>ai<i style="--w:14%"></i><em>1.2 ms</em></div>
-        <div>audio<i style="--w:4%"></i><em>0.3 ms</em></div>
-      </div>
-      <div class="budget">frame total 10.9 ms / 16.7 ms budget · <b>5.8 ms spare</b></div>
+  <section class="screen">
+    <div class="copy">
+      <h2>Ship It</h2>
+      <p>One click to Windows, macOS, Linux, Web, and Steam Deck.</p>
     </div>
   </section>
 
-  <!-- 05 -->
-  <section class="station" id="ship" data-station>
-    <div class="panel reveal">
-      <div class="plate"><i></i>Station 05 <em>/ Ship It</em></div>
-      <h2>One click. <span class="hot">Five builds.</span></h2>
-      <p>Ship It exports signed builds for every target in parallel and uploads them to Steam or itch.io if you want it to.</p>
-      <div class="platforms">
-        <div class="pf" style="--i:0"><span class="lamp"></span>Windows</div>
-        <div class="pf" style="--i:1"><span class="lamp"></span>macOS</div>
-        <div class="pf" style="--i:2"><span class="lamp"></span>Linux</div>
-        <div class="pf" style="--i:3"><span class="lamp"></span>Web</div>
-        <div class="pf" style="--i:4"><span class="lamp"></span>Steam Deck</div>
-      </div>
-      <div class="log">
-        <div style="--i:0">▸ windows-x64 ........ <span class="ok">ok</span> 41 s</div>
-        <div style="--i:1">▸ macos-universal .... <span class="ok">ok</span> 44 s</div>
-        <div style="--i:2">▸ linux-x64 .......... <span class="ok">ok</span> 38 s</div>
-        <div style="--i:3">▸ web-wasm ........... <span class="ok">ok</span> 29 s</div>
-        <div style="--i:4">▸ steamdeck .......... <span class="ok">ok</span> 39 s · uploaded</div>
-      </div>
+  <section class="screen final" id="download">
+    <div class="copy">
+      <h2>Pick up the wrench.</h2>
+      <div class="actions"><a class="btn" href="#">Download Scrap — free</a></div>
+      <p class="mute">Free for small teams.</p>
     </div>
-  </section>
-
-  <!-- 06 -->
-  <section class="station qa" id="qa" data-station>
-    <div class="panel reveal">
-      <div class="plate"><i></i>Station 06 <em>/ Inspection</em></div>
-      <h2>Signed off by <span class="hot">people who ship.</span></h2>
-      <div class="quotes">
-        <figure class="quote" style="margin:0"><p>"We moved our jam team to Scrap on a Friday and shipped on Sunday. Live Patch is the reason."</p>
-          <footer><span class="av"></span><span><b>Mara Okafor</b>Lead Designer, Tinplate Games</span></footer></figure>
-        <figure class="quote" style="margin:0"><p>"Teardown showed us in one frame what took two weeks to find in our old engine."</p>
-          <footer><span class="av"></span><span><b>Jun Takeda</b>Engine Programmer, Ratchet &amp; Moth</span></footer></figure>
-        <figure class="quote" style="margin:0"><p>"Our artists wire their own logic now, and the output is code our programmers can actually review."</p>
-          <footer><span class="av"></span><span><b>Ines Varga</b>Technical Artist, Northbolt Studio</span></footer></figure>
-      </div>
-      <div class="pricing">
-        <div class="plan"><h3>Free</h3><div class="price">$0</div><p style="margin:0">For teams under $250k yearly revenue.</p>
-          <ul><li>Every feature, no watermark</li><li>Source-available engine</li><li>Community support on Discord</li></ul></div>
-        <div class="plan pro"><h3>Pro</h3><div class="price">$24 <small>/ seat / month</small></div><p style="margin:0">For studios past $250k.</p>
-          <ul><li>Priority support, 1 business day</li><li>Team build cache</li><li>Console export add-ons</li></ul></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 07 -->
-  <section class="station final" id="out" data-station>
-    <h2>Assembled. <span class="hot">Now build yours.</span></h2>
-    <p class="lead">Scrap is free for teams under $250k. Download it, open a template, and press play in under five minutes.</p>
-    <div class="ctas">
-      <a class="btn btn-primary" href="#">Download Scrap — free</a>
-      <a class="btn btn-steel" href="#">Read the docs</a>
-    </div>
-    <div class="micro">Windows · macOS · Linux &nbsp;—&nbsp; no account required</div>
-    <div class="proof"><span><b>12,400</b>games built</span><span><b>38k</b>developers on Discord</span><span><b>4.9</b>on itch.io</span></div>
+    <footer>© 2026 ScrapWorks</footer>
   </section>
 </main>
 
-<footer class="site">
-  <span data-scrap-wordmark></span>
-  <nav><a href="#">Docs</a><a href="#">Changelog</a><a href="#">Discord</a><a href="#">Careers</a><a href="#">Press kit</a></nav>
-  <span>© 2026 ScrapWorks</span>
-</footer>
-
 <script>
-/* DOM layer: station progress, rail lamps, reveals, Wiring tabs, Live Patch slider.
-   The 3D module reads window.SCRAP_LINE.stage(). It works without WebGL. */
-(function () {
-  var sections = [].slice.call(document.querySelectorAll('[data-station]'));
-  var lamps = [].slice.call(document.querySelectorAll('.rail li'));
-  var anchors = [];
-  var q = new URLSearchParams(location.search);
-  var forced = q.has('p') ? parseFloat(q.get('p')) * (sections.length - 1) : (q.has('stage') ? parseFloat(q.get('stage')) : null);
-
-  function measure() {
-    anchors = sections.map(function (s) { var r = s.getBoundingClientRect(); return r.top + scrollY + r.height / 2; });
-  }
-  // Station value: i when section i is centered in the viewport, linear between centers.
-  function stage() {
-    if (forced != null) return forced;
-    var y = scrollY + innerHeight / 2;
-    if (y <= anchors[0]) return 0;
-    for (var i = 0; i < anchors.length - 1; i++) {
-      if (y < anchors[i + 1]) return i + (y - anchors[i]) / (anchors[i + 1] - anchors[i]);
-    }
-    return anchors.length - 1;
-  }
-  function paint() {
-    var s = stage(), act = Math.round(s);
-    lamps.forEach(function (li, i) { li.classList.toggle('lit', s >= i - 0.35); li.classList.toggle('active', i === act); });
-    document.documentElement.style.setProperty('--p', (s / (sections.length - 1)).toFixed(4));
-  }
-  measure(); paint();
-  // Debug: ?at=3 shifts the page to station 3 and forces the scene there.
-  // Headless screenshots ignore scroll, so this shows the real composition.
-  if (q.has('at')) {
-    forced = parseFloat(q.get('at'));
-    document.getElementById('stage').style.transition = 'none';
-    var shift = function () {
-      var el = document.querySelector('main');
-      el.style.transform = '';
-      measure();
-      var n = Math.round(forced);
-      el.style.transform = 'translateY(' + (-(anchors[n] - innerHeight / 2)) + 'px)';
-      document.querySelectorAll('.reveal').forEach(function (r) { r.classList.add('in'); });
-      paint();
-    };
-    addEventListener('load', shift); shift();
-    if (document.fonts) document.fonts.ready.then(shift);
-  }
-  addEventListener('resize', function () { measure(); paint(); });
-  addEventListener('load', function () { measure(); paint(); });
-  if (document.fonts) document.fonts.ready.then(function () { measure(); paint(); });
-  addEventListener('scroll', paint, { passive: true });
-  window.SCRAP_LINE = { stage: stage, count: sections.length };
-
-  // Reveal-on-view drives the CSS stagger animations in each panel.
-  var io = new IntersectionObserver(function (es) {
-    es.forEach(function (e) { if (e.isIntersecting) e.target.classList.add('in'); });
-  }, { threshold: 0.35 });
-  document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
-  if (forced != null) document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('in'); });
-
-  // Wiring tabs.
-  document.querySelectorAll('.tabs button').forEach(function (b) {
-    b.addEventListener('click', function () {
-      document.querySelectorAll('.tabs button').forEach(function (x) { x.setAttribute('aria-selected', x === b); });
-      document.querySelectorAll('[data-view]').forEach(function (v) { v.hidden = v.getAttribute('data-view') !== b.getAttribute('data-tab'); });
-    });
-  });
-
-  // Live Patch slider. Fires scrap:patch so the 3D line throws a spark burst.
-  var jh = document.getElementById('jh'), jhv = document.getElementById('jhv'), game = document.getElementById('game');
-  var st = document.getElementById('status'), stt = document.getElementById('statusText'), timer;
-  function setFill() { jh.style.setProperty('--fill', ((jh.value - jh.min) / (jh.max - jh.min) * 100) + '%'); }
-  setFill();
-  jh.addEventListener('input', function () {
-    setFill();
-    jhv.textContent = (+jh.value).toFixed(1);
-    st.classList.add('busy'); stt.textContent = 'Patching player.jump_height …';
-    clearTimeout(timer);
-    timer = setTimeout(function () {
-      game.style.setProperty('--jh', jh.value);
-      st.classList.remove('busy');
-      stt.innerHTML = 'Play mode running · last patch <b>' + (124 + Math.round(Math.random() * 30)) + ' ms</b>';
-      dispatchEvent(new CustomEvent('scrap:patch'));
-    }, 140);
-  });
-
-  // Static fallback when WebGL or the CDN is not available.
-  setTimeout(function () {
-    if (!document.getElementById('stage').classList.contains('is-live')) document.getElementById('fallback').classList.add('on');
-  }, 5000);
-})();
+  // Text reveal (opacity only, so text is never at a sub-pixel transform at rest).
+  (function () {
+    var q = new URLSearchParams(location.search);
+    if (q.has('p')) document.documentElement.classList.add('shot');
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) e.target.classList.add('in'); });
+    }, { threshold: 0.35 });
+    document.querySelectorAll('.copy').forEach(function (el) { io.observe(el); });
+    // Static icon if WebGL or the CDN does not come up.
+    setTimeout(function () {
+      if (!document.querySelector('#scene.is-live')) document.documentElement.classList.add('no-webgl');
+    }, 6000);
+  })();
 </script>
 
 <script type="module">
@@ -550,321 +152,108 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
-const LINE = window.SCRAP_LINE;
-const canvas = document.getElementById('stage');
-let S;
 try {
   const k = ScrapBrand.three(THREE, { RoomEnvironment, EffectComposer, RenderPass, UnrealBloomPass, OutputPass });
-  S = k.stage(canvas, { bloom: { strength: 0.9, radius: 0.55, threshold: 1.15 }, fov: 32, z: 8, exposure: 0.95, envIntensity: 0.65 });
-  build(k);
-} catch (e) {
-  console.error(e);
-  document.getElementById('fallback').classList.add('on');
-}
+  const canvas = document.getElementById('scene');
+  const st = k.stage(canvas, { bloom: { strength: 0.55, radius: 0.5, threshold: 1.25 }, fov: 30, z: 9, exposure: 1.0, envIntensity: 0.6 });
+  st.renderer.setClearColor(0x0a0a0b, 1);
+  st.scene.background = new THREE.Color(0x0a0a0b);
+  document.documentElement.classList.add('live');
+  const { scene } = st;
 
-function build(k) {
-  const { scene, camera } = S;
-  const M = k.materials;
-  const deg = THREE.MathUtils.degToRad;
-  const clamp01 = (x) => Math.min(1, Math.max(0, x));
-  const smooth = (a, b, x) => { const t = clamp01((x - a) / (b - a)); return t * t * (3 - 2 * t); };
-  const bump = (x, a, b, c, d) => smooth(a, b, x) * (1 - smooth(c, d, x));
-  const lerp = THREE.MathUtils.lerp;
-  const AMBER = 0xffb300;
+  const key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(-3, 4, 5);
+  const rim = new THREE.DirectionalLight(0xffb000, 1.6); rim.position.set(4, 1, -4);
+  scene.add(key, rim);
 
-  // Assembly point. Desktop: right of the text column. Mobile: centered above the panels.
-  const A = new THREE.Vector3(2.5, 0.45, 0);
-  const BELT_Y = -2.3, BELT_X0 = -10, BELT_X1 = 4.7, BELT_W = 1.5;
+  // Parts, in the local frame of the finished icon (outline units x 0.01).
+  const head = k.wrench({ variant: 'letter', depth: 16 });
+  head.userData.mesh.rotation.z = 0;
 
-  /* ---------- lights ---------- */
-  const key = new THREE.DirectionalLight(0xfff1d6, 0.9); key.position.set(3, 5, 4); scene.add(key);
-  const rim = new THREE.DirectionalLight(0xffc870, 1.2); rim.position.set(-4, 2, -5); scene.add(rim);
-  const weldLight = new THREE.PointLight(0xffb030, 0, 5, 2); scene.add(weldLight);
+  const hs = new THREE.Shape();
+  hs.moveTo(-29, 11); hs.lineTo(-150, 11);
+  hs.absarc(-150, 0, 11, Math.PI / 2, Math.PI * 1.5, false);
+  hs.lineTo(-29, -11); hs.closePath();
+  const hole = new THREE.Path(); hole.absarc(-146, 0, 5, 0, Math.PI * 2, true); hs.holes.push(hole);
+  const hg = new THREE.ExtrudeGeometry(hs, { depth: 12, bevelEnabled: true, bevelThickness: 3, bevelSize: 2, bevelSegments: 6, curveSegments: 40 });
+  hg.translate(0, 0, -6);
+  const handle = new THREE.Mesh(hg, k.materials.steel({ roughness: 0.36 }));
+  handle.scale.setScalar(0.01);
+  const handleG = new THREE.Group(); handleG.add(handle);
 
-  /* ---------- conveyor ---------- */
-  const beltCanvas = document.createElement('canvas'); beltCanvas.width = 512; beltCanvas.height = 64;
-  (() => {
-    const g = beltCanvas.getContext('2d');
-    g.fillStyle = '#1a1b1e'; g.fillRect(0, 0, 512, 64);
-    for (let x = 0; x < 512; x += 32) { g.fillStyle = '#0c0c0e'; g.fillRect(x, 0, 4, 64); g.fillStyle = '#2b2d31'; g.fillRect(x + 4, 0, 1, 64); }
-    g.fillStyle = '#e8a900';
-    for (let x = 96; x < 512; x += 256) { g.beginPath(); g.moveTo(x, 22); g.lineTo(x + 16, 32); g.lineTo(x, 42); g.lineTo(x + 6, 32); g.fill(); }
-  })();
-  const beltTex = new THREE.CanvasTexture(beltCanvas);
-  beltTex.colorSpace = THREE.SRGBColorSpace; beltTex.wrapS = THREE.RepeatWrapping; beltTex.anisotropy = 8;
-  const beltLen = BELT_X1 - BELT_X0;
-  beltTex.repeat.set(beltLen / 2.4, 1);
-  const conveyor = new THREE.Group(); scene.add(conveyor);
-  const belt = new THREE.Mesh(new THREE.PlaneGeometry(beltLen, BELT_W), new THREE.MeshStandardMaterial({ map: beltTex, roughness: 0.75, metalness: 0.3 }));
-  belt.rotation.x = -Math.PI / 2; belt.position.set((BELT_X0 + BELT_X1) / 2, BELT_Y, 0); conveyor.add(belt);
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(beltLen + 0.3, 0.34, BELT_W + 0.16), M.darkSteel());
-  frame.position.set(belt.position.x, BELT_Y - 0.18, 0); conveyor.add(frame);
-  [-1, 1].forEach((side) => {
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(beltLen + 0.3, 0.09, 0.07), M.steel({ color: 0x8d9197, roughness: 0.42 }));
-    rail.position.set(belt.position.x, BELT_Y + 0.035, side * (BELT_W / 2 + 0.07)); conveyor.add(rail);
-  });
-  const roller = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, BELT_W + 0.1, 28), M.steel());
-  roller.rotation.x = Math.PI / 2; roller.position.set(BELT_X1, BELT_Y - 0.17, 0); conveyor.add(roller);
-  for (let x = BELT_X0 + 1; x < BELT_X1; x += 2.6) {
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.2, 0.14), M.darkSteel());
-    leg.position.set(x, BELT_Y - 1.45, BELT_W / 2 - 0.05); conveyor.add(leg);
+  // No bump or anisotropy on the nut: its UVs are tiny, so the UV derivatives are zero and
+  // the shader returns NaN, which bloom spreads into a white square.
+  const nut = k.hexNut({ r: 0.265, material: k.materials.steel({ color: 0xc9ccd0, anisotropy: 0 }) });
+  const NUT_HOME = new THREE.Vector3(0.10, 0, 0);
+
+  const asm = new THREE.Group();
+  asm.add(head, handleG, nut);
+  const ang = THREE.MathUtils.degToRad(k.ICON_ANGLE);
+  asm.rotation.z = ang;
+  const rig = new THREE.Group(); rig.add(asm); scene.add(rig);
+
+  // One glow line: a light bar under the part.
+  const bar = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), k.materials.glow(0xffb300, 2.4));
+  scene.add(bar);
+
+  const ss = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const mix = (a, b, t) => a + (b - a) * t;
+
+  // Exploded offsets (local frame) that each part leaves as it docks.
+  const OFF = {
+    head:   { p: [0.22, 0.16, -0.1],  r: [0.0, -0.6, 0.2] },
+    handle: { p: [-0.42, -0.32, 0.2], r: [0.45, 0.35, -0.3] },
+    nut:    { p: [0.75, 0.15, 0.3],   r: [0.9, 0.5, 0.4] }
+  };
+  function place(obj, off, e, base, t, phase) {
+    const f = 1 - e, w = Math.sin(t * 0.8 + phase) * 0.04 * f;
+    obj.position.set((base ? base.x : 0) + off.p[0] * f, (base ? base.y : 0) + off.p[1] * f + w, off.p[2] * f);
+    obj.rotation.set(off.r[0] * f + w, off.r[1] * f, off.r[2] * f);
   }
-  // Chase lamps along the front of the frame.
-  const LAMPS = 26, lampGeo = new THREE.BoxGeometry(0.16, 0.035, 0.02);
-  const lampMat = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
-  const lamps = new THREE.InstancedMesh(lampGeo, lampMat, LAMPS);
-  const dummy = new THREE.Object3D(), lampColor = new THREE.Color();
-  for (let i = 0; i < LAMPS; i++) {
-    dummy.position.set(BELT_X0 + 0.6 + i * (beltLen - 1) / (LAMPS - 1), BELT_Y - 0.2, BELT_W / 2 + 0.085);
-    dummy.updateMatrix(); lamps.setMatrixAt(i, dummy.matrix); lamps.setColorAt(i, lampColor.setRGB(0.3, 0.2, 0));
+
+  function update(s, t) {
+    const narrow = canvas.clientWidth / canvas.clientHeight < 0.85;
+    const eHead = ss(0.2, 1.4, s), eHandle = ss(0.6, 2.1, s), eNut = ss(1.9, 3.0, s), eFinal = ss(3.1, 4.0, s);
+    place(head, OFF.head, eHead, null, t, 0);
+    place(handleG, OFF.handle, eHandle, null, t, 1.7);
+    place(nut, OFF.nut, eNut, NUT_HOME, t, 3.1);
+
+    const sc = narrow ? 0.78 : 1.1;
+    asm.scale.setScalar(sc);
+    // Center the finished icon: its middle sits 0.65 units down the handle axis.
+    asm.position.set(Math.cos(ang) * 0.65 * sc, Math.sin(ang) * 0.65 * sc, 0);
+
+    const x0 = narrow ? 0 : 1.7, y0 = narrow ? 1.05 : 0, y1 = narrow ? 0.95 : 0.55;
+    rig.position.set(mix(x0, 0, eFinal), mix(y0, y1, eFinal), 0);
+    const p = st.pointer;
+    rig.rotation.set(-p.sy * 0.08, mix(-0.45, 0, ss(0, 4, s)) + p.sx * 0.15 + Math.sin(t * 0.3) * 0.06, 0);
+
+    const assembled = (eHead + eHandle + eNut) / 3;
+    bar.position.set(rig.position.x, rig.position.y - (narrow ? 0.85 : 1.1), -0.4);
+    const bw = (narrow ? 1.8 : 2.4) * ss(0.35, 1, assembled);
+    bar.visible = bw > 0.01;
+    bar.scale.set(Math.max(bw, 0.001), 0.012, 1);
   }
-  conveyor.add(lamps);
 
-  /* ---------- gantry + laser heads ---------- */
-  const gantry = new THREE.Mesh(new THREE.BoxGeometry(7, 0.22, 0.28), M.darkSteel());
-  gantry.position.set(A.x, 3.05, -0.5); scene.add(gantry);
-  const heads = [-1.25, 1.35].map((dx) => {
-    const g = new THREE.Group();
-    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.6, 16), M.steel());
-    arm.position.y = -0.3;
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.07, 0.26, 6), M.paint({ color: 0xf2b400 }));
-    body.position.y = -0.7;
-    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.035, 16, 12), M.glow(AMBER, 4));
-    tip.position.y = -0.85;
-    g.add(arm, body, tip);
-    g.position.set(A.x + dx, 2.95, 0.35);
-    scene.add(g);
-    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 1, 8, 1, true), M.glow(0xffc040, 5));
-    beam.visible = false; scene.add(beam);
-    return { g, tip, beam };
-  });
+  const q = new URLSearchParams(location.search);
+  const forced = q.has('p') ? parseFloat(q.get('p')) : null;
+  if (forced != null) document.querySelector('main').style.transform = 'translateY(' + (-forced * 100) + 'vh)';
+  let cur = forced != null ? forced : window.scrollY / window.innerHeight;
+  const target = () => forced != null ? forced : window.scrollY / window.innerHeight;
 
-  /* ---------- wrench rig: core plate + two painted shells + blueprint ghost ---------- */
-  const shape = k.wrenchShape();
-  const SCALE = 0.0152;
-  function piece(depth, bt, bs, mat) {
-    const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelThickness: bt, bevelSize: bs, bevelSegments: 4, curveSegments: 32 });
-    g.center();
-    return new THREE.Mesh(g, mat);
-  }
-  function holder() { const h = new THREE.Group(); const inner = new THREE.Group(); inner.rotation.z = deg(k.ANGLE); inner.scale.setScalar(SCALE); h.add(inner); h.inner = inner; return h; }
-  const rig = new THREE.Group(); rig.position.copy(A); scene.add(rig);
-
-  const coreH = holder(); coreH.inner.add(piece(8, 1, 0.8, M.darkSteel({ roughness: 0.35 }))); rig.add(coreH);
-  const paintMat = M.paint({ color: 0xf2a900, roughness: 0.42, clearcoatRoughness: 0.18 });
-  const frontH = holder(); const front = piece(3, 1.5, 2.4, paintMat); front.position.z = 7.5; frontH.inner.add(front); rig.add(frontH);
-  const backH = holder(); const back = piece(3, 1.5, 2.4, paintMat); back.position.z = -7.5; backH.inner.add(back); rig.add(backH);
-
-  const ghostGeo = new THREE.ExtrudeGeometry(shape, { depth: 22, bevelEnabled: false, curveSegments: 24 }); ghostGeo.center();
-  const ghostMat = new THREE.LineBasicMaterial({ color: new THREE.Color(AMBER).multiplyScalar(2.2), transparent: true, opacity: 0.9, toneMapped: false, depthWrite: false });
-  const ghostH = holder(); ghostH.inner.add(new THREE.LineSegments(new THREE.EdgesGeometry(ghostGeo, 20), ghostMat)); rig.add(ghostH);
-  // Faint fill behind the ghost lines reads as a hologram plate.
-  const ghostFill = new THREE.Mesh(new THREE.ShapeGeometry(shape, 24), new THREE.MeshBasicMaterial({ color: 0xffa000, transparent: true, opacity: 0.06, depthWrite: false, side: THREE.DoubleSide }));
-  ghostFill.geometry.center(); ghostH.inner.add(ghostFill);
-
-  // Weld path: outline points in the inner frame of the rig, front face.
-  const outline = shape.getSpacedPoints(160);
-  const bb = new THREE.Box2().setFromPoints(outline); const oc = bb.getCenter(new THREE.Vector2());
-  const weldLocal = outline.map((p) => new THREE.Vector3(p.x - oc.x, p.y - oc.y, 10));
-  const nutLocal = new THREE.Vector3(-oc.x, -oc.y, 0); // jaw center = shape origin
-
-  // Halo rings for the final station.
-  const haloMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(AMBER).multiplyScalar(2.6), transparent: true, opacity: 0, toneMapped: false, depthWrite: false });
-  const halo = new THREE.Group();
-  [1.22, 1.34].forEach((r, i) => { const m = new THREE.Mesh(new THREE.TorusGeometry(r, i ? 0.004 : 0.008, 8, 160), haloMat); halo.add(m); });
-  halo.position.z = -0.4; rig.add(halo);
-
-  /* ---------- parts on the belt ---------- */
-  const parts = [];
-  const steel = M.steel();
-  function addPart(obj, h) { obj.userData.h = h; scene.add(obj); parts.push(obj); return obj; }
-  for (let i = 0; i < 5; i++) { const n = k.hexNut({ r: 0.13 + (i % 3) * 0.025, material: steel }); n.rotation.x = -Math.PI / 2; addPart(n, 0.11); }
-  for (let i = 0; i < 3; i++) { const b = k.bolt({ r: 0.07, material: steel }); b.rotation.z = Math.PI / 2; b.rotation.y = 0.4 * i; addPart(b, 0.07); }
-  const bar = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.11, 0.16), M.steel({ roughness: 0.22 })); addPart(bar, 0.06);
-  // Shuffle so types alternate on the belt.
-  const order = [0, 5, 1, 8, 2, 6, 3, 7, 4];
-  const P = order.map((idx, i) => ({ o: parts[idx], i, z: (((i * 37) % 7) / 7 - 0.5) * 0.7, spin: (i % 2 ? 1 : -1) * (0.6 + (i % 3) * 0.3), absorbed: false }));
-  const N = P.length;
-
-  // The last nut rides at the end of the belt and drops into the jaw at the final station.
-  const keyNut = k.hexNut({ r: 0.35, material: M.steel({ roughness: 0.18 }) });
-  scene.add(keyNut);
-  const keyNutBelt = new THREE.Vector3(BELT_X1 - 0.55, BELT_Y + 0.11, 0.1);
-  const qFlat = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0.3));
-
-  /* ---------- wires (station 02) ---------- */
-  const WIRE_PTS = 32;
-  const wires = P.map((p, i) => {
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(WIRE_PTS * 3), 3));
-    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(WIRE_PTS * 3), 3));
-    const mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0, toneMapped: false, depthWrite: false });
-    const line = new THREE.Line(geo, mat); line.frustumCulled = false; scene.add(line);
-    return { line, target: weldLocal[(i * 17 + 5) % weldLocal.length] };
-  });
-
-  /* ---------- sparks ---------- */
-  const SPARKS = 420;
-  const sp = { pos: new Float32Array(SPARKS * 3), col: new Float32Array(SPARKS * 3), vel: new Float32Array(SPARKS * 3), life: new Float32Array(SPARKS), max: new Float32Array(SPARKS), next: 0 };
-  for (let i = 0; i < SPARKS; i++) sp.pos[i * 3 + 1] = -99;
-  const spGeo = new THREE.BufferGeometry();
-  spGeo.setAttribute('position', new THREE.BufferAttribute(sp.pos, 3));
-  spGeo.setAttribute('color', new THREE.BufferAttribute(sp.col, 3));
-  const dot = document.createElement('canvas'); dot.width = dot.height = 32;
-  (() => { const g = dot.getContext('2d'), gr = g.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, '#fff'); gr.addColorStop(0.35, 'rgba(255,255,255,.7)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 32, 32); })();
-  const sparks = new THREE.Points(spGeo, new THREE.PointsMaterial({ size: 0.055, map: new THREE.CanvasTexture(dot), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
-  sparks.frustumCulled = false; scene.add(sparks);
-  function emit(at, count, speed) {
-    for (let c = 0; c < count; c++) {
-      const i = sp.next; sp.next = (sp.next + 1) % SPARKS;
-      sp.pos[i * 3] = at.x; sp.pos[i * 3 + 1] = at.y; sp.pos[i * 3 + 2] = at.z;
-      const th = Math.random() * Math.PI * 2, up = Math.random();
-      const v = speed * (0.4 + Math.random() * 0.8);
-      sp.vel[i * 3] = Math.cos(th) * v * (1 - up * 0.5); sp.vel[i * 3 + 1] = up * v * 1.2; sp.vel[i * 3 + 2] = Math.sin(th) * v * (1 - up * 0.5);
-      sp.max[i] = sp.life[i] = 0.35 + Math.random() * 0.6;
-    }
-  }
-  function stepSparks(dt) {
-    for (let i = 0; i < SPARKS; i++) {
-      if (sp.life[i] <= 0) { sp.col[i * 3] = sp.col[i * 3 + 1] = sp.col[i * 3 + 2] = 0; continue; }
-      sp.life[i] -= dt;
-      sp.vel[i * 3 + 1] -= 6 * dt;
-      sp.pos[i * 3] += sp.vel[i * 3] * dt; sp.pos[i * 3 + 1] += sp.vel[i * 3 + 1] * dt; sp.pos[i * 3 + 2] += sp.vel[i * 3 + 2] * dt;
-      if (sp.pos[i * 3 + 1] < BELT_Y + 0.01 && sp.vel[i * 3 + 1] < 0) { sp.pos[i * 3 + 1] = BELT_Y + 0.01; sp.vel[i * 3 + 1] *= -0.35; sp.vel[i * 3] *= 0.6; sp.vel[i * 3 + 2] *= 0.6; }
-      const f = Math.max(0, sp.life[i] / sp.max[i]);
-      sp.col[i * 3] = 4 * f + 0.4; sp.col[i * 3 + 1] = 2.4 * f * f + 0.1; sp.col[i * 3 + 2] = 0.6 * f * f * f;
-    }
-    spGeo.attributes.position.needsUpdate = true; spGeo.attributes.color.needsUpdate = true;
-  }
-  let patchKick = 0;
-  addEventListener('scrap:patch', () => { emit(rig.getWorldPosition(new THREE.Vector3()), 70, 2.6); patchKick = 1; if (S.reduceMotion) tick(0, 0); });
-
-  /* ---------- per-frame ---------- */
-  let s = LINE.stage(), last = s, weldIdx = 0, spawnAcc = 0;
-  const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3(), ctrl = new THREE.Vector3(), look = new THREE.Vector3();
-  const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3());
-  const qT = new THREE.Quaternion();
-
-  function tick(t, dt) {
-    const target = LINE.stage();
-    s = S.reduceMotion ? target : s + (target - s) * Math.min(1, dt * 4.5);
-    const forward = s > last + 1e-4; last = s;
-    const mobile = innerWidth < 820;
-
-    /* camera */
-    const fin = smooth(6.15, 6.95, s);
-    const camX = mobile ? A.x : lerp(0, A.x, fin);
-    const camZ = mobile ? 19 : lerp(11, 9.6, fin);
-    const lookY = mobile ? A.y - 2.9 : lerp(0.2, A.y - 0.95, fin);
-    camera.position.set(camX + S.pointer.sx * 0.3, 2.0 + S.pointer.sy * 0.2, camZ);
-    look.set(camX, lookY, 0); camera.lookAt(look);
-
-    /* belt: drops out of frame for the final station */
-    conveyor.position.y = -fin * 2.6; gantry.position.y = 3.05 + fin * 2.5;
-    const run = 0.15 + 0.85 * bump(s, 0.2, 0.6, 1.8, 2.3) + 0.4 * bump(s, 6.0, 6.3, 6.8, 7.0);
-    beltTex.offset.x -= dt * run * 0.9;
-    for (let i = 0; i < LAMPS; i++) {
-      const ph = (i / LAMPS - t * 0.35 * (0.3 + run)) % 1, v = Math.pow(Math.max(0, Math.cos(ph * Math.PI * 2 * 3)), 12);
-      lamps.setColorAt(i, lampColor.setRGB(0.25 + v * 3.2, 0.16 + v * 2.0, v * 0.25));
-    }
-    lamps.instanceColor.needsUpdate = true;
-
-    /* parts: ride the belt (stations 0-2), then fly into the core (station 3) */
-    const rigPos = rig.position;
-    for (const p of P) {
-      const ride = smooth(0.1 + p.i * 0.07, 1.65 + p.i * 0.05, s);
-      const startX = -3.4 - p.i * 0.75, queueX = A.x + 1.2 - p.i * 0.34;
-      const bx = lerp(startX, queueX, ride), by = BELT_Y + p.o.userData.h, bz = p.z;
-      const a = smooth(2.45 + p.i * 0.07, 2.95 + p.i * 0.07, s);
-      tmp.set(bx, by, bz); tmp2.copy(rigPos);
-      p.o.position.lerpVectors(tmp, tmp2, a); p.o.position.y += Math.sin(a * Math.PI) * 1.1;
-      p.o.scale.setScalar(Math.max(0.0001, 1 - smooth(0.7, 1, a)));
-      p.o.visible = a < 0.999;
-      if (a > 0) { p.o.rotation.x += dt * p.spin * 3 * a; p.o.rotation.y += dt * p.spin * 2 * a; }
-      if (a > 0.85 && !p.absorbed && forward) { emit(rigPos, 26, 2.2); p.absorbed = true; }
-      if (a < 0.5) p.absorbed = false;
-    }
-
-    /* rig: core rises from the belt, shells close in, ghost fades, showcase spin */
-    rig.updateMatrixWorld();
-    const coreT = smooth(2.45, 3.25, s);
-    coreH.visible = s > 2.35;
-    coreH.position.set(0, lerp(BELT_Y - A.y - 0.6, 0, coreT), 0);
-    coreH.scale.setScalar(lerp(0.7, 1, coreT));
-    const fT = smooth(3.55, 4.45, s), bT = smooth(3.7, 4.6, s);
-    frontH.visible = s > 3.35; backH.visible = s > 3.5;
-    frontH.position.set(lerp(1.4, 0, fT), lerp(1.9, 0, fT), lerp(3.4, 0, fT)); frontH.rotation.set(lerp(1.3, 0, fT), lerp(-0.8, 0, fT), 0);
-    backH.position.set(lerp(-1.2, 0, bT), lerp(1.6, 0, bT), lerp(-3.2, 0, bT)); backH.rotation.set(lerp(-1.1, 0, bT), lerp(0.9, 0, bT), 0);
-    ghostMat.opacity = (0.85 - 0.6 * smooth(2.4, 3.3, s)) * (1 - smooth(4.3, 4.9, s)) * (0.9 + 0.1 * Math.sin(t * 9));
-    ghostFill.material.opacity = 0.07 * (1 - smooth(2.4, 3.2, s));
-    ghostH.visible = ghostMat.opacity > 0.01;
-    const spin = smooth(4.55, 4.98, s) * Math.PI * 2;
-    rig.position.set(A.x, A.y + Math.sin(t * 1.1) * 0.03 + fin * 0.05, 0);
-    rig.rotation.set(-S.pointer.sy * 0.12, spin + S.pointer.sx * 0.35 + Math.sin(t * 0.4) * 0.12 * (1 - smooth(2.3, 2.6, s)) + 0.2 * smooth(4.98, 5.4, s) * Math.sin(t * 0.5), 0);
-    halo.rotation.z = t * 0.15; haloMat.opacity = fin * (0.75 + 0.25 * Math.sin(t * 2.2));
-
-    /* wires */
-    const wireOn = bump(s, 1.35, 1.85, 2.55, 2.95);
-    wires.forEach((w, i) => {
-      const p = P[i];
-      w.line.material.opacity = wireOn;
-      w.line.visible = wireOn > 0.01 && p.o.visible;
-      if (!w.line.visible) return;
-      tmp2.copy(w.target); ghostH.inner.localToWorld(tmp2);
-      curve.v0.copy(p.o.position); curve.v2.copy(tmp2);
-      ctrl.lerpVectors(curve.v0, curve.v2, 0.5); ctrl.y += 1.1 + (i % 3) * 0.25; curve.v1.copy(ctrl);
-      const pos = w.line.geometry.attributes.position.array, col = w.line.geometry.attributes.color.array;
-      for (let j = 0; j < WIRE_PTS; j++) {
-        const u = j / (WIRE_PTS - 1); curve.getPoint(u, tmp);
-        pos[j * 3] = tmp.x; pos[j * 3 + 1] = tmp.y; pos[j * 3 + 2] = tmp.z;
-        const d = ((u - (t * 0.8 + i * 0.13)) % 1 + 1) % 1, pulse = Math.exp(-Math.pow(Math.min(d, 1 - d) * 14, 2));
-        col[j * 3] = 1.0 + pulse * 3; col[j * 3 + 1] = 0.6 + pulse * 1.9; col[j * 3 + 2] = pulse * 0.3;
-      }
-      w.line.geometry.attributes.position.needsUpdate = true; w.line.geometry.attributes.color.needsUpdate = true;
+  if (st.reduceMotion) {
+    const still = () => { update(target(), 0); st.render(); };
+    window.addEventListener('scroll', still, { passive: true });
+    window.addEventListener('resize', still);
+    still();
+  } else {
+    st.onFrame((t, dt) => {
+      cur += (target() - cur) * (1 - Math.exp(-dt * 5));
+      update(cur, t);
     });
-
-    /* welding: lasers trace the outline at stations 3 and 4 */
-    const weld = Math.max(bump(s, 2.75, 3.0, 3.55, 3.85), bump(s, 3.95, 4.2, 4.55, 4.85));
-    weldIdx = (weldIdx + dt * 70) % weldLocal.length;
-    heads.forEach((h, hi) => {
-      h.g.position.y = 2.95 - weld * 0.3 + fin * 2.5;
-      h.tip.material.color.setRGB(1, 0.7, 0.05).multiplyScalar(0.6 + weld * 4);
-      h.beam.visible = weld > 0.05;
-      if (!h.beam.visible) return;
-      const idx = Math.floor(weldIdx + hi * weldLocal.length / 2) % weldLocal.length;
-      tmp2.copy(weldLocal[idx]); tmp2.z = hi ? -10 : 10;
-      (hi ? backH : frontH).inner.localToWorld(tmp2.copy(weldLocal[idx]).setZ(hi ? -10 : 10));
-      if (s < 3.6) coreH.inner.localToWorld(tmp2.copy(weldLocal[idx]).setZ(hi ? -6 : 6));
-      h.tip.getWorldPosition(tmp);
-      h.beam.position.lerpVectors(tmp, tmp2, 0.5);
-      h.beam.scale.set(1 + Math.random() * 0.6 * weld, tmp.distanceTo(tmp2), 1 + Math.random() * 0.6 * weld);
-      h.beam.lookAt(tmp2); h.beam.rotateX(Math.PI / 2);
-      spawnAcc += dt * weld * 90;
-      while (spawnAcc > 1) { emit(tmp2, 1, 1.6); spawnAcc -= 1; }
-      if (hi === 0) weldLight.position.copy(tmp2);
-    });
-    patchKick = Math.max(0, patchKick - dt * 2.5);
-    weldLight.intensity = weld * (6 + Math.random() * 5) + patchKick * 10;
-    if (patchKick > 0 && weld < 0.05) weldLight.position.copy(rig.position).add(tmp.set(0, 0, 1));
-
-    /* final nut: belt end -> jaw */
-    const nT = smooth(6.35, 6.95, s);
-    rig.updateMatrixWorld();
-    tmp2.copy(nutLocal).setZ(0); frontH.inner.localToWorld(tmp2);
-    frontH.inner.getWorldQuaternion(qT);
-    tmp.copy(keyNutBelt); tmp.y += conveyor.position.y;
-    keyNut.position.lerpVectors(tmp, tmp2, nT); keyNut.position.y += Math.sin(nT * Math.PI) * 0.9;
-    keyNut.quaternion.slerpQuaternions(qFlat, qT, nT);
-    if (nT > 0.97 && !keyNut.userData.seated && forward) { emit(tmp2, 50, 2.4); keyNut.userData.seated = true; }
-    if (nT < 0.6) keyNut.userData.seated = false;
-
-    stepSparks(dt);
   }
-  S.onFrame(tick);
-  if (S.reduceMotion) {
-    const once = () => { tick(0, 0); S.render(); };
-    addEventListener('scroll', once, { passive: true }); addEventListener('resize', once); once();
-  }
+} catch (err) {
+  console.error(err);
+  document.documentElement.classList.add('no-webgl');
 }
 </script>
 </body>
