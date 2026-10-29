@@ -172,14 +172,10 @@ const canvas = document.getElementById('wrench');
 const k = ScrapBrand.three(THREE, { RoomEnvironment });
 
 // No bloom: the canvas stays transparent and keeps native MSAA.
-const s = k.stage(canvas, { fov: 28, z: 5.1, exposure: 1.2, envIntensity: 1.5 });
+const s = k.stage(canvas, { fov: 28, z: 5.1, exposure: 1.0, envIntensity: 1.0 });
 
-// Brushed grain runs along the handle. Extrude UVs are in outline units, so scale the map down.
-const mat = k.materials.anodized({ color: 0xffc81f, metalness: 0.78, roughness: 0.3, clearcoat: 0.8, clearcoatRoughness: 0.12 });
-const grain = mat.roughnessMap.clone();
-grain.repeat.set(0.006, 0.006);
-grain.needsUpdate = true;
-mat.roughnessMap = grain;
+// Satin anodized finish. Anisotropy gives the brushed look without a texture that sparkles.
+const mat = k.materials.anodized({ color: 0xf2b512, metalness: 0.8, roughness: 0.42, clearcoat: 0.4, clearcoatRoughness: 0.4 });
 
 const wrench = k.wrench({ material: mat, depth: 14 });
 const mesh = wrench.userData.mesh;
@@ -190,9 +186,9 @@ mesh.position.sub(c);
 s.scene.add(wrench);
 
 // Studio light: warm key, cool fill, one rim from behind.
-const key = new THREE.DirectionalLight(0xfff1d6, 2.2); key.position.set(3, 4, 5);
+const key = new THREE.DirectionalLight(0xfff1d6, 1.6); key.position.set(3, 4, 5);
 const fill = new THREE.DirectionalLight(0xc9d6ff, 0.6); fill.position.set(-4, -1, 3);
-const rim = new THREE.DirectionalLight(0xffc21a, 2.4); rim.position.set(0, 2, -5);
+const rim = new THREE.DirectionalLight(0xffc21a, 1.4); rim.position.set(0, 2, -5);
 s.scene.add(key, fill, rim);
 
 s.onFrame((t) => {

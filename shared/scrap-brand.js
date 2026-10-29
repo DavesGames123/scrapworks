@@ -199,40 +199,46 @@
     var brushed = brushedTexture();
     var noise = noiseTexture();
 
+    /*
+     * Materials are calm on purpose. No roughness or bump maps: the canvas
+     * textures average about 0.5, so as roughness maps they halved the
+     * roughness, and per-texel variation sparkled as the object turned.
+     * Brushed metal gets its look from anisotropy, which does not shimmer.
+     * Minimum roughness is about 0.4, so highlights stay under the bloom
+     * threshold that stage() enforces.
+     */
     var materials = {
-      // Safety-yellow paint with a clear coat. The wrench C uses this.
+      // Safety-yellow paint with a satin clear coat. The wrench uses this.
       paint: function (o) {
         return new THREE.MeshPhysicalMaterial(Object.assign({
-          color: 0xffc21a, metalness: 0.25, roughness: 0.38, roughnessMap: noise,
-          clearcoat: 1, clearcoatRoughness: 0.12
+          color: 0xf5b81a, metalness: 0.1, roughness: 0.5,
+          clearcoat: 0.6, clearcoatRoughness: 0.4
         }, o || {}));
       },
-      // Yellow anodized metal: more reflective than paint.
+      // Yellow anodized metal: brushed, satin.
       anodized: function (o) {
         return new THREE.MeshPhysicalMaterial(Object.assign({
-          color: 0xffb800, metalness: 1, roughness: 0.28, roughnessMap: brushed,
-          anisotropy: 0.6, clearcoat: 0.4
+          color: 0xe8a90c, metalness: 1, roughness: 0.42, anisotropy: 0.5
         }, o || {}));
       },
       steel: function (o) {
         return new THREE.MeshPhysicalMaterial(Object.assign({
-          color: 0xc4c8cd, metalness: 1, roughness: 0.3, roughnessMap: brushed,
-          bumpMap: brushed, bumpScale: 0.15, anisotropy: 0.7
+          color: 0xa9adb3, metalness: 1, roughness: 0.45, anisotropy: 0.6
         }, o || {}));
       },
       darkSteel: function (o) {
         return new THREE.MeshPhysicalMaterial(Object.assign({
-          color: 0x30343a, metalness: 1, roughness: 0.42, roughnessMap: brushed, anisotropy: 0.5
+          color: 0x2c3036, metalness: 1, roughness: 0.52, anisotropy: 0.4
         }, o || {}));
       },
       castIron: function (o) {
         return new THREE.MeshStandardMaterial(Object.assign({
-          color: 0x1c1d20, metalness: 0.85, roughness: 0.7, roughnessMap: noise, bumpMap: noise, bumpScale: 0.4
+          color: 0x1c1d20, metalness: 0.8, roughness: 0.72
         }, o || {}));
       },
-      // Unlit emissive. Bloom picks it up. toneMapped false keeps it hot.
+      // Unlit emissive. Values over 1 pass the bloom threshold. toneMapped false keeps the color.
       glow: function (color, intensity) {
-        var c = new THREE.Color(color == null ? 0xffb300 : color).multiplyScalar(intensity || 3);
+        var c = new THREE.Color(color == null ? 0xffb300 : color).multiplyScalar(intensity || 1.8);
         return new THREE.MeshBasicMaterial({ color: c, toneMapped: false });
       }
     };
@@ -310,7 +316,7 @@
       var pmrem = new THREE.PMREMGenerator(renderer);
       if (addons.RoomEnvironment) {
         scene.environment = pmrem.fromScene(new addons.RoomEnvironment(), 0.04).texture;
-        scene.environmentIntensity = opts.envIntensity == null ? 1 : opts.envIntensity;
+        scene.environmentIntensity = opts.envIntensity == null ? 0.7 : opts.envIntensity;
       }
 
       var camera = new THREE.PerspectiveCamera(opts.fov || 35, 1, 0.1, 100);
@@ -323,9 +329,14 @@
         var rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: opts.samples || 4 });
         composer = new addons.EffectComposer(renderer, rt);
         composer.addPass(new addons.RenderPass(scene, camera));
+        // Clamp the page values. A threshold under 1 lets metal highlights
+        // bloom, and they cross it on some frames only, which reads as flicker.
+        // Only glow materials (toneMapped false, value over 1) bloom.
         var b = opts.bloom;
         composer.addPass(new addons.UnrealBloomPass(new THREE.Vector2(256, 256),
-          b.strength == null ? 0.8 : b.strength, b.radius == null ? 0.5 : b.radius, b.threshold == null ? 0.85 : b.threshold));
+          Math.min(b.strength == null ? 0.35 : b.strength, 0.45),
+          Math.min(b.radius == null ? 0.35 : b.radius, 0.45),
+          Math.max(b.threshold == null ? 1.05 : b.threshold, 1.05)));
         if (addons.OutputPass) composer.addPass(new addons.OutputPass());
       }
 
