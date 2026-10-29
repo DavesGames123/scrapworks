@@ -4,655 +4,185 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Scrap Control Panel</title>
-<meta name="description" content="Scrap by ScrapWorks: the game engine workshop. Hot-patch code and assets in 140 ms, wire logic that compiles to native code, ship to five platforms.">
+<meta name="description" content="Scrap is the game engine workshop. Edit code and assets while your game runs.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
 <script src="shared/scrap-brand.js"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <style>
 :root{
-  --yellow:#ffc21a; --yellow-hi:#ffd95c; --amber:#ffb000; --amber-dim:#7a5200;
-  --ink:#0a0a0b; --plate:#141518; --plate-2:#1b1d21; --plate-3:#23262b;
-  --steel:#a3a8ae; --text:#ece8df; --muted:#8f8b82; --line:rgba(255,255,255,.07);
-  --display:'Chakra Petch',system-ui,sans-serif; --body:'IBM Plex Sans',system-ui,sans-serif; --mono:'Share Tech Mono',ui-monospace,monospace;
-  --hazard:repeating-linear-gradient(-45deg,var(--yellow) 0 12px,#111 12px 24px);
-  --noise:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .055 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --bg:#0c0c0d;
+  --plate:#141517;
+  --plate-hi:#1b1c1f;
+  --line:rgba(255,255,255,.07);
+  --text:#e8e6e1;
+  --mute:#8a8b8f;
+  --y:#ffc21a;
+  --amber:#ffa000;
+  --display:'Chakra Petch',system-ui,sans-serif;
+  --body:'IBM Plex Sans',system-ui,sans-serif;
+  /* powder-coat grain, drawn once as SVG noise */
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--ink) var(--noise);color:var(--text);font:16px/1.6 var(--body);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:400 17px/1.6 var(--body);overflow-x:hidden}
 a{color:inherit;text-decoration:none}
-.wrap{max-width:1240px;margin:0 auto;padding:0 28px}
-.mono{font-family:var(--mono);letter-spacing:.06em}
-.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
-h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:-.01em;margin:0}
-h2{font-size:clamp(30px,4vw,46px);line-height:1.05;text-transform:uppercase}
+.wrap{max-width:1120px;margin:0 auto;padding:0 32px}
 
-/* Faceplate panels: powder-coat black with rivets */
-.panel{position:relative;background:linear-gradient(180deg,var(--plate-2),var(--plate)) ,var(--noise);background-blend-mode:normal;border:1px solid #000;border-radius:14px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),inset 0 -1px 0 rgba(0,0,0,.7),0 1px 0 rgba(255,255,255,.04),0 24px 60px -30px rgba(0,0,0,.9)}
-.panel::before{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--noise);opacity:.9;pointer-events:none}
-.riv::after{content:"";position:absolute;inset:9px;pointer-events:none;
-  --r:radial-gradient(circle at 40% 35%,#c9ccd0 0 1px,#6b6f75 1.8px,#26282c 3.4px,#0b0b0c 4.2px,transparent 4.8px);
-  background:var(--r) left top/10px 10px no-repeat,var(--r) right top/10px 10px no-repeat,var(--r) left bottom/10px 10px no-repeat,var(--r) right bottom/10px 10px no-repeat}
-.engrave{font:600 11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:#6d6a64;text-shadow:0 1px 0 rgba(255,255,255,.06),0 -1px 0 rgba(0,0,0,.8)}
+/* nav */
+nav{display:flex;align-items:center;justify-content:space-between;height:88px}
+.mark{font:700 30px/1 var(--display);color:var(--y)}
+.links{display:flex;align-items:center;gap:32px;font:500 15px/1 var(--display);letter-spacing:.04em;color:var(--mute)}
+.links a:hover{color:var(--text)}
 
-/* Lamps */
-.lamp{display:inline-block;width:12px;height:12px;border-radius:50%;flex:none;
-  background:radial-gradient(circle at 35% 30%,#6a4a12,#2a1c05 70%);box-shadow:inset 0 1px 2px rgba(0,0,0,.8),0 0 0 2px #0b0b0c,0 0 0 3px #3a3d42}
-.lamp.on{background:radial-gradient(circle at 35% 30%,#fff6d0,#ffc21a 35%,#ff9500 75%);
-  box-shadow:0 0 0 2px #0b0b0c,0 0 0 3px #4a4d52,0 0 10px 2px rgba(255,176,0,.75),0 0 28px 6px rgba(255,150,0,.35)}
-.lamp.pulse{animation:pulse 2.4s ease-in-out infinite}
-@keyframes pulse{50%{box-shadow:0 0 0 2px #0b0b0c,0 0 0 3px #4a4d52,0 0 4px 1px rgba(255,176,0,.45),0 0 12px 2px rgba(255,150,0,.15);filter:brightness(.8)}}
+/* buttons */
+.btn{display:inline-flex;align-items:center;height:48px;padding:0 24px;border-radius:4px;
+  font:600 15px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;color:#111;
+  background:linear-gradient(180deg,#ffcf3d,#f2b300);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -2px 0 rgba(0,0,0,.18),0 6px 18px rgba(255,170,0,.18);
+  transition:filter .15s}
+.btn:hover{filter:brightness(1.06)}
+.btn.sm{height:40px;padding:0 18px;font-size:13px}
+.link{font:500 15px/1 var(--display);letter-spacing:.04em;color:var(--text);border-bottom:1px solid rgba(255,255,255,.25);padding-bottom:4px}
+.link:hover{border-color:var(--y)}
 
-/* Buttons */
-.btn{display:inline-flex;align-items:center;gap:12px;font:700 16px/1 var(--display);letter-spacing:.06em;text-transform:uppercase;padding:18px 26px;border-radius:10px;border:0;cursor:pointer;transition:transform .12s,box-shadow .2s,filter .2s}
-.btn-go{color:#1a1200;background:linear-gradient(180deg,#ffe07a,#ffc21a 45%,#e9a400);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 -3px 0 rgba(120,70,0,.55),0 0 0 1px #000,0 0 0 4px #2a2c30,0 0 0 5px #000,0 0 26px rgba(255,176,0,.35),0 10px 24px -8px rgba(255,170,0,.5)}
-.btn-go:hover{filter:brightness(1.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 -3px 0 rgba(120,70,0,.55),0 0 0 1px #000,0 0 0 4px #2a2c30,0 0 0 5px #000,0 0 40px rgba(255,176,0,.6),0 10px 30px -8px rgba(255,170,0,.7)}
-.btn-go:active{transform:translateY(2px)}
-.btn-steel{color:var(--text);background:linear-gradient(180deg,#34373d,#202227);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -2px 0 rgba(0,0,0,.5),0 0 0 1px #000}
-.btn-steel:hover{color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -2px 0 rgba(0,0,0,.5),0 0 0 1px #000,0 0 0 3px rgba(255,194,26,.25)}
-.btn svg{width:18px;height:18px}
+/* hero */
+.hero{display:grid;grid-template-columns:1.15fr .85fr;align-items:center;gap:48px;min-height:min(calc(100vh - 88px),720px);padding-bottom:48px}
+h1{font:700 68px/1 var(--display);letter-spacing:-.01em;margin:0 0 24px;text-transform:uppercase}
+h1 span{color:var(--y)}
+.sub{font-size:19px;color:#c9c7c1;max-width:420px;margin:0 0 40px}
+.cta{display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+.micro{margin-top:20px;font-size:14px;color:var(--mute)}
+.emblem{position:relative;aspect-ratio:1/1;width:100%;max-width:560px;justify-self:end}
+.emblem canvas{position:absolute;inset:0;width:100%;height:100%;display:block;
+  -webkit-mask-image:radial-gradient(closest-side,#000 82%,transparent 100%);
+          mask-image:radial-gradient(closest-side,#000 82%,transparent 100%)}
+.emblem .fallback{position:absolute;inset:22%;font-size:0;color:var(--y);display:grid;place-items:center}
+.emblem .fallback .scrap-glyph-solo{width:100%;height:100%}
+.emblem canvas.is-live + .fallback{display:none}
 
-/* Nav rail */
-.rail{position:sticky;top:0;z-index:50;background:rgba(10,10,11,.82);-webkit-backdrop-filter:blur(12px) saturate(140%);backdrop-filter:blur(12px) saturate(140%);border-bottom:1px solid #000;box-shadow:0 1px 0 rgba(255,255,255,.05)}
-.rail .wrap{display:flex;align-items:center;gap:28px;height:68px}
-.brand{display:flex;align-items:center;gap:12px;color:var(--yellow);font:700 26px/1 var(--display);letter-spacing:.02em;filter:drop-shadow(0 0 10px rgba(255,180,0,.25))}
-.brand small{font:500 10px/1 var(--mono);letter-spacing:.24em;color:var(--muted);border-left:1px solid #333;padding-left:12px}
-.rail nav{display:flex;gap:26px;margin-left:auto}
-.rail nav a{font:500 13px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:#b9b5ac;transition:color .15s}
-.rail nav a:hover{color:var(--yellow)}
-.rail .btn{padding:12px 18px;font-size:13px}
+/* faceplate with switches */
+.panel{position:relative;margin:48px 0 0;padding:64px 64px 56px;border-radius:6px;
+  background:var(--grain),linear-gradient(180deg,var(--plate-hi),var(--plate));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),inset 0 -1px 0 rgba(0,0,0,.6),0 30px 60px rgba(0,0,0,.45)}
+.screw{position:absolute;width:12px;height:12px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#8d9096,#3c3e42 60%,#232427);
+  box-shadow:0 1px 0 rgba(255,255,255,.06),inset 0 0 0 1px rgba(0,0,0,.5)}
+.screw::after{content:"";position:absolute;left:2px;right:2px;top:5px;height:2px;background:#1a1b1d;transform:rotate(var(--r,30deg))}
+.screw.tl{left:20px;top:20px}.screw.tr{right:20px;top:20px;--r:-20deg}.screw.bl{left:20px;bottom:20px;--r:70deg}.screw.br{right:20px;bottom:20px;--r:10deg}
 
-/* Hero */
-.hazard{height:8px;background:var(--hazard);opacity:.9;box-shadow:0 1px 0 #000,0 -1px 0 #000}
-.hero{position:relative;padding:64px 0 40px;overflow:hidden}
-.hero::before{content:"";position:absolute;inset:-10% -10% auto auto;width:60vw;height:60vw;max-width:900px;max-height:900px;background:radial-gradient(closest-side,rgba(255,170,0,.13),transparent 70%);pointer-events:none}
-.hero-grid{display:grid;grid-template-columns:1.22fr 1fr;gap:40px;align-items:center}
-.tagplate{display:inline-flex;align-items:center;gap:12px;padding:9px 14px 9px 12px;border-radius:8px;background:linear-gradient(180deg,#24272c,#17191c);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 0 1px #000}
-.tagplate span{font:500 12px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:#c8c3b8}
-.hero h1{margin:26px 0 20px;font-size:clamp(44px,5.4vw,76px);line-height:.95;text-transform:uppercase}
-.hero h1 em{font-style:normal;color:var(--yellow);text-shadow:0 0 28px rgba(255,176,0,.35)}
-.hero .sub{font-size:19px;line-height:1.55;color:#c9c5bb;max-width:560px;margin:0 0 32px}
-.cta-row{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
-.micro{margin:18px 0 0;font:500 13px/1.5 var(--mono);letter-spacing:.06em;color:var(--muted)}
-.proof{display:flex;align-items:center;gap:12px;margin-top:26px;padding-top:22px;border-top:1px solid var(--line);font:500 14px/1.4 var(--mono);color:#d8d3c8;letter-spacing:.04em}
-.proof b{color:var(--yellow);font-weight:400}
+.switches{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.sw{appearance:none;border:0;background:none;color:inherit;cursor:pointer;padding:0;
+  display:flex;flex-direction:column;align-items:center;gap:20px;font:inherit}
+.lamp{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#4a3a1a,#241c0e);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.6);transition:background .2s,box-shadow .2s}
+.sw[aria-checked="true"] .lamp{background:radial-gradient(circle at 40% 35%,#fff3c4,#ffb100 55%,#c96f00);
+  box-shadow:0 0 12px 2px rgba(255,160,0,.55),0 0 32px rgba(255,160,0,.25)}
+.base{position:relative;width:64px;height:96px;border-radius:8px;
+  background:linear-gradient(180deg,#2a2c30,#18191c);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 0 -2px 4px rgba(0,0,0,.6),0 2px 0 rgba(0,0,0,.5)}
+.base::before{content:"";position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;
+  background:radial-gradient(circle at 40% 35%,#6b6e74,#2d2f33 70%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.6)}
+.lever{position:absolute;left:50%;top:50%;width:12px;height:44px;margin-left:-6px;border-radius:6px;
+  background:linear-gradient(90deg,#9ea2a8,#e9ebee 45%,#8a8e94);
+  box-shadow:0 2px 3px rgba(0,0,0,.5);transform-origin:50% 0;transform:rotate(0deg);transition:transform .22s cubic-bezier(.3,1.6,.5,1)}
+.sw[aria-checked="true"] .lever{transform:rotate(180deg)}
+.sw .name{font:600 15px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);transition:color .2s}
+.sw[aria-checked="true"] .name{color:var(--text)}
+.sw:focus-visible .base{outline:2px solid var(--y);outline-offset:4px}
 
-.emblem{position:relative;aspect-ratio:1/1;max-width:640px;justify-self:end;width:122%;margin:-6% -12% -6% -10%}
-.emblem::before{content:"";position:absolute;inset:8%;border-radius:50%;background:radial-gradient(closest-side,rgba(255,170,0,.22),transparent 72%);filter:blur(8px)}
-.emblem canvas{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity 1s .1s;
-  -webkit-mask-image:radial-gradient(closest-side,#000 80%,transparent 100%);mask-image:radial-gradient(closest-side,#000 80%,transparent 100%)}
-.emblem canvas.is-live{opacity:1}
-.emblem .fallback{position:absolute;inset:22%;display:grid;place-items:center;color:var(--yellow);font-size:min(30vw,260px);filter:drop-shadow(0 0 30px rgba(255,176,0,.35));transition:opacity .6s}
-.emblem canvas.is-live + .fallback{opacity:0}
-.emblem .cap{position:absolute;left:50%;bottom:9%;transform:translateX(-50%);white-space:nowrap}
+.readout{margin:48px auto 0;max-width:640px;height:64px;border-radius:4px;display:flex;align-items:center;justify-content:center;
+  padding:0 24px;background:#0a0b0a;box-shadow:inset 0 2px 6px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.05);
+  font:500 18px/1.3 var(--display);color:#ffb84a;text-align:center}
 
-/* Instrument cluster */
-section{position:relative}
-.sec{padding:84px 0}
-.sec-head{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:34px}
-.sec-head p{margin:0;max-width:440px;color:var(--muted)}
-.sec-head .eyebrow{display:block;margin-bottom:14px}
-.cluster{display:grid;grid-template-columns:repeat(3,1fr);gap:0;padding:12px}
-.inst{position:relative;padding:26px 26px 22px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
-.inst:nth-child(3n){border-right:0}.inst:nth-child(n+4){border-bottom:0}
-.inst .engrave{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-.inst .note{margin-top:10px;font:500 12px/1.4 var(--mono);letter-spacing:.06em;color:var(--muted)}
+/* final */
+.final{text-align:center;padding:144px 0 120px}
+.final h2{font:700 48px/1.05 var(--display);text-transform:uppercase;margin:0 0 36px}
+.band{height:4px;background:repeating-linear-gradient(-45deg,var(--y) 0 10px,#111 10px 20px);opacity:.85}
+footer{padding:28px 0 36px;font-size:14px;color:var(--mute)}
 
-.seg{display:flex;align-items:center;gap:4px;padding:14px 16px;border-radius:8px;background:linear-gradient(180deg,#0c0a06,#120d05);box-shadow:inset 0 2px 8px rgba(0,0,0,.9),inset 0 0 0 1px #000,0 0 0 1px rgba(255,255,255,.05)}
-.seg svg{height:54px;width:auto;overflow:visible}
-.seg .off{fill:rgba(255,176,0,.07)}
-.seg .lit{fill:#ffb81f;filter:drop-shadow(0 0 3px rgba(255,170,0,.9)) drop-shadow(0 0 9px rgba(255,140,0,.45))}
-.seg .unit{margin-left:auto;font:500 14px/1 var(--mono);color:#a77a1a;letter-spacing:.1em;align-self:flex-end}
-
-.gauge{width:100%;max-width:230px;display:block;margin:0 auto}
-.gauge .needle{transform-origin:100px 100px;transform:rotate(-120deg);transition:transform 2.2s cubic-bezier(.22,1.45,.4,1)}
-.gauge .jit{transform-origin:100px 100px}
-.gauge.idle .jit{animation:jit 3.2s ease-in-out infinite}
-@keyframes jit{25%{transform:rotate(.8deg)}60%{transform:rotate(-.6deg)}80%{transform:rotate(.3deg)}}
-.gauge text{font-family:var(--mono)}
-
-/* Operator controls */
-.console{display:grid;grid-template-columns:minmax(0,1fr);gap:22px}
-.crt .scr.on>*{min-width:0}
-.crt-frame{padding:22px;border-radius:18px}
-.crt{position:relative;border-radius:22px/26px;min-height:440px;overflow:hidden;color:#ffb000;padding:34px 40px 70px;
-  background:radial-gradient(ellipse at 50% 45%,#2a1a04 0%,#140c02 55%,#070401 100%);
-  box-shadow:inset 0 0 0 2px #000,inset 0 0 60px 10px rgba(0,0,0,.85),inset 0 0 140px rgba(255,140,0,.06),0 0 0 6px #0c0d0f,0 0 0 7px #2c2f34,0 0 40px rgba(255,150,0,.12)}
-.crt::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:3;
-  background:repeating-linear-gradient(180deg,rgba(0,0,0,.32) 0 1px,transparent 1px 3px)}
-.crt::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:4;border-radius:inherit;
-  background:radial-gradient(ellipse at 30% 15%,rgba(255,255,255,.07),transparent 40%),radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.55) 100%)}
-.crt-inner{position:relative;z-index:2;text-shadow:0 0 6px rgba(255,160,0,.65),0 0 18px rgba(255,130,0,.25);font-family:var(--mono)}
-.crt.switch .crt-inner{animation:crtOn .42s cubic-bezier(.2,.8,.2,1)}
-@keyframes crtOn{0%{transform:scale(1,.006);filter:brightness(4);opacity:1}35%{transform:scale(1,.006);filter:brightness(4)}70%{transform:scale(1,1.04);filter:brightness(1.6)}100%{transform:none;filter:none}}
-.crt .scr{display:none}
-.crt .scr.on{display:grid;grid-template-columns:1.15fr 1fr;gap:36px;align-items:start}
-.crt h3{font:400 15px/1 var(--mono);letter-spacing:.22em;color:#ffcf5a;margin-bottom:6px}
-.crt .big{font:700 clamp(40px,5vw,64px)/1 var(--display);color:#ffc53a;margin:14px 0 6px;letter-spacing:.01em}
-.crt .lede{font-size:15px;line-height:1.55;color:#e8a92c;margin:0 0 18px;max-width:460px}
-.crt pre{margin:0;font:14px/1.6 var(--mono);white-space:pre;overflow:auto;color:#e59f1e}
-.crt pre .add{color:#ffd77a}.crt pre .del{color:#8c5a06;text-decoration:line-through}.crt pre .c{color:#9a6a12}
-.crt .log{margin:0;padding:0;list-style:none;font-size:14px;line-height:1.9}
-.crt .log b{font-weight:400;color:#ffd77a}
-.crt .bar{display:grid;grid-template-columns:110px 1fr 64px;gap:12px;align-items:center;font-size:14px;margin:7px 0}
-.crt .bar i{display:block;height:12px;background:repeating-linear-gradient(90deg,#ffb000 0 6px,transparent 6px 8px);box-shadow:0 0 8px rgba(255,160,0,.5)}
-.crt .cursor{display:inline-block;width:.6em;height:1em;background:#ffb000;vertical-align:-2px;animation:blink 1s steps(1) infinite}
-@keyframes blink{50%{opacity:0}}
-.crt svg.graph{width:100%;height:auto}
-.crt svg.graph rect{fill:rgba(255,176,0,.06);stroke:#ffb000;stroke-width:1.5}
-.crt svg.graph text{fill:#ffc53a;font:13px var(--mono)}
-.crt svg.graph path{fill:none;stroke:#ffb000;stroke-width:2;stroke-dasharray:6 5;animation:flow 1.2s linear infinite}
-@keyframes flow{to{stroke-dashoffset:-22}}
-.crt-status{position:absolute;z-index:2;left:40px;right:40px;bottom:20px;display:flex;justify-content:space-between;font:13px var(--mono);letter-spacing:.14em;color:#9a6a12}
-
-.bank{display:grid;grid-template-columns:repeat(5,1fr);padding:26px 18px 22px}
-.tgl{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;background:none;border:0;color:inherit;cursor:pointer;padding:6px 4px;font:inherit;-webkit-tap-highlight-color:transparent}
-.tgl:focus-visible{outline:2px solid var(--yellow);outline-offset:6px;border-radius:10px}
-.tgl .body{position:relative;width:76px;height:124px}
-.tgl .nut{position:absolute;left:50%;top:50%;width:62px;height:62px;margin:-31px 0 0 -31px;clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%);
-  background:conic-gradient(from 200deg,#5d6268,#d5d8dc,#7c8187,#3c4045,#b3b7bc,#5d6268)}
-.tgl .boss{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;
-  background:radial-gradient(circle at 40% 35%,#eef0f2,#8e9399 45%,#3e4247 80%);box-shadow:0 0 0 2px #1a1b1e,0 3px 6px rgba(0,0,0,.7)}
-.tgl .lever{position:absolute;left:50%;top:50%;width:14px;height:46px;margin-left:-7px;transform-origin:50% 0;transform:rotate(14deg) scaleY(.92);
-  border-radius:7px;background:linear-gradient(90deg,#4a4e54,#f2f4f6 38%,#9ea3a9 60%,#3b3f44);box-shadow:0 6px 10px rgba(0,0,0,.6);transition:transform .22s cubic-bezier(.3,1.6,.5,1)}
-.tgl .lever::after{content:"";position:absolute;left:50%;bottom:-6px;width:20px;height:20px;margin-left:-10px;border-radius:50%;background:radial-gradient(circle at 40% 30%,#fff,#a9aeb4 45%,#42464b 85%);box-shadow:0 3px 6px rgba(0,0,0,.6)}
-.tgl[aria-pressed="true"] .lever{transform:rotate(166deg) scaleY(.92)}
-.tgl .pos{position:absolute;left:50%;transform:translateX(-50%);font:500 10px/1 var(--mono);letter-spacing:.2em;color:#55524c}
-.tgl .pos.t{top:0}.tgl .pos.b{bottom:0}
-.tgl[aria-pressed="true"] .pos.t{color:var(--yellow);text-shadow:0 0 8px rgba(255,176,0,.6)}
-.tgl .lbl{font:600 13px/1.2 var(--display);letter-spacing:.14em;text-transform:uppercase;color:#bdb8ad;padding:7px 10px;border-radius:5px;background:linear-gradient(180deg,#2a2d32,#1b1d20);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 0 1px #000;white-space:nowrap}
-.tgl[aria-pressed="true"] .lbl{color:var(--yellow)}
-.hint{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:4px}
-
-/* Tags: testimonials */
-.tags{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
-.tag{padding:30px 28px 26px;display:flex;flex-direction:column}
-.tag .stamp{align-self:flex-start;font:700 11px/1 var(--mono);letter-spacing:.24em;color:var(--yellow);border:1.5px solid rgba(255,194,26,.6);padding:6px 9px;border-radius:4px;transform:rotate(-3deg);margin-bottom:20px;box-shadow:0 0 12px rgba(255,176,0,.12)}
-.tag blockquote{margin:0 0 24px;font-size:17px;line-height:1.55;color:#e2ded4;flex:1}
-.tag .who{display:flex;gap:14px;align-items:center;padding-top:18px;border-top:1px dashed #33363b}
-.tag .av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font:700 15px var(--display);color:#1a1200;background:linear-gradient(180deg,#ffd95c,#e6a400);box-shadow:0 0 0 2px #000,0 0 0 3px #3a3d42}
-.tag .who b{display:block;font:600 15px/1.2 var(--body)}
-.tag .who span{font:500 12px/1.4 var(--mono);color:var(--muted);letter-spacing:.06em}
-
-/* Breakers: pricing */
-.breakers{display:grid;grid-template-columns:1fr 1fr;gap:22px}
-.brk{padding:34px 34px 30px;display:grid;grid-template-columns:1fr auto;gap:8px 24px}
-.brk .eyebrow{grid-column:1/-1;display:flex;align-items:center;gap:10px}
-.brk .price{font:700 64px/1 var(--display);margin:12px 0 0}
-.brk .price small{font:500 16px var(--mono);color:var(--muted);letter-spacing:.04em}
-.brk ul{grid-column:1/-1;list-style:none;padding:0;margin:20px 0 26px;display:grid;gap:10px}
-.brk li{display:flex;gap:12px;align-items:baseline;color:#cfcac0}
-.brk li::before{content:"";flex:none;width:8px;height:8px;transform:translateY(-1px);background:var(--yellow);clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);box-shadow:0 0 6px var(--yellow)}
-.brk .btn{grid-column:1/-1;justify-content:center}
-.brk.pro{background:linear-gradient(180deg,#22242a,#16171a);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 0 1px rgba(255,194,26,.35),0 0 50px -10px rgba(255,170,0,.25)}
-.breaker-sw{width:54px;height:86px;border-radius:8px;background:linear-gradient(180deg,#0e0f11,#1e2024);box-shadow:inset 0 2px 6px #000,0 0 0 1px #33363b;position:relative}
-.breaker-sw::after{content:"";position:absolute;left:8px;right:8px;top:8px;height:38px;border-radius:5px;background:linear-gradient(180deg,#ffe07a,#e3a000);box-shadow:inset 0 -3px 0 rgba(110,60,0,.5),0 0 14px rgba(255,170,0,.4)}
-.free .breaker-sw::after{background:linear-gradient(180deg,#d2d5d9,#7f848a);box-shadow:inset 0 -3px 0 rgba(0,0,0,.35)}
-.license{margin-top:18px;text-align:center;font:500 13px/1.6 var(--mono);color:var(--muted);letter-spacing:.06em}
-
-/* Final CTA */
-.final{padding:96px 0 110px}
-.final-box{position:relative;padding:8px;border-radius:22px;background:var(--hazard);box-shadow:0 0 0 1px #000,0 30px 80px -30px rgba(255,160,0,.35)}
-.final-in{border-radius:16px;padding:64px 40px;text-align:center;display:grid;justify-items:center;gap:22px}
-.final h2{font-size:clamp(34px,5vw,64px)}
-.mushroom{position:relative;width:168px;height:168px;border-radius:50%;display:grid;place-items:center;margin:8px 0;cursor:pointer;
-  background:radial-gradient(circle at 50% 50%,#2a2c30 0 58%,#0d0e10 60% 64%,#4b4f55 66%,#1a1b1e 72%);box-shadow:0 0 0 1px #000,0 18px 40px rgba(0,0,0,.8)}
-.mushroom span{width:116px;height:116px;border-radius:50%;display:grid;place-items:center;font:700 22px/1 var(--display);letter-spacing:.12em;color:#2a1800;
-  background:radial-gradient(circle at 42% 32%,#fff3c4,#ffd23a 30%,#f2a800 70%,#b97800);box-shadow:inset 0 -6px 10px rgba(120,60,0,.45),inset 0 4px 8px rgba(255,255,255,.5),0 8px 0 #7a4f00,0 10px 20px rgba(0,0,0,.6),0 0 50px rgba(255,170,0,.55);transition:transform .1s,box-shadow .1s}
-.mushroom:hover span{box-shadow:inset 0 -6px 10px rgba(120,60,0,.45),inset 0 4px 8px rgba(255,255,255,.5),0 8px 0 #7a4f00,0 10px 20px rgba(0,0,0,.6),0 0 80px rgba(255,170,0,.85)}
-.mushroom:active span{transform:translateY(6px);box-shadow:inset 0 -4px 8px rgba(120,60,0,.45),inset 0 4px 8px rgba(255,255,255,.5),0 2px 0 #7a4f00,0 0 60px rgba(255,170,0,.7)}
-
-footer{border-top:1px solid #000;box-shadow:inset 0 1px 0 rgba(255,255,255,.04);padding:34px 0 46px}
-footer .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:24px 40px}
-footer .brand{font-size:22px}
-footer nav{display:flex;flex-wrap:wrap;gap:24px;margin-left:auto}
-footer nav a{font:500 12px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-footer nav a:hover{color:var(--yellow)}
-footer .fine{flex-basis:100%;font:500 12px var(--mono);color:#5d5a54;letter-spacing:.06em}
-
-.reveal{opacity:0;transform:translateY(16px);transition:opacity .7s,transform .7s cubic-bezier(.2,.8,.2,1)}
-.reveal.in{opacity:1;transform:none}
-
-@media (max-width:1020px){
-  .hero-grid{grid-template-columns:1fr}
-  .emblem{justify-self:center;max-width:520px;width:112%;margin:-4% -6% -8%}
-  .rail nav{display:none}
-  .rail .btn{margin-left:auto}
-  .cluster{grid-template-columns:1fr 1fr}
-  .inst:nth-child(n){border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
-  .inst:nth-child(2n){border-right:0}.inst:nth-child(n+5){border-bottom:0}
-  .crt .scr.on{grid-template-columns:1fr;gap:22px}
-  .tags,.breakers{grid-template-columns:1fr}
+@media (max-width:860px){
+  .wrap{padding:0 20px}
+  .links .t{display:none}
+  .hero{grid-template-columns:1fr;min-height:0;gap:8px;padding:8px 20px 24px}
+  .emblem{order:-1;justify-self:center;max-width:340px}
+  h1{font-size:48px}
+  .sub{font-size:17px}
+  .panel{padding:48px 20px 40px}
+  .switches{gap:8px}
+  .readout{font-size:16px;height:auto;min-height:64px;padding:12px 16px}
+  .final{padding:96px 0 80px}
+  .final h2{font-size:34px}
 }
-@media (max-width:640px){
-  .wrap{padding:0 16px}
-  .brand small{display:none}
-  .rail .wrap{height:60px}
-  .rail .btn{padding:10px 14px;font-size:12px}
-  .hero{padding:40px 0 20px}
-  .hero .sub{font-size:17px}
-  .btn{padding:16px 20px;font-size:14px}
-  .cta-row .btn{width:100%;justify-content:center}
-  .proof{font-size:12.5px;align-items:flex-start}
-  .sec{padding:60px 0}
-  .sec-head{flex-direction:column;align-items:flex-start}
-  .cluster{grid-template-columns:1fr;padding:6px}
-  .inst:nth-child(n){border-right:0;border-bottom:1px solid var(--line)}
-  .inst:last-child{border-bottom:0}
-  .seg svg{height:42px}
-  .gauge{max-width:190px}
-  .crt{padding:24px 18px 54px;min-height:0}
-  .crt pre{font-size:12px}
-  .crt-status{left:18px;right:18px;font-size:11px}
-  .crt-frame{padding:12px}
-  .bank{grid-template-columns:repeat(3,1fr);row-gap:22px;padding:20px 6px}
-  .tgl .body{transform:scale(.85);margin:-6px 0}
-  .tgl .lbl{font-size:11px;padding:6px 7px;letter-spacing:.08em}
-  .brk{padding:26px 22px}
-  .brk .price{font-size:52px}
-  .final-in{padding:48px 20px}
-}
-@media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation:none!important;transition:none!important}
-  .reveal{opacity:1;transform:none}
-}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
-
-<header class="rail">
-  <div class="wrap">
-    <a class="brand" href="#top" aria-label="Scrap home"><span data-scrap-wordmark></span><small>BY SCRAPWORKS</small></a>
-    <nav aria-label="Main">
-      <a href="#controls">Features</a>
-      <a href="#bench">Benchmarks</a>
-      <a href="#pricing">Pricing</a>
-      <a href="#">Docs</a>
-    </nav>
-    <a class="btn btn-go" href="#download">Download free</a>
-  </div>
+<header class="wrap">
+  <nav>
+    <a href="#" class="mark"><span data-scrap-wordmark></span></a>
+    <div class="links">
+      <a class="t" href="#">Docs</a>
+      <a class="t" href="#">GitHub</a>
+      <a class="btn sm" href="#download">Download</a>
+    </div>
+  </nav>
 </header>
-<div class="hazard" aria-hidden="true"></div>
 
-<main id="top">
-  <!-- HERO -->
-  <section class="hero">
-    <div class="wrap hero-grid">
-      <div>
-        <div class="tagplate"><i class="lamp on pulse"></i><span>Model SCR-1 &middot; Game engine workshop</span></div>
-        <h1>Build games like you <em>build machines.</em></h1>
-        <p class="sub">Scrap hot-patches your code and assets in 140&nbsp;ms while the game keeps running. Wire logic with nodes that compile to native code, then ship to five platforms in one click.</p>
-        <div class="cta-row">
-          <a class="btn btn-go" href="#download">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M6 10l6 6 6-6M4 20h16"/></svg>
-            Download Scrap &mdash; free
-          </a>
-          <a class="btn btn-steel" href="#">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>
-            Watch the 90&nbsp;s demo
-          </a>
-        </div>
-        <p class="micro">Windows &middot; macOS &middot; Linux &middot; no account required</p>
-        <div class="proof"><i class="lamp on"></i><span><b>12,400</b> games built &middot; <b>38k</b> developers on Discord &middot; <b>4.9</b> on itch.io</span></div>
+<main>
+  <section class="wrap hero">
+    <div>
+      <h1>Build games<br><span>while they run.</span></h1>
+      <p class="sub">Scrap is the game engine workshop. Edit code and assets without stopping play.</p>
+      <div class="cta">
+        <a class="btn" href="#download">Download Scrap &mdash; free</a>
+        <a class="link" href="#">Read the docs</a>
       </div>
-      <div class="emblem" aria-hidden="true">
-        <canvas id="emblem"></canvas>
-        <div class="fallback" data-scrap-glyph></div>
-        <div class="cap engrave">Emblem plate &middot; SCR-1 &middot; Serial 0001</div>
-      </div>
+      <p class="micro">Windows, macOS, Linux. No account.</p>
+    </div>
+    <div class="emblem">
+      <canvas id="emblem" aria-label="Scrap wrench emblem on a black panel"></canvas>
+      <div class="fallback" data-scrap-glyph="icon"></div>
     </div>
   </section>
 
-  <!-- INSTRUMENT CLUSTER -->
-  <section class="sec" id="bench" style="padding-top:56px">
-    <div class="wrap">
-      <div class="sec-head reveal">
-        <div><span class="eyebrow">Instrument cluster</span><h2>Read the gauges,<br>not the adjectives.</h2></div>
-        <p>Measured on a 2019 laptop (i7-9750H, GTX 1650). The needles settle on the numbers the tool reports in the editor.</p>
+  <section class="wrap">
+    <div class="panel">
+      <i class="screw tl"></i><i class="screw tr"></i><i class="screw bl"></i><i class="screw br"></i>
+      <div class="switches" role="radiogroup" aria-label="Features">
+        <button class="sw" role="radio" aria-checked="true" data-text="Code and assets reload in 140 ms. The game keeps running.">
+          <i class="lamp"></i><span class="base"><i class="lever"></i></span><span class="name">Live Patch</span>
+        </button>
+        <button class="sw" role="radio" aria-checked="false" data-text="Wire nodes visually. Scrap compiles them to native code.">
+          <i class="lamp"></i><span class="base"><i class="lever"></i></span><span class="name">Wiring</span>
+        </button>
+        <button class="sw" role="radio" aria-checked="false" data-text="One click to Windows, macOS, Linux, Web, and Steam Deck.">
+          <i class="lamp"></i><span class="base"><i class="lever"></i></span><span class="name">Ship It</span>
+        </button>
       </div>
-      <div class="panel riv cluster reveal">
-        <div class="inst"><div class="engrave"><i class="lamp on"></i>Games built</div><div class="seg" data-seg="12400" data-digits="6"></div><div class="note">Shipped on itch.io and Steam</div></div>
-        <div class="inst"><div class="engrave"><i class="lamp on"></i>Discord operators</div><div class="seg" data-seg="38000" data-digits="6"></div><div class="note">Active in the last 30 days</div></div>
-        <div class="inst"><div class="engrave"><i class="lamp on"></i>itch.io rating</div><div class="seg" data-seg="4.9" data-digits="3" data-unit="/ 5.0"></div><div class="note">From 2,180 reviews</div></div>
-        <div class="inst"><div class="engrave"><i class="lamp on"></i>Live Patch</div>
-          <svg class="gauge" data-gauge="140" data-min="0" data-max="1000" data-label="MS" data-zone="0,250" viewBox="0 0 200 200"></svg>
-          <div class="note">Save to running game. Lower is better.</div></div>
-        <div class="inst"><div class="engrave"><i class="lamp on"></i>Frame rate @ 100k entities</div>
-          <svg class="gauge" data-gauge="60" data-min="0" data-max="120" data-label="FPS" data-zone="55,120" viewBox="0 0 200 200"></svg>
-          <div class="note">Chassis ECS runtime, release build</div></div>
-        <div class="inst"><div class="engrave"><i class="lamp on"></i>Export targets</div>
-          <svg class="gauge" data-gauge="5" data-min="0" data-max="6" data-label="TARGETS" data-zone="4,6" viewBox="0 0 200 200"></svg>
-          <div class="note">Win &middot; Mac &middot; Linux &middot; Web &middot; Steam Deck</div></div>
-      </div>
+      <div class="readout" id="readout" aria-live="polite">Code and assets reload in 140 ms. The game keeps running.</div>
     </div>
   </section>
 
-  <!-- OPERATOR CONTROLS -->
-  <section class="sec" id="controls">
-    <div class="wrap">
-      <div class="sec-head reveal">
-        <div><span class="eyebrow">Operator controls</span><h2>Flip a switch.<br>See the machine run.</h2></div>
-        <p>Five systems, one editor. Each switch routes the display to that system, with the real output it prints.</p>
-      </div>
-      <div class="console reveal">
-        <div class="panel riv crt-frame">
-          <div class="crt" id="crt" aria-live="polite">
-            <div class="crt-inner">
-
-              <div class="scr on" data-scr="patch">
-                <div>
-                  <h3>01 / LIVE PATCH</h3>
-                  <div class="big">140 ms</div>
-                  <p class="lede">Edit a script, save, and the running game picks it up. No restart, no lost state, no reloading the level you spent four minutes reaching.</p>
-<pre><span class="c">// player.scrap &mdash; edited while the game runs</span>
-fn update(p: &amp;mut Player, input: &amp;Input, dt: f32) {
-    let dir = input.axis("move");
-    p.vel += dir * ACCEL * dt;
-<span class="del">-   p.vel *= 0.90;</span>
-<span class="add">+   p.vel *= 0.82;   // snappier stop</span>
-    if input.pressed("jump") &amp;&amp; p.grounded {
-        p.vel.y = JUMP_SPEED;
-        sfx::play("clank.wav");
-    }
-}</pre>
-                </div>
-                <ul class="log">
-                  <li>&gt; save player.scrap</li>
-                  <li>&nbsp; parse ............ <b>12 ms</b></li>
-                  <li>&nbsp; compile .......... <b>61 ms</b></li>
-                  <li>&nbsp; link ............. <b>32 ms</b></li>
-                  <li>&nbsp; swap in place .... <b>35 ms</b></li>
-                  <li>&nbsp; state kept ....... <b>412 entities</b></li>
-                  <li>&gt; PATCHED IN <b>140 ms</b> &middot; play mode running</li>
-                  <li>&gt; <span class="cursor"></span></li>
-                </ul>
-              </div>
-
-              <div class="scr" data-scr="parts">
-                <div>
-                  <h3>02 / PARTS BIN</h3>
-                  <div class="big">0 dialogs</div>
-                  <p class="lede">Drop .blend, .fbx, .gltf, .png, or .wav into the bin. Scrap imports, builds LODs, packs atlases, and converts audio. It watches the source file and re-imports on save.</p>
-                </div>
-                <ul class="log">
-                  <li>&gt; watch ./parts</li>
-                  <li>&nbsp; robot_arm.blend &rarr; <b>3 meshes, LOD 0-2</b></li>
-                  <li>&nbsp; tiles_forest.png &rarr; <b>atlas 2048&sup2;, 64 sprites</b></li>
-                  <li>&nbsp; clank_03.wav &rarr; <b>ogg 48 kHz</b></li>
-                  <li>&nbsp; level_01.gltf &rarr; <b>412 nodes</b></li>
-                  <li>&nbsp; materials ......... <b>auto-mapped</b></li>
-                  <li>&gt; 5 PARTS READY &middot; <b>1.8 s</b></li>
-                  <li>&gt; <span class="cursor"></span></li>
-                </ul>
-              </div>
-
-              <div class="scr" data-scr="wiring">
-                <div>
-                  <h3>03 / WIRING</h3>
-                  <div class="big">Nodes &rarr; native</div>
-                  <p class="lede">Designers wire logic visually. Scrap compiles every graph to readable native code that programmers review and diff in git like any other file.</p>
-                </div>
-                <svg class="graph" viewBox="0 0 460 240" role="img" aria-label="Node graph: On Trigger, Has key, Open door, Buzz and shake">
-                  <path d="M140 52 C160 52 150 120 170 120"/>
-                  <path d="M300 110 C318 110 312 52 330 52"/>
-                  <path d="M300 132 C318 132 312 188 330 188"/>
-                  <rect x="10" y="30" width="130" height="44" rx="4"/><text x="24" y="57">On Trigger</text>
-                  <rect x="170" y="98" width="130" height="44" rx="4"/><text x="184" y="125">Has key?</text>
-                  <rect x="330" y="30" width="120" height="44" rx="4"/><text x="344" y="57">Open door</text>
-                  <rect x="330" y="166" width="120" height="44" rx="4"/><text x="344" y="193">Buzz + shake</text>
-                  <text x="290" y="86" style="font-size:11px;opacity:.7">true</text>
-                  <text x="286" y="166" style="font-size:11px;opacity:.7">false</text>
-                </svg>
-              </div>
-
-              <div class="scr" data-scr="chassis">
-                <div>
-                  <h3>04 / CHASSIS</h3>
-                  <div class="big">100k @ 60</div>
-                  <p class="lede">A data-oriented ECS runtime. 100,000 live entities at 60 fps on a 2019 laptop, with the frame budget split per system so you see what costs what.</p>
-                </div>
-                <div>
-                  <div class="bar"><span>physics</span><i style="width:38%"></i><b>3.1 ms</b></div>
-                  <div class="bar"><span>render</span><i style="width:78%"></i><b>6.4 ms</b></div>
-                  <div class="bar"><span>ai</span><i style="width:27%"></i><b>2.2 ms</b></div>
-                  <div class="bar"><span>animation</span><i style="width:22%"></i><b>1.8 ms</b></div>
-                  <div class="bar"><span>audio</span><i style="width:6%"></i><b>0.4 ms</b></div>
-                  <div class="bar"><span>scripts</span><i style="width:11%"></i><b>0.9 ms</b></div>
-                  <ul class="log" style="margin-top:14px"><li>&gt; FRAME <b>14.8 / 16.6 ms</b> &middot; headroom 11%</li></ul>
-                </div>
-              </div>
-
-              <div class="scr" data-scr="ship">
-                <div>
-                  <h3>05 / SHIP IT</h3>
-                  <div class="big">1 click, 5 builds</div>
-                  <p class="lede">Export to every target from one button. Builds run in parallel and sign themselves. The Steam Deck build gets controller glyphs automatically.</p>
-                </div>
-                <div>
-                  <div class="bar"><span>windows</span><i style="width:82%"></i><b>41 s</b></div>
-                  <div class="bar"><span>macos</span><i style="width:96%"></i><b>48 s</b></div>
-                  <div class="bar"><span>linux</span><i style="width:78%"></i><b>39 s</b></div>
-                  <div class="bar"><span>web</span><i style="width:44%"></i><b>22 s</b></div>
-                  <div class="bar"><span>steam deck</span><i style="width:88%"></i><b>44 s</b></div>
-                  <ul class="log" style="margin-top:14px"><li>&gt; ALL TARGETS GREEN &middot; <b>48 s</b> wall clock</li></ul>
-                </div>
-              </div>
-
-            </div>
-            <div class="crt-status"><span id="crt-ch">CH 01 &middot; LIVE PATCH</span><span>SCR-1 &middot; SIGNAL OK</span></div>
-          </div>
-        </div>
-
-        <div class="panel riv bank" role="group" aria-label="Feature switches">
-          <button class="tgl" aria-pressed="true" data-f="patch" data-name="LIVE PATCH"><i class="lamp on"></i><span class="body"><span class="pos t">ON</span><span class="nut"></span><span class="boss"></span><span class="lever"></span><span class="pos b">OFF</span></span><span class="lbl">Live Patch</span></button>
-          <button class="tgl" aria-pressed="false" data-f="parts" data-name="PARTS BIN"><i class="lamp"></i><span class="body"><span class="pos t">ON</span><span class="nut"></span><span class="boss"></span><span class="lever"></span><span class="pos b">OFF</span></span><span class="lbl">Parts Bin</span></button>
-          <button class="tgl" aria-pressed="false" data-f="wiring" data-name="WIRING"><i class="lamp"></i><span class="body"><span class="pos t">ON</span><span class="nut"></span><span class="boss"></span><span class="lever"></span><span class="pos b">OFF</span></span><span class="lbl">Wiring</span></button>
-          <button class="tgl" aria-pressed="false" data-f="chassis" data-name="CHASSIS"><i class="lamp"></i><span class="body"><span class="pos t">ON</span><span class="nut"></span><span class="boss"></span><span class="lever"></span><span class="pos b">OFF</span></span><span class="lbl">Chassis</span></button>
-          <button class="tgl" aria-pressed="false" data-f="ship" data-name="SHIP IT"><i class="lamp"></i><span class="body"><span class="pos t">ON</span><span class="nut"></span><span class="boss"></span><span class="lever"></span><span class="pos b">OFF</span></span><span class="lbl">Ship It</span></button>
-        </div>
-        <div class="hint engrave"><i class="lamp on pulse"></i>Flip a switch to route the display</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- INSPECTION TAGS -->
-  <section class="sec">
-    <div class="wrap">
-      <div class="sec-head reveal">
-        <div><span class="eyebrow">Inspection tags</span><h2>Signed off by<br>working studios.</h2></div>
-      </div>
-      <div class="tags">
-        <figure class="panel riv tag reveal" style="margin:0">
-          <span class="stamp">Inspected &middot; 01</span>
-          <blockquote>Live Patch cut our tuning loop from a 40-second restart to a breath. We tune jump feel with the game running now, every day.</blockquote>
-          <figcaption class="who"><span class="av">MO</span><span><b>Mara Okafor</b><span>Gameplay lead &middot; Lowtide Games</span></span></figcaption>
-        </figure>
-        <figure class="panel riv tag reveal" style="margin:0">
-          <span class="stamp">Inspected &middot; 02</span>
-          <blockquote>Parts Bin took 1,900 legacy assets in one afternoon. No import dialogs and no broken materials. I got my Fridays back.</blockquote>
-          <figcaption class="who"><span class="av">JR</span><span><b>Jonah Reyes</b><span>Technical artist &middot; Brass Lantern</span></span></figcaption>
-        </figure>
-        <figure class="panel riv tag reveal" style="margin:0">
-          <span class="stamp">Inspected &middot; 03</span>
-          <blockquote>Wiring graphs compile to code our programmers actually review. That ended the designer-versus-engineer argument in one sprint.</blockquote>
-          <figcaption class="who"><span class="av">SP</span><span><b>Sun-hee Park</b><span>Studio director &middot; Halfmoon Works</span></span></figcaption>
-        </figure>
-      </div>
-    </div>
-  </section>
-
-  <!-- BREAKERS / PRICING -->
-  <section class="sec" id="pricing">
-    <div class="wrap">
-      <div class="sec-head reveal">
-        <div><span class="eyebrow">Main breakers</span><h2>Free until your<br>game pays the bills.</h2></div>
-        <p>No royalties. No splash screen. The license changes only when your team passes $250k in yearly revenue.</p>
-      </div>
-      <div class="breakers">
-        <div class="panel riv brk free reveal">
-          <span class="eyebrow"><i class="lamp on"></i>Circuit A &middot; Indie</span>
-          <div><div class="price">$0 <small>forever</small></div><p style="margin:8px 0 0;color:var(--muted)">For teams under $250k yearly revenue.</p></div>
-          <div class="breaker-sw" aria-hidden="true"></div>
-          <ul><li>Every feature: Live Patch, Parts Bin, Wiring, Chassis, Ship It</li><li>All five export targets</li><li>Community support on Discord</li></ul>
-          <a class="btn btn-go" href="#download">Download Scrap &mdash; free</a>
-        </div>
-        <div class="panel riv brk pro reveal">
-          <span class="eyebrow"><i class="lamp on pulse"></i>Circuit B &middot; Pro</span>
-          <div><div class="price">$24 <small>/ seat / month</small></div><p style="margin:8px 0 0;color:var(--muted)">For studios past $250k, or anyone who wants a direct line.</p></div>
-          <div class="breaker-sw" aria-hidden="true"></div>
-          <ul><li>Everything in Indie</li><li>Teardown profiler with remote capture</li><li>Console export modules (on request)</li><li>Priority support, 1 business day response</li></ul>
-          <a class="btn btn-steel" href="#">Start 30-day Pro trial</a>
-        </div>
-      </div>
-      <p class="license reveal">Source-available. Read every line of the engine on GitHub. Build it yourself if you want to.</p>
-    </div>
-  </section>
-
-  <!-- FINAL CTA -->
-  <section class="final" id="download">
-    <div class="wrap">
-      <div class="final-box reveal">
-        <div class="panel riv final-in">
-          <span class="eyebrow">Ready for start-up</span>
-          <h2>Press start.<br>Build something.</h2>
-          <a class="mushroom" href="#" aria-label="Download Scrap, free"><span>START</span></a>
-          <a class="btn btn-go" href="#">Download Scrap &mdash; free</a>
-          <p class="micro" style="margin:0">Windows &middot; macOS &middot; Linux &middot; 212 MB &middot; no account required</p>
-        </div>
-      </div>
-    </div>
+  <section class="wrap final" id="download">
+    <h2>Start building.</h2>
+    <a class="btn" href="#">Download Scrap &mdash; free</a>
   </section>
 </main>
 
-<footer>
-  <div class="wrap">
-    <a class="brand" href="#top"><span data-scrap-wordmark></span></a>
-    <nav aria-label="Footer"><a href="#">Docs</a><a href="#">Changelog</a><a href="#">GitHub</a><a href="#">Discord</a><a href="#">Press kit</a></nav>
-    <p class="fine">&copy; 2026 ScrapWorks. Mockup 02 &middot; Control Panel. All product figures are placeholders.</p>
-  </div>
-</footer>
+<div class="band" aria-hidden="true"></div>
+<footer class="wrap">&copy; 2026 ScrapWorks</footer>
 
 <script>
 (function () {
-  'use strict';
-  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  /* 7-segment readouts. Segment order: a b c d e f g. */
-  var SEGS = {
-    a: [[5,3],[19,3]], g: [[5,20],[19,20]], d: [[5,37],[19,37]],
-    f: [[3,5],[3,18]], b: [[21,5],[21,18]], e: [[3,22],[3,35]], c: [[21,22],[21,35]]
-  };
-  var MAP = { '0':'abcdef','1':'bc','2':'abged','3':'abgcd','4':'fgbc','5':'afgcd','6':'afgedc','7':'abc','8':'abcdefg','9':'abcdfg',' ':'' };
-  function segPoly(p, horiz) {
-    var t = 2.1, x1 = p[0][0], y1 = p[0][1], x2 = p[1][0], y2 = p[1][1];
-    if (horiz) return [x1,y1, x1+t,y1-t, x2-t,y1-t, x2,y1, x2-t,y1+t, x1+t,y1+t].join(' ');
-    return [x1,y1, x1+t,y1+t, x1+t,y2-t, x1,y2, x1-t,y2-t, x1-t,y1+t].join(' ');
-  }
-  function renderSeg(el, str, digits) {
-    var chars = [], dots = [];
-    for (var i = 0; i < str.length; i++) {
-      if (str[i] === '.') { dots[chars.length - 1] = true; continue; }
-      chars.push(str[i]);
-    }
-    while (chars.length < digits) { chars.unshift(' '); dots.unshift(false); }
-    var w = 28, svg = '<svg viewBox="-2 0 ' + (chars.length * w + 2) + ' 40" aria-hidden="true"><g transform="skewX(-6)">';
-    chars.forEach(function (ch, i) {
-      var on = MAP[ch] || '', ox = i * w;
-      svg += '<g transform="translate(' + ox + ' 0)">';
-      Object.keys(SEGS).forEach(function (k) {
-        svg += '<polygon class="' + (on.indexOf(k) >= 0 ? 'lit' : 'off') + '" points="' + segPoly(SEGS[k], 'agd'.indexOf(k) >= 0) + '"/>';
-      });
-      svg += '<circle cx="25" cy="37" r="1.9" class="' + (dots[i] ? 'lit' : 'off') + '"/></g>';
-    });
-    el.querySelector('.seg-svg').innerHTML = svg + '</g></svg>';
-  }
-  document.querySelectorAll('[data-seg]').forEach(function (el) {
-    el.innerHTML = '<span class="seg-svg"></span>' + (el.dataset.unit ? '<span class="unit">' + el.dataset.unit + '</span>' : '');
-    el.setAttribute('role', 'img');
-    el.setAttribute('aria-label', el.dataset.seg);
-    renderSeg(el, '0', +el.dataset.digits);
-  });
-  function countUp(el) {
-    var target = parseFloat(el.dataset.seg), dec = (el.dataset.seg.split('.')[1] || '').length;
-    var digits = +el.dataset.digits, t0 = null, dur = reduce ? 0 : 1700;
-    function step(ts) {
-      if (t0 === null) t0 = ts;
-      var k = dur ? Math.min((ts - t0) / dur, 1) : 1, e = 1 - Math.pow(1 - k, 4);
-      renderSeg(el, (target * e).toFixed(dec), digits);
-      if (k < 1) requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
-  }
-
-  /* Analog gauges: 240 degree sweep, needle settles with overshoot. */
-  function polar(a, r) { a = (a - 90) * Math.PI / 180; return [100 + Math.cos(a) * r, 100 + Math.sin(a) * r]; }
-  function arc(a1, a2, r) {
-    var p1 = polar(a1, r), p2 = polar(a2, r);
-    return 'M' + p1[0].toFixed(2) + ' ' + p1[1].toFixed(2) + ' A' + r + ' ' + r + ' 0 ' + (a2 - a1 > 180 ? 1 : 0) + ' 1 ' + p2[0].toFixed(2) + ' ' + p2[1].toFixed(2);
-  }
-  document.querySelectorAll('[data-gauge]').forEach(function (svg, gi) {
-    var min = +svg.dataset.min, max = +svg.dataset.max, val = +svg.dataset.gauge;
-    var z = svg.dataset.zone.split(',').map(Number), A0 = -120, A1 = 120;
-    function ang(v) { return A0 + (v - min) / (max - min) * (A1 - A0); }
-    var id = 'gg' + gi, h = '';
-    h += '<defs><radialGradient id="' + id + 'f" cx="50%" cy="78%" r="70%"><stop offset="0" stop-color="#1d1a14"/><stop offset="1" stop-color="#070707"/></radialGradient>' +
-      '<linearGradient id="' + id + 'g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".14"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>';
-    h += '<circle cx="100" cy="100" r="96" fill="#2a2d32"/><circle cx="100" cy="100" r="92" fill="url(#' + id + 'f)" stroke="#000" stroke-width="2"/>';
-    h += '<path d="' + arc(ang(z[0]), ang(z[1]), 78) + '" stroke="#ffb000" stroke-width="7" fill="none" opacity=".85" style="filter:drop-shadow(0 0 4px rgba(255,170,0,.8))"/>';
-    for (var i = 0; i <= 20; i++) {
-      var a = A0 + i * (A1 - A0) / 20, major = i % 5 === 0, p1 = polar(a, major ? 64 : 69), p2 = polar(a, 74);
-      h += '<line x1="' + p1[0].toFixed(2) + '" y1="' + p1[1].toFixed(2) + '" x2="' + p2[0].toFixed(2) + '" y2="' + p2[1].toFixed(2) + '" stroke="' + (major ? '#d9d4c9' : '#6c6962') + '" stroke-width="' + (major ? 2.2 : 1.2) + '"/>';
-      if (major) {
-        var pt = polar(a, 53), v = min + i / 20 * (max - min);
-        h += '<text x="' + pt[0].toFixed(1) + '" y="' + (pt[1] + 3.5).toFixed(1) + '" text-anchor="middle" font-size="10" fill="#9c978c">' + (Math.round(v * 10) / 10) + '</text>';
-      }
-    }
-    h += '<text x="100" y="80" text-anchor="middle" font-size="10" fill="#7d796f" letter-spacing="2">' + svg.dataset.label + '</text>';
-    h += '<text class="gv" x="100" y="150" text-anchor="middle" font-size="22" fill="#ffc21a" style="filter:drop-shadow(0 0 4px rgba(255,170,0,.7))">' + val + '</text>';
-    h += '<g class="needle"><g class="jit"><path d="M98.2 104 L99.4 30 L100.6 30 L101.8 104 Z" fill="#ffcc3a" style="filter:drop-shadow(0 0 3px rgba(255,170,0,.9))"/><path d="M98 100 L98.5 114 L101.5 114 L102 100Z" fill="#555"/></g></g>';
-    h += '<circle cx="100" cy="100" r="8" fill="#16171a" stroke="#5c6066" stroke-width="2"/><circle cx="100" cy="100" r="3" fill="#a3a8ae"/>';
-    h += '<circle cx="100" cy="100" r="92" fill="url(#' + id + 'g)" pointer-events="none"/>';
-    svg.innerHTML = h;
-    svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', svg.dataset.label + ' ' + val);
-    svg._target = ang(val);
-  });
-  function settle(svg) {
-    var n = svg.querySelector('.needle');
-    n.style.transform = 'rotate(' + svg._target + 'deg)';
-    setTimeout(function () { svg.classList.add('idle'); }, 2300);
-  }
-
-  /* Scroll reveal and instrument start-up */
-  var io = new IntersectionObserver(function (es) {
-    es.forEach(function (e) {
-      if (!e.isIntersecting) return;
-      e.target.classList.add('in');
-      e.target.querySelectorAll('[data-seg]').forEach(countUp);
-      e.target.querySelectorAll('[data-gauge]').forEach(settle);
-      io.unobserve(e.target);
-    });
-  }, { threshold: 0.18 });
-  document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
-
-  /* Toggle bank: one channel at a time */
-  var crt = document.getElementById('crt'), ch = document.getElementById('crt-ch');
-  var tgls = Array.prototype.slice.call(document.querySelectorAll('.tgl'));
-  tgls.forEach(function (b, i) {
-    b.addEventListener('click', function () {
-      if (b.getAttribute('aria-pressed') === 'true') return;
-      tgls.forEach(function (o) {
-        var on = o === b;
-        o.setAttribute('aria-pressed', on);
-        o.querySelector('.lamp').classList.toggle('on', on);
-      });
-      crt.querySelectorAll('.scr').forEach(function (s) { s.classList.toggle('on', s.dataset.scr === b.dataset.f); });
-      ch.textContent = 'CH 0' + (i + 1) + ' · ' + b.dataset.name;
-      crt.classList.remove('switch'); void crt.offsetWidth; crt.classList.add('switch');
+  var sws = document.querySelectorAll('.sw'), out = document.getElementById('readout');
+  sws.forEach(function (sw) {
+    sw.addEventListener('click', function () {
+      sws.forEach(function (o) { o.setAttribute('aria-checked', o === sw ? 'true' : 'false'); });
+      out.textContent = sw.getAttribute('data-text');
+      window.dispatchEvent(new CustomEvent('scrap:switch'));
     });
   });
 })();
@@ -670,77 +200,74 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 const canvas = document.getElementById('emblem');
 try {
   const kit = ScrapBrand.three(THREE, { RoomEnvironment, EffectComposer, RenderPass, UnrealBloomPass, OutputPass });
-  const st = kit.stage(canvas, { bloom: { strength: 1.0, radius: 0.55, threshold: 0.93 }, z: 8.2, fov: 32, exposure: 0.98, envIntensity: 0.75 });
+  const st = kit.stage(canvas, { bloom: { strength: 0.7, radius: 0.5, threshold: 0.95 }, z: 8, fov: 30, exposure: 1.0, envIntensity: 0.7 });
   st.scene.background = new THREE.Color(0x0c0c0d);
   const M = kit.materials;
   const rig = new THREE.Group();
   st.scene.add(rig);
 
-  // Faceplate: black powder coat on a steel backer
-  const coat = new THREE.MeshPhysicalMaterial({ color: 0x151619, metalness: 0.45, roughness: 0.6, roughnessMap: kit.noiseTexture(512, 80, 180), clearcoat: 0.35, clearcoatRoughness: 0.45 });
-  const plate = new THREE.Mesh(new RoundedBoxGeometry(2.7, 2.7, 0.16, 5, 0.1), coat);
-  plate.position.z = -0.14;
-  const backer = new THREE.Mesh(new RoundedBoxGeometry(2.92, 2.92, 0.1, 5, 0.08), M.darkSteel());
-  backer.position.z = -0.24;
-  rig.add(plate, backer);
+  // Faceplate: matte black powder coat
+  const coat = new THREE.MeshPhysicalMaterial({
+    color: 0x141518, metalness: 0.4, roughness: 0.62, roughnessMap: kit.noiseTexture(512, 90, 170),
+    clearcoat: 0.25, clearcoatRoughness: 0.5
+  });
+  const plate = new THREE.Mesh(new RoundedBoxGeometry(2.8, 2.8, 0.18, 6, 0.1), coat);
+  plate.position.z = -0.16;
+  rig.add(plate);
 
-  // Hexagonal glow channel cut into the plate
-  const ringMat = M.glow(0xff9d00, 2.2);
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.06, 0.014, 8, 6), ringMat);
-  ring.rotation.z = Math.PI / 6;
-  ring.position.z = -0.05;
-  rig.add(ring);
-
-  // The emblem
-  const wrench = kit.wrench({ depth: 16 });
-  wrench.scale.setScalar(1.22);
-  wrench.position.set(0.02, 0.02, 0.1);
+  // Emblem: the full wrench icon, centered on its own bounds
+  const wrench = kit.wrench({ depth: 16, material: M.paint({ roughness: 0.34 }) });
+  wrench.scale.setScalar(0.95);
+  wrench.position.set(0.37, 0.12, 0.06);
   rig.add(wrench);
 
-  // Hex bolts with washers at the corners
-  const steel = M.steel({ roughness: 0.25 });
-  const headGeo = new THREE.CylinderGeometry(0.105, 0.105, 0.075, 6);
-  const washGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.022, 40);
-  [[-1.1, 1.1], [1.1, 1.1], [-1.1, -1.1], [1.1, -1.1]].forEach(([x, y], i) => {
+  // Four hex bolts with washers
+  const steel = M.steel({ roughness: 0.28 });
+  const headGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.07, 6);
+  const washGeo = new THREE.CylinderGeometry(0.145, 0.145, 0.02, 48);
+  [[-1.15, 1.15], [1.15, 1.15], [-1.15, -1.15], [1.15, -1.15]].forEach(([x, y], i) => {
     const g = new THREE.Group();
     const w = new THREE.Mesh(washGeo, steel), h = new THREE.Mesh(headGeo, steel);
     w.rotation.x = h.rotation.x = Math.PI / 2;
-    w.position.z = 0.0; h.position.z = 0.045;
-    h.rotation.y = i * 0.37;
+    h.position.z = 0.045;
+    h.rotation.y = i * 0.41;
     g.add(w, h);
-    g.position.set(x, y, -0.04);
+    g.position.set(x, y, -0.06);
     rig.add(g);
   });
 
-  // Amber lamp at the bottom edge
-  const lampMat = M.glow(0xffa000, 3);
-  const base = new THREE.Color(0xffa000);
-  const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.075, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), lampMat);
+  // One amber indicator lamp, top center
+  const lampColor = new THREE.Color(0xffa000);
+  const lampMat = new THREE.MeshBasicMaterial({ color: lampColor.clone().multiplyScalar(3), toneMapped: false });
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.07, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), lampMat);
   lamp.rotation.x = Math.PI / 2;
-  lamp.position.set(0, -1.12, -0.05);
-  const bezel = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.022, 12, 32), steel);
-  bezel.position.copy(lamp.position);
-  rig.add(lamp, bezel);
-  const amber = new THREE.PointLight(0xff9a1a, 4, 7, 1.6);
-  amber.position.set(0, -0.9, 0.9);
-  rig.add(amber);
+  lamp.position.set(0, 1.15, -0.06);
+  const bezel = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.022, 12, 48), steel);
+  bezel.position.set(0, 1.15, -0.06);
+  const glow = new THREE.PointLight(0xffa000, 1.2, 2.5, 2);
+  glow.position.set(0, 1.0, 0.35);
+  rig.add(lamp, bezel, glow);
 
-  const key = new THREE.DirectionalLight(0xffffff, 1.1);
-  key.position.set(-2.5, 3, 4);
-  const rim = new THREE.DirectionalLight(0xffc870, 1.4);
-  rim.position.set(3, -1, -1.5);
+  // Key and rim light
+  const key = new THREE.DirectionalLight(0xfff2dc, 1.6);
+  key.position.set(-3, 4, 5);
+  const rim = new THREE.DirectionalLight(0xffb84a, 1.1);
+  rim.position.set(4, -2, -1);
   st.scene.add(key, rim);
 
-  st.onFrame((t) => {
-    const p = Math.pow(Math.sin(t * 1.7) * 0.5 + 0.5, 2);
-    amber.intensity = 2.2 + 5 * p;
-    lampMat.color.copy(base).multiplyScalar(1.6 + 3.4 * p);
-    ringMat.color.copy(base).multiplyScalar(0.9 + 1.4 * p);
-    rig.rotation.y += (st.pointer.sx * 0.38 + Math.sin(t * 0.4) * 0.06 - rig.rotation.y) * 0.08;
-    rig.rotation.x += (-st.pointer.sy * 0.22 - rig.rotation.x) * 0.08;
+  let flash = 0;
+  window.addEventListener('scrap:switch', () => { flash = 1; if (st.reduceMotion) st.render(); });
+
+  st.onFrame((t, dt) => {
+    rig.rotation.y = Math.sin(t * 0.35) * 0.08 + st.pointer.sx * 0.22;
+    rig.rotation.x = -st.pointer.sy * 0.14;
+    flash = Math.max(0, flash - dt * 2.5);
+    const k = 2.6 + Math.sin(t * 2.2) * 0.4 + flash * 3;
+    lampMat.color.copy(lampColor).multiplyScalar(k);
+    glow.intensity = 1.0 + flash * 2;
   });
-} catch (e) {
-  console.warn('Scrap emblem: WebGL unavailable, SVG fallback kept.', e);
+} catch (err) {
+  console.warn('Scrap emblem: WebGL not available, static icon shown.', err);
 }
 </script>
 </body>
