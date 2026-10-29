@@ -364,23 +364,20 @@
         }, o || {}));
       },
       /*
-       * Rough brass: fully metallic, satin, with large soft variation in
-       * roughness and a faint cast surface. Texture scale follows the UVs,
-       * which are in geometry units: set o.repeat for small parts.
+       * Brass: fully metallic, satin, clean. The user found the cast-texture
+       * version "way too rough/smudged", and its non-tiling canvas showed seams.
+       * No anisotropy: the slab side walls have UVs that do not change along the
+       * depth, so the anisotropic tangent degenerates and writes white specks.
        */
       brass: function (o) {
-        o = o || {};
-        var rep = o.repeat || 1, rough = cast.rough.clone(), normal = cast.normal.clone();
-        rough.repeat.set(rep, rep); normal.repeat.set(rep, rep);
-        var m = new THREE.MeshPhysicalMaterial({
-          color: 0xb8994e, metalness: 1, roughness: 0.52, roughnessMap: rough,
-          normalMap: normal, normalScale: new THREE.Vector2(0.35, 0.35)
-        });
+        o = Object.assign({}, o || {});
         delete o.repeat;
-        return Object.assign(m, o);
+        return new THREE.MeshPhysicalMaterial(Object.assign({
+          color: 0xc9a75a, metalness: 1, roughness: 0.32, clearcoat: 0.25, clearcoatRoughness: 0.35
+        }, o));
       },
       // Older, darker brass for secondary parts.
-      brassDark: function (o) { return materials.brass(Object.assign({ color: new THREE.Color(0x8c7238), roughness: 0.6 }, o || {})); },
+      brassDark: function (o) { return materials.brass(Object.assign({ color: new THREE.Color(0x9c7f3e), roughness: 0.38 }, o || {})); },
       castIron: function (o) {
         return new THREE.MeshStandardMaterial(Object.assign({
           color: 0x1c1d20, metalness: 0.8, roughness: 0.72
