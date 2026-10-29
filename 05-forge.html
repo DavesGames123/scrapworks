@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scrap Forge</title>
+<meta name="description" content="Scrap by ScrapWorks: the game engine workshop. Hot-patch code and assets while your game runs.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="shared/scrap-brand.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<style>
+:root{
+  --bg:#070707; --iron:#0f0f11; --iron-2:#151518; --steel:#1e1f23; --line:#2a2b30;
+  --hot:#ffc21a; --hot-2:#ffd75a; --ember:#ff7a1a; --red:#e2401c;
+  --text:#ece8e0; --muted:#97938b; --dim:#6a675f;
+  --display:'Anton','Impact',sans-serif; --body:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 var(--body);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+.wrap{width:min(1240px,100% - 32px);margin-inline:auto}
+.mono{font-family:var(--mono)}
+
+/* ---------- seams: thin glowing splits between bands ---------- */
+.seam{height:2px;position:relative;background:linear-gradient(90deg,transparent,var(--ember) 18%,var(--hot) 50%,var(--ember) 82%,transparent);box-shadow:0 0 12px 1px rgba(255,140,30,.55),0 0 40px 4px rgba(255,120,20,.18)}
+.seam::after{content:"";position:absolute;inset:-1px 0;background:linear-gradient(90deg,transparent 0 40%,#fff6 50%,transparent 60% 100%);background-size:300% 100%;animation:seamrun 6s linear infinite;mix-blend-mode:screen}
+@keyframes seamrun{from{background-position:100% 0}to{background-position:-200% 0}}
+
+/* ---------- nav ---------- */
+.nav{position:fixed;inset:0 0 auto;z-index:50;transition:background .3s,border-color .3s;border-bottom:1px solid transparent}
+.nav.scrolled{background:rgba(8,8,9,.82);backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);border-color:#1f1f23}
+.nav .wrap{display:flex;align-items:center;gap:32px;height:68px}
+.brand{display:flex;align-items:center;gap:12px;color:var(--hot);font:400 30px/1 var(--display);letter-spacing:.02em;filter:drop-shadow(0 0 10px rgba(255,170,20,.35))}
+.brand small{font:600 10px/1 var(--mono);letter-spacing:.2em;color:var(--dim);border-left:1px solid var(--line);padding-left:12px}
+.nav ul{display:flex;gap:28px;list-style:none;margin:0 0 0 auto;padding:0;font-size:14px;font-weight:500;color:#c9c5bd}
+.nav ul a:hover{color:var(--hot)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:48px;padding:0 22px;border-radius:4px;font:700 15px/1 var(--body);letter-spacing:.01em;border:0;cursor:pointer;transition:transform .15s,box-shadow .2s,background .2s;white-space:nowrap}
+.btn-hot{color:#140d00;background:linear-gradient(180deg,#ffd95e,#ffc21a 45%,#f0a400);box-shadow:inset 0 1px 0 #fff4c4,inset 0 -2px 0 #b97800,0 0 0 1px #6b4600,0 8px 30px -6px rgba(255,160,20,.6)}
+.btn-hot:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 #fff4c4,inset 0 -2px 0 #b97800,0 0 0 1px #6b4600,0 10px 44px -4px rgba(255,170,30,.85)}
+.btn-iron{color:var(--text);background:linear-gradient(180deg,#26272c,#17181b);box-shadow:inset 0 1px 0 #3a3b42,0 0 0 1px #000,0 6px 20px -8px #000}
+.btn-iron:hover{color:var(--hot)}
+.nav .btn{height:40px;padding:0 16px;font-size:14px}
+
+/* ---------- hero ---------- */
+.hero{position:relative;min-height:max(720px,100svh);display:flex;align-items:center;overflow:hidden;isolation:isolate;
+  background:radial-gradient(1200px 520px at 70% 115%,rgba(255,110,20,.32),transparent 60%),radial-gradient(700px 400px at 72% 55%,rgba(255,170,30,.10),transparent 70%),linear-gradient(180deg,#060606,#0b0a09 70%,#120b06)}
+.heat{position:absolute;inset:auto 0 0;height:55%;z-index:-1;pointer-events:none;filter:url(#heat);opacity:.85;
+  background:radial-gradient(60% 80% at 68% 110%,rgba(255,120,20,.45),rgba(255,80,10,.12) 45%,transparent 70%)}
+.hero::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.35;
+  background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:64px 64px;
+  -webkit-mask-image:radial-gradient(ellipse 80% 70% at 60% 60%,#000,transparent 75%);mask-image:radial-gradient(ellipse 80% 70% at 60% 60%,#000,transparent 75%)}
+#forge{position:absolute;inset:0;width:100%;height:100%;z-index:0;opacity:0;transition:opacity 1.2s;mix-blend-mode:screen}
+#forge.is-live{opacity:1}
+.hero-fallback{position:absolute;right:8%;top:50%;transform:translateY(-50%);font-size:min(36vw,420px);color:var(--hot);filter:drop-shadow(0 0 40px rgba(255,140,20,.6));z-index:0;pointer-events:none}
+#forge.is-live ~ .hero-fallback{display:none}
+.hero-copy{position:relative;z-index:2;max-width:760px;padding:112px 0 72px;pointer-events:none}
+.hero-copy a,.hero-copy button{pointer-events:auto}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font:600 12px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--hot);padding:8px 12px;border:1px solid rgba(255,194,26,.3);border-radius:3px;background:rgba(255,194,26,.05)}
+.eyebrow i{width:7px;height:7px;border-radius:50%;background:var(--hot);box-shadow:0 0 10px var(--hot),0 0 20px var(--ember);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+h1{font:400 clamp(60px,7.9vw,124px)/.88 var(--display);letter-spacing:.005em;text-transform:uppercase;margin:26px 0 22px}
+h1 .glow{display:block;color:transparent;background:linear-gradient(180deg,#fff3c2 0%,#ffd040 30%,#ffa214 70%,#ff6a12 100%);-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 0 18px rgba(255,140,20,.55)) drop-shadow(0 0 2px rgba(255,200,80,.9))}
+.lede{font-size:clamp(17px,1.45vw,20px);color:#c8c3b9;max-width:540px;margin:0 0 34px}
+.lede b{color:var(--text);font-weight:600}
+.ctas{display:flex;flex-wrap:wrap;gap:12px}
+.micro{margin:14px 0 0;font:500 12.5px/1.4 var(--mono);color:var(--dim);letter-spacing:.04em}
+.micro span{color:var(--muted)}
+.proof{max-width:560px;display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:30px;padding-top:22px;border-top:1px solid #222;font-size:14px;color:var(--muted)}
+.proof b{color:var(--hot);font:400 22px/1 var(--display);letter-spacing:.03em;margin-right:6px;vertical-align:-2px}
+.strike{position:absolute;z-index:3;right:clamp(16px,6vw,96px);bottom:56px;display:flex;align-items:center;gap:14px;font:600 12px/1.3 var(--mono);color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.strike button{width:64px;height:64px;border-radius:50%;border:0;cursor:pointer;position:relative;color:#1a1000;
+  background:radial-gradient(circle at 35% 30%,#ffe9a0,#ffc21a 40%,#e68a00 75%,#9c4c00);box-shadow:0 0 0 6px #121214,0 0 0 7px #2c2c31,0 0 30px 4px rgba(255,140,20,.55),inset 0 -4px 8px rgba(120,40,0,.6);transition:transform .12s}
+.strike button:hover{transform:scale(1.06)}
+.strike button:active{transform:scale(.94)}
+.strike button svg{width:30px;height:30px}
+.flash{position:fixed;inset:0;z-index:40;pointer-events:none;opacity:0;background:radial-gradient(circle at var(--fx,70%) var(--fy,50%),rgba(255,210,120,.45),rgba(255,120,20,.12) 35%,transparent 65%)}
+.flash.on{animation:flash .6s ease-out}
+@keyframes flash{0%{opacity:1}100%{opacity:0}}
+.scroll-cue{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:2;width:1px;height:46px;background:linear-gradient(var(--hot),transparent);opacity:.6}
+
+/* ---------- bands ---------- */
+.band{position:relative;padding:120px 0}
+.band.iron{background:linear-gradient(180deg,#0d0d0f,#0a0a0b)}
+.band.black{background:#060606}
+.kicker{font:600 12px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--ember);display:flex;align-items:center;gap:12px}
+.kicker::before{content:"";width:28px;height:2px;background:var(--ember);box-shadow:0 0 8px var(--ember)}
+h2{font:400 clamp(44px,5.6vw,84px)/.92 var(--display);text-transform:uppercase;margin:18px 0 18px;letter-spacing:.005em}
+h2 em{font-style:normal;color:var(--hot);text-shadow:0 0 24px rgba(255,150,20,.45)}
+.sub{color:var(--muted);max-width:620px;font-size:18px;margin:0}
+
+/* ---------- editor mock ---------- */
+.patch-grid{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.5fr);gap:56px;align-items:center}
+.patch-points{list-style:none;padding:0;margin:32px 0 0;display:grid;gap:18px}
+.patch-points li{display:grid;grid-template-columns:28px 1fr;gap:12px;color:#c8c3b9}
+.patch-points b{color:var(--text)}
+.hexi{width:22px;height:22px;margin-top:2px;color:var(--hot);filter:drop-shadow(0 0 6px rgba(255,160,20,.6))}
+.editor{border-radius:8px;overflow:hidden;background:#0c0c0e;box-shadow:0 0 0 1px #2a2b30,0 0 0 2px #0a0a0b,0 40px 100px -30px #000,0 0 80px -20px rgba(255,120,20,.25);position:relative}
+.editor::before{content:"";position:absolute;inset:0 0 auto;height:1px;background:linear-gradient(90deg,transparent,var(--hot),transparent);opacity:.7}
+.ed-bar{display:flex;align-items:center;gap:14px;height:40px;padding:0 14px;background:linear-gradient(180deg,#1b1c20,#141518);border-bottom:1px solid #000;font:500 12px/1 var(--mono);color:var(--dim)}
+.bolts{display:flex;gap:7px}
+.bolts i{width:11px;height:11px;clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0 50%);background:radial-gradient(circle at 40% 35%,#6c6e75,#2b2c31)}
+.ed-bar .tab{color:var(--text);padding:6px 10px;background:#0c0c0e;border-radius:3px 3px 0 0;margin-bottom:-14px;border:1px solid #26272c;border-bottom:0}
+.ed-bar .live{margin-left:auto;color:var(--hot);display:flex;align-items:center;gap:8px}
+.ed-bar .live i{width:7px;height:7px;border-radius:50%;background:var(--hot);box-shadow:0 0 8px var(--hot);animation:pulse 1.2s infinite}
+.ed-body{display:grid;grid-template-columns:150px minmax(0,1fr) minmax(0,1fr);min-height:330px}
+.ed-tree{border-right:1px solid #1d1e22;padding:14px 12px;font:12px/1.9 var(--mono);color:var(--dim)}
+.ed-tree div{white-space:nowrap}
+.ed-tree .on{color:var(--hot);background:rgba(255,194,26,.07);margin:0 -12px;padding:0 12px;border-left:2px solid var(--hot)}
+pre.code{margin:0;padding:16px 18px;font:13px/1.75 var(--mono);color:#c9c5bd;overflow:hidden;border-right:1px solid #1d1e22;counter-reset:ln}
+pre.code span.l{display:block;counter-increment:ln}
+pre.code span.l::before{content:counter(ln);display:inline-block;width:22px;color:#3d3e44;margin-right:10px;text-align:right}
+.k{color:#ff9d4a}.f{color:#ffd45a}.c{color:#5b5d64;font-style:italic}.n{color:#fff;background:rgba(255,194,26,.16);border-radius:2px;padding:0 3px;box-shadow:0 0 0 1px rgba(255,194,26,.4);transition:background .3s}.n.hit{background:rgba(255,194,26,.55);color:#1a1000}.t{color:#e8c98c}
+.game{position:relative;overflow:hidden;background:radial-gradient(120% 80% at 50% 120%,#3a1a05,#0d0b0a 60%),#0d0b0a}
+.game::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,180,60,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,180,60,.06) 1px,transparent 1px);background-size:24px 24px}
+.floor{position:absolute;left:0;right:0;bottom:62px;height:3px;background:linear-gradient(90deg,var(--ember),var(--hot));box-shadow:0 0 14px var(--ember)}
+.runner{position:absolute;bottom:65px;left:16%;width:26px;height:30px;background:var(--hot);clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);box-shadow:0 0 18px var(--hot);animation:run 2.4s cubic-bezier(.6,0,.3,1) infinite}
+.trail{position:absolute;bottom:72px;left:16%;height:14px;width:calc(var(--dash,2.4) * 34px);background:linear-gradient(90deg,transparent,rgba(255,170,30,.8));filter:blur(3px);transform-origin:right;animation:trail 2.4s cubic-bezier(.6,0,.3,1) infinite}
+@keyframes run{0%,15%{transform:translateX(0)}45%,70%{transform:translateX(calc(var(--dash,2.4) * 48px))}100%{transform:translateX(0)}}
+@keyframes trail{0%,15%{opacity:0;transform:translateX(-30px) scaleX(.2)}40%{opacity:1;transform:translateX(calc(var(--dash,2.4) * 48px - 40px)) scaleX(1)}60%,100%{opacity:0;transform:translateX(calc(var(--dash,2.4) * 48px - 30px)) scaleX(.3)}}
+.hud{position:absolute;left:12px;top:10px;font:11px/1.6 var(--mono);color:#a29c90}
+.toast{position:absolute;right:12px;top:12px;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:4px;background:rgba(20,14,6,.85);border:1px solid rgba(255,194,26,.45);font:600 11.5px/1 var(--mono);color:var(--hot);box-shadow:0 0 22px -4px rgba(255,150,20,.6);transition:transform .25s,opacity .25s}
+.toast.bump{animation:bump .5s}
+@keyframes bump{0%{transform:scale(1)}30%{transform:scale(1.08);box-shadow:0 0 34px 0 rgba(255,170,30,.9)}100%{transform:scale(1)}}
+.ed-foot{display:flex;flex-wrap:wrap;align-items:center;gap:14px 22px;padding:14px 16px;border-top:1px solid #1d1e22;background:#0f0f12;font:12px/1 var(--mono);color:var(--dim)}
+.ed-foot label{display:flex;align-items:center;gap:12px;color:var(--text)}
+.ed-foot output{color:var(--hot);min-width:3ch}
+input[type=range]{-webkit-appearance:none;appearance:none;width:180px;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--hot) var(--p,47%),#2b2c31 var(--p,47%));outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff0b8,#ffc21a 55%,#c27c00);box-shadow:0 0 0 3px #0f0f12,0 0 14px rgba(255,170,20,.8);cursor:grab}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radius:50%;background:#ffc21a;box-shadow:0 0 14px rgba(255,170,20,.8)}
+.ed-foot .stat{margin-left:auto}
+.ed-foot .stat b{color:var(--hot)}
+
+/* ---------- ingots ---------- */
+.ingots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin-top:64px}
+.ingot{--heat:1;position:relative;padding:34px 30px 30px;border-radius:6px 6px 4px 4px;
+  background:linear-gradient(180deg,#1c1d21,#131417 40%,#0f1012);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 0 0 1px #050506,0 30px 60px -30px #000;overflow:hidden;isolation:isolate}
+.ingot::before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#ff5a10,#ffc21a 30%,#fff1b0 50%,#ffc21a 70%,#ff5a10);opacity:var(--heat);box-shadow:0 0 18px 2px rgba(255,140,20,.8),0 0 60px 8px rgba(255,100,20,.35);transition:opacity .2s linear}
+.ingot::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:calc(var(--heat) * .9);background:radial-gradient(90% 60% at 50% -10%,rgba(255,120,20,.28),transparent 70%)}
+.ingot .cold{position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#3a3c42,#5a5d64,#3a3c42)}
+.ingot h3{font:400 30px/1 var(--display);text-transform:uppercase;letter-spacing:.02em;margin:0 0 10px;display:flex;align-items:center;gap:12px}
+.ingot h3 svg{width:24px;height:24px;color:var(--hot);flex:none}
+.ingot p{margin:0;color:var(--muted);font-size:15.5px}
+.ingot .big{display:block;margin-top:24px;padding-top:18px;border-top:1px dashed #2a2b30;font:400 40px/1 var(--display);color:color-mix(in srgb,var(--hot) calc(var(--heat) * 100%),#c9c5bd);letter-spacing:.02em;text-shadow:0 0 calc(var(--heat) * 22px) rgba(255,150,20,.6)}
+.ingot .big small{display:block;margin-top:8px;font:500 12px/1.3 var(--mono);color:var(--dim);letter-spacing:.04em;text-shadow:none}
+
+/* ---------- tags ---------- */
+.tags{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;margin-top:64px;align-items:start}
+.tag{position:relative;padding:58px 28px 26px;color:#26272b;border-radius:10px;
+  background:linear-gradient(160deg,#d8dade 0%,#aeb2b8 35%,#c9ccd1 55%,#8e9298 100%);
+  box-shadow:inset 0 1px 0 #fff,inset 0 -2px 0 rgba(0,0,0,.25),0 22px 50px -20px #000,0 0 0 1px #000;
+  clip-path:polygon(0 18px,18px 0,calc(100% - 18px) 0,100% 18px,100% 100%,0 100%)}
+.tag:nth-child(1){transform:rotate(-1.4deg)}.tag:nth-child(2){transform:rotate(.8deg) translateY(18px)}.tag:nth-child(3){transform:rotate(-.5deg)}
+.tag::before{content:"";position:absolute;top:18px;left:50%;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#050505 55%,#5f636a 60%,#e7e9ec 75%);box-shadow:0 1px 0 #fff8}
+.tag::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;mix-blend-mode:overlay;background:repeating-linear-gradient(90deg,rgba(255,255,255,.18) 0 1px,transparent 1px 3px)}
+.tag blockquote{margin:0;font:600 17px/1.5 var(--body);color:#1c1d20;text-shadow:0 1px 0 rgba(255,255,255,.55)}
+.tag .who{display:flex;align-items:center;gap:12px;margin-top:22px;padding-top:16px;border-top:1px solid rgba(0,0,0,.18);box-shadow:0 1px 0 rgba(255,255,255,.4) inset}
+.tag .who b{display:block;font:400 20px/1 var(--display);letter-spacing:.04em;text-transform:uppercase;color:#141416}
+.tag .who span{font:500 11.5px/1.4 var(--mono);color:#4a4d53;letter-spacing:.04em}
+.tag .stamp{white-space:nowrap;flex:none;margin-left:auto;font:400 12px/1 var(--display);letter-spacing:.12em;color:#b84a00;border:2px solid #b84a00;padding:5px 7px;border-radius:3px;transform:rotate(-6deg);opacity:.85}
+
+/* ---------- pricing ---------- */
+.plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin-top:64px}
+.plan{position:relative;padding:34px 30px;border-radius:6px;background:linear-gradient(180deg,#141518,#0e0e10);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 0 0 1px #1f2024}
+.plan.hot{background:linear-gradient(180deg,#1f1609,#120d07 60%,#0e0b08);box-shadow:inset 0 1px 0 rgba(255,210,120,.25),0 0 0 1px rgba(255,170,30,.55),0 0 60px -10px rgba(255,130,20,.35)}
+.plan .badge{position:absolute;top:-12px;left:30px;font:700 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:#1a1000;background:var(--hot);padding:6px 9px;border-radius:2px;box-shadow:0 0 18px rgba(255,170,30,.7)}
+.plan h3{font:400 26px/1 var(--display);text-transform:uppercase;letter-spacing:.04em;margin:0}
+.plan .price{font:400 64px/1 var(--display);margin:18px 0 6px;color:var(--text)}
+.plan.hot .price{color:var(--hot);text-shadow:0 0 24px rgba(255,150,20,.5)}
+.plan .price small{font:500 14px/1 var(--body);color:var(--muted);margin-left:6px}
+.plan .for{color:var(--muted);font-size:14.5px;margin:0 0 22px;min-height:46px}
+.plan ul{list-style:none;padding:0;margin:0 0 28px;display:grid;gap:10px;font-size:14.5px;color:#cfcac1}
+.plan li{display:flex;gap:10px}
+.plan li::before{content:"";flex:none;width:9px;height:9px;margin-top:7px;clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0 50%);background:var(--hot);box-shadow:0 0 6px var(--hot)}
+.plan .btn{width:100%}
+
+/* ---------- final cta ---------- */
+.final{position:relative;padding:160px 0 140px;text-align:center;overflow:hidden;isolation:isolate;
+  background:radial-gradient(900px 420px at 50% 110%,rgba(255,110,20,.4),transparent 65%),#070606}
+.final .heat{height:80%}
+.final .mark{font:400 clamp(96px,17vw,250px)/1 var(--display);color:var(--hot);filter:drop-shadow(0 0 30px rgba(255,140,20,.5)) drop-shadow(0 0 2px #ffe08a);display:block;margin-bottom:16px}
+.final h2{margin:0 auto 14px}
+.final .sub{margin:0 auto 34px}
+.final .ctas{justify-content:center}
+
+footer{padding:40px 0 56px;border-top:1px solid #18181b;color:var(--dim);font-size:13.5px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:center}
+footer .brand{font-size:22px}
+footer nav{display:flex;gap:22px;margin-left:auto}
+footer nav a:hover{color:var(--hot)}
+
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .8s,transform .8s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- responsive ---------- */
+@media (max-width:1020px){
+  .patch-grid{grid-template-columns:1fr;gap:40px}
+  .ingots,.plans{grid-template-columns:1fr 1fr}
+  .tags{grid-template-columns:1fr;max-width:560px;margin-inline:auto}
+  .tag:nth-child(n){transform:none}
+}
+@media (max-width:760px){
+  .nav ul{display:none}
+  .nav .wrap{justify-content:space-between}
+  .brand small{display:none}
+  .hero{align-items:flex-end}
+  .hero-copy{padding:320px 0 120px}
+  .hero-fallback{right:50%;top:22%;transform:translate(50%,-50%);font-size:200px}
+  .strike{right:16px;bottom:40px}
+  .strike span{display:none}
+  .eyebrow{font-size:10.5px;letter-spacing:.1em}
+  .band{padding:88px 0}
+  .ingots,.plans{grid-template-columns:1fr}
+  .ed-body{grid-template-columns:1fr}
+  .ed-tree{display:none}
+  pre.code{border-right:0;border-bottom:1px solid #1d1e22;font-size:12px}
+  .game{min-height:200px}
+  .ed-foot .stat{margin-left:0}
+  footer nav{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .reveal{opacity:1;transform:none}
+  .heat{filter:none}
+}
+</style>
+</head>
+<body>
+
+<!-- heat shimmer: displaces the glow layers only -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="heat" x="-10%" y="-10%" width="120%" height="120%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.012 0.045" numOctaves="2" seed="4" result="n">
+      <animate attributeName="baseFrequency" dur="9s" values="0.012 0.045;0.016 0.06;0.012 0.045" repeatCount="indefinite"/>
+    </feTurbulence>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="38" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><span data-scrap-wordmark></span><small>SCRAPWORKS</small></a>
+    <ul>
+      <li><a href="#patch">Live Patch</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#docs">Docs</a></li>
+    </ul>
+    <a class="btn btn-hot" href="#download">Download</a>
+  </div>
+</header>
+
+<main id="top">
+<section class="hero" aria-labelledby="hero-title">
+  <div class="heat"></div>
+  <canvas id="forge" aria-label="A yellow wrench-shaped C glows in a shower of sparks"></canvas>
+  <div class="hero-fallback" data-scrap-glyph></div>
+  <div class="wrap">
+    <div class="hero-copy">
+      <span class="eyebrow"><i></i>Scrap 1.0 · the game engine workshop</span>
+      <h1 id="hero-title">Forge games <span class="glow">while they run.</span></h1>
+      <p class="lede">Scrap hot-patches your code and assets in <b>~140&nbsp;ms</b> without stopping play mode. Change a number, see the jump. Ship to five platforms from one editor.</p>
+      <div class="ctas">
+        <a class="btn btn-hot" href="#download" id="download">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 20h16"/></svg>
+          Download Scrap — free
+        </a>
+        <a class="btn btn-iron" href="#patch">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>
+          Watch the 90 s demo
+        </a>
+      </div>
+      <p class="micro">Windows · macOS · Linux <span>·</span> no account required <span>·</span> 212 MB</p>
+      <div class="proof">
+        <div><b>12,400</b>games built</div>
+        <div><b>38K</b>devs on Discord</div>
+        <div><b>4.9★</b>on itch.io</div>
+      </div>
+    </div>
+  </div>
+  <div class="strike">
+    <span>Strike<br>the iron</span>
+    <button type="button" id="strikeBtn" aria-label="Strike: throw sparks">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+    </button>
+  </div>
+  <div class="scroll-cue" aria-hidden="true"></div>
+</section>
+<div class="flash" id="flash"></div>
+
+<div class="seam"></div>
+
+<section class="band iron" id="patch" aria-labelledby="patch-title">
+  <div class="wrap patch-grid">
+    <div class="reveal">
+      <span class="kicker">Live Patch</span>
+      <h2 id="patch-title">Hammer it <em>hot.</em></h2>
+      <p class="sub">Save the file. Scrap recompiles the changed system, swaps it into the running game, and keeps every entity where it was.</p>
+      <ul class="patch-points">
+        <li><svg class="hexi" viewBox="0 0 24 24"><path fill="currentColor" d="M7 3h10l5 9-5 9H7l-5-9z"/></svg><span><b>~140 ms</b> from save to the next frame, measured on a 2021 laptop.</span></li>
+        <li><svg class="hexi" viewBox="0 0 24 24"><path fill="currentColor" d="M7 3h10l5 9-5 9H7l-5-9z"/></svg><span><b>State survives.</b> Positions, timers, and the boss at 4% health stay put.</span></li>
+        <li><svg class="hexi" viewBox="0 0 24 24"><path fill="currentColor" d="M7 3h10l5 9-5 9H7l-5-9z"/></svg><span><b>Assets too.</b> Re-export a .blend or .png and it lands live.</span></li>
+      </ul>
+    </div>
+    <div class="editor reveal" aria-label="Scrap editor mock-up">
+      <div class="ed-bar">
+        <div class="bolts"><i></i><i></i><i></i></div>
+        <span class="tab">player.rs</span><span>level_03.scene</span>
+        <span class="live"><i></i>PLAY MODE · LIVE</span>
+      </div>
+      <div class="ed-body">
+        <div class="ed-tree">
+          <div>▾ src</div>
+          <div>&nbsp;&nbsp;camera.rs</div>
+          <div class="on">&nbsp;&nbsp;player.rs</div>
+          <div>&nbsp;&nbsp;enemies.rs</div>
+          <div>▾ parts</div>
+          <div>&nbsp;&nbsp;hero.blend</div>
+          <div>&nbsp;&nbsp;forge.png</div>
+          <div>&nbsp;&nbsp;clang.wav</div>
+          <div>▸ wiring</div>
+        </div>
+<pre class="code" aria-label="Code sample"><span class="l"><span class="c">// saved while the game runs</span></span><span class="l"><span class="k">#[system]</span></span><span class="l"><span class="k">fn</span> <span class="f">dash</span>(<span class="k">mut</span> q: <span class="t">Query</span>&lt;(&amp;<span class="k">mut</span> <span class="t">Velocity</span>, &amp;<span class="t">Input</span>)&gt;) {</span><span class="l">  <span class="k">for</span> (<span class="k">mut</span> vel, input) <span class="k">in</span> &amp;<span class="k">mut</span> q {</span><span class="l">    <span class="k">if</span> input.<span class="f">just_pressed</span>(<span class="t">Key</span>::Shift) {</span><span class="l">      vel.x *= <span class="n" id="dashVal">2.4</span>;</span><span class="l">      <span class="f">sparks</span>(vel, <span class="n">12</span>);</span><span class="l">    }</span><span class="l">  }</span><span class="l">}</span></pre>
+        <div class="game" aria-hidden="true">
+          <div class="hud">LVL 03 · THE FOUNDRY<br>60 FPS · 0 DROPPED</div>
+          <div class="toast" id="toast">▲ PATCHED · <span id="ms">138</span> ms</div>
+          <div class="trail"></div>
+          <div class="runner"></div>
+          <div class="floor"></div>
+        </div>
+      </div>
+      <div class="ed-foot">
+        <label for="dash">Dash force <input type="range" id="dash" min="1" max="4" step="0.1" value="2.4"><output id="dashOut">2.4</output></label>
+        <span class="stat">Last patch <b id="ms2">138 ms</b> · play mode kept running</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="seam"></div>
+
+<section class="band black" id="features" aria-labelledby="feat-title">
+  <div class="wrap">
+    <div class="reveal">
+      <span class="kicker">The kit</span>
+      <h2 id="feat-title">Six tools. <em>One anvil.</em></h2>
+      <p class="sub">Every part of Scrap ships in the same editor, uses the same data, and patches live.</p>
+    </div>
+    <div class="ingots">
+      <article class="ingot"><span class="cold"></span>
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Live Patch</h3>
+        <p>Code and asset hot reload. Play mode keeps running and state survives the swap.</p>
+        <span class="big">140 ms<small>save → next frame</small></span>
+      </article>
+      <article class="ingot"><span class="cold"></span>
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10"/></svg>Parts Bin</h3>
+        <p>Drag in .blend, .fbx, .gltf, .png, .wav. Scrap imports, builds LODs, and packs atlases.</p>
+        <span class="big">0 config<small>for 14 file types</small></span>
+      </article>
+      <article class="ingot"><span class="cold"></span>
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="5" cy="6" r="2.5"/><circle cx="19" cy="12" r="2.5"/><circle cx="5" cy="18" r="2.5"/><path d="M7.5 6c6 0 4 6 9 6M7.5 18c6 0 4-6 9-6"/></svg>Wiring</h3>
+        <p>Node-based scripting that compiles to readable native code. Designers wire, programmers read.</p>
+        <span class="big">1:1<small>nodes to native code</small></span>
+      </article>
+      <article class="ingot"><span class="cold"></span>
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Chassis</h3>
+        <p>A data-oriented ECS runtime. Systems run in parallel, cache-friendly by default.</p>
+        <span class="big">100K<small>entities @ 60 fps, 2019 laptop</small></span>
+      </article>
+      <article class="ingot"><span class="cold"></span>
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7"/></svg>Ship It</h3>
+        <p>One-click export to Windows, macOS, Linux, Web, and Steam Deck. Signing included.</p>
+        <span class="big">5 targets<small>one button</small></span>
+      </article>
+      <article class="ingot"><span class="cold"></span>
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 20h18M6 16V9M11 16V4M16 16v-5M21 16v-9"/></svg>Teardown</h3>
+        <p>A frame profiler with per-system timings. Find the slow part, patch it live.</p>
+        <span class="big">0.01 ms<small>timing resolution</small></span>
+      </article>
+    </div>
+  </div>
+</section>
+
+<div class="seam"></div>
+
+<section class="band iron" aria-labelledby="voices-title">
+  <div class="wrap">
+    <div class="reveal">
+      <span class="kicker">Stamped by studios</span>
+      <h2 id="voices-title">Tagged and <em>tested.</em></h2>
+    </div>
+    <div class="tags">
+      <figure class="tag reveal">
+        <blockquote>We tuned our dash for two days in Unity. In Scrap we did it in a lunch break, with the boss fight still running.</blockquote>
+        <figcaption class="who"><div><b>Mara Okonkwo</b><span>Lead designer · Kiln Interactive</span></div><span class="stamp">QC 01</span></figcaption>
+      </figure>
+      <figure class="tag reveal">
+        <blockquote>Wiring compiles to code our engineers actually review. That ended the "designer graph vs real code" argument.</blockquote>
+        <figcaption class="who"><div><b>Tomás Reyes</b><span>Tech director · Bellows Games</span></div><span class="stamp">QC 02</span></figcaption>
+      </figure>
+      <figure class="tag reveal">
+        <blockquote>100k projectiles, a 2019 MacBook, 60 fps. Teardown found our one slow system in about four minutes.</blockquote>
+        <figcaption class="who"><div><b>Jun Park</b><span>Solo dev · Rivet &amp; Rust</span></div><span class="stamp">QC 03</span></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<div class="seam"></div>
+
+<section class="band black" id="pricing" aria-labelledby="price-title">
+  <div class="wrap">
+    <div class="reveal">
+      <span class="kicker">Pricing</span>
+      <h2 id="price-title">Free until it <em>pays.</em></h2>
+      <p class="sub">Source-available. No royalties. No splash screen. You pay when your team makes real money.</p>
+    </div>
+    <div class="plans">
+      <div class="plan reveal">
+        <h3>Apprentice</h3>
+        <div class="price">$0</div>
+        <p class="for">Teams under $250k yearly revenue. Every feature included.</p>
+        <ul><li>Full editor and runtime</li><li>All five export targets</li><li>Community support on Discord</li></ul>
+        <a class="btn btn-iron" href="#download">Download free</a>
+      </div>
+      <div class="plan hot reveal">
+        <span class="badge">Most studios</span>
+        <h3>Smith</h3>
+        <div class="price">$24<small>/ seat / month</small></div>
+        <p class="for">Teams over $250k. Priority builds and a direct line to the engine team.</p>
+        <ul><li>Everything in Apprentice</li><li>Cloud build farm, 400 min/mo</li><li>48-hour support response</li></ul>
+        <a class="btn btn-hot" href="#download">Start 30-day trial</a>
+      </div>
+      <div class="plan reveal">
+        <h3>Foundry</h3>
+        <div class="price">Talk</div>
+        <p class="for">Console ports, custom licensing, and source escrow.</p>
+        <ul><li>Console platform modules</li><li>Named engine engineer</li><li>Book a call — no forms</li></ul>
+        <a class="btn btn-iron" href="#download">Book 20 minutes</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="seam"></div>
+
+<section class="final" aria-labelledby="final-title">
+  <div class="heat"></div>
+  <span class="mark" data-scrap-wordmark></span>
+  <h2 id="final-title">Strike while it's <em>hot.</em></h2>
+  <p class="sub">Free download. Your first live patch takes about five minutes.</p>
+  <div class="ctas">
+    <a class="btn btn-hot" href="#download">Download Scrap — free</a>
+    <a class="btn btn-iron" href="#docs" id="docs">Read the docs</a>
+  </div>
+  <p class="micro">Windows · macOS · Linux <span>·</span> no account required</p>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a class="brand" href="#top"><span data-scrap-wordmark></span></a>
+    <span>© 2026 ScrapWorks. Mock-up 05 · Forge. All figures are placeholders.</span>
+    <nav><a href="#docs">Docs</a><a href="#">Discord</a><a href="#">GitHub</a><a href="#">Press kit</a></nav>
+  </div>
+</footer>
+
+<script>
+// Nav background, reveal on scroll, ingot cooling, Live Patch demo.
+(function () {
+  var nav = document.getElementById('nav');
+  var ingots = [].slice.call(document.querySelectorAll('.ingot'));
+  function onScroll() {
+    nav.classList.toggle('scrolled', window.scrollY > 20);
+    var h = window.innerHeight;
+    // Hot near the bottom of the viewport, cooled by the time it reaches the top third.
+    ingots.forEach(function (el) {
+      var r = el.getBoundingClientRect().top / h;
+      var heat = Math.max(0, Math.min(1, (r - 0.12) / 0.6));
+      el.style.setProperty('--heat', heat.toFixed(3));
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+
+  var dash = document.getElementById('dash'), out = document.getElementById('dashOut'),
+      val = document.getElementById('dashVal'), ms = document.getElementById('ms'),
+      ms2 = document.getElementById('ms2'), toast = document.getElementById('toast'),
+      game = document.querySelector('.game'), t;
+  function setDash() {
+    var v = parseFloat(dash.value).toFixed(1);
+    out.textContent = v; val.textContent = v;
+    dash.style.setProperty('--p', ((dash.value - dash.min) / (dash.max - dash.min) * 100) + '%');
+    game.style.setProperty('--dash', v);
+  }
+  dash.addEventListener('input', function () {
+    setDash();
+    val.classList.add('hit');
+    clearTimeout(t);
+    t = setTimeout(function () {
+      val.classList.remove('hit');
+      var n = 118 + Math.round(Math.random() * 44);
+      ms.textContent = n; ms2.textContent = n + ' ms';
+      toast.classList.remove('bump'); void toast.offsetWidth; toast.classList.add('bump');
+    }, 160);
+  });
+  setDash();
+})();
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const canvas = document.getElementById('forge');
+let kit, s;
+try {
+  kit = ScrapBrand.three(THREE, { RoomEnvironment, EffectComposer, RenderPass, UnrealBloomPass, OutputPass });
+  s = kit.stage(canvas, { bloom: { strength: 0.75, radius: 0.55, threshold: 0.95 }, fov: 32, z: 6, exposure: 0.95, envIntensity: 0.8 });
+} catch (e) {
+  console.warn('WebGL unavailable, static glyph stays', e);
+}
+
+if (s) {
+  const { scene, camera, pointer } = s;
+  // Bloom output is opaque. The canvas uses screen blend, so black reads as clear.
+  s.renderer.setClearColor(0x000000, 1);
+  const bloom = s.composer && s.composer.passes.find(p => p.strength !== undefined);
+  const baseBloom = bloom ? bloom.strength : 0;
+
+  // ---- Wrench: paint with a rim emissive that pulses. Rim = grazing angles = bevels and edges.
+  const heatU = { uHeat: { value: 1 }, uPulse: { value: 0 } };
+  const paint = kit.materials.paint({ color: 0xffa800, metalness: 0.15, roughness: 0.3, clearcoatRoughness: 0.08 });
+  paint.onBeforeCompile = (sh) => {
+    sh.uniforms.uHeat = heatU.uHeat; sh.uniforms.uPulse = heatU.uPulse;
+    sh.fragmentShader = 'uniform float uHeat;\nuniform float uPulse;\n' + sh.fragmentShader.replace(
+      '#include <emissivemap_fragment>',
+      `#include <emissivemap_fragment>
+       float rim = pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), 2.5);
+       vec3 hotCol = mix(vec3(1.0, 0.32, 0.04), vec3(1.0, 0.78, 0.25), rim);
+       float edge = smoothstep(0.35, 0.9, rim);
+       totalEmissiveRadiance += hotCol * (edge * (0.5 + 1.3 * uPulse) + uHeat * 2.4);`
+    );
+  };
+  const wrench = kit.wrench({ material: paint, depth: 16 });
+  scene.add(wrench);
+
+  // ---- Floating nuts in blackened steel, hot rims.
+  const nuts = [];
+  const nutMat = kit.materials.steel({ color: 0x6d7178, roughness: 0.44 });
+  [[-1.15, 1.05, -1.0, 0.16], [1.1, -0.95, -0.5, 0.14], [1.0, 1.15, -1.8, 0.2], [-0.45, -1.3, -1.4, 0.11]].forEach(([x, y, z, r], i) => {
+    const n = kit.hexNut({ r, material: nutMat });
+    n.position.set(x, y, z);
+    n.userData = { base: n.position.clone(), sp: 0.3 + i * 0.13, ph: i * 1.7 };
+    scene.add(n); nuts.push(n);
+  });
+
+  // ---- Warm lights: under-glow from the "forge", cool rim from above.
+  const under = new THREE.PointLight(0xff6a10, 14, 10, 1.6); under.position.set(0, -2.6, 1.5); scene.add(under);
+  const key = new THREE.DirectionalLight(0xffe2b0, 0.7); key.position.set(-3, 4, 5); scene.add(key);
+  const rimL = new THREE.DirectionalLight(0x9fb4ff, 0.6); rimL.position.set(4, 2, -4); scene.add(rimL);
+
+  // ---- Embers: GPU points. Motion lives in the vertex shader.
+  const N = 1400;
+  const seed = new Float32Array(N * 4);
+  for (let i = 0; i < N; i++) {
+    seed[i * 4] = (Math.random() - 0.5) * 9;     // x
+    seed[i * 4 + 1] = Math.random();             // phase
+    seed[i * 4 + 2] = (Math.random() - 0.5) * 4 - 0.5; // z
+    seed[i * 4 + 3] = 0.25 + Math.random() * 0.9; // speed
+  }
+  const eg = new THREE.BufferGeometry();
+  eg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 3), 3));
+  eg.setAttribute('aSeed', new THREE.BufferAttribute(seed, 4));
+  const emberU = {
+    uTime: { value: 0 }, uPointer: { value: new THREE.Vector3(99, 99, 0) },
+    uPR: { value: Math.min(window.devicePixelRatio, 2) }, uBoost: { value: 0 }
+  };
+  const emberMat = new THREE.ShaderMaterial({
+    uniforms: emberU, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: `
+      attribute vec4 aSeed; uniform float uTime, uPR, uBoost; uniform vec3 uPointer;
+      varying float vLife;
+      void main(){
+        float life = fract(aSeed.y + uTime * 0.07 * aSeed.w);
+        vLife = life;
+        vec3 p = vec3(aSeed.x, -3.2 + life * 7.0, aSeed.z);
+        p.x += sin(uTime * 0.7 * aSeed.w + aSeed.y * 40.0) * 0.25 * life;
+        p.x += sin(p.y * 1.3 + uTime * 0.4) * 0.15;
+        vec2 d = p.xy - uPointer.xy; float dl = length(d);
+        p.xy += normalize(d + 1e-4) * 0.9 * smoothstep(1.6, 0.0, dl);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_Position = projectionMatrix * mv;
+        gl_PointSize = (1.5 + 3.0 * aSeed.w) * uPR * (6.0 / -mv.z) * (1.0 + uBoost);
+      }`,
+    fragmentShader: `
+      varying float vLife; uniform float uBoost;
+      void main(){
+        float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard;
+        float a = smoothstep(0.5, 0.0, d) * smoothstep(0.0, 0.12, vLife) * smoothstep(1.0, 0.55, vLife);
+        vec3 c = mix(vec3(1.0, 0.85, 0.4), vec3(1.0, 0.25, 0.03), vLife);
+        gl_FragColor = vec4(c * (2.2 + uBoost * 3.0), a);
+      }`
+  });
+  const embers = new THREE.Points(eg, emberMat); embers.frustumCulled = false;
+  scene.add(embers);
+
+  // ---- Burst sparks: ballistic, launched on strike.
+  const B = 420;
+  const bv = new Float32Array(B * 4);
+  const bg = new THREE.BufferGeometry();
+  bg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(B * 3), 3));
+  bg.setAttribute('aVel', new THREE.BufferAttribute(bv, 4));
+  const burstU = { uT: { value: 99 }, uOrigin: { value: new THREE.Vector3() }, uPR: emberU.uPR };
+  const burstMat = new THREE.ShaderMaterial({
+    uniforms: burstU, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: `
+      attribute vec4 aVel; uniform float uT, uPR; uniform vec3 uOrigin; varying float vA;
+      void main(){
+        float t = uT * aVel.w;
+        vec3 p = uOrigin + aVel.xyz * t + vec3(0.0, -3.2, 0.0) * t * t;
+        vA = clamp(1.0 - uT / (1.1 * aVel.w + 0.2), 0.0, 1.0);
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_Position = projectionMatrix * mv;
+        gl_PointSize = (2.0 + 3.0 * vA) * uPR * (6.0 / -mv.z);
+      }`,
+    fragmentShader: `
+      varying float vA;
+      void main(){
+        float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard;
+        vec3 c = mix(vec3(1.0, 0.3, 0.04), vec3(1.0, 0.9, 0.55), vA);
+        gl_FragColor = vec4(c * 4.0, smoothstep(0.5, 0.0, d) * vA);
+      }`
+  });
+  const burst = new THREE.Points(bg, burstMat); burst.frustumCulled = false;
+  scene.add(burst);
+
+  function reseedBurst() {
+    for (let i = 0; i < B; i++) {
+      const a = Math.random() * Math.PI * 2, up = Math.random() * 0.9 + 0.1, sp = 1.5 + Math.random() * 3.5;
+      bv[i * 4] = Math.cos(a) * sp * 0.9;
+      bv[i * 4 + 1] = up * sp;
+      bv[i * 4 + 2] = Math.sin(a) * sp * 0.5;
+      bv[i * 4 + 3] = 0.6 + Math.random() * 0.8;
+    }
+    bg.attributes.aVel.needsUpdate = true;
+  }
+
+  // ---- Layout: wrench sits right on wide screens, top-center on narrow ones.
+  const anchor = new THREE.Vector3();
+  function layout() {
+    const a = camera.aspect;
+    if (a > 1.15) { anchor.set(Math.min(1.9, 0.98 * a), 0.1, 0); wrench.scale.setScalar(1.05); }
+    else {
+      // Narrow: center the wrench about 185 px under the hero top, 58% of the width.
+      const vis = 2 * camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+      anchor.set(0, (0.5 - 185 / canvas.clientHeight) * vis, 0);
+      wrench.scale.setScalar(Math.min(0.9, 0.58 * vis * a / 2.4));
+    }
+    under.position.set(anchor.x, -2.6, 1.5);
+  }
+  new ResizeObserver(layout).observe(canvas); layout();
+
+  // ---- Strike: sparks burst from the wrench, bloom flash, emissive spike.
+  let strikeAt = -10, clockT = 0;
+  const flash = document.getElementById('flash');
+  function strike(clientX, clientY) {
+    reseedBurst();
+    strikeAt = clockT;
+    burstU.uOrigin.value.copy(wrench.position).add(new THREE.Vector3(0.25, 0.2, 0.3));
+    const v = wrench.position.clone().project(camera);
+    const r = canvas.getBoundingClientRect();
+    flash.style.setProperty('--fx', (clientX ?? (r.left + (v.x + 1) / 2 * r.width)) + 'px');
+    flash.style.setProperty('--fy', (clientY ?? (r.top + (1 - v.y) / 2 * r.height)) + 'px');
+    flash.classList.remove('on'); void flash.offsetWidth; flash.classList.add('on');
+    if (s.reduceMotion) s.render();
+  }
+  document.getElementById('strikeBtn').addEventListener('click', () => strike());
+
+  // Click or hover-press on the wrench itself.
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  let hovering = false;
+  function hit(e) {
+    const r = canvas.getBoundingClientRect();
+    ndc.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height * 2 - 1));
+    ray.setFromCamera(ndc, camera);
+    return ray.intersectObject(wrench, true).length > 0;
+  }
+  canvas.addEventListener('pointermove', e => {
+    const h = hit(e);
+    if (h && !hovering && clockT - strikeAt > 1.2) strike(e.clientX, e.clientY);
+    hovering = h; canvas.style.cursor = h ? 'pointer' : '';
+  });
+  canvas.addEventListener('pointerdown', e => { if (hit(e)) strike(e.clientX, e.clientY); });
+
+  // Pointer in world space at z = 0 for the ember push.
+  const tmp = new THREE.Vector3();
+  function pointerWorld() {
+    tmp.set(pointer.sx, pointer.sy, 0.5).unproject(camera).sub(camera.position).normalize();
+    const d = -camera.position.z / tmp.z;
+    return camera.position.clone().add(tmp.multiplyScalar(d));
+  }
+
+  s.onFrame((t) => {
+    clockT = t;
+    // Emerge: rise and cool over the first 2.6 s.
+    const intro = Math.min(1, t / 2.6), e = 1 - Math.pow(1 - intro, 3);
+    const since = t - strikeAt, kick = Math.max(0, 1 - since / 0.7);
+    heatU.uHeat.value = (1 - e) * 1.0 + kick * 0.9;
+    heatU.uPulse.value = 0.5 + 0.5 * Math.sin(t * 2.2);
+
+    wrench.position.set(anchor.x, anchor.y - (1 - e) * 1.4 + Math.sin(t * 0.8) * 0.05, 0);
+    wrench.rotation.y = -0.35 + pointer.sx * 0.35 + Math.sin(t * 0.35) * 0.12 + kick * 0.15 * Math.sin(since * 40);
+    wrench.rotation.x = 0.12 - pointer.sy * 0.22;
+
+    nuts.forEach(n => {
+      const u = n.userData;
+      const k = wrench.scale.x / 1.05; // nuts orbit closer when the wrench shrinks
+      n.position.set(anchor.x + u.base.x * k, anchor.y + (u.base.y + Math.sin(t * u.sp + u.ph) * 0.12) * k, u.base.z);
+      n.scale.setScalar(k);
+      n.rotation.x = t * u.sp * 0.6; n.rotation.y = t * u.sp * 0.8 + u.ph;
+    });
+
+    under.intensity = 13 + Math.sin(t * 3.1) * 2 + Math.sin(t * 7.3) * 1.2 + kick * 40;
+    emberU.uTime.value = t;
+    emberU.uPointer.value.copy(pointerWorld());
+    emberU.uBoost.value = kick * 0.8;
+    burstU.uT.value = since;
+    burst.visible = since < 2.2;
+    if (bloom) bloom.strength = baseBloom + kick * 1.4;
+  });
+}
+</script>
+</body>
+</html>
