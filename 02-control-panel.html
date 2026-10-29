@@ -7,7 +7,7 @@
 <meta name="description" content="Scrap is the game engine workshop. Edit code and assets while your game runs.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <script src="shared/scrap-brand.js"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <style>
@@ -22,6 +22,7 @@
   --amber:#ffa000;
   --display:'Chakra Petch',system-ui,sans-serif;
   --body:'IBM Plex Sans',system-ui,sans-serif;
+  --mono:'Share Tech Mono',ui-monospace,monospace;
   /* powder-coat grain, drawn once as SVG noise */
   --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
@@ -93,9 +94,33 @@ h1 span{color:var(--y)}
 .sw[aria-checked="true"] .name{color:var(--text)}
 .sw:focus-visible .base{outline:2px solid var(--y);outline-offset:4px}
 
-.readout{margin:48px auto 0;max-width:640px;height:64px;border-radius:4px;display:flex;align-items:center;justify-content:center;
-  padding:0 24px;background:#0a0b0a;box-shadow:inset 0 2px 6px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.05);
-  font:500 18px/1.3 var(--display);color:#ffb84a;text-align:center}
+/* CRT: amber phosphor display, routed by the switches. The one glow element besides the lamps. */
+.bezel{margin:0 0 56px;padding:14px;border-radius:24px;background:#0c0d0f;
+  box-shadow:inset 0 0 0 1px #2c2f34,inset 0 2px 0 rgba(255,255,255,.04),0 0 40px rgba(255,150,0,.08)}
+.crt{position:relative;border-radius:22px/26px;min-height:440px;overflow:hidden;color:#ffb000;padding:40px 44px 72px;
+  background:radial-gradient(ellipse at 50% 45%,#2a1a04 0%,#140c02 55%,#070401 100%);
+  box-shadow:inset 0 0 0 2px #000,inset 0 0 60px 10px rgba(0,0,0,.85),inset 0 0 140px rgba(255,140,0,.06)}
+.crt::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:3;
+  background:repeating-linear-gradient(180deg,rgba(0,0,0,.32) 0 1px,transparent 1px 3px)}
+.crt::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:4;border-radius:inherit;
+  background:radial-gradient(ellipse at 30% 15%,rgba(255,255,255,.07),transparent 40%),radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.55) 100%)}
+.crt-inner{position:relative;z-index:2;font-family:var(--mono);text-shadow:0 0 6px rgba(255,160,0,.65),0 0 18px rgba(255,130,0,.25)}
+.crt.switch .crt-inner{animation:crtOn .42s cubic-bezier(.2,.8,.2,1)}
+@keyframes crtOn{0%{transform:scale(1,.006);filter:brightness(4)}35%{transform:scale(1,.006);filter:brightness(4)}70%{transform:scale(1,1.04);filter:brightness(1.6)}100%{transform:none;filter:none}}
+.scr{display:none}
+.scr.on{display:block}
+.crt h3{margin:0 0 6px;font:400 15px/1 var(--mono);letter-spacing:.22em;color:#ffcf5a}
+.crt .big{margin:14px 0 8px;font:700 64px/1 var(--display);letter-spacing:.01em;color:#ffc53a}
+.crt .lede{margin:0 0 40px;max-width:520px;font-size:15px;line-height:1.55;color:#e8a92c}
+.crt .bar{display:grid;grid-template-columns:120px 1fr 64px;gap:16px;align-items:center;margin:10px 0;font-size:14px}
+.crt .bar i{display:block;height:12px;background:repeating-linear-gradient(90deg,#ffb000 0 6px,transparent 6px 8px);box-shadow:0 0 8px rgba(255,160,0,.5)}
+.crt .bar b{font-weight:400;text-align:right;color:#ffd77a}
+.crt .log{margin:20px 0 0;font-size:14px;line-height:1.9}
+.crt .log b{font-weight:400;color:#ffd77a}
+.crt .cursor{display:inline-block;width:.6em;height:1em;background:#ffb000;vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.crt-status{position:absolute;z-index:2;left:44px;right:44px;bottom:22px;display:flex;justify-content:space-between;
+  font:13px/1 var(--mono);letter-spacing:.14em;color:#9a6a12}
 
 /* final */
 .final{text-align:center;padding:144px 0 120px}
@@ -112,7 +137,15 @@ footer{padding:28px 0 36px;font-size:14px;color:var(--mute)}
   .sub{font-size:17px}
   .panel{padding:48px 20px 40px}
   .switches{gap:8px}
-  .readout{font-size:16px;height:auto;min-height:64px;padding:12px 16px}
+  .bezel{margin-bottom:40px;padding:8px;border-radius:16px}
+  .crt{min-height:0;padding:24px 18px 52px;border-radius:14px/16px}
+  .crt h3{font-size:12px}
+  .crt .big{font-size:38px}
+  .crt .lede{font-size:13px;margin-bottom:24px}
+  .crt .bar{grid-template-columns:76px 1fr 52px;gap:10px;font-size:12px;margin:8px 0}
+  .crt .bar i{height:10px}
+  .crt .log{font-size:12px}
+  .crt-status{left:18px;right:18px;bottom:18px;font-size:10px;letter-spacing:.1em}
   .final{padding:96px 0 80px}
   .final h2{font-size:34px}
 }
@@ -151,18 +184,57 @@ footer{padding:28px 0 36px;font-size:14px;color:var(--mute)}
   <section class="wrap">
     <div class="panel">
       <i class="screw tl"></i><i class="screw tr"></i><i class="screw bl"></i><i class="screw br"></i>
+      <div class="bezel">
+        <div class="crt" id="crt" aria-live="polite">
+          <div class="crt-inner">
+            <div class="scr on" data-scr="patch">
+              <h3>01 / LIVE PATCH</h3>
+              <div class="big">140 ms</div>
+              <p class="lede">Edit a script, save, and the running game picks it up. No restart, no lost state.</p>
+              <div class="bar"><span>parse</span><i style="width:9%"></i><b>12 ms</b></div>
+              <div class="bar"><span>compile</span><i style="width:44%"></i><b>61 ms</b></div>
+              <div class="bar"><span>link</span><i style="width:23%"></i><b>32 ms</b></div>
+              <div class="bar"><span>swap</span><i style="width:25%"></i><b>35 ms</b></div>
+              <p class="log">&gt; PATCHED IN <b>140 ms</b> &middot; play mode running <span class="cursor"></span></p>
+            </div>
+            <div class="scr" data-scr="chassis">
+              <h3>02 / CHASSIS</h3>
+              <div class="big">100k @ 60</div>
+              <p class="lede">A data-oriented ECS runtime. 100,000 live entities at 60 fps on a 2019 laptop, with the frame budget split per system so you see what costs what.</p>
+              <div class="bar"><span>physics</span><i style="width:38%"></i><b>3.1 ms</b></div>
+              <div class="bar"><span>render</span><i style="width:78%"></i><b>6.4 ms</b></div>
+              <div class="bar"><span>ai</span><i style="width:27%"></i><b>2.2 ms</b></div>
+              <div class="bar"><span>animation</span><i style="width:22%"></i><b>1.8 ms</b></div>
+              <div class="bar"><span>audio</span><i style="width:6%"></i><b>0.4 ms</b></div>
+              <div class="bar"><span>scripts</span><i style="width:11%"></i><b>0.9 ms</b></div>
+              <p class="log">&gt; FRAME <b>14.8 / 16.6 ms</b> &middot; headroom 11%</p>
+            </div>
+            <div class="scr" data-scr="ship">
+              <h3>03 / SHIP IT</h3>
+              <div class="big">1 click, 5 builds</div>
+              <p class="lede">Export to every target from one button. Builds run in parallel and sign themselves.</p>
+              <div class="bar"><span>windows</span><i style="width:82%"></i><b>41 s</b></div>
+              <div class="bar"><span>macos</span><i style="width:96%"></i><b>48 s</b></div>
+              <div class="bar"><span>linux</span><i style="width:78%"></i><b>39 s</b></div>
+              <div class="bar"><span>web</span><i style="width:44%"></i><b>22 s</b></div>
+              <div class="bar"><span>steam deck</span><i style="width:88%"></i><b>44 s</b></div>
+              <p class="log">&gt; ALL TARGETS GREEN &middot; <b>48 s</b> wall clock</p>
+            </div>
+          </div>
+          <div class="crt-status"><span id="crt-ch">CH 01 &middot; LIVE PATCH</span><span>SCR-1 &middot; SIGNAL OK</span></div>
+        </div>
+      </div>
       <div class="switches" role="radiogroup" aria-label="Features">
-        <button class="sw" role="radio" aria-checked="true" data-text="Code and assets reload in 140 ms. The game keeps running.">
+        <button class="sw" role="radio" aria-checked="true" data-f="patch" data-name="LIVE PATCH">
           <i class="lamp"></i><span class="base"><i class="lever"></i></span><span class="name">Live Patch</span>
         </button>
-        <button class="sw" role="radio" aria-checked="false" data-text="Wire nodes visually. Scrap compiles them to native code.">
-          <i class="lamp"></i><span class="base"><i class="lever"></i></span><span class="name">Wiring</span>
+        <button class="sw" role="radio" aria-checked="false" data-f="chassis" data-name="CHASSIS">
+          <i class="lamp"></i><span class="base"><i class="lever"></i></span><span class="name">Chassis</span>
         </button>
-        <button class="sw" role="radio" aria-checked="false" data-text="One click to Windows, macOS, Linux, Web, and Steam Deck.">
+        <button class="sw" role="radio" aria-checked="false" data-f="ship" data-name="SHIP IT">
           <i class="lamp"></i><span class="base"><i class="lever"></i></span><span class="name">Ship It</span>
         </button>
       </div>
-      <div class="readout" id="readout" aria-live="polite">Code and assets reload in 140 ms. The game keeps running.</div>
     </div>
   </section>
 
@@ -177,14 +249,26 @@ footer{padding:28px 0 36px;font-size:14px;color:var(--mute)}
 
 <script>
 (function () {
-  var sws = document.querySelectorAll('.sw'), out = document.getElementById('readout');
+  // Each switch routes the CRT to one channel.
+  var sws = Array.prototype.slice.call(document.querySelectorAll('.sw'));
+  var crt = document.getElementById('crt'), ch = document.getElementById('crt-ch');
+  function route(sw) {
+    var i = sws.indexOf(sw);
+    sws.forEach(function (o) { o.setAttribute('aria-checked', o === sw ? 'true' : 'false'); });
+    crt.querySelectorAll('.scr').forEach(function (s) { s.classList.toggle('on', s.dataset.scr === sw.dataset.f); });
+    ch.textContent = 'CH 0' + (i + 1) + ' \u00b7 ' + sw.dataset.name;
+  }
   sws.forEach(function (sw) {
     sw.addEventListener('click', function () {
-      sws.forEach(function (o) { o.setAttribute('aria-checked', o === sw ? 'true' : 'false'); });
-      out.textContent = sw.getAttribute('data-text');
+      if (sw.getAttribute('aria-checked') === 'true') return;
+      route(sw);
+      crt.classList.remove('switch'); void crt.offsetWidth; crt.classList.add('switch');
       window.dispatchEvent(new CustomEvent('scrap:switch'));
     });
   });
+  // ?ch=N opens channel N at load (screenshots, deep links).
+  var m = /[?&]ch=(\d)/.exec(location.search);
+  if (m && sws[m[1] - 1]) route(sws[m[1] - 1]);
 })();
 </script>
 
