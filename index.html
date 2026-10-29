@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scrap Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="shared/scrap-brand.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0b; --panel: #141518; --line: #2a2c31; --ink: #e9e7e1; --mute: #8d8f95;
+    --y: #ffc21a; --y2: #ff9d00;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 400 16px/1.6 Inter, system-ui, sans-serif;
+    background-image:
+      radial-gradient(900px 500px at 80% -10%, rgba(255,194,26,.12), transparent 60%),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.015) 0 1px, transparent 1px 4px);
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+  header { padding: 56px 0 24px; border-bottom: 1px solid var(--line); }
+  .brand { font: 800 88px/1 'Barlow Condensed', sans-serif; color: var(--y);
+    filter: drop-shadow(0 0 22px rgba(255,194,26,.25)); }
+  .kicker { font: 600 13px/1 'JetBrains Mono', monospace; letter-spacing: .18em; color: var(--mute);
+    text-transform: uppercase; margin-bottom: 18px; }
+  h2 { font: 800 34px/1.1 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: .02em; margin: 56px 0 18px; }
+  p.lede { max-width: 720px; color: #c8c6c0; font-size: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
+  a.card {
+    position: relative; display: block; padding: 26px 24px 22px; text-decoration: none; color: inherit;
+    background: linear-gradient(180deg, #1a1b1f, #111215); border: 1px solid var(--line);
+    clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+    transition: transform .2s, border-color .2s;
+  }
+  a.card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--y), transparent); opacity: .5; transition: opacity .2s; }
+  a.card:hover { transform: translateY(-3px); border-color: #4a4128; }
+  a.card:hover::before { opacity: 1; box-shadow: 0 0 18px var(--y); }
+  .num { font: 600 12px/1 'JetBrains Mono', monospace; color: var(--y); letter-spacing: .2em; }
+  .card h3 { font: 800 30px/1 'Barlow Condensed', sans-serif; text-transform: uppercase; margin: 10px 0 10px; }
+  .card p { margin: 0 0 14px; color: #b9b7b1; font-size: 15px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tags span { font: 500 11px/1 'JetBrains Mono', monospace; color: var(--mute); border: 1px solid var(--line);
+    padding: 5px 7px; text-transform: uppercase; letter-spacing: .08em; }
+  .open { position: absolute; right: 22px; top: 24px; font: 600 12px/1 'JetBrains Mono', monospace; color: var(--y); }
+  .research { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .research div { background: var(--panel); border: 1px solid var(--line); padding: 20px 22px; }
+  .research h4 { margin: 0 0 8px; font: 600 13px/1.3 'JetBrains Mono', monospace; color: var(--y);
+    text-transform: uppercase; letter-spacing: .1em; }
+  .research p, .research li { font-size: 14.5px; color: #c4c2bc; margin: 0; }
+  .research ul { margin: 0; padding-left: 18px; }
+  .note { border-left: 3px solid var(--y); padding: 12px 16px; background: rgba(255,194,26,.05); color: #d8d5cc; font-size: 14.5px; margin-top: 18px; }
+  footer { margin: 64px 0 40px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--mute);
+    font: 400 13px/1.6 'JetBrains Mono', monospace; }
+  footer a { color: var(--mute); }
+  @media (max-width: 720px) {
+    .brand { font-size: 64px; } .research { grid-template-columns: 1fr; } .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header class="wrap">
+  <div class="kicker">ScrapWorks / website direction review</div>
+  <div class="brand" data-scrap-wordmark></div>
+  <p class="lede">Five homepage directions for Scrap. All five share one wordmark, one PBR material kit, and one
+    research-based page structure. They differ in visual language and in their single interactive moment.</p>
+</header>
+
+<main class="wrap">
+  <h2>The five directions</h2>
+  <div class="grid">
+    <a class="card" href="01-foundry.html"><span class="open">OPEN &rarr;</span>
+      <div class="num">01</div><h3>Foundry</h3>
+      <p>Flagship. A conventional, high-conversion dev-tool layout in premium industrial dress. The hero has a turning PBR wrench, riveted steel cards, and an editor mock.</p>
+      <div class="tags"><span>lowest risk</span><span>pointer tilt</span><span>Barlow / Inter</span></div></a>
+    <a class="card" href="02-control-panel.html"><span class="open">OPEN &rarr;</span>
+      <div class="num">02</div><h3>Control Panel</h3>
+      <p>The site is a machine faceplate. Toggle switches select features, LED counters show proof numbers, gauges settle on scroll, and a CRT display shows each feature.</p>
+      <div class="tags"><span>most playful</span><span>toggles</span><span>Chakra Petch</span></div></a>
+    <a class="card" href="03-assembly-line.html"><span class="open">OPEN &rarr;</span>
+      <div class="num">03</div><h3>Assembly Line</h3>
+      <p>Scroll story. A fixed 3D scene assembles the wrench station by station as you read. A progress rail lights each station.</p>
+      <div class="tags"><span>highest scroll depth</span><span>scroll-driven</span><span>Oxanium</span></div></a>
+    <a class="card" href="04-machined.html"><span class="open">OPEN &rarr;</span>
+      <div class="num">04</div><h3>Machined</h3>
+      <p>Precision and polish. Black anodized bento plates, engineering-drawing callouts, and an exploded-view hero with laser-etched glow lines.</p>
+      <div class="tags"><span>most refined</span><span>exploded view</span><span>Space Grotesk</span></div></a>
+    <a class="card" href="05-forge.html"><span class="open">OPEN &rarr;</span>
+      <div class="num">05</div><h3>Forge</h3>
+      <p>Cinematic heat. Cast iron with hot seams, an ember particle field, and a wrench that glows from within. A strike button bursts sparks.</p>
+      <div class="tags"><span>most dramatic</span><span>particles</span><span>Anton</span></div></a>
+  </div>
+
+  <h2>What the research says, and where each page applies it</h2>
+  <div class="research">
+    <div><h4>1. The hero gets about five seconds</h4>
+      <p>The headline, sub line, CTA, and visual must all say one thing. A headline that fits three different products is too vague. All five pages lead with "what Scrap does", not with a slogan.</p></div>
+    <div><h4>2. Concrete CTAs beat "Get started"</h4>
+      <p>Evil Martians changed "Build with us" to "Hire Martians" and clicks went from 1.3% to 2.0%. The pages use "Download Scrap &mdash; free" plus microcopy that removes doubt (platforms, no account).</p></div>
+    <div><h4>3. Developers want a second path</h4>
+      <p>High-converting dev-tool pages give at least two of these: live demo, docs, source. Each hero has a secondary "Watch the 90 s demo" or "Read the docs" link.</p></div>
+    <div><h4>4. Specific proof, near the CTA</h4>
+      <p>One line of proof under the CTA is a common lift. A 2026 benchmark found that generic "trusted by thousands" proof did no better than no proof. The pages show counted numbers and named people.</p></div>
+    <div><h4>5. Show the product early</h4>
+      <p>Put a 10&ndash;15 line code sample or a real editor view above the second scroll. Each page has an editor mock, a code block, or both.</p></div>
+    <div><h4>6. A clean first screen</h4>
+      <p>Developers in user interviews got lost when newsletter forms, social buttons, and carousels filled the first screen. Navigation stays at 4&ndash;5 links plus one CTA.</p></div>
+    <div><h4>7. 3D holds attention, if it is fast</h4>
+      <p>In one usability study (n = 1 site, self-report), 69% of users said 3D held their attention, and 54% said they scrolled the full page. Unoptimized WebGL raises bounce, mostly on mid-range phones.</p></div>
+    <div><h4>8. How the pages pay for the 3D</h4>
+      <ul><li>The HTML text is the LCP element. Three.js loads after it.</li>
+        <li>DPR capped at 2. The render loop stops when the canvas is off screen.</li>
+        <li>prefers-reduced-motion renders still frames.</li></ul></div>
+  </div>
+  <div class="note"><strong>Evidence quality:</strong> most published landing-page lift numbers are vendor blogs or single-case tests. The qualitative patterns agree across sources. The percentages do not. Treat the numbers as directional. Measure your own funnel (hero CTA click rate, scroll depth, download completion) once one direction is live.</div>
+  <div class="note"><strong>Placeholder content:</strong> all features, numbers, prices, people, and studios on the five pages are invented to show the structure. Replace them with real facts before anything ships.</div>
+</main>
+
+<footer class="wrap">
+  Sources:
+  <a href="https://evilmartians.com/chronicles/how-to-kill-conversions-on-your-developer-tool-landing-page">Evil Martians</a> &middot;
+  <a href="https://www.peal.dev/blog/landing-page-developer-tools-conversion-what-works">peal.dev</a> &middot;
+  <a href="https://dev.to/alpo190010/landing-page-best-practices-2026-what-actually-converts-from-someone-who-got-it-wrong-first-2f9e">DEV (alpo190010)</a> &middot;
+  <a href="https://dev.to/whoffagents/landing-pages-that-convert-for-developer-tools-patterns-that-actually-work-3c8k">DEV (whoffagents)</a> &middot;
+  <a href="https://foundrycro.com/blog/landing-page-social-proof-benchmarks-2026/">FoundryCRO</a> &middot;
+  <a href="https://www.klientboost.com/landing-pages/landing-page-statistics/">KlientBoost</a> &middot;
+  <a href="https://www.designrush.com/best-designs/websites/trends/how-3d-web-design-drives-real-ux-performance">DesignRush</a> &middot;
+  <a href="https://hyperyond-website.pages.dev/blog/webgl-performance-optimization-2025">WebGL perf</a>
+</footer>
+</body>
+</html>
