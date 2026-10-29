@@ -301,6 +301,37 @@
     var noise = noiseTexture();
 
     /*
+     * Cast texture for rough metal: low-frequency value noise (smooth blobs),
+     * so the roughness varies across a part, not per texel. Per-texel noise
+     * sparkles under motion. Returned as { rough, normal } canvas textures.
+     */
+    function castTextures(size) {
+      size = size || 256;
+      var c = document.createElement('canvas'); c.width = c.height = size;
+      var g = c.getContext('2d');
+      g.fillStyle = '#808080'; g.fillRect(0, 0, size, size);
+      for (var i = 0; i < 260; i++) {
+        var x = Math.random() * size, y = Math.random() * size, r = size * (0.03 + Math.random() * 0.12), v = Math.random() < 0.5 ? 0 : 255;
+        var gr = g.createRadialGradient(x, y, 0, x, y, r);
+        gr.addColorStop(0, 'rgba(' + v + ',' + v + ',' + v + ',0.10)'); gr.addColorStop(1, 'rgba(' + v + ',' + v + ',' + v + ',0)');
+        g.fillStyle = gr; g.fillRect(x - r, y - r, 2 * r, 2 * r);
+      }
+      var img = g.getImageData(0, 0, size, size), d = img.data, n = document.createElement('canvas');
+      n.width = n.height = size;
+      var ng = n.getContext('2d'), out = ng.createImageData(size, size), o = out.data;
+      function h(x, y) { x = (x + size) % size; y = (y + size) % size; return d[(y * size + x) * 4] / 255; }
+      for (var y = 0; y < size; y++) for (var x = 0; x < size; x++) {
+        var dx = (h(x + 1, y) - h(x - 1, y)) * 2.2, dy = (h(x, y + 1) - h(x, y - 1)) * 2.2, k = (y * size + x) * 4;
+        o[k] = 128 - dx * 127; o[k + 1] = 128 - dy * 127; o[k + 2] = 255; o[k + 3] = 255;
+      }
+      ng.putImageData(out, 0, 0);
+      var rough = new THREE.CanvasTexture(c), normal = new THREE.CanvasTexture(n);
+      [rough, normal].forEach(function (t) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; });
+      return { rough: rough, normal: normal };
+    }
+    var cast = castTextures();
+
+    /*
      * Materials are calm on purpose. No roughness or bump maps: the canvas
      * textures average about 0.5, so as roughness maps they halved the
      * roughness, and per-texel variation sparkled as the object turned.
@@ -332,6 +363,24 @@
           color: 0x2c3036, metalness: 1, roughness: 0.52, anisotropy: 0.4
         }, o || {}));
       },
+      /*
+       * Rough brass: fully metallic, satin, with large soft variation in
+       * roughness and a faint cast surface. Texture scale follows the UVs,
+       * which are in geometry units: set o.repeat for small parts.
+       */
+      brass: function (o) {
+        o = o || {};
+        var rep = o.repeat || 1, rough = cast.rough.clone(), normal = cast.normal.clone();
+        rough.repeat.set(rep, rep); normal.repeat.set(rep, rep);
+        var m = new THREE.MeshPhysicalMaterial({
+          color: 0xb8994e, metalness: 1, roughness: 0.52, roughnessMap: rough,
+          normalMap: normal, normalScale: new THREE.Vector2(0.35, 0.35)
+        });
+        delete o.repeat;
+        return Object.assign(m, o);
+      },
+      // Older, darker brass for secondary parts.
+      brassDark: function (o) { return materials.brass(Object.assign({ color: new THREE.Color(0x8c7238), roughness: 0.6 }, o || {})); },
       castIron: function (o) {
         return new THREE.MeshStandardMaterial(Object.assign({
           color: 0x1c1d20, metalness: 0.8, roughness: 0.72
