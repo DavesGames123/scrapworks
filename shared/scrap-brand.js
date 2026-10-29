@@ -397,8 +397,7 @@
       THREE: THREE, materials: materials, wrench: wrench, wrenchShape: wrenchShape,
       hexNut: hexNut, bolt: bolt, stage: stage,
       brushedTexture: brushedTexture, noiseTexture: noiseTexture,
-      LETTER_ANGLE: LETTER_ANGLE, ICON_ANGLE: ICON_ANGLE,
-      ANGLE: ICON_ANGLE // older name, kept until no page reads it
+      LETTER_ANGLE: LETTER_ANGLE, ICON_ANGLE: ICON_ANGLE
     };
   }
 
