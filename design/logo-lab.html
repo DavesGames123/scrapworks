@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scrap Logo Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link id="gf" rel="stylesheet">
+<script src="logo-geo.js"></script>
+<style>
+  :root { --bg: #0b0b0c; --panel: #131416; --line: rgba(255,255,255,.07); --ink: #e8e6e1; --mute: #7d7f85; --y: #ffc21a; }
+  * { box-sizing: border-box; }
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.4 -apple-system, BlinkMacSystemFont, sans-serif; }
+  header { position: sticky; top: 0; z-index: 5; background: rgba(11,11,12,.94); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line); padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; }
+  header h1 { font-size: 13px; font-weight: 600; margin: 0 8px 0 0; color: var(--y); }
+  label { display: inline-flex; align-items: center; gap: 8px; color: var(--mute); }
+  select, input[type=range] { accent-color: var(--y); }
+  select { background: #1b1c1f; color: var(--ink); border: 1px solid #2c2d31; border-radius: 6px; padding: 5px 8px; font: inherit; }
+  button { background: #1b1c1f; color: var(--ink); border: 1px solid #2c2d31; border-radius: 6px; padding: 5px 10px; font: inherit; cursor: pointer; }
+  button.on { border-color: var(--y); color: var(--y); }
+  output { color: var(--ink); width: 30px; display: inline-block; font-variant-numeric: tabular-nums; }
+  #focus { padding: 28px 20px 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 36px; border-bottom: 1px solid var(--line); min-height: 170px; }
+  #focus .meta { color: var(--mute); width: 100%; }
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 1px; background: var(--line); }
+  .card { background: var(--bg); padding: 18px 18px 14px; cursor: pointer; position: relative; }
+  .card:hover { background: #111214; }
+  .card.sel { outline: 1px solid var(--y); outline-offset: -1px; }
+  .card .name { color: var(--mute); font-size: 11.5px; margin-top: 12px; display: flex; justify-content: space-between; }
+  .card .small { margin-left: 14px; }
+  .wm { display: inline-flex; align-items: baseline; line-height: 1; white-space: nowrap; color: var(--y); }
+  .wm svg { overflow: visible; flex: none; }
+  body.inv .card, body.inv #focus { background: var(--y); }
+  body.inv .wm { color: #0b0b0c; }
+  body.inv .card .name, body.inv #focus .meta { color: #4a3a05; }
+  .fav { position: absolute; top: 10px; right: 12px; color: #3a3b3f; font-size: 15px; }
+  .fav.on { color: var(--y); }
+  body.inv .fav.on { color: #0b0b0c; }
+  #loading { padding: 40px 20px; color: var(--mute); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Scrap logo lab</h1>
+  <label>View <select id="mode"><option value="byC">One C, all fonts</option><option value="byFont">One font, all Cs</option><option value="favs">Starred only</option></select></label>
+  <label>C <select id="cSel"></select></label>
+  <label>Font <select id="fSel"></select></label>
+  <label>Tilt <input id="tilt" type="range" min="-10" max="35" step="1"><output id="tiltO"></output></label>
+  <label>Weight <input id="wt" type="range" min="0.8" max="1.6" step="0.02" value="1.15"><output id="wtO"></output></label>
+  <label>Width fit <input id="fit" type="checkbox" checked></label>
+  <label>Size <input id="size" type="range" min="36" max="110" value="64"><output id="sizeO"></output></label>
+  <button id="inv">Invert</button>
+</header>
+<div id="focus"></div>
+<div id="grid"><div id="loading">Loading fonts&hellip;</div></div>
+<script>
+// Fonts: [family, weight]. All from Google Fonts.
+const FONTS = [
+  ['Chakra Petch',700],['Barlow Condensed',800],['Barlow',800],['Saira Condensed',800],['Saira',800],
+  ['Oxanium',800],['Rajdhani',700],['Orbitron',800],['Exo 2',800],['Russo One',400],['Teko',600],
+  ['Bai Jamjuree',700],['Space Grotesk',700],['Archivo Black',400],['Archivo Narrow',700],['Anton',400],
+  ['Bebas Neue',400],['Big Shoulders Display',800],['Oswald',700],['Kanit',800],['Michroma',400],
+  ['Audiowide',400],['Tomorrow',700],['Goldman',700],['Sarpanch',800],['Squada One',400],['Sora',800],
+  ['Unbounded',800],['Titillium Web',900],['Jura',700],['Montserrat',900],['Inter Tight',900],
+  ['Familjen Grotesk',700],['Antonio',700],['League Gothic',400],['Six Caps',400]
+];
+document.getElementById('gf').href = 'https://fonts.googleapis.com/css2?' +
+  FONTS.map(f => 'family=' + f[0].replace(/ /g, '+') + ':wght@' + f[1]).join('&') + '&display=block';
+
+const G = LogoGeo;
+// C options: base params. h = jaw half height, jb = jaw back x, at weight 1 and cap 100.
+const CS = [
+  ['01','Round, V back',{outer:'circle',h:22,jb:-12,tilt:15,sx:.9,tipR:4}],
+  ['02','Round, round back',{outer:'circle',h:22,jb:-20,tilt:15,sx:.9,back:'round',tipR:4}],
+  ['03','Round, flat back',{outer:'circle',h:22,jb:-6,tilt:15,sx:.9,back:'flat',tipR:4,vr:4}],
+  ['04','Round, steep jaw',{outer:'circle',h:22,jb:-12,tilt:25,sx:.9,tipR:4}],
+  ['05','Round, narrow jaw',{outer:'circle',h:17,jb:-8,tilt:15,sx:.9,tipR:4}],
+  ['06','Round, deep jaw',{outer:'circle',h:26,jb:-22,tilt:15,sx:.9,tipR:3}],
+  ['07','Round, nut',{outer:'circle',h:23,jb:-16,tilt:15,sx:.9,tipR:4},'nut'],
+  ['08','Round, dim nut',{outer:'circle',h:23,jb:-16,tilt:15,sx:.9,tipR:4},'dimnut'],
+  ['09','Round, stub',{outer:'circle',h:22,jb:-12,tilt:15,sx:.9,tipR:4,stub:{len:14,w:10,ang:205}},'stub'],
+  ['10','Ellipse',{outer:'ellipse',ry:50,rx:.8,R:50,h:22,jb:-10,tilt:15,sx:1,tipR:4}],
+  ['11','Squircle',{outer:'squircle',n:4,h:22,jb:-12,tilt:15,sx:.88,tipR:4}],
+  ['12','Squircle, level',{outer:'squircle',n:5,h:23,jb:-14,tilt:0,sx:.88,tipR:4}],
+  ['13','Hex, flat top',{outer:'hex',h:21,jb:-12,tilt:15,sx:.9,rc:9,tipR:3}],
+  ['14','Hex, pointy top',{outer:'hexp',h:20,jb:-10,tilt:15,sx:.92,rc:9,tipR:3}],
+  ['15','Hex, nut',{outer:'hexp',h:21,jb:-14,tilt:15,sx:.92,rc:9,tipR:3},'nut'],
+  ['16','Octagon',{outer:'oct',h:22,jb:-12,tilt:15,sx:.88,rc:10,tipR:3}],
+  ['17','12-point',{outer:'dodec',h:22,jb:-12,tilt:15,sx:.9,rc:3,tipR:3}],
+  ['18','Round, level, nut',{outer:'circle',h:23,jb:-16,tilt:0,sx:.9,tipR:4},'nut'],
+  ['19','Round, heavy',{outer:'circle',R:52,h:18,jb:-2,tilt:15,sx:.9,tipR:5}],
+  ['20','Squircle, nut',{outer:'squircle',n:4,h:23,jb:-16,tilt:15,sx:.88,tipR:4},'nut'],
+];
+
+const $ = id => document.getElementById(id);
+const state = { mode: 'byC', c: 0, f: 0, tilt: null, wt: 1.15, fit: true, size: 64, favs: new Set() };
+try { JSON.parse(localStorage.getItem('scrapLogoFavs') || '[]').forEach(k => state.favs.add(k)); } catch (e) {}
+function saveFavs() { try { localStorage.setItem('scrapLogoFavs', JSON.stringify([...state.favs])); } catch (e) {} }
+
+// Per-font metrics in cap units (cap = 100).
+const metrics = {};
+function measure(f) {
+  const c = document.createElement('canvas').getContext('2d');
+  c.font = `${f[1]} 400px '${f[0]}'`;
+  const H = c.measureText('H'), C = c.measureText('C'), I = c.measureText('I'), cap = H.actualBoundingBoxAscent;
+  return { capEm: cap / 400, cw: (C.actualBoundingBoxLeft + C.actualBoundingBoxRight) / cap * 100,
+    adv: C.width / cap * 100, t: (I.actualBoundingBoxLeft + I.actualBoundingBoxRight) / cap * 100 };
+}
+
+// Fit a C option to a font: tine thickness follows the stem, width follows the font's C.
+function fitParams(ci, m) {
+  const base = CS[ci][2], o = JSON.parse(JSON.stringify(base));
+  const R = o.R || 50, tine = Math.min(30, Math.max(10, m.t * state.wt));
+  const h = Math.max(8, R - tine), dh = h - base.h;
+  o.h = h; o.jb = base.jb - dh * 0.6;
+  if (state.tilt !== null) o.tilt = state.tilt;
+  if (state.fit) o.sx = Math.max(0.62, Math.min(1, (m.cw / 100) * 1.06));
+  return o;
+}
+function partsFor(ci, m) {
+  const o = fitParams(ci, m), extra = CS[ci][3], parts = [{ poly: G.letterHead2(o) }];
+  if (extra === 'nut') parts.push({ poly: G.nutIn(o, 4), op: 0.55 });
+  if (extra === 'dimnut') parts.push({ poly: G.nutIn(o, 4), op: 0.3 });
+  if (extra === 'stub') parts.push({ poly: G.stub(o) });
+  return { parts, o };
+}
+function wordmark(fi, ci, px) {
+  const f = FONTS[fi], m = metrics[f[0]]; if (!m) return '';
+  const { parts, o } = partsFor(ci, m), u = m.capEm, pad = 22;
+  const w = Math.max(m.adv, 100 * (o.sx || 1) + 8);
+  const paths = parts.map(p => `<path d="${G.svgPath(p.poly)}" fill="currentColor"${p.op ? ` opacity="${p.op}"` : ''}/>`).join('');
+  return `<span class="wm" style="font:${f[1]} ${px}px '${f[0]}'">S<svg viewBox="${-w / 2} ${-50 - pad} ${w} ${100 + 2 * pad}" ` +
+    `shape-rendering="geometricPrecision" style="width:${w * u / 100}em;height:${(100 + 2 * pad) * u / 100}em;` +
+    `transform:translateY(${pad * u / 100}em)">${paths}</svg>RAP</span>`;
+}
+function card(fi, ci) {
+  const key = FONTS[fi][0] + '|' + CS[ci][0];
+  return `<div class="card${state.f === fi && state.c === ci ? ' sel' : ''}" data-f="${fi}" data-c="${ci}">` +
+    `<span class="fav${state.favs.has(key) ? ' on' : ''}" data-key="${key}" title="Star">&#9733;</span>` +
+    wordmark(fi, ci, state.size) + `<span class="small">${wordmark(fi, ci, 18)}</span>` +
+    `<div class="name"><span>${FONTS[fi][0]} ${FONTS[fi][1]}</span><span>C ${CS[ci][0]} &middot; ${CS[ci][1]}</span></div></div>`;
+}
+function render() {
+  const items = [];
+  if (state.mode === 'byC') FONTS.forEach((f, i) => items.push([i, state.c]));
+  else if (state.mode === 'byFont') CS.forEach((c, i) => items.push([state.f, i]));
+  else state.favs.forEach(k => { const [fn, cn] = k.split('|');
+    const fi = FONTS.findIndex(f => f[0] === fn), ci = CS.findIndex(c => c[0] === cn); if (fi >= 0 && ci >= 0) items.push([fi, ci]); });
+  $('grid').innerHTML = items.length ? items.map(([f, c]) => card(f, c)).join('') : '<div id="loading">No starred options yet. Click the star on a card.</div>';
+  const m = metrics[FONTS[state.f][0]];
+  $('focus').innerHTML = wordmark(state.f, state.c, 150) + wordmark(state.f, state.c, 48) + wordmark(state.f, state.c, 24) + wordmark(state.f, state.c, 14) +
+    `<div class="meta">${FONTS[state.f][0]} ${FONTS[state.f][1]} &middot; C ${CS[state.c][0]} ${CS[state.c][1]} &middot; ` +
+    `font stem ${m.t.toFixed(1)}, C width ${m.cw.toFixed(1)} (cap = 100) &middot; tilt ${fitParams(state.c, m).tilt}&deg;</div>`;
+  $('tiltO').textContent = state.tilt === null ? 'auto' : state.tilt + '°';
+  $('wtO').textContent = state.wt.toFixed(2);
+  $('sizeO').textContent = state.size;
+}
+function init() {
+  FONTS.forEach(f => { metrics[f[0]] = measure(f); });
+  $('cSel').innerHTML = CS.map((c, i) => `<option value="${i}">${c[0]} ${c[1]}</option>`).join('');
+  $('fSel').innerHTML = FONTS.map((f, i) => `<option value="${i}">${f[0]}</option>`).join('');
+  $('tilt').value = 15;
+  $('mode').onchange = e => { state.mode = e.target.value; render(); };
+  $('cSel').onchange = e => { state.c = +e.target.value; render(); };
+  $('fSel').onchange = e => { state.f = +e.target.value; render(); };
+  $('tilt').oninput = e => { state.tilt = +e.target.value; render(); };
+  $('tilt').ondblclick = () => { state.tilt = null; render(); };
+  $('wt').oninput = e => { state.wt = +e.target.value; render(); };
+  $('fit').onchange = e => { state.fit = e.target.checked; render(); };
+  $('size').oninput = e => { state.size = +e.target.value; render(); };
+  $('inv').onclick = e => { document.body.classList.toggle('inv'); e.target.classList.toggle('on'); };
+  $('grid').onclick = e => {
+    const star = e.target.closest('.fav');
+    if (star) { const k = star.dataset.key; state.favs.has(k) ? state.favs.delete(k) : state.favs.add(k); saveFavs(); render(); return; }
+    const c = e.target.closest('.card'); if (!c) return;
+    state.f = +c.dataset.f; state.c = +c.dataset.c; $('cSel').value = state.c; $('fSel').value = state.f; render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  render();
+}
+// Measure only after the stylesheet has loaded, or document.fonts.load resolves
+// with no matching face and the metrics come from the fallback font.
+function loadFonts() {
+  return Promise.all(FONTS.map(f => document.fonts.load(`${f[1]} 40px '${f[0]}'`, 'SCRAPHI').catch(() => null)));
+}
+const gf = $('gf');
+if (gf.sheet) loadFonts().then(init, init);
+else { gf.addEventListener('load', () => loadFonts().then(init, init)); gf.addEventListener('error', init); }
+</script>
+</body>
+</html>
