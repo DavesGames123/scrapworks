@@ -183,21 +183,21 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 const canvas = document.getElementById('forge');
 const kit = ScrapBrand.three(THREE, { RoomEnvironment, EffectComposer, RenderPass, UnrealBloomPass, OutputPass });
-const s = kit.stage(canvas, { bloom: { strength: 0.7, radius: 0.6, threshold: 0.92 }, fov: 30, z: 6, exposure: 0.9, envIntensity: 0.45 });
+const s = kit.stage(canvas, { bloom: { strength: 0.35, radius: 0.4, threshold: 1.05 }, fov: 30, z: 6, exposure: 0.9, envIntensity: 0.45 });
 
 // Bloom removes canvas alpha, so the scene paints the page color.
 s.scene.background = new THREE.Color(0x0a0908);
 
 // Paint with a heat term: glancing angles (the bevels) glow, flat faces stay paint.
-const heat = { value: 2.0 };
-const paint = kit.materials.paint({ color: 0xffbf1f, roughness: 0.34 });
+const heat = { value: 1.1 };
+const paint = kit.materials.paint({ color: 0xffbf1f });
 paint.onBeforeCompile = (sh) => {
   sh.uniforms.uHeat = heat;
   sh.fragmentShader = 'uniform float uHeat;\n' + sh.fragmentShader.replace(
     '#include <emissivemap_fragment>',
     `#include <emissivemap_fragment>
      float rim = 1.0 - abs(dot(normal, normalize(vViewPosition)));
-     rim = pow(clamp(rim, 0.0, 1.0), 2.0);
+     rim = pow(clamp(rim, 0.0, 1.0), 3.0);
      totalEmissiveRadiance += vec3(1.0, 0.42, 0.08) * rim * uHeat;`
   );
 };
@@ -206,7 +206,7 @@ const wrench = kit.wrench({ material: paint, depth: 18 });
 s.scene.add(wrench);
 
 // Warm light from below, cool dim key from above.
-const under = new THREE.PointLight(0xff7a1a, 30, 12, 2);
+const under = new THREE.PointLight(0xff7a1a, 18, 12, 2);
 under.position.set(1.4, -2.0, 1.6);
 const key = new THREE.DirectionalLight(0xdfe6ff, 0.6);
 key.position.set(-2, 3, 4);
@@ -251,8 +251,8 @@ new ResizeObserver(place).observe(canvas);
 place();
 
 s.onFrame((t, dt) => {
-  heat.value = 2.4 + Math.sin(t * 0.7) * 0.8;
-  under.intensity = 26 + Math.sin(t * 0.7) * 6;
+  heat.value = 1.1 + Math.sin(t * 0.5) * 0.25;
+  under.intensity = 18 + Math.sin(t * 0.5) * 3;
   wrench.rotation.y = Math.sin(t * 0.25) * 0.32 + s.pointer.sx * 0.25;
   wrench.rotation.x = -s.pointer.sy * 0.15;
   for (let i = 0; i < N; i++) {
