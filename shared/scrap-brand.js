@@ -89,8 +89,12 @@
     var nx = icon ? -Math.sqrt(R * R - hd.w0 * hd.w0) : 0;
     var angNT = Math.atan2(hd.w0, nx), angNB = Math.atan2(-hd.w0, nx) + 2 * Math.PI;
     var handleDone = false;
+    // Leave room next to each rounded corner, or roundPoly must shrink the
+    // radius to fit a short circle segment (the tip then spikes under a bevel).
+    var dTip = 3 * p.tipR / R, dNeck = 1.2 * hd.neck / R;
     for (var i = 1; i < N; i++) {
       var a = angT + (angB - angT) * i / N;
+      if (a - angT < dTip || angB - a < dTip) continue;
       if (icon && a > angNT && a < angNB) {
         if (!handleDone) {
           handleDone = true;
@@ -102,6 +106,7 @@
         }
         continue;
       }
+      if (icon && (Math.abs(a - angNT) < dNeck || Math.abs(a - angNB) < dNeck)) continue;
       pts.push([Math.cos(a) * R, Math.sin(a) * R, 0]);
     }
     pts.push([tipB[0], tipB[1], p.tipR]);
@@ -365,24 +370,121 @@
     }
     function circleHole(x, y, r) { var h = new THREE.Path(); h.absarc(x, y, r, 0, Math.PI * 2, true); return h; }
 
+    /*
+     * roundedSlab(outer, holes, depth, r, seg) -> BufferGeometry
+     * A slab with a quarter-round edge of radius r on both faces.
+     *   outer: [[x, y], ...] dense outline (already rounded). holes: list of the same.
+     * The edge is swept along the outline: each point moves along its 2D outward
+     * normal by r*sin(phi) from the inset contour, and z follows r*cos(phi).
+     * Normals are exact: (n * sin(phi), cos(phi)). The caps are flat, with
+     * normals (0, 0, +-1). Convex outline corners need a radius larger than r.
+     */
+    function roundedSlab(outer, holes, depth, r, seg) {
+      var U = THREE.ShapeUtils, zf = depth / 2, zi = Math.max(0, zf - r);
+      r = Math.min(r, zf);
+      function dedupe(c) { return c.filter(function (q, i) { var n = c[(i + 1) % c.length]; return Math.hypot(q[0] - n[0], q[1] - n[1]) > 1e-6; }); }
+      function v2(c) { return c.map(function (q) { return new THREE.Vector2(q[0], q[1]); }); }
+      outer = dedupe(outer); holes = holes.map(dedupe);
+      // Orientation: outer CCW, holes CW. Then the right-hand normal of each edge points out of the solid.
+      if (U.isClockWise(v2(outer))) outer.reverse();
+      holes.forEach(function (h) { if (!U.isClockWise(v2(h))) h.reverse(); });
+      var pos = [], nor = [], uv = [], idx = [];
+      function vert(x, y, z, nx, ny, nz) { pos.push(x, y, z); nor.push(nx, ny, nz); uv.push(x, y); return pos.length / 3 - 1; }
+      function inset(c) {
+        var n = c.length, out = [], nrm = [];
+        for (var i = 0; i < n; i++) {
+          var a = c[(i + n - 1) % n], p = c[i], b = c[(i + 1) % n];
+          var e1 = [p[0] - a[0], p[1] - a[1]], e2 = [b[0] - p[0], b[1] - p[1]];
+          var l1 = Math.hypot(e1[0], e1[1]) || 1, l2 = Math.hypot(e2[0], e2[1]) || 1;
+          var n1 = [e1[1] / l1, -e1[0] / l1], n2 = [e2[1] / l2, -e2[0] / l2];
+          var m = [n1[0] + n2[0], n1[1] + n2[1]], ml = Math.hypot(m[0], m[1]) || 1;
+          m = [m[0] / ml, m[1] / ml];
+          var k = Math.max(0.5, m[0] * n1[0] + m[1] * n1[1]);   // miter, capped for sharp corners
+          nrm.push(m);
+          out.push([p[0] - m[0] * r / k, p[1] - m[1] * r / k, r / k]);
+        }
+        return { pts: out, nrm: nrm };
+      }
+      var all = [outer].concat(holes).map(inset);
+      // Edge sweep: phi from 0 (front) to PI (back), with the flat wall between PI/2 rings.
+      var phis = [];
+      for (var i = 0; i <= seg; i++) phis.push(i / seg * Math.PI / 2);
+      for (i = 0; i <= seg; i++) phis.push(Math.PI / 2 + i / seg * Math.PI / 2);
+      all.forEach(function (ct) {
+        var n = ct.pts.length, rows = [];
+        phis.forEach(function (ph, j) {
+          var back = j > seg, z = back ? -zi + r * Math.cos(ph) : zi + r * Math.cos(ph), row = [];
+          for (var t = 0; t < n; t++) {
+            var q = ct.pts[t], m = ct.nrm[t], d = q[2] * Math.sin(ph);
+            row.push(vert(q[0] + m[0] * d, q[1] + m[1] * d, z, m[0] * Math.sin(ph), m[1] * Math.sin(ph), Math.cos(ph)));
+          }
+          rows.push(row);
+        });
+        for (var j = 0; j < rows.length - 1; j++) {
+          for (var t = 0; t < n; t++) {
+            var a = rows[j][t], b = rows[j][(t + 1) % n], c = rows[j + 1][t], d = rows[j + 1][(t + 1) % n];
+            idx.push(a, c, b, b, c, d);
+          }
+        }
+      });
+      // Caps on the inset contours.
+      var co = all[0].pts.map(function (q) { return new THREE.Vector2(q[0], q[1]); });
+      var ch = all.slice(1).map(function (ct) { return ct.pts.map(function (q) { return new THREE.Vector2(q[0], q[1]); }); });
+      var tris = U.triangulateShape(co, ch), flat = co.concat.apply(co, ch);
+      [[zf, 1], [-zf, -1]].forEach(function (side) {
+        var base = pos.length / 3;
+        flat.forEach(function (q) { vert(q.x, q.y, side[0], 0, 0, side[1]); });
+        tris.forEach(function (tr) {
+          if (side[1] > 0) idx.push(base + tr[0], base + tr[1], base + tr[2]);
+          else idx.push(base + tr[0], base + tr[2], base + tr[1]);
+        });
+      });
+      var geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+      geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+      geo.setIndex(idx);
+      // Winding check: the first cap triangle must face +z. Flip all if not.
+      geo.computeBoundingBox();
+      return fixWinding(geo);
+    }
+    // Make every triangle wind so that its face normal agrees with its vertex normals.
+    function fixWinding(geo) {
+      var p = geo.attributes.position.array, n = geo.attributes.normal.array, ix = geo.index.array;
+      for (var i = 0; i < ix.length; i += 3) {
+        var a = ix[i] * 3, b = ix[i + 1] * 3, c = ix[i + 2] * 3;
+        var ux = p[b] - p[a], uy = p[b + 1] - p[a + 1], uz = p[b + 2] - p[a + 2];
+        var vx = p[c] - p[a], vy = p[c + 1] - p[a + 1], vz = p[c + 2] - p[a + 2];
+        var fx = uy * vz - uz * vy, fy = uz * vx - ux * vz, fz = ux * vy - uy * vx;
+        var dot = fx * (n[a] + n[b] + n[c]) + fy * (n[a + 1] + n[b + 1] + n[c + 1]) + fz * (n[a + 2] + n[b + 2] + n[c + 2]);
+        if (dot < 0) { var t = ix[i + 1]; ix[i + 1] = ix[i + 2]; ix[i + 2] = t; }
+      }
+      return geo;
+    }
+
     var soft = {
       // pts: [[x, y, r?], ...] corners rounded here (default radius o.corner), or a THREE.Shape.
+      // pts: [[x, y, r?], ...] (corners rounded here, default radius o.corner) or a THREE.Shape.
+      // o.holes: [[x, y, r], ...] circles, or THREE.Path. Built by roundedSlab(): flat caps with
+      // exact flat normals, and a quarter-round edge with exact normals. No smoothing pass.
       extrude: function (pts, o) {
         o = o || {};
-        var depth = o.depth || 0.2, r = o.radius == null ? depth * 0.18 : o.radius, shape;
-        if (pts instanceof THREE.Shape) shape = pts;
-        else {
+        var depth = o.depth || 0.2, r = o.radius == null ? depth * 0.18 : o.radius, outer, holes = [];
+        if (pts instanceof THREE.Shape) {
+          var ex = pts.extractPoints(24);
+          outer = ex.shape.map(function (v) { return [v.x, v.y]; });
+          holes = ex.holes.map(function (h) { return h.map(function (v) { return [v.x, v.y]; }); });
+        } else {
           var c = o.corner == null ? r * 1.6 : o.corner;
-          shape = toShape(roundPoly(pts.map(function (q) { return [q[0], q[1], q[2] == null ? c : q[2]]; }), 10));
+          outer = roundPoly(pts.map(function (q) { return [q[0], q[1], q[2] == null ? c : q[2]]; }), 10);
         }
-        (o.holes || []).forEach(function (h) { shape.holes.push(h instanceof THREE.Path ? h : circleHole(h[0], h[1], h[2])); });
-        // The bevel grows the outline by r. Inset the walls so the size stays true.
-        var geo = new THREE.ExtrudeGeometry(shape, {
-          depth: Math.max(0.0001, depth - 2 * r), bevelEnabled: r > 0, bevelThickness: r, bevelSize: r * 0.92,
-          bevelOffset: -r * 0.92, bevelSegments: 5, curveSegments: 24
+        (o.holes || []).forEach(function (h) {
+          if (h instanceof THREE.Path) { holes.push(h.getPoints(48).map(function (v) { return [v.x, v.y]; })); return; }
+          var ring = [];
+          for (var i = 0; i < 64; i++) { var a = i / 64 * Math.PI * 2; ring.push([h[0] + Math.cos(a) * h[2], h[1] + Math.sin(a) * h[2]]); }
+          holes.push(ring);
         });
-        geo.translate(0, 0, -(depth - 2 * r) / 2);
-        return smooth(geo);
+        return roundedSlab(outer, holes, depth, r, o.segments || 6);
       },
       box: function (w, h, d, r) {
         r = r == null ? Math.min(w, h, d) * 0.12 : r;
@@ -439,7 +541,7 @@
       var p = LOGO, icon = opts.variant !== 'letter', sx = icon ? 1 : p.sx, depth = opts.depth || 16;
       var pts = headPoly(p, icon).map(function (q) { return [q[0] * sx, q[1], 0]; });
       var holes = icon && p.handle.hole > 0 ? [[-p.handle.L, 0, p.handle.w1 * p.handle.hole]] : [];
-      var geo = soft.extrude(pts, { depth: depth, radius: 2.6, corner: 0, holes: holes });
+      var geo = soft.extrude(pts, { depth: depth, radius: Math.min(2.4, p.tipR * 0.7), corner: 0, holes: holes });
       var group = new THREE.Group(), inner = new THREE.Group();
       var mesh = new THREE.Mesh(geo, opts.material || materials.paint());
       inner.add(mesh);
