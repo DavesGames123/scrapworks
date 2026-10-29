@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scrap Logo Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script src="../shared/scrap-brand.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<style>
+  :root {
+    --bg: #0b0b0c; --panel: #121315; --line: rgba(255,255,255,.08); --ink: #e9e7e2; --mute: #85868b;
+    --y: #ffc21a; --steel: #a9adb3; --amber: #ffb000;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 400 15px/1.55 Inter, system-ui, sans-serif; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+  section { padding: 72px 0; border-top: 1px solid var(--line); }
+  .kicker { font: 500 12px/1 Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--mute); margin-bottom: 14px; }
+  h2 { font: 600 28px/1.15 Inter, sans-serif; margin: 0 0 10px; letter-spacing: -.01em; }
+  p.lede { color: #b9b8b3; max-width: 640px; margin: 0 0 36px; }
+  .y { color: var(--y); }
+
+  /* hero */
+  .hero { min-height: min(72vh, 720px); display: grid; place-items: center; text-align: center; padding: 80px 0 64px; }
+  .hero .mark { font-size: clamp(64px, 13vw, 190px); color: var(--y); }
+  .hero .sub { color: var(--mute); margin-top: 28px; font-size: 14px; }
+
+  /* construction */
+  .construct { display: grid; grid-template-columns: 1.3fr 1fr; gap: 32px; align-items: start; }
+  .construct svg { width: 100%; height: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+  .notes { display: grid; gap: 14px; }
+  .note { padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  .note b { display: block; font-weight: 600; margin-bottom: 3px; }
+  .note span { color: var(--mute); font-size: 14px; }
+  .swatch-i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; vertical-align: 0; }
+
+  /* family */
+  .family { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 36px 20px 18px; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+  .tile .art { min-height: 150px; display: grid; place-items: center; color: var(--y); }
+  .tile .cap { color: var(--mute); font-size: 13px; text-align: center; }
+  .stack { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .app { width: 120px; height: 120px; border-radius: 27px; display: grid; place-items: center; font-size: 88px; }
+  .app.dark { background: #16171a; color: var(--y); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+  .app.yel { background: var(--y); color: #0b0b0c; }
+
+  /* scale */
+  .ladder { display: flex; flex-direction: column; gap: 22px; }
+  .rung { display: flex; align-items: center; gap: 24px; }
+  .rung .px { width: 54px; color: var(--mute); font: 12px 'Share Tech Mono', monospace; text-align: right; }
+  .rung .w { color: var(--y); }
+  .fav { display: flex; gap: 26px; align-items: end; margin-top: 34px; }
+  .fav div { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--mute); font: 12px 'Share Tech Mono', monospace; }
+  .fav span.ic { color: var(--y); display: block; }
+
+  /* backgrounds */
+  .bgs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .bg { border-radius: 12px; height: 180px; display: grid; place-items: center; font-size: 46px; position: relative; overflow: hidden; }
+  .bg small { position: absolute; left: 14px; bottom: 10px; font: 12px Inter, sans-serif; opacity: .7; }
+  .bg.b1 { background: #0b0b0c; color: var(--y); border: 1px solid var(--line); }
+  .bg.b2 { background: var(--y); color: #0b0b0c; }
+  .bg.b3 { background: #f2f1ee; color: #0b0b0c; }
+  .bg.b4 { background: #0b0b0c; color: #f2f1ee; border: 1px solid var(--line); }
+  .bg.b5 { background: linear-gradient(135deg, #3a3d42, #1a1b1e 60%, #2b2d31); color: var(--y); }
+  .bg.b6 { background: #2c3036; color: var(--y); }
+
+  /* colors */
+  .colors { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .chip { border-radius: 12px; overflow: hidden; border: 1px solid var(--line); }
+  .chip .c { height: 110px; }
+  .chip .t { padding: 12px 14px; background: var(--panel); }
+  .chip .t b { display: block; font-weight: 600; }
+  .chip .t span { color: var(--mute); font: 13px 'Share Tech Mono', monospace; }
+
+  /* clear space */
+  .clear { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 56px; display: grid; place-items: center; }
+  .clearbox { position: relative; font-size: 110px; color: var(--y); }
+  .clearbox::before { content: ""; position: absolute; inset: calc(var(--cs) * -1); border: 1px dashed rgba(255,194,26,.45); border-radius: 2px; }
+  .clearbox .lbl { position: absolute; top: calc(var(--cs) * -1 - 22px); left: calc(var(--cs) * -1); font: 12px 'Share Tech Mono', monospace; color: var(--mute); }
+
+  /* misuse */
+  .misuse { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .bad { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; height: 170px; display: grid; place-items: center; position: relative; overflow: hidden; font-size: 44px; color: var(--y); }
+  .bad::after { content: ""; position: absolute; inset: 0; background:
+      linear-gradient(to top right, transparent calc(50% - 1px), rgba(255,80,60,.55) 50%, transparent calc(50% + 1px)); pointer-events: none; }
+  .bad small { position: absolute; left: 14px; bottom: 10px; font-size: 12.5px; color: var(--mute); }
+  .m1 > span { display: inline-block; transform: scaleX(1.45); }
+  .m2 > span { display: inline-block; transform: rotate(-12deg); }
+  .m3 .scrap-wordmark { -webkit-text-stroke: 1.5px var(--y); color: transparent; }
+  .m3 svg path { fill: transparent; stroke: var(--y); stroke-width: 2; }
+  .m4 { color: #6b5a1e; background: #2a2a24; }
+  .m5 > span { filter: drop-shadow(4px 6px 0 #ff5a1f); }
+  .m6 .scrap-wordmark { font-family: Georgia, serif !important; font-weight: 700 !important; }
+
+  /* 3D + CRT */
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .stage3d { position: relative; height: 380px; border-radius: 12px; overflow: hidden; background: radial-gradient(70% 70% at 50% 40%, #1b1c20, #0b0b0c); border: 1px solid var(--line); }
+  .stage3d canvas { width: 100%; height: 100%; display: block; }
+  .crt { height: 380px; border-radius: 16px; padding: 18px; background: #1a1b1e; border: 1px solid var(--line); box-shadow: inset 0 2px 0 rgba(255,255,255,.04); }
+  .crt .screen { height: 100%; border-radius: 22px / 18px; position: relative; overflow: hidden; display: grid; place-items: center;
+    background: radial-gradient(120% 90% at 50% 45%, #2a1a02 0%, #120b02 55%, #060402 100%); box-shadow: inset 0 0 60px rgba(0,0,0,.8); }
+  .crt .screen::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(to bottom, rgba(0,0,0,.28) 0 1px, transparent 1px 3px); }
+  .crt .wm { font-size: 64px; color: var(--amber); filter: drop-shadow(0 0 6px rgba(255,176,0,.55)) drop-shadow(0 0 18px rgba(255,140,0,.25)); }
+  .crt .boot { position: absolute; left: 22px; top: 18px; font: 13px/1.6 'Share Tech Mono', monospace; color: rgba(255,176,0,.8); }
+
+  /* params */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  th { color: var(--mute); font-weight: 500; }
+  td.v { font-family: 'Share Tech Mono', monospace; color: var(--y); }
+  footer { padding: 40px 0 60px; color: var(--mute); font-size: 13px; border-top: 1px solid var(--line); }
+
+  @media (max-width: 860px) {
+    .construct, .duo { grid-template-columns: 1fr; }
+    .family, .bgs, .misuse { grid-template-columns: 1fr 1fr; }
+    .colors { grid-template-columns: 1fr 1fr; }
+    .clear { padding: 40px 16px; }
+    .clearbox { font-size: 64px; }
+  }
+  @media (max-width: 520px) {
+    .family, .bgs, .misuse { grid-template-columns: 1fr; }
+    .rung .w { overflow: hidden; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div>
+    <div class="mark" data-scrap-wordmark></div>
+    <div class="sub">Scrap &mdash; logo study &middot; <span id="paramLine"></span></div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section>
+    <div class="kicker">01 &middot; Construction</div>
+    <h2>The C is a wrench head holding a nut.</h2>
+    <p class="lede">The letter C is the round head of an open-end wrench. Its jaw is a half hexagon that grips a hex nut. The head is drawn on the cap height of Orbitron, so it sits in the word like a letter and still reads as a tool.</p>
+    <div class="construct">
+      <svg id="constructSvg" viewBox="0 0 640 420" role="img" aria-label="Construction diagram of the C"></svg>
+      <div class="notes">
+        <div class="note"><b><i class="swatch-i" style="background:#4aa3ff"></i>Head circle</b><span>R = 50 units. Cap height = 100 units, so the head spans baseline to cap line. Width scale <span class="pv" data-k="sx"></span>.</span></div>
+        <div class="note"><b><i class="swatch-i" style="background:#ff6b5a"></i>Jaw</b><span>Parallel flats at &plusmn;<span class="pv" data-k="h"></span>, V back from a regular hexagon, depth <span class="pv" data-k="depth"></span>, tilt <span class="pv" data-k="tilt"></span>&deg;.</span></div>
+        <div class="note"><b><i class="swatch-i" style="background:#8fd17a"></i>Nut</b><span>A regular hexagon at <span class="pv" data-k="nut"></span> of the jaw, gap <span class="pv" data-k="gap"></span>, tone <span class="pv" data-k="tone"></span>.</span></div>
+        <div class="note"><b><i class="swatch-i" style="background:#888"></i>Type</b><span><span class="pv" data-k="font"></span> at weight <span class="pv" data-k="weight"></span>. The tines of the C match the stem weight of the letters.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker">02 &middot; Mark family</div>
+    <h2>One shape, four uses.</h2>
+    <p class="lede">The wordmark is the primary mark. The icon adds a handle to the same head for places where the word does not fit: app icons, favicons, social avatars.</p>
+    <div class="family">
+      <div class="tile"><div class="art" style="font-size:64px" data-scrap-wordmark></div><div class="cap">Wordmark &middot; primary</div></div>
+      <div class="tile"><div class="art"><span style="font-size:130px" data-scrap-glyph="icon"></span></div><div class="cap">Icon &middot; wrench with nut, 35&deg;</div></div>
+      <div class="tile"><div class="art"><span style="font-size:110px" data-scrap-glyph="letter"></span></div><div class="cap">The C &middot; for tight square spaces</div></div>
+      <div class="tile"><div class="art"><div class="stack"><span style="font-size:96px;color:var(--y)" data-scrap-glyph="icon"></span><span style="font-size:34px;color:var(--y)" data-scrap-wordmark></span></div></div><div class="cap">Stacked lockup</div></div>
+      <div class="tile"><div class="art"><div class="app dark"><span data-scrap-glyph="icon"></span></div></div><div class="cap">App icon &middot; dark</div></div>
+      <div class="tile"><div class="art"><div class="app yel"><span data-scrap-glyph="icon"></span></div></div><div class="cap">App icon &middot; yellow</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker">03 &middot; Scale</div>
+    <h2>Holds from billboard to favicon.</h2>
+    <p class="lede">Below about 14 px, the nut fills in and the C reads as a solid disc with a notch. Use the icon, not the wordmark, under 16 px.</p>
+    <div class="ladder" id="ladder"></div>
+    <div class="fav" id="fav"></div>
+  </section>
+
+  <section>
+    <div class="kicker">04 &middot; Color</div>
+    <h2>Safety yellow on black, first.</h2>
+    <p class="lede">The mark is one color. The nut is the same color at lower opacity, so it stays one-color in print and can be cut from vinyl or metal as a separate part.</p>
+    <div class="colors">
+      <div class="chip"><div class="c" style="background:#ffc21a"></div><div class="t"><b>Safety yellow</b><span>#FFC21A</span></div></div>
+      <div class="chip"><div class="c" style="background:#0b0b0c"></div><div class="t"><b>Shop black</b><span>#0B0B0C</span></div></div>
+      <div class="chip"><div class="c" style="background:#a9adb3"></div><div class="t"><b>Satin steel</b><span>#A9ADB3</span></div></div>
+      <div class="chip"><div class="c" style="background:#ffb000"></div><div class="t"><b>CRT amber</b><span>#FFB000</span></div></div>
+    </div>
+    <div style="height:16px"></div>
+    <div class="bgs">
+      <div class="bg b1"><span data-scrap-wordmark></span><small>Yellow on black &middot; primary</small></div>
+      <div class="bg b2"><span data-scrap-wordmark></span><small>Black on yellow</small></div>
+      <div class="bg b3"><span data-scrap-wordmark></span><small>Black on paper</small></div>
+      <div class="bg b4"><span data-scrap-wordmark></span><small>White on black</small></div>
+      <div class="bg b5"><span data-scrap-wordmark></span><small>On brushed steel</small></div>
+      <div class="bg b6"><span data-scrap-wordmark></span><small>On dark steel</small></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker">05 &middot; Clear space</div>
+    <h2>Give it one nut of air.</h2>
+    <p class="lede">Keep a clear space around the wordmark equal to the across-flats size of the nut. Nothing else enters the dashed box.</p>
+    <div class="clear"><div class="clearbox" id="clearbox"><span class="lbl">clear space = nut size</span><span data-scrap-wordmark></span></div></div>
+  </section>
+
+  <section>
+    <div class="kicker">06 &middot; Misuse</div>
+    <h2>Do not.</h2>
+    <p class="lede">The C only works because it is drawn to the letters around it. Any change to the word, the font, or the proportions breaks that.</p>
+    <div class="misuse">
+      <div class="bad m1"><span data-scrap-wordmark></span><small>Stretch or squash</small></div>
+      <div class="bad m2"><span data-scrap-wordmark></span><small>Rotate the wordmark</small></div>
+      <div class="bad m3"><span data-scrap-wordmark></span><small>Outline it</small></div>
+      <div class="bad m4"><span data-scrap-wordmark></span><small>Low contrast</small></div>
+      <div class="bad m5"><span data-scrap-wordmark></span><small>Add effects</small></div>
+      <div class="bad m6"><span data-scrap-wordmark></span><small>Change the font</small></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker">07 &middot; In context</div>
+    <h2>Made of steel. Lit by phosphor.</h2>
+    <p class="lede">The 3D wrench extrudes from the same parameters as the flat mark, with a separate steel nut. On the CRT, the mark glows in amber.</p>
+    <div class="duo">
+      <div class="stage3d"><canvas id="c3d" aria-label="3D wrench"></canvas></div>
+      <div class="crt"><div class="screen"><div class="boot">SCRAP // BUILD SYSTEM<br>&gt; READY</div><div class="wm" data-scrap-wordmark></div></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="kicker">08 &middot; Parameters</div>
+    <h2>Current values.</h2>
+    <p class="lede">The logo is parametric and not final. These values live in <code>ScrapBrand.LOGO</code> in <code>shared/scrap-brand.js</code>. Change them in <code>design/logo-orbitron.html</code>, then paste the result into <code>setLogo()</code> or the defaults.</p>
+    <table id="params"><thead><tr><th>Parameter</th><th>Value</th><th>Meaning</th></tr></thead><tbody></tbody></table>
+  </section>
+
+</main>
+<footer class="wrap">ScrapWorks &middot; Scrap logo study &middot; reads the live kit, so it always shows the current logo.</footer>
+
+<script>
+(function () {
+  const L = ScrapBrand.LOGO;
+  const MEAN = {
+    font: 'Wordmark typeface', weight: 'Font weight; the C follows it', tilt: 'Jaw turn, degrees CCW',
+    h: 'Half the jaw opening', depth: 'Jaw back position (+ = deeper)', back: 'Jaw back shape',
+    nut: 'Nut size, 1 = fills the jaw minus the gap', gap: 'Space between nut and jaw', spin: 'Nut turn, degrees',
+    hole: 'Nut hole, ratio of nut radius', tone: 'Nut opacity', slide: 'Nut shift along the jaw',
+    sx: 'Head width scale in the wordmark', tipR: 'Jaw tip radius', space: 'Side space around the C',
+    iconAngle: 'Icon turn, degrees CCW', handle: 'Icon handle: length, neck and end width, neck fillet, hole'
+  };
+  // Parameter table and inline values.
+  const fmt = v => typeof v === 'object' ? Object.entries(v).map(([k, x]) => k + ' ' + x).join(', ') : String(v);
+  document.querySelector('#params tbody').innerHTML = Object.keys(L).map(k =>
+    `<tr><td>${k}</td><td class="v">${fmt(L[k])}</td><td>${MEAN[k] || ''}</td></tr>`).join('');
+  document.querySelectorAll('.pv').forEach(el => { el.textContent = fmt(L[el.dataset.k]); el.style.color = 'var(--ink)'; });
+  document.getElementById('paramLine').textContent = `${L.font} ${L.weight} · jaw ${L.h} · nut ${L.nut}`;
+
+  // Scale ladder.
+  document.getElementById('ladder').innerHTML = [160, 96, 64, 40, 28, 20, 16, 12].map(px =>
+    `<div class="rung"><span class="px">${px}px</span><span class="w" style="font-size:${px}px" data-scrap-wordmark></span></div>`).join('');
+  document.getElementById('fav').innerHTML = [64, 48, 32, 24, 16].map(px =>
+    `<div><span class="ic" style="font-size:${px}px" data-scrap-glyph="icon"></span>${px}</div>`).join('');
+
+  // Clear space = nut across-flats, in em of the wordmark (cap height = capEm).
+  const np = ScrapBrand.nutPoly(L), capEm = 0.72;
+  const flats = np ? np.r * Math.sqrt(3) : 30;
+  document.getElementById('clearbox').style.setProperty('--cs', (flats / 100 * capEm).toFixed(3) + 'em');
+
+  // Construction diagram (math units, y-up, scaled into the SVG).
+  const svg = document.getElementById('constructSvg');
+  const S = 2.6, ox = 320, oy = 215, sx = L.sx;
+  const P = (x, y) => [(ox + x * S * sx).toFixed(1), (oy - y * S).toFixed(1)];
+  const path = (poly, close) => poly.map((q, i) => (i ? 'L' : 'M') + P(q[0], q[1]).join(',')).join('') + (close ? 'Z' : '');
+  const head = ScrapBrand.headPoly(L, false);
+  const rot = (p, d) => { const a = d * Math.PI / 180; return [p[0] * Math.cos(a) - p[1] * Math.sin(a), p[0] * Math.sin(a) + p[1] * Math.cos(a)]; };
+  const jb = -(L.h * Math.tan(Math.PI / 6)) - L.depth - 6, a2 = jb + L.h * Math.tan(Math.PI / 6);
+  const J = (u, v) => rot([u, v], L.tilt);
+  let g = '';
+  // grid and guide lines
+  for (let x = -60; x <= 60; x += 10) g += `<line x1="${P(x, 0)[0]}" y1="${P(0, 62)[1]}" x2="${P(x, 0)[0]}" y2="${P(0, -62)[1]}" stroke="rgba(255,255,255,.04)"/>`;
+  for (let y = -60; y <= 60; y += 10) g += `<line x1="${P(-62, 0)[0]}" y1="${P(0, y)[1]}" x2="${P(62, 0)[0]}" y2="${P(0, y)[1]}" stroke="rgba(255,255,255,.04)"/>`;
+  [[50, 'cap height'], [-50, 'baseline'], [0, 'center']].forEach(([y, t]) => {
+    g += `<line x1="40" y1="${P(0, y)[1]}" x2="600" y2="${P(0, y)[1]}" stroke="rgba(255,255,255,.18)" stroke-dasharray="${y ? '0' : '3 4'}"/>` +
+      `<text x="44" y="${+P(0, y)[1] - 6}" fill="#85868b" font-family="Share Tech Mono" font-size="12">${t}</text>`;
+  });
+  // filled shape
+  g += `<path d="${path(head, true)}" fill="#ffc21a"/>`;
+  if (np) g += `<path d="${path(np.poly, true)}" fill="#ffc21a" opacity="${L.tone}"/>`;
+  // head circle
+  g += `<ellipse cx="${ox}" cy="${oy}" rx="${50 * S * sx}" ry="${50 * S}" fill="none" stroke="#4aa3ff" stroke-width="1.2" stroke-dasharray="5 4"/>`;
+  g += `<circle cx="${ox}" cy="${oy}" r="2.5" fill="#4aa3ff"/>`;
+  // jaw flats + V back
+  const f1 = [J(jb - 4, L.h), J(62, L.h)], f2 = [J(jb - 4, -L.h), J(62, -L.h)];
+  [f1, f2].forEach(f => g += `<line x1="${P(...f[0])[0]}" y1="${P(...f[0])[1]}" x2="${P(...f[1])[0]}" y2="${P(...f[1])[1]}" stroke="#ff6b5a" stroke-width="1.2"/>`);
+  const vb = [J(a2, L.h), J(jb, 0), J(a2, -L.h)];
+  g += `<path d="${path(vb, false)}" fill="none" stroke="#ff6b5a" stroke-width="1.6"/>`;
+  // jaw opening dimension
+  const dx = P(58, 0)[0];
+  g += `<line x1="${+dx + 18}" y1="${P(0, L.h)[1]}" x2="${+dx + 18}" y2="${P(0, -L.h)[1]}" stroke="#ff6b5a"/>` +
+    `<text x="${+dx + 24}" y="${oy + 4}" fill="#ff6b5a" font-family="Share Tech Mono" font-size="12">jaw ${2 * L.h}</text>`;
+  // nut outline + center
+  if (np) {
+    g += `<path d="${path(np.poly, true)}" fill="none" stroke="#8fd17a" stroke-width="1.2"/>`;
+    const c = P(np.center[0], np.center[1]);
+    g += `<circle cx="${c[0]}" cy="${c[1]}" r="2.5" fill="#8fd17a"/>` +
+      `<text x="${+c[0] - 30}" y="${+P(0, -L.h)[1] + 22}" fill="#8fd17a" font-family="Share Tech Mono" font-size="12">nut ${(np.r * Math.sqrt(3)).toFixed(1)} AF</text>`;
+  }
+  // radius label
+  g += `<text x="${+P(-50, 0)[0] - 4}" y="${+P(0, 52)[1]}" fill="#4aa3ff" font-family="Share Tech Mono" font-size="12" text-anchor="end">R 50</text>`;
+  svg.innerHTML = g;
+})();
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+const canvas = document.getElementById('c3d');
+const k = ScrapBrand.three(THREE, { RoomEnvironment, RoundedBoxGeometry, BufferGeometryUtils });
+const s = k.stage(canvas, { fov: 30, z: 5.2, exposure: 1.0, envIntensity: 0.8 });
+const key = new THREE.DirectionalLight(0xfff1d6, 1.4); key.position.set(3, 4, 5);
+const rim = new THREE.DirectionalLight(0xffc21a, 0.9); rim.position.set(-3, 2, -4);
+s.scene.add(key, rim);
+const w = k.wrench({ scale: 0.0115 });
+// Center the icon on its bounding box.
+const box = new THREE.Box3().setFromObject(w), c = box.getCenter(new THREE.Vector3());
+w.children[0].position.sub(c);
+s.scene.add(w);
+s.onFrame((t) => {
+  w.rotation.y = Math.sin(t * 0.4) * 0.5 + s.pointer.sx * 0.3;
+  w.rotation.x = Math.sin(t * 0.3) * 0.12 - s.pointer.sy * 0.15;
+});
+</script>
+</body>
+</html>
