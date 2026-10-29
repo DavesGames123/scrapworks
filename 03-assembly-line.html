@@ -21,7 +21,8 @@
   a { color: inherit; }
 
   /* Scene: fixed behind the page. The shade keeps the text column readable. */
-  #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
+  #scene { position: fixed; left: 0; top: 0; width: 100%; height: 100vh; height: 100lvh; display: block; z-index: 0; }
+  .vh-probe { position: absolute; top: 0; left: 0; width: 1px; height: 100vh; height: 100svh; pointer-events: none; visibility: hidden; }
   .shade { position: fixed; inset: 0; z-index: 1; pointer-events: none;
     background: linear-gradient(90deg, rgba(10,10,11,.92) 0, rgba(10,10,11,.6) 30%, rgba(10,10,11,0) 52%); }
   .fallback { display: none; position: fixed; z-index: 1; right: 10vw; top: 50%; transform: translateY(-50%);
@@ -30,17 +31,18 @@
 
   nav { position: fixed; z-index: 4; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 30px;
     padding: 24px var(--gut); background: linear-gradient(180deg, rgba(10,10,11,.85), rgba(10,10,11,0)); }
-  .mark { font-size: 24px; line-height: 1; color: var(--y); text-decoration: none; margin-right: auto; }
-  nav a.l { text-decoration: none; color: var(--mute); font-size: 15px; transition: color .2s; }
+  .mark { font-size: 24px; line-height: 1; color: var(--y); text-decoration: none; margin-right: auto; display: inline-flex; align-items: center; min-height: 44px; }
+  nav a.l { text-decoration: none; color: var(--mute); font-size: 15px; transition: color .2s; display: inline-flex; align-items: center; min-height: 44px; }
   nav a.l:hover { color: var(--ink); }
 
   .btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; background: var(--y); color: #111;
-    font: 600 15px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; text-decoration: none;
+    font: 600 15px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; text-decoration: none; min-height: 44px; -webkit-tap-highlight-color: transparent;
     clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); transition: background .2s; }
   .btn:hover { background: #ffd24d; }
   nav .btn { padding: 10px 16px; font-size: 13px; }
-  .link { color: var(--ink); text-decoration: none; border-bottom: 1px solid rgba(236,235,230,.35); padding-bottom: 2px; font-size: 16px; }
-  .link:hover { border-color: var(--y); }
+  .link { color: var(--ink); text-decoration: none; font-size: 16px; display: inline-flex; align-items: center; min-height: 44px;
+    background: linear-gradient(rgba(236,235,230,.35), rgba(236,235,230,.35)) no-repeat 0 calc(50% + 13px) / 100% 1px; }
+  .link:hover { background-image: linear-gradient(var(--y), var(--y)); }
 
   /* Platform row: icons, then text. */
   .plat { display: flex; align-items: center; gap: 12px; margin-top: 16px; color: var(--mute); font-size: 14px; }
@@ -52,7 +54,7 @@
   .col { width: min(520px, 100%); }
   .hero .col { width: min(700px, 100%); }
   .hero .lede { max-width: 520px; }
-  h1 { margin: 0 0 20px; font: 700 clamp(38px, 3.6vw, 52px)/1.06 var(--display); letter-spacing: -.005em; text-transform: uppercase; }
+  h1 { margin: 0 0 20px; font: 700 clamp(38px, 3.6vw, 52px)/1.06 var(--display); letter-spacing: -.005em; text-transform: uppercase; text-wrap: balance; }
   h1 em { font-style: normal; color: var(--y); display: block; }
   .lede { margin: 0 0 32px; color: #c9c8c2; font-size: 19px; max-width: 470px; }
   .cta { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
@@ -92,29 +94,40 @@
   .rise { opacity: 0; transition: opacity .8s ease; }
   .rise.in { opacity: 1; }
 
-  @media (max-width: 760px) {
-    .shade { background: linear-gradient(180deg, rgba(10,10,11,0) 0, rgba(10,10,11,0) 30%, rgba(10,10,11,.7) 58%, rgba(10,10,11,.92) 100%); }
-    nav { gap: 18px; padding: 18px 16px; }
+  /* Phones and portrait tablets: the object sits in the top half, text in the bottom half. */
+  @media (max-width: 760px), (orientation: portrait) and (max-width: 1100px) {
+    :root { --gut: 16px; }
+    .shade { background: linear-gradient(180deg, rgba(10,10,11,0) 0, rgba(10,10,11,0) 46%, rgba(10,10,11,.78) 56%, rgba(10,10,11,.94) 100%); }
+    nav { gap: 14px; padding: 8px 16px; }
     nav a.l { display: none; }
-    section { align-items: flex-end; padding: 96px 16px 48px; }
-    .hero { padding-top: 33vh; align-items: flex-start; }
-    h1 { font-size: 40px; }
-    .hero h1 { font-size: 29px; margin-bottom: 12px; }
-    .hero .lede { font-size: 15px; margin-bottom: 18px; }
+    section { align-items: flex-end; padding: 52svh 16px 32px; min-height: 100svh; }
+    .hero { padding-top: 50svh; padding-bottom: 20px; align-items: flex-start; }
+    h1 { font-size: clamp(30px, 8vw, 46px); }
+    .hero h1 { font-size: clamp(22px, 6.3vw, 40px); margin-bottom: 10px; }
+    .hero .lede { font-size: 15px; line-height: 1.5; margin-bottom: 12px; max-width: none; }
+    .cta { gap: 18px; }
     .hero .btn { padding: 12px 16px; font-size: 13px; }
-    .hero .term { margin-top: 18px; }
-    .hero .tx { font-size: 13px; }
-    .hero .glass { padding: 14px 16px; }
+    .plat { margin-top: 8px; }
+    .hero .term { margin-top: 12px; }
+    .hero .tx { font-size: 13px; line-height: 1.5; }
+    .hero .glass { padding: 12px 14px; }
     .lede { font-size: 17px; }
     .term { width: 100%; }
     .tx { font-size: 15px; }
-    .fallback { right: 50%; top: 24vh; transform: translateX(50%); font-size: 160px; }
+    .final { padding-bottom: 32px; }
+    .fallback { right: 50%; top: 24svh; transform: translateX(50%); font-size: 160px; }
+  }
+  @media (orientation: portrait) and (min-width: 600px) and (max-width: 1100px) {
+    .hero h1 { font-size: clamp(30px, 5.4vw, 48px); }
+    .hero .lede, .tx { font-size: 18px; }
+    .term { width: min(560px, 100%); }
   }
   @media (prefers-reduced-motion: reduce) { .rise { transition: none; } .cur { animation: none; } }
 </style>
 </head>
 <body>
 <canvas id="scene" aria-hidden="true"></canvas>
+<div class="vh-probe" aria-hidden="true"></div>
 <div class="shade"></div>
 <div class="fallback" data-scrap-glyph="icon"></div>
 
@@ -187,9 +200,13 @@
 (function () {
   var q = new URLSearchParams(location.search), fixed = q.has('p') ? parseFloat(q.get('p')) : null;
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // One screen = 100svh, measured, so the URL bar on mobile Safari does not move P.
+  var probe = null, u = 0;
+  function unit() { if (!u) { probe = probe || document.querySelector('.vh-probe'); u = (probe && probe.offsetHeight) || window.innerHeight; } return u; }
+  window.addEventListener('resize', function () { u = 0; }, { passive: true });
   window.SCRAP = {
     fixed: fixed,
-    target: function () { return fixed != null ? fixed : Math.min(4, window.scrollY / window.innerHeight); }
+    target: function () { return fixed != null ? fixed : Math.min(4, window.scrollY / unit()); }
   };
   if (fixed != null) {
     // Headless screenshots break on scrolled pages with fixed layers, so show only section N.
@@ -241,137 +258,232 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
 /*
- * Four stages on native scroll (P = scroll position in screens):
- *   0-1  the logo wrench assembles: head, handle, nut
- *   1-3  a box assembles from six panels; the nut leaves the jaw for the
- *        first corner, three more nuts drop in, and the wrench tightens all four,
- *        then stands beside the box
- *   3-4  the front panel is a CRT; it boots and plays Stella Nova
- *   4    the finished box faces the camera above the final CTA
- * Mesh count: head, handle, nut, 6 panels, screen, corner nuts (instanced)
- * = 11. Only the screen blooms.
+ * Scroll story (P = scroll position in screens, spring-smoothed):
+ *   0-0.8    the logo wrench assembles: head, handle, nut on clean arcs;
+ *            at 0.8 the pieces swap for one solid wrench (no seam)
+ *   1.05-1.4 the wrench moves to its rest spot; the camera frames the box
+ *   1.42-2.1 six box panels arrive with 30% overlap and lock
+ *   2.0-2.3  four hex bolts (logo nut size) fly in, proud of the face
+ *   2.3-2.78 the wrench ratchets each bolt: engage, 60 deg pull, hold,
+ *            lift off, return, re-engage, pull; the bolt threads in
+ *   2.78-2.92 the wrench slides out; 2.92 the CRT powers on (Stella Nova)
+ *   3.15-4   the box faces the camera above the final CTA
+ * Meshes: head, handle, joined wrench, nut, 6 panels, screen, bolts and
+ * counterbores (instanced), contact shadow = 14. Only the CRT blooms.
  */
 const k = ScrapBrand.three(THREE, { RoomEnvironment, EffectComposer, RenderPass, UnrealBloomPass, OutputPass, RoundedBoxGeometry, BufferGeometryUtils });
 const M = k.materials;
 const canvas = document.getElementById('scene');
+const SMALL = Math.min(window.innerWidth, window.innerHeight) < 760;
 const s = k.stage(canvas, { bloom: { strength: 0.32, radius: 0.35, threshold: 1.05 }, fov: 30, z: 10, exposure: 1.0, envIntensity: 0.6 });
 s.scene.background = new THREE.Color(0x0a0a0b);
+const cam = s.camera;
 
-const key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(-3, 4, 5);
-const rim = new THREE.DirectionalLight(0xffb000, 0.8); rim.position.set(4, 1, -4);
+const key = new THREE.DirectionalLight(0xffffff, 1.15); key.position.set(-3, 4, 5);
+const rim = new THREE.DirectionalLight(0xffe2b0, 0.35); rim.position.set(2, 4, -5);
 s.scene.add(key, rim);
+const KEY_COOL = new THREE.Color(0xeef3ff), KEY_WARM = new THREE.Color(0xfff0d6);
 
+/* ---------- motion helpers ---------- */
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const ss = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
 const mix = (a, b, t) => a + (b - a) * t;
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const easeIO = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const seg = (u, r) => easeIO(clamp((u - r[0]) / (r[1] - r[0])));
+const bez = (a, c, b, t) => a.clone().multiplyScalar((1 - t) * (1 - t)).addScaledVector(c, 2 * (1 - t) * t).addScaledVector(b, t * t);
+const rotZ = (v, a) => { const c = Math.cos(a), n = Math.sin(a); return V(v.x * c - v.y * n, v.x * n + v.y * c, v.z); };
+/*
+ * arrive(): one part, one window [a, b].
+ *   travel (0-78%): ease-in-out along a bezier to a hover point just above the
+ *   seat, so it arrives there at near-zero speed (anticipation);
+ *   seat (78-100%): a short ease-out onto the seat;
+ *   comp: a 1.5% squash at contact that recovers by the end of the window.
+ */
+function arrive(a, b, P) {
+  const u = clamp((P - a) / (b - a));
+  return { u, k: easeIO(clamp(u / 0.78)), seat: 1 - Math.pow(1 - clamp((u - 0.78) / 0.22), 3),
+    comp: Math.sin(Math.PI * clamp((u - 0.9) / 0.1)) * 0.015, done: u >= 1, started: P > a };
+}
+// Place an object on start -> ctrl -> hover -> seat, turning from qFrom to identity.
+const qI = new THREE.Quaternion();
+function fly(obj, seatPos, from, ctrlOff, hoverOff, qFrom, ar, baseQuat) {
+  const start = seatPos.clone().add(from), hover = seatPos.clone().add(hoverOff);
+  const ctrl = start.clone().lerp(hover, 0.5).add(ctrlOff);
+  obj.position.copy(bez(start, ctrl, hover, ar.k)).lerp(seatPos, ar.seat);
+  const q = qFrom.clone().slerp(qI, ar.k);
+  if (baseQuat) q.premultiply(baseQuat);
+  obj.quaternion.copy(q);
+}
+const qE = (x, y, z) => new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z));
 
-const rig = new THREE.Group();
-s.scene.add(rig);
+/* ---------- lock feedback: a specular sweep and a soft contact flash ---------- */
+const sweeps = [];
+function sweepable(mat, dir, ext) {
+  const u = { uSweep: { value: -9 }, uAmp: { value: 0 }, uFlash: { value: 0 }, uDir: { value: dir }, uExt: { value: ext } };
+  mat.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, u);
+    sh.vertexShader = 'varying vec3 vSwP;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvSwP = position;');
+    sh.fragmentShader = 'uniform float uSweep, uAmp, uFlash, uExt; uniform vec3 uDir; varying vec3 vSwP;\n' +
+      sh.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        float swd = dot(vSwP, uDir) / uExt - uSweep;
+        totalEmissiveRadiance += vec3(1.0, 0.95, 0.86) * (uAmp * exp(-swd * swd * 36.0) + uFlash);`);
+  };
+  mat.customProgramCacheKey = () => 'scrap-sweep';
+  const st = { u, locked: false, at: -9 };
+  sweeps.push(st);
+  return { mat, st };
+}
+let shudderAt = -9, primed = false;
+function lock(st, done, t) {
+  if (done && !st.locked) { st.locked = true; if (primed && !s.reduceMotion) { st.at = t; shudderAt = t; } }
+  else if (!done) st.locked = false;
+}
+function runSweeps(t) {
+  sweeps.forEach(st => {
+    const a = t - st.at;
+    st.u.uSweep.value = -1.4 + a / 0.55 * 2.8;
+    st.u.uAmp.value = a < 0.6 ? 0.3 : 0;
+    st.u.uFlash.value = a < 1 ? 0.12 * Math.exp(-a * 9) : 0;
+  });
+}
 
-/* ---------- the logo wrench, in three pieces ---------- */
+const rig = new THREE.Group(); s.scene.add(rig);
+const asm = new THREE.Group(); rig.add(asm);            // everything that floats together
+
+/* ---------- the logo wrench: one outline, cut once across the handle ---------- */
 const L = ScrapBrand.LOGO, HD = L.handle, DEPTH = 16;
-const paint = M.paint(), steel = M.steel({ anisotropy: 0 }), body = M.steel({ color: 0x5d6168, roughness: 0.55, anisotropy: 0 });
+const steel = M.steel({ anisotropy: 0, roughness: 0.42 });
+const body = M.steel({ color: 0x5d6168, roughness: 0.55, anisotropy: 0 });
+const dark = new THREE.MeshStandardMaterial({ color: 0x050506, metalness: 0.3, roughness: 0.8 });
 
-const headGeo = k.soft.extrude(ScrapBrand.headPoly(L, false).map(q => [q[0], q[1], 0]), { depth: DEPTH, radius: 2.6, corner: 0 });
-// Handle: flares where it enters the head, so the joint reads as one forged part.
-const hp = [[-30, 26, 10], [-62, HD.w0, 14], [-HD.L, HD.w1, 0]];
-for (let i = 1; i < 16; i++) { const b = Math.PI / 2 + i * Math.PI / 16; hp.push([-HD.L + Math.cos(b) * HD.w1, Math.sin(b) * HD.w1, 0]); }
-hp.push([-HD.L, -HD.w1, 0], [-62, -HD.w0, 14], [-30, -26, 10]);
-const handleGeo = k.soft.extrude(hp, { depth: DEPTH, radius: 2.6, corner: 0, holes: [[-HD.L, 0, HD.w1 * HD.hole]] });
+const CUT = -82;      // through the straight part of the handle, past the neck fillet
+function clipX(poly, keep) {
+  const out = [], inside = q => keep * (q[0] - CUT) >= 0;
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length], ia = inside(a), ib = inside(b);
+    if (ia) out.push([a[0], a[1], 0]);
+    if (ia !== ib) { const t = (CUT - a[0]) / (b[0] - a[0]); out.push([CUT, a[1] + t * (b[1] - a[1]), 0]); }
+  }
+  return out;
+}
+const outline = ScrapBrand.headPoly(L, true);
+const EXT = { depth: DEPTH, radius: 2.6, corner: 0 };
+const paintW = M.paint();
+const head = new THREE.Mesh(k.soft.extrude(clipX(outline, 1), EXT), paintW);
+const handle = new THREE.Mesh(k.soft.extrude(clipX(outline, -1), Object.assign({}, EXT, { holes: [[-HD.L, 0, HD.w1 * HD.hole]] })), paintW);
+const W1 = sweepable(M.paint(), V(1, 0, 0), 120);
+const unified = new THREE.Mesh(k.wrench({ nut: false, depth: DEPTH }).userData.mesh.geometry, W1.mat);
 const NP = ScrapBrand.nutPoly(L);
-const nutGeoLogo = k.soft.hexNut(NP.r, DEPTH * 1.15, 0.42);
-
-const head = new THREE.Mesh(headGeo, paint);
-const handle = new THREE.Mesh(handleGeo, paint);
-const nut = new THREE.Mesh(nutGeoLogo, steel);
-const NUT_HOME = V(NP.center[0], NP.center[1], 0);
+const nut = new THREE.Mesh(k.soft.hexNut(NP.r, DEPTH * 1.15, 0.42), steel);
+const NUT_HOME = V(NP.center[0], NP.center[1], 0), NUT_ROT = (L.spin + L.tilt) * Math.PI / 180;
+unified.visible = false;
 const inner = new THREE.Group();
-inner.add(head, handle, nut);
-inner.rotation.z = L.iconAngle * Math.PI / 180;
-const W = new THREE.Group();
-W.add(inner);
-rig.add(W);
-
-// Icon center and nut center in W units at scale 1 (logo units x 0.01).
-inner.scale.setScalar(0.01);
-inner.updateMatrixWorld(true);
-const C0 = new THREE.Box3().setFromObject(inner).getCenter(V(0, 0, 0)).sub(W.getWorldPosition(V(0, 0, 0)));
-C0.z = 0;
-const N0 = NUT_HOME.clone().multiplyScalar(0.01).applyAxisAngle(V(0, 0, 1), inner.rotation.z);
+inner.add(head, handle, unified, nut);
+const ICON_A = L.iconAngle * Math.PI / 180;
+inner.rotation.z = ICON_A;
+const W = new THREE.Group(); W.add(inner); asm.add(W);
+inner.scale.setScalar(0.01); inner.updateMatrixWorld(true);
+unified.visible = true;
+const C0 = new THREE.Box3().setFromObject(unified).getCenter(V(0, 0, 0)); C0.z = 0;
+unified.visible = false;
 
 /* ---------- the box ---------- */
-const BW = 2.4, BH = 1.9, BD = 1.5, T = 0.08;
-const S2 = 0.6;                               // wrench scale while it works on the box
-const nutR = NP.r * 0.01 * S2, nutD = DEPTH * 1.15 * 0.01 * S2;
+const BW = 2.4, BH = 1.9, BD = 1.5, T = 0.08, PB = 0.03;
 const panels = [];
-function panel(geo, mat, seat, from, a, b, rot) {
-  const m = new THREE.Mesh(geo, mat); m.position.copy(seat); rig.add(m);
-  panels.push({ m, seat, from, a, b, rot: rot || V(0, 0, 0) }); return m;
+// fromD: desktop entry offset; fromM: mobile entry offset (vertical only).
+function panel(geo, base, sweepDir, ext, seat, fromD, fromM, qFrom) {
+  const sw = sweepable(base.clone(), sweepDir, ext);
+  const m = new THREE.Mesh(geo, sw.mat); m.position.copy(seat); m.visible = false; asm.add(m);
+  panels.push({ m, seat, fromD, fromM, qFrom, st: sw.st }); return m;
 }
-panel(k.soft.box(BW, T, BD - 2 * T, 0.03), body, V(0, -BH / 2 + T / 2, 0), V(0, -2.4, 0), 1.1, 1.4);
-panel(k.soft.box(BW, BH, T, 0.03), body, V(0, 0, -BD / 2 + T / 2), V(0, 0, -3), 1.16, 1.46);
-panel(k.soft.box(T, BH - 2 * T, BD - 2 * T, 0.03), body, V(-BW / 2 + T / 2, 0, 0), V(-3, 0.4, 0), 1.22, 1.52, V(0, 0, 0.5));
-panel(k.soft.box(T, BH - 2 * T, BD - 2 * T, 0.03), body, V(BW / 2 - T / 2, 0, 0), V(3, 0.4, 0), 1.28, 1.58, V(0, 0, -0.5));
-panel(k.soft.box(BW, T, BD - 2 * T, 0.03), body, V(0, BH / 2 - T / 2, 0), V(0, 2.4, 0), 1.34, 1.64);
-// Front panel: a yellow frame around the screen opening.
+const Y = V(0, 1, 0), X = V(1, 0, 0);
+panel(k.soft.box(BW, T, BD - 2 * T, PB), body, X, BW / 2, V(0, -BH / 2 + T / 2, 0), V(0, -1.1, 0.3), V(0, -0.6, 0), qE(0.12, 0, 0));          // base
+panel(k.soft.box(BW, BH, T, PB), body, X, BW / 2, V(0, 0, -BD / 2 + T / 2), V(0, 0.2, -1.4), V(0, 0.6, -0.3), qE(-0.15, 0, 0));              // back
+panel(k.soft.box(T, BH - 2 * T, BD - 2 * T, PB), body, Y, BH / 2, V(-BW / 2 + T / 2, 0, 0), V(-1.1, 0.25, 0), V(0, 0.6, 0), qE(0, 0, 0.18));   // left
+panel(k.soft.box(T, BH - 2 * T, BD - 2 * T, PB), body, Y, BH / 2, V(BW / 2 - T / 2, 0, 0), V(1.1, 0.25, 0), V(0, 0.6, 0), qE(0, 0, -0.18));    // right
+panel(k.soft.box(BW, T, BD - 2 * T, PB), body, X, BW / 2, V(0, BH / 2 - T / 2, 0), V(0, 1.1, 0.2), V(0, 0.6, 0.2), qE(-0.12, 0, 0));          // lid
 const SW = 1.78, SH = 1.32, R0 = 0.14;
 const frameOuter = [[-BW / 2, -BH / 2, R0], [BW / 2, -BH / 2, R0], [BW / 2, BH / 2, R0], [-BW / 2, BH / 2, R0]];
 const holePts = ScrapBrand.roundPoly([[-SW / 2, -SH / 2, 0.1], [-SW / 2, SH / 2, 0.1], [SW / 2, SH / 2, 0.1], [SW / 2, -SH / 2, 0.1]], 8);
 const holePath = new THREE.Path(); holePts.forEach((q, i) => i ? holePath.lineTo(q[0], q[1]) : holePath.moveTo(q[0], q[1])); holePath.closePath();
-const frameGeo = k.soft.extrude(frameOuter, { depth: T, radius: 0.025, holes: [holePath] });
-panel(frameGeo, paint, V(0, 0, BD / 2 - T / 2), V(0, 0.2, 3), 1.4, 1.7);
+const front = panel(k.soft.extrude(frameOuter, { depth: T, radius: 0.025, holes: [holePath] }), M.paint(), X, BW / 2,
+  V(0, 0, BD / 2 - T / 2), V(0, 0.15, 1.3), V(0, 0.6, 0.3), qE(0.16, 0, 0));
+const PANEL_T = panels.map((p, i) => [1.42 + i * 0.105, 1.42 + i * 0.105 + 0.15]);   // 30% overlap
 
-/* ---------- the CRT screen (canvas texture, the only bloom) ---------- */
-const CW = 640, CH = 480, cv = document.createElement('canvas'); cv.width = CW; cv.height = CH;
+/* ---------- contact shadow (baked radial gradient) ---------- */
+{
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g2 = c.getContext('2d'), gr = g2.createRadialGradient(128, 128, 10, 128, 128, 128);
+  gr.addColorStop(0, 'rgba(0,0,0,0.85)'); gr.addColorStop(0.55, 'rgba(0,0,0,0.45)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g2.fillStyle = gr; g2.fillRect(0, 0, 256, 256);
+  var shadowMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, opacity: 0 });
+  var shadow = new THREE.Mesh(new THREE.PlaneGeometry(BW * 1.7, BD * 2.1), shadowMat);
+  shadow.rotation.x = -Math.PI / 2; shadow.position.y = -BH / 2 - 0.03; rig.add(shadow);
+}
+
+/* ---------- the CRT screen: phosphor canvas -> output canvas ---------- */
+const CW = SMALL ? 480 : 640, CH = SMALL ? 360 : 480;
+const ph = document.createElement('canvas'); ph.width = CW; ph.height = CH;     // phosphor layer (persists)
+const pg = ph.getContext('2d');
+const cv = document.createElement('canvas'); cv.width = CW; cv.height = CH;      // output (scanlines on top)
 const g = cv.getContext('2d');
 const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
 const scrGeo = new THREE.PlaneGeometry(SW + 0.06, SH + 0.06, 24, 18);
 { const p = scrGeo.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i) / (SW / 2), y = p.getY(i) / (SH / 2); p.setZ(i, 0.05 * (1 - 0.5 * x * x) * (1 - 0.5 * y * y)); } scrGeo.computeVertexNormals(); }
 const screenMat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, color: new THREE.Color(1.45, 1.45, 1.45) });
 const screen = new THREE.Mesh(scrGeo, screenMat);
-screen.position.set(0, 0, BD / 2 - T - 0.04);
-rig.add(screen);
-
-const STARS = Array.from({ length: 70 }, () => [Math.random() * CW, Math.random() * CH, 0.3 + Math.random() * 1.2]);
+screen.position.set(0, 0, -T / 2 - 0.04);
+front.add(screen);
+const F = CW / 640;
+const STARS = Array.from({ length: SMALL ? 40 : 70 }, () => [Math.random() * CW, Math.random() * CH, 0.3 + Math.random() * 1.2]);
 const AMBER = '#ffb000';
+pg.fillStyle = '#070401'; pg.fillRect(0, 0, CW, CH);
 function drawScreen(on, t) {
-  g.fillStyle = '#0a0601'; g.fillRect(0, 0, CW, CH);
-  if (on) {
-    if (t < 0.35) {                                   // power-on line
-      const h = Math.max(2, CH * Math.pow(t / 0.35, 2));
-      g.fillStyle = 'rgba(255,190,60,0.9)'; g.fillRect(0, CH / 2 - h / 2, CW, h);
-    } else if (t < 1.9) {                             // boot log
-      g.fillStyle = '#1a1003'; g.fillRect(0, 0, CW, CH);
-      g.fillStyle = AMBER; g.font = '22px "Share Tech Mono", monospace';
-      ['SCRAP RUNTIME', '> load stella_nova/', '> sprites ok', '> sound ok', '> READY'].forEach((l, i) => {
-        if (t > 0.45 + i * 0.25) g.fillText(l, 48, 80 + i * 36);
-      });
-    } else {                                          // Stella Nova
-      const gt = t - 1.9;
-      g.fillStyle = '#140c02'; g.fillRect(0, 0, CW, CH);
-      STARS.forEach(st => {
-        const y = (st[1] + gt * 40 * st[2]) % CH;
-        g.fillStyle = `rgba(255,176,0,${0.25 + st[2] * 0.4})`; g.fillRect(Math.round(st[0]), Math.round(y), st[2] > 1 ? 3 : 2, st[2] > 1 ? 3 : 2);
-      });
-      g.fillStyle = AMBER; g.textAlign = 'center';
-      g.font = '700 46px Orbitron, sans-serif'; g.fillText('STELLA NOVA', CW / 2, 92);
-      g.textAlign = 'left';
-      const sx = CW / 2 + Math.sin(gt * 1.3) * 170, sy = CH - 96;
-      for (let i = 0; i < 6; i++) {                   // shots, one every 0.35 s
-        const age = (gt - i * 0.35) % 2.1;
-        if (age < 0 || gt < i * 0.35) continue;
-        const fx = CW / 2 + Math.sin((gt - age) * 1.3) * 170, fy = sy - 24 - age * 300;
-        if (fy > 120) { g.fillStyle = '#ffd36a'; g.fillRect(Math.round(fx) - 2, Math.round(fy), 4, 14); }
-      }
-      g.fillStyle = AMBER;                            // ship
-      g.beginPath(); g.moveTo(sx, sy - 26); g.lineTo(sx + 22, sy + 14); g.lineTo(sx + 8, sy + 8); g.lineTo(sx, sy + 16);
-      g.lineTo(sx - 8, sy + 8); g.lineTo(sx - 22, sy + 14); g.closePath(); g.fill();
+  if (!on) { pg.fillStyle = '#070401'; pg.fillRect(0, 0, CW, CH); }
+  else if (t < 0.55) {
+    // Turn-on: a bright line opens vertically, brightness overshoots, then settles.
+    const e = t / 0.55, h = Math.max(2, CH * Math.pow(e, 2.2)), b = Math.min(1, 0.55 + 1.6 * (1 - e));
+    pg.fillStyle = 'rgba(7,4,1,0.55)'; pg.fillRect(0, 0, CW, CH);
+    pg.fillStyle = `rgba(255,${Math.round(190 + 50 * b)},${Math.round(80 + 120 * b)},${b})`;
+    pg.fillRect(0, CH / 2 - h / 2, CW, h);
+  } else if (t < 1.9) {
+    pg.fillStyle = 'rgba(26,16,3,0.5)'; pg.fillRect(0, 0, CW, CH);
+    pg.fillStyle = AMBER; pg.font = `${Math.round(22 * F)}px "Share Tech Mono", monospace`;
+    ['SCRAP RUNTIME', '> load stella_nova/', '> sprites ok', '> sound ok', '> READY'].forEach((l, i) => {
+      if (t > 0.65 + i * 0.22) pg.fillText(l, 48 * F, (80 + i * 36) * F);
+    });
+  } else {
+    // Stella Nova. A partial clear leaves phosphor trails on the stars, shots, and ship.
+    const gt = t - 1.9;
+    pg.fillStyle = 'rgba(20,12,2,0.5)'; pg.fillRect(0, 0, CW, CH);
+    STARS.forEach(st => {
+      const y = (st[1] + gt * 40 * st[2] * F) % CH, sz = Math.max(2, Math.round((st[2] > 1 ? 3 : 2) * F));
+      pg.fillStyle = `rgba(255,176,0,${0.25 + st[2] * 0.4})`; pg.fillRect(Math.round(st[0]), Math.round(y), sz, sz);
+    });
+    const A = 170 * F, sx = CW / 2 + Math.sin(gt * 1.3) * A, sy = CH - 96 * F;
+    for (let i = 0; i < 6; i++) {
+      const age = (gt - i * 0.35) % 2.1;
+      if (age < 0 || gt < i * 0.35) continue;
+      const fx = CW / 2 + Math.sin((gt - age) * 1.3) * A, fy = sy - 24 * F - age * 300 * F;
+      if (fy > 120 * F) { pg.fillStyle = '#ffd36a'; pg.fillRect(Math.round(fx) - 2, Math.round(fy), 4, Math.round(14 * F)); }
     }
+    pg.fillStyle = AMBER;
+    pg.beginPath(); pg.moveTo(sx, sy - 26 * F); pg.lineTo(sx + 22 * F, sy + 14 * F); pg.lineTo(sx + 8 * F, sy + 8 * F); pg.lineTo(sx, sy + 16 * F);
+    pg.lineTo(sx - 8 * F, sy + 8 * F); pg.lineTo(sx - 22 * F, sy + 14 * F); pg.closePath(); pg.fill();
   }
-  // Scanlines and vignette.
+  g.drawImage(ph, 0, 0);
+  if (on && t >= 1.9) {                 // the title is static, so it skips the phosphor layer and never ghosts
+    g.fillStyle = AMBER; g.textAlign = 'center';
+    g.font = `700 ${Math.round(46 * F)}px Orbitron, sans-serif`; g.fillText('STELLA NOVA', CW / 2, 92 * F);
+    g.textAlign = 'left';
+  }
+  // Scanlines, a slow rolling band, and the vignette sit on the output only.
   g.fillStyle = 'rgba(0,0,0,0.28)';
   for (let y = 0; y < CH; y += 3) g.fillRect(0, y, CW, 1);
+  if (on) { const ry = (t * 70) % (CH + 80) - 40; const rb = g.createLinearGradient(0, ry - 40, 0, ry + 40);
+    rb.addColorStop(0, 'rgba(255,190,90,0)'); rb.addColorStop(0.5, 'rgba(255,190,90,0.05)'); rb.addColorStop(1, 'rgba(255,190,90,0)');
+    g.fillStyle = rb; g.fillRect(0, ry - 40, CW, 80); }
   const v = g.createRadialGradient(CW / 2, CH / 2, CH * 0.35, CW / 2, CH / 2, CH * 0.8);
   v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.6)');
   g.fillStyle = v; g.fillRect(0, 0, CW, CH);
@@ -379,151 +491,179 @@ function drawScreen(on, t) {
 }
 drawScreen(false, 0);
 
-/* ---------- corner hardware ---------- */
+/* ---------- hex bolts: the logo nut size, so they fit the wrench jaw ---------- */
+const S2 = 0.5;                                          // wrench scale at the box (rig units per 100 logo units)
 const zFace = BD / 2;
-const CORNERS = [[-1, 1], [1, 1], [1, -1], [-1, -1]].map(([x, y]) => V(x * (BW / 2 - 0.2), y * (BH / 2 - 0.19), 0));
-const washerT = 0.0;
-const nuts = new THREE.InstancedMesh(k.soft.hexNut(nutR, nutD, 0.42), steel, 4);
-nuts.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-rig.add(nuts);
+const BR = NP.r * 0.01 * S2;                             // bolt head vertex radius
+const AF = 2 * BR * Math.cos(Math.PI / 6);               // across flats
+const HH = AF * 0.55, WSH = 0.014, PROUD = 0.12;
+const hexPts = []; for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; hexPts.push([Math.cos(a) * BR, Math.sin(a) * BR, BR * 0.1]); }
+const headG = k.soft.extrude(hexPts, { depth: HH, radius: HH * 0.2, corner: BR * 0.1 }).translate(0, 0, WSH + HH / 2);
+const washG = k.soft.cylinder(BR * 0.96, WSH, WSH * 0.4, 40).rotateX(Math.PI / 2).translate(0, 0, WSH / 2);
+const boltGeo = BufferGeometryUtils.mergeGeometries([headG, washG.index ? washG.toNonIndexed() : washG].map(gg => {
+  ['uv1', 'uv2'].forEach(n => gg.deleteAttribute && gg.deleteAttribute(n)); return gg; }));
+const bolts = new THREE.InstancedMesh(boltGeo, steel, 4);
+bolts.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+asm.add(bolts);
+const BOLTS = [[-1, 1], [1, 1], [1, -1], [-1, -1]].map(([x, y]) => V(x * (BW / 2 - 0.155), y * (BH / 2 - 0.145), 0));
+const TH = BOLTS.map(c => Math.atan2(-c.y, -c.x) + Math.PI / 6);   // jaw angle at engagement (jaw points inward)
+const boreGeo = k.soft.ring(BR * 1.16, BR * 1.0, 0.01, 0.003).rotateX(Math.PI / 2);
+const bores = new THREE.InstancedMesh(boreGeo, dark, 4);
+front.add(bores);
 const dummy = new THREE.Object3D();
-const NUT_Z = zFace + washerT + nutD / 2;
+BOLTS.forEach((c, i) => { dummy.position.set(c.x, c.y, T / 2 + 0.003); dummy.quaternion.identity(); dummy.scale.setScalar(1); dummy.updateMatrix(); bores.setMatrixAt(i, dummy.matrix); });
+const BOLT_IN = BOLTS.map((c, i) => [2.0 + i * 0.07, 2.0 + i * 0.07 + 0.1]);
+const WB = BOLTS.map((c, i) => [2.3 + i * 0.12, 2.3 + i * 0.12 + 0.12]);
+const PH = { travel: [0, 0.16], engage: [0.16, 0.26], pull1: [0.26, 0.44], lift: [0.5, 0.58], ret: [0.58, 0.66], re: [0.66, 0.74], pull2: [0.74, 0.92], off: [0.92, 1] };
+const SIXTY = Math.PI / 3, SLIDE = 0.42;
+function boltTurn(i, P) { const u = clamp((P - WB[i][0]) / (WB[i][1] - WB[i][0])); return (seg(u, PH.pull1) + seg(u, PH.pull2)) * SIXTY; }
+function boltProud(i, P) { return PROUD * (1 - boltTurn(i, P) / (2 * SIXTY)); }
+const zMid = (i, P) => zFace + WSH + HH / 2 + boltProud(i, P);
 
-/* ---------- wrench poses ---------- */
-const TH0 = 0.7, TH1 = -0.35;                                // jaw turn while tightening (radians)
-const WIN = [[1.95, 2.1], [2.1, 2.25], [2.25, 2.4], [2.4, 2.55]];
-function poseCentered(q, euler, sc) {
-  const e = new THREE.Euler(...euler);
-  return { pos: q.clone().sub(C0.clone().multiplyScalar(sc).applyEuler(e)), quat: new THREE.Quaternion().setFromEuler(e), s: sc };
+/* ---------- wrench poses: { pos, phi (W turn), s (scale) } ---------- */
+const NUTL = NUT_HOME.clone().multiplyScalar(0.01);
+function poseOnBolt(i, theta, slide, z) {
+  const B = BOLTS[i], n = rotZ(NUTL.clone().multiplyScalar(S2), theta), sl = rotZ(V(-slide, 0, 0), theta);
+  return { pos: V(B.x - n.x + sl.x, B.y - n.y + sl.y, z), phi: theta - ICON_A, s: S2 };
 }
-function poseOnNut(i, th, lift) {
-  const e = new THREE.Euler(0, 0, th), sc = S2, c = CORNERS[i];
-  const pn = V(c.x, c.y, NUT_Z + lift);
-  return { pos: pn.sub(N0.clone().multiplyScalar(sc).applyEuler(e)), quat: new THREE.Quaternion().setFromEuler(e), s: sc };
-}
-function mixPose(a, b, t) {
-  return { pos: a.pos.clone().lerp(b.pos, t), quat: a.quat.clone().slerp(b.quat, t), s: mix(a.s, b.s, t) };
+function mixPose(a, b, t, lift) {
+  const c = a.pos.clone().lerp(b.pos, 0.5).add(lift || V(0, 0, 0));
+  return { pos: bez(a.pos, c, b.pos, t), phi: mix(a.phi, b.phi, t), s: mix(a.s, b.s, t) };
 }
 let narrow = false;
-function poses() {
-  return {
-    show: poseCentered(V(0, 0, 0), [0, 0, 0], narrow ? 0.58 : 1.1),
-    hover: poseCentered(V(-BW / 2 - 0.8, 0.5, zFace + 0.35), [0, 0, 0.15], S2),
-    park: poseCentered(V(-BW / 2 - 0.95, -0.35, 0.35), [0, 0.3, 0.2], S2)
-  };
+function heroPose() { const sc = narrow ? 0.9 : 0.78; return { pos: V(-C0.x * sc, -C0.y * sc, 0), phi: 0, s: sc }; }
+function restPose() {
+  return narrow
+    ? { pos: V(-0.45, -BH / 2 - 0.55, 0.25), phi: 0 - ICON_A, s: S2 }                 // under the box, jaw right
+    : { pos: V(BW / 2 + 0.48, 0.28, 0.25), phi: Math.PI / 2 - ICON_A, s: S2 };         // beside the box, jaw up
 }
 function wrenchPose(P) {
-  const ps = poses();
-  if (P < 1.15) return ps.show;
-  if (P < 1.6) return mixPose(ps.show, ps.hover, ss(1.15, 1.6, P));
-  if (P < WIN[0][0]) return ps.hover;
+  const hero = heroPose(), rest = restPose();
+  if (P < 1.05) return hero;
+  if (P < 1.4) return mixPose(hero, rest, easeIO(clamp((P - 1.05) / 0.35)), V(0, 0.25, 0.6));
+  if (P < WB[0][0]) return rest;
   for (let i = 0; i < 4; i++) {
-    const [a, b] = WIN[i];
-    if (P < b) {
-      const u = (P - a) / (b - a), prev = i === 0 ? ps.hover : poseOnNut(i - 1, TH1, 0);
-      if (u < 0.25) return mixPose(prev, poseOnNut(i, TH0, 0.22), ss(0, 0.25, u));
-      if (u < 0.4) return mixPose(poseOnNut(i, TH0, 0.22), poseOnNut(i, TH0, 0), ss(0.25, 0.4, u));
-      return poseOnNut(i, mix(TH0, TH1, ss(0.4, 1, u)), 0);
+    const [a, b] = WB[i];
+    if (P >= b) continue;
+    const u = clamp((P - a) / (b - a)), th = TH[i];
+    const slide = SLIDE * S2 * (1 - seg(u, PH.engage) + seg(u, PH.lift) - seg(u, PH.re) + seg(u, PH.off));
+    const theta = th - SIXTY * (seg(u, PH.pull1) - seg(u, PH.ret) + seg(u, PH.pull2));
+    const here = poseOnBolt(i, theta, slide, zMid(i, P));
+    if (u < PH.travel[1]) {
+      const prev = i === 0 ? rest : poseOnBolt(i - 1, TH[i - 1] - SIXTY, SLIDE * S2, zMid(i - 1, P));
+      return mixPose(prev, poseOnBolt(i, th, SLIDE * S2, zMid(i, P)), seg(u, PH.travel), V(0, 0, 0.45));
     }
+    return here;
   }
-  const end = poseOnNut(3, TH1, 0);
-  if (P < 2.85) {
-    const u = ss(2.55, 2.85, P), mid = mixPose(end, ps.park, u);
-    mid.pos.z += Math.sin(u * Math.PI) * 0.4;             // lift off the face, then stand it beside the box
-    return mid;
-  }
-  return ps.park;
+  const end = poseOnBolt(3, TH[3] - SIXTY, SLIDE * S2, zMid(3, P));
+  const out = { pos: end.pos.clone().add(narrow ? V(-3.2, -0.2, 0.3) : V(-0.3, -4.2, 0.3)), phi: end.phi + 0.3, s: S2 };   // away from the box, never across its face
+  return mixPose(end, out, easeIO(clamp((P - 2.78) / 0.14)), V(0, 0, 0.3));
 }
 
 /* ---------- update ---------- */
-const OFF = {
-  head:   { p: [22, 16, -10], r: [0.0, -0.6, 0.2] },
-  handle: { p: [-42, -32, 20], r: [0.45, 0.35, -0.3] },
-  nut:    { p: [75, 15, 30], r: [0.9, 0.5, 0.4] }
-};
-function place(obj, off, e, base, t, phase) {
-  const f = 1 - e, w = Math.sin(t * 0.8 + phase) * 4 * f;
-  obj.position.set(base.x + off.p[0] * f, base.y + off.p[1] * f + w, off.p[2] * f);
-  obj.rotation.set(off.r[0] * f + w * 0.01, off.r[1] * f, off.r[2] * f);
-}
-const ZERO = V(0, 0, 0), tmp = V(0, 0, 0);
+// The halves swap for the solid wrench the moment the handle seats, so no seam is ever on screen at rest.
+const HEAD_T = [0.04, 0.34], HANDLE_T = [0.25, 0.55], NUT_T = [0.46, 0.78], JOIN = 0.55, ON_AT = 2.92;
 let powerAt = -1;
 function update(P, t) {
   narrow = canvas.clientWidth / canvas.clientHeight < 0.85;
+  const f = narrow ? 0.5 : 1;
 
-  // Stage 1: the wrench assembles.
-  place(head, OFF.head, ss(0.1, 0.85, P), ZERO, t, 0);
-  place(handle, OFF.handle, ss(0.3, 1.0, P), ZERO, t, 1.7);
-  place(nut, OFF.nut, ss(0.65, 1.15, P), NUT_HOME, t, 3.1);
+  // Stage 1: three pieces arrive on arcs (logo units, inner frame), then join.
+  const ah = arrive(HEAD_T[0], HEAD_T[1], P), al = arrive(HANDLE_T[0], HANDLE_T[1], P), an = arrive(NUT_T[0], NUT_T[1], P);
+  fly(head, V(0, 0, 0), V(0, 70 * f, 0), V(0, 0, 30), V(0, 3, 0), qE(0, 0.55, 0), ah);
+  head.scale.set(1, 1 - ah.comp, 1);
+  fly(handle, V(0, 0, 0), V(-95 * f, -10 * f, 0), V(0, -22 * f, 25), V(-9, 0, 0), qE(0.6, 0, 0), al);
+  handle.scale.set(1 - al.comp, 1, 1);
+  const jaw = rotZ(V(1, 0, 0), L.tilt * Math.PI / 180);
+  fly(nut, NUT_HOME, jaw.clone().multiplyScalar(110 * f).add(V(0, 20 * f, 0)), V(0, 28 * f, 20), jaw.clone().multiplyScalar(4), qE(0, 0, SIXTY), an, qE(0, 0, NUT_ROT));
+  const joined = P >= JOIN;
+  head.visible = handle.visible = !joined;
+  unified.visible = joined;
+  lock(W1.st, joined, t);
 
   const wp = wrenchPose(P);
-  W.position.copy(wp.pos); W.quaternion.copy(wp.quat); inner.scale.setScalar(0.01 * wp.s);
+  W.position.copy(wp.pos); W.rotation.set(0, 0, wp.phi); inner.scale.setScalar(0.01 * wp.s);
+  W.visible = P < 2.92;
 
-  // Box panels.
-  panels.forEach(p => {
-    const e = ss(p.a, p.b, P);
-    p.m.visible = e > 0.001;
-    p.m.position.copy(p.seat).addScaledVector(p.from, 1 - e);
-    p.m.rotation.set(p.rot.x * (1 - e), p.rot.y * (1 - e), p.rot.z * (1 - e));
+  // Box panels: overlapping arrivals, each locks with a sweep and a shudder.
+  panels.forEach((p, i) => {
+    const ar = arrive(PANEL_T[i][0], PANEL_T[i][1], P);
+    p.m.visible = ar.started;
+    const from = narrow ? p.fromM : p.fromD, dir = from.clone().normalize();
+    fly(p.m, p.seat, from, dir.clone().cross(V(0, 0, 1)).multiplyScalar(0.12).add(V(0, 0, 0.15)), dir.clone().multiplyScalar(0.035), p.qFrom, ar);
+    p.m.scale.set(1 - Math.abs(dir.x) * ar.comp, 1 - Math.abs(dir.y) * ar.comp, 1 - Math.abs(dir.z) * ar.comp);
+    lock(p.st, ar.done, t);
   });
-  screen.visible = P > 1.55;
+  shadowMat.opacity = 0.8 * ss(PANEL_T[0][0], PANEL_T[0][1], P);
 
-  // The logo nut leaves the jaw for corner 0. Nuts 1-3 drop in.
-  const hand = ss(1.66, 1.82, P);
-  nut.visible = hand <= 0;
-  nut.updateWorldMatrix(true, false);
+  // Bolts: fly in proud, then thread in as the wrench turns them.
   for (let i = 0; i < 4; i++) {
-    const c = CORNERS[i];
-    let spin = 0, seat = 0.035;
-    const [a, b] = WIN[i];
-    if (P > a) { const u = clamp((P - a) / (b - a)); const turn = ss(0.4, 1, u); spin = (TH1 - TH0) * turn; seat = 0.035 * (1 - turn); }
-    if (i === 0) {
-      // Fly from the nut's place in the jaw to the corner.
-      rig.worldToLocal(nut.getWorldPosition(tmp));
-      const to = V(c.x, c.y, NUT_Z + seat);
-      dummy.position.copy(tmp).lerp(to, hand);
-      dummy.scale.setScalar(hand > 0 ? mix(wp.s / S2, 1, hand) : 0);
-    } else {
-      const ed = ss(1.7 + i * 0.06, 1.84 + i * 0.06, P);
-      dummy.position.set(c.x, c.y, NUT_Z + seat + (1 - ed) * 1.2);
-      dummy.scale.setScalar(ed > 0 ? 1 : 0);
-    }
-    dummy.rotation.set(0, 0, spin + (i === 0 ? (1 - hand) * (W.rotation.z + inner.rotation.z) : 0));
-    dummy.updateMatrix(); nuts.setMatrixAt(i, dummy.matrix);
+    const ar = arrive(BOLT_IN[i][0], BOLT_IN[i][1], P), c = BOLTS[i], turn = boltTurn(i, P);
+    const seat = V(c.x, c.y, zFace + boltProud(i, P));
+    fly(dummy, seat, V(0.15, 0.35, 1.1), V(0, 0.2, 0.2), V(0, 0, 0.05), qE(0, 0, SIXTY * 1.5), ar, qE(0, 0, TH[i] - turn));
+    const settle = turn >= 2 * SIXTY - 1e-4 ? Math.sin(Math.PI * clamp((P - WB[i][1] + 0.012) / 0.012)) * 0.012 : 0;
+    dummy.scale.set(ar.started ? 1 : 0, ar.started ? 1 : 0, ar.started ? 1 - ar.comp - settle : 0);
+    dummy.updateMatrix(); bolts.setMatrixAt(i, dummy.matrix);
   }
-  nuts.instanceMatrix.needsUpdate = true;
+  bolts.instanceMatrix.needsUpdate = true;
 
-  // Rig: wrench on the right, then the box on the right, then the box centered.
-  const eBox = ss(1.05, 1.6, P), eFin = ss(3.15, 4.0, P);
-  const x0 = narrow ? 0.1 : 1.7, y0 = narrow ? 1.5 : 0;
-  const xb = narrow ? 0.28 : 2.0, yb = narrow ? 1.2 : -0.05, sb = narrow ? 0.52 : 1;
-  const xf = narrow ? 0.3 : 0.3, yf = narrow ? 1.15 : 0.62, sf = narrow ? 0.52 : 0.9;
-  rig.position.set(mix(mix(x0, xb, eBox), xf, eFin), mix(mix(y0, yb, eBox), yf, eFin), 0);
-  rig.scale.setScalar(mix(mix(1, sb, eBox), sf, eFin));
-  const p = s.pointer;
-  const ry = mix(mix(-0.45, -0.4, ss(0, 1, P)), mix(-0.55, -0.24, eFin), eBox) + p.sx * 0.1 + Math.sin(t * 0.3) * 0.03 * (1 - eBox);
-  rig.rotation.set(-p.sy * 0.05 + mix(0, 0.12, eBox), ry, 0);
+  // Idle life and the shared shudder.
+  const sh = Math.exp(-(t - shudderAt) * 16) * (t > shudderAt ? 1 : 0);
+  asm.position.y = s.reduceMotion ? 0 : Math.sin(t * 0.9) * 0.008;
+  asm.scale.set(1 + sh * 0.002, 1 - sh * 0.004, 1 + sh * 0.002);
 
-  // CRT power.
-  const on = P > 2.8;
+  // Rig framing: still inside a stage, one slow ease between stages.
+  const eBox = ss(1.05, 1.42, P), eFin = ss(3.15, 4.0, P);
+  if (narrow) {
+    const zc = cam.position.length(), visH = 2 * zc * Math.tan(THREE.MathUtils.degToRad(cam.fov / 2));
+    rig.position.set(0, visH * 0.165, 0);
+    rig.scale.setScalar(1);
+    rig.rotation.set(mix(0, 0.1, eBox), mix(mix(-0.1, -0.28, eBox), -0.18, eFin), 0);
+  } else {
+    rig.position.set(mix(mix(1.7, 1.72, eBox), 0.3, eFin), mix(mix(0, -0.05, eBox), 0.62, eFin), 0);
+    rig.scale.setScalar(mix(1, 0.9, eFin));
+    const p = s.pointer;
+    rig.rotation.set(-p.sy * 0.03 + mix(0, 0.12, eBox), mix(mix(-0.2, -0.45, eBox), -0.24, eFin) + p.sx * 0.05, 0);
+  }
+
+  // Camera: a slow dolly and a 3-degree orbit across the scroll, a push-in at power-on.
+  const aspect = canvas.clientWidth / canvas.clientHeight;
+  // Portrait: the box takes about 60% of the width, which leaves room for the wrench at the corner bolts.
+  // Portrait tablets are wide but short in the top half, so the height can set the distance there.
+  const tn = 2 * Math.tan(THREE.MathUtils.degToRad(15));
+  const base = narrow ? Math.max((BW / 0.6) / (tn * aspect), 8.0 / tn) : 10;
+  const z = base * mix(1.03, 0.97, clamp(P / 4)) * (1 - 0.05 * ss(ON_AT, 3.4, P));
+  const orb = mix(0.026, -0.026, clamp(P / 4));
+  cam.position.set(Math.sin(orb) * z, 0, Math.cos(orb) * z);
+  cam.lookAt(0, 0, 0);
+
+  // Lights: the key warms as the build completes and drifts slowly.
+  key.color.copy(KEY_COOL).lerp(KEY_WARM, ss(1.4, ON_AT, P));
+  key.position.set(-3 + Math.sin(t * 0.13) * 0.5, 4, 5);
+
+  const on = P > ON_AT;
   if (on && powerAt < 0) powerAt = t;
   if (!on) powerAt = -1;
+  primed = true;
 }
 
-let P = window.SCRAP.target(), lastDraw = -1;
+/* ---------- loop: scroll sets a target, a critically damped spring follows ---------- */
+const KS = 120, KD = 2 * Math.sqrt(KS);
+let P = window.SCRAP.target(), vel = 0, lastDraw = -1;
 function frame(t, dt) {
   const target = window.SCRAP.target();
-  P = window.SCRAP.fixed != null ? target : P + (target - P) * Math.min(1, dt * 4);
+  if (window.SCRAP.fixed != null) { P = target; vel = 0; }
+  else { const st = Math.min(dt, 1 / 30); vel += (KS * (target - P) - KD * vel) * st; P += vel * st; }
   update(P, t);
-  // The screen redraws at 20 fps.
-  if (t - lastDraw > 0.05) {
+  runSweeps(t);
+  if (powerAt >= 0 || t - lastDraw > 1 / 30) {
     lastDraw = t;
     const on = powerAt >= 0;
-    drawScreen(on, on ? (window.SCRAP.fixed != null ? 4 : t - powerAt) : 0);
+    drawScreen(on, on ? (window.SCRAP.fixed != null ? 4 + t : t - powerAt) : 0);
   }
 }
 if (s.reduceMotion) {
-  const still = () => { P = window.SCRAP.target(); update(P, 1.5); drawScreen(P > 2.8, 4); s.render(); };
+  const still = () => { P = window.SCRAP.target(); update(P, 1.5); runSweeps(99); drawScreen(P > ON_AT, 4); s.render(); };
   window.addEventListener('scroll', still, { passive: true });
   window.addEventListener('resize', still);
   still();
