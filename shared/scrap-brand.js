@@ -282,14 +282,16 @@
         bevelSize: r * 0.06, bevelSegments: 3, curveSegments: 24
       });
       geo.center();
-      return new THREE.Mesh(geo, opts.material || materials.steel());
+      // No anisotropy: the nut UVs are tiny, so the anisotropic tangent is
+      // degenerate, the shader writes NaN, and bloom spreads it to a white square.
+      return new THREE.Mesh(geo, opts.material || materials.steel({ anisotropy: 0 }));
     }
 
     function bolt(opts) {
       opts = opts || {};
-      var g = new THREE.Group(), r = opts.r || 0.08;
-      var head = new THREE.Mesh(new THREE.CylinderGeometry(r, r, r * 0.6, 6), opts.material || materials.steel());
-      var shaft = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.5, r * 0.5, r * 4, 20), opts.material || materials.steel());
+      var g = new THREE.Group(), r = opts.r || 0.08, m = opts.material || materials.steel({ anisotropy: 0 });
+      var head = new THREE.Mesh(new THREE.CylinderGeometry(r, r, r * 0.6, 6), m);
+      var shaft = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.5, r * 0.5, r * 4, 20), m);
       shaft.position.y = -r * 2.3;
       g.add(head, shaft);
       return g;
