@@ -22,16 +22,17 @@
   'use strict';
 
   var LOGO = {
-    font: 'Orbitron', weight: 800,
+    // Chosen by the user in design/logo-orbitron.html on 2026-10-29.
+    font: 'Orbitron', weight: 710,
     tilt: 0,        // jaw turn, degrees CCW
-    h: 23,          // jaw half opening
-    depth: 0,       // jaw back moves left (+) or right (-)
+    h: 27.5,        // jaw half opening
+    depth: 9,       // jaw back moves left (+) or right (-)
     back: 'v',      // jaw back: 'v' | 'round' | 'flat'
-    nut: 1,         // nut size, 0 = no nut, 1 = fills the jaw minus the gap
-    gap: 4, spin: 0, hole: 0, tone: 0.55, slide: 0,
-    sx: 1.12,       // letter head width; the icon head stays round
-    tipR: 4,        // jaw tip radius
-    space: 4,       // side space around the C in the wordmark
+    nut: 0.94,      // nut size, 0 = no nut, 1 = fills the jaw minus the gap
+    gap: 5, spin: 0, hole: 0, tone: 0.63, slide: 0,
+    sx: 1.09,       // letter head width; the icon head stays round
+    tipR: 3.5,      // jaw tip radius
+    space: -0.5,    // side space around the C in the wordmark
     iconAngle: 35,  // icon turn, degrees CCW
     handle: { L: 175, w0: 17, w1: 14, neck: 24, hole: 0.45 }
   };
