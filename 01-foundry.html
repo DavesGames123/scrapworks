@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scrap — Foundry</title>
+<meta name="description" content="Scrap by ScrapWorks: the game engine workshop. Live Patch, Parts Bin, Wiring, Chassis ECS, one-click export.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="shared/scrap-brand.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<style>
+:root{
+  --bg:#09090a; --bg2:#0f1012; --steel-1:#16181b; --steel-2:#1d2024; --steel-3:#2a2e33;
+  --line:#2c3036; --text:#e9e7e2; --muted:#9a9a98; --dim:#6b6d70;
+  --y:#ffc21a; --y-hot:#ffd84d; --y-deep:#e09a00; --y-glow:rgba(255,194,26,.55);
+  --display:'Barlow Condensed',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+  --chamfer:14px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:400 16px/1.6 var(--body);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1220px;margin:0 auto;padding:0 24px}
+.eyebrow{font:600 12px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--y)}
+.eyebrow::before{content:"";display:inline-block;width:18px;height:2px;background:var(--y);box-shadow:0 0 8px var(--y-glow);vertical-align:middle;margin-right:10px;transform:translateY(-2px)}
+h1,h2,h3{font-family:var(--display);font-weight:800;letter-spacing:.01em;line-height:.95;margin:0;text-transform:uppercase}
+h2{font-size:clamp(40px,5vw,64px)}
+h2 em{font-style:normal;color:var(--y)}
+.sec{padding:120px 0;position:relative}
+.sec-head{max-width:720px;margin-bottom:56px}
+.sec-head p{color:var(--muted);font-size:18px;margin:18px 0 0}
+
+/* brushed steel surface */
+.brushed{
+  background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 3px),
+    repeating-linear-gradient(0deg,rgba(0,0,0,.25) 0 1px,transparent 1px 7px),
+    linear-gradient(180deg,var(--steel-2),var(--steel-1));
+}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:10px;font:700 17px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;padding:17px 26px;cursor:pointer;border:0;transition:transform .15s,box-shadow .2s,background .2s;clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+.btn-y{color:#121212;background:linear-gradient(180deg,var(--y-hot),var(--y) 45%,var(--y-deep));box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -2px 0 rgba(0,0,0,.25)}
+.btn-y:hover{transform:translateY(-1px);filter:brightness(1.06)}
+.btn-y-wrap{display:inline-block;filter:drop-shadow(0 0 18px rgba(255,194,26,.35))}
+.btn-ghost{color:var(--text);background:linear-gradient(180deg,#2a2d32,#1b1d21);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 0 0 0 1px #3a3e44}
+.btn-ghost:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 0 0 0 1px var(--y)}
+.btn svg{width:18px;height:18px}
+
+/* nav */
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .3s,border-color .3s;border-bottom:1px solid transparent}
+.nav.scrolled{background:rgba(9,9,10,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-color:var(--line)}
+.nav .wrap{display:flex;align-items:center;height:72px;gap:40px}
+.logo{display:flex;align-items:center;gap:12px;color:var(--y);font:800 30px/1 var(--display)}
+.logo small{font:600 10px/1 var(--mono);letter-spacing:.2em;color:var(--dim);border-left:1px solid var(--line);padding-left:12px;text-transform:uppercase}
+.nav ul{display:flex;gap:30px;list-style:none;margin:0 0 0 auto;padding:0;font:500 14px/1 var(--body);color:var(--muted)}
+.nav ul a:hover{color:var(--text)}
+.nav .btn{padding:12px 18px;font-size:15px}
+
+/* hero */
+.hero{position:relative;min-height:min(100vh,960px);display:flex;align-items:center;overflow:hidden;padding:120px 0 80px}
+.hero-bg{position:absolute;inset:0;z-index:0}
+.hero-bg::before{content:"";position:absolute;inset:0;background:
+  radial-gradient(60% 70% at 72% 48%,rgba(255,170,0,.13),transparent 60%),
+  radial-gradient(40% 50% at 15% 100%,rgba(255,194,26,.05),transparent 70%),
+  repeating-linear-gradient(0deg,rgba(255,255,255,.014) 0 1px,transparent 1px 3px),
+  linear-gradient(180deg,#121316,#0a0a0b 80%)}
+.hero-bg::after{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:64px 64px;mask-image:radial-gradient(70% 70% at 70% 50%,#000 20%,transparent 75%);-webkit-mask-image:radial-gradient(70% 70% at 70% 50%,#000 20%,transparent 75%)}
+#hero3d{position:absolute;top:0;right:0;width:64%;height:100%;z-index:1;opacity:0}
+.hero-fade{position:absolute;top:0;right:0;width:64%;height:100%;z-index:1;pointer-events:none;background:linear-gradient(90deg,#0e0f11 0%,rgba(14,15,17,0) 26%),linear-gradient(0deg,#0b0b0c 0%,rgba(11,11,12,0) 18%),linear-gradient(180deg,#101113 0%,rgba(16,17,19,0) 14%)}
+#hero3d.is-live{opacity:1}
+.hero-fallback{position:absolute;right:12%;top:50%;transform:translateY(-50%);width:min(34vw,460px);color:var(--y);z-index:1;opacity:.9;filter:drop-shadow(0 0 40px rgba(255,194,26,.35));transition:opacity .6s}
+.hero-fallback .scrap-glyph-solo{width:100%;height:auto}
+body.has-3d .hero-fallback{opacity:0}
+.hero .wrap{position:relative;z-index:2;width:100%}
+.hero-copy{max-width:680px}
+.hero h1 .ln{white-space:nowrap}
+.hero .lede,.hero .cta-row{max-width:560px}
+.badge{display:inline-flex;align-items:center;gap:10px;font:500 13px/1 var(--mono);color:var(--muted);padding:8px 14px 8px 8px;border:1px solid var(--line);background:rgba(20,21,24,.7);margin-bottom:28px;border-radius:2px}
+.badge b{font-weight:600;color:#111;background:var(--y);padding:4px 7px;letter-spacing:.06em}
+.hero h1{font-size:clamp(54px,7vw,98px);line-height:.9}
+.hero h1 .glowline{color:var(--y);text-shadow:0 0 28px rgba(255,194,26,.35)}
+.hero .lede{font-size:20px;color:#c9c8c4;margin:26px 0 36px;max-width:520px}
+.cta-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.micro{margin-top:16px;font:500 13px/1.4 var(--mono);color:var(--dim);display:flex;gap:16px;flex-wrap:wrap}
+.micro span::before{content:"✓";color:var(--y);margin-right:6px}
+.proof-line{margin-top:34px;display:flex;align-items:center;gap:14px;font-size:14px;color:var(--muted)}
+.proof-line .stars{color:var(--y);letter-spacing:2px}
+.avatars{display:flex}
+.avatars i{width:30px;height:30px;border-radius:50%;border:2px solid var(--bg);margin-left:-8px;background:linear-gradient(135deg,#3a3d42,#1d1f23);display:grid;place-items:center;font:700 11px/1 var(--display);color:var(--y);font-style:normal}
+.avatars i:first-child{margin-left:0}
+.scroll-cue{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);z-index:2;font:500 11px/1 var(--mono);letter-spacing:.2em;color:var(--dim);text-transform:uppercase;display:flex;flex-direction:column;align-items:center;gap:10px}
+.scroll-cue::after{content:"";width:1px;height:36px;background:linear-gradient(var(--y),transparent);animation:cue 2s infinite}
+@keyframes cue{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+
+/* proof strip */
+.strip{border-top:1px solid var(--line);border-bottom:1px solid var(--line);position:relative}
+.strip::before{content:"";position:absolute;left:0;right:0;top:-1px;height:1px;background:linear-gradient(90deg,transparent,var(--y) 30%,var(--y) 70%,transparent);opacity:.6;box-shadow:0 0 12px var(--y-glow)}
+.strip .wrap{display:grid;grid-template-columns:repeat(4,1fr)}
+.stat{padding:34px 24px;border-left:1px solid var(--line)}
+.stat:first-child{border-left:0}
+.stat b{display:block;font:800 46px/1 var(--display);color:var(--text)}
+.stat b em{font-style:normal;color:var(--y)}
+.stat span{font:500 12px/1.4 var(--mono);color:var(--dim);letter-spacing:.08em;text-transform:uppercase}
+.logos{display:flex;justify-content:space-between;align-items:center;gap:30px;padding:30px 24px 34px;flex-wrap:wrap;border-top:1px solid var(--line)}
+.logos small{font:500 11px/1 var(--mono);color:var(--dim);letter-spacing:.18em;text-transform:uppercase}
+.logos b{font:700 22px/1 var(--display);letter-spacing:.12em;color:#56595e;text-transform:uppercase;transition:color .2s}
+.logos b:hover{color:var(--text)}
+
+/* plate: riveted, chamfered dark-steel card */
+.plate{position:relative;clip-path:polygon(var(--chamfer) 0,calc(100% - var(--chamfer)) 0,100% var(--chamfer),100% calc(100% - var(--chamfer)),calc(100% - var(--chamfer)) 100%,var(--chamfer) 100%,0 calc(100% - var(--chamfer)),0 var(--chamfer));
+  background:
+    radial-gradient(circle at 18px 18px,#5c6168 0 2px,#202226 2.5px 4px,transparent 4.5px),
+    radial-gradient(circle at calc(100% - 18px) 18px,#5c6168 0 2px,#202226 2.5px 4px,transparent 4.5px),
+    radial-gradient(circle at 18px calc(100% - 18px),#5c6168 0 2px,#202226 2.5px 4px,transparent 4.5px),
+    radial-gradient(circle at calc(100% - 18px) calc(100% - 18px),#5c6168 0 2px,#202226 2.5px 4px,transparent 4.5px),
+    repeating-linear-gradient(0deg,rgba(255,255,255,.016) 0 1px,transparent 1px 3px),
+    linear-gradient(160deg,#1f2226,#141518 60%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),inset 0 0 0 1px #2b2f35}
+.plate::before{content:"";position:absolute;left:var(--chamfer);right:var(--chamfer);top:0;height:1px;background:linear-gradient(90deg,transparent,var(--y),transparent);opacity:0;transition:opacity .3s;box-shadow:0 0 10px var(--y)}
+.plate:hover::before{opacity:.9}
+.engrave{font:600 11px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:#5e6268;text-shadow:0 1px 0 rgba(255,255,255,.05),0 -1px 0 rgba(0,0,0,.7)}
+
+/* editor mock */
+.editor-sec{padding-top:110px}
+.editor-frame{padding:10px;border-radius:4px;background:linear-gradient(180deg,#2b2e33,#16181b);box-shadow:0 40px 120px rgba(0,0,0,.6),0 0 0 1px #33373d,0 0 80px rgba(255,194,26,.07)}
+.editor{background:#0e0f11;display:grid;grid-template-columns:220px 1fr 240px;grid-template-rows:40px 1fr 120px;height:600px;font:12px/1.5 var(--mono);color:#aeb0b3;overflow:hidden;position:relative}
+.ed-top{grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:0 14px;border-bottom:1px solid #22252a;background:#131417}
+.ed-top .dots{display:flex;gap:6px}.ed-top .dots i{width:10px;height:10px;border-radius:50%;background:#2f3237}
+.ed-top .wm{color:var(--y);font:800 18px/1 var(--display)}
+.ed-tabs{display:flex;gap:2px;margin-left:10px}
+.ed-tabs span{padding:6px 12px;background:#1a1c20;color:#7e8186}
+.ed-tabs span.on{color:var(--text);box-shadow:inset 0 -2px 0 var(--y)}
+.ed-play{margin-left:auto;display:flex;gap:8px;align-items:center}
+.ed-play b{width:28px;height:24px;display:grid;place-items:center;background:#1c1e22;color:var(--y)}
+.ed-play .live{font-size:11px;color:#111;background:var(--y);padding:4px 8px;font-weight:600;letter-spacing:.06em;box-shadow:0 0 12px var(--y-glow)}
+.ed-tree{border-right:1px solid #22252a;padding:12px 0;background:#111215}
+.ed-tree h5,.ed-insp h5{margin:0 14px 8px;font:600 10px/1 var(--mono);letter-spacing:.16em;color:#5d6066;text-transform:uppercase}
+.ed-tree ul{list-style:none;margin:0;padding:0}
+.ed-tree li{padding:3px 14px;white-space:nowrap}
+.ed-tree li.sel{background:rgba(255,194,26,.1);color:var(--y);box-shadow:inset 2px 0 0 var(--y)}
+.ed-tree li i{font-style:normal;color:#4e5157;margin-right:6px}
+.ed-view{position:relative;overflow:hidden;background:radial-gradient(80% 60% at 50% 30%,#2a2416,#121214 70%)}
+.ed-view .sky{position:absolute;inset:0;background:linear-gradient(180deg,#1c1a14 0%,#0f0f11 62%)}
+.ed-view .floor{position:absolute;left:-30%;right:-30%;bottom:-10%;height:52%;background-image:linear-gradient(rgba(255,194,26,.22) 1px,transparent 1px),linear-gradient(90deg,rgba(255,194,26,.22) 1px,transparent 1px);background-size:44px 44px;transform:perspective(380px) rotateX(62deg);transform-origin:top;mask-image:linear-gradient(transparent,#000 60%);-webkit-mask-image:linear-gradient(transparent,#000 60%)}
+.ed-view .plat{position:absolute;bottom:22%;height:16px;background:linear-gradient(180deg,#5d6168,#2a2d31);box-shadow:0 0 0 1px #000,0 10px 30px rgba(0,0,0,.6)}
+.ed-view .plat.p1{left:12%;width:24%}
+.ed-view .plat.p2{left:52%;width:30%;bottom:36%}
+.ed-view .plat.p2::after{content:"";position:absolute;inset:auto 0 100% 0;height:3px;background:repeating-linear-gradient(-45deg,var(--y) 0 6px,#111 6px 12px)}
+.bot{position:absolute;left:22%;bottom:calc(22% + 16px);width:34px;height:42px;animation:hop 1.3s cubic-bezier(.3,0,.4,1) infinite;--jump:110px}
+.bot::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,var(--y-hot),var(--y-deep));clip-path:polygon(20% 0,80% 0,100% 30%,100% 100%,0 100%,0 30%)}
+.bot::after{content:"";position:absolute;left:8px;right:8px;top:12px;height:6px;background:#111;box-shadow:0 0 0 1px #111;border-radius:2px;background:linear-gradient(90deg,#111 0 30%,#7ef 30% 45%,#111 45% 55%,#7ef 55% 70%,#111 70%)}
+@keyframes hop{0%,100%{transform:translateY(0) scaleY(1)}8%{transform:translateY(0) scale(1.08,.9)}45%{transform:translateY(calc(var(--jump) * -1)) scaleY(1.05)}55%{transform:translateY(calc(var(--jump) * -1))}92%{transform:translateY(0) scale(1.06,.92)}}
+.gizmo{position:absolute;left:calc(22% - 18px);bottom:calc(22% + 6px);width:70px;height:70px;pointer-events:none}
+.gizmo::before{content:"";position:absolute;left:0;bottom:0;width:60px;height:2px;background:#e5484d}
+.gizmo::after{content:"";position:absolute;left:0;bottom:0;width:2px;height:60px;background:#46c46a}
+.ed-hud{position:absolute;top:10px;left:12px;font-size:11px;color:#7e8186;display:flex;gap:12px}
+.ed-hud b{color:var(--y);font-weight:600}
+.toast{position:absolute;right:16px;top:14px;background:rgba(18,19,22,.95);border:1px solid #3a3420;padding:10px 14px 10px 12px;display:flex;align-items:center;gap:10px;color:var(--text);box-shadow:0 0 0 1px rgba(255,194,26,.25),0 0 28px rgba(255,194,26,.25),0 12px 30px rgba(0,0,0,.5);animation:toast 5s ease-in-out infinite}
+.toast .bolt{width:22px;height:22px;display:grid;place-items:center;background:var(--y);color:#111;font-weight:700;clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)}
+.toast small{display:block;color:#7e8186;font-size:10.5px}
+@keyframes toast{0%,8%{opacity:0;transform:translateY(-8px)}14%,78%{opacity:1;transform:none}86%,100%{opacity:0;transform:translateY(-8px)}}
+.ed-insp{border-left:1px solid #22252a;padding:12px 0;background:#111215}
+.ed-insp .row{display:flex;justify-content:space-between;padding:4px 14px}
+.ed-insp .row span:last-child{color:var(--text)}
+.ed-insp .row.hl span:last-child{color:var(--y)}
+.ed-insp hr{border:0;border-top:1px solid #22252a;margin:10px 0}
+.ed-insp .meter{margin:6px 14px;height:6px;background:#1d1f23;position:relative}
+.ed-insp .meter i{position:absolute;inset:0 auto 0 0;width:38%;background:linear-gradient(90deg,var(--y-deep),var(--y));box-shadow:0 0 8px var(--y-glow)}
+.ed-con{grid-column:1/-1;border-top:1px solid #22252a;background:#0b0c0e;padding:10px 14px;overflow:hidden}
+.ed-con p{margin:0;white-space:nowrap}
+.ed-con .ok{color:#6fcf7f}.ed-con .y{color:var(--y)}.ed-con .d{color:#55585d}
+.editor-caption{display:flex;justify-content:space-between;margin-top:20px;color:var(--dim);font:500 13px/1.4 var(--mono)}
+
+/* features */
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.feat{padding:38px 32px 34px;min-height:290px;display:flex;flex-direction:column}
+.feat .ico{width:54px;height:54px;display:grid;place-items:center;margin-bottom:26px;color:var(--y);background:radial-gradient(circle,rgba(255,194,26,.16),transparent 70%);clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);position:relative}
+.feat .ico::before{content:"";position:absolute;inset:0;clip-path:inherit;box-shadow:inset 0 0 0 1px var(--y);border:1px solid rgba(255,194,26,.6);clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)}
+.feat .ico svg{width:26px;height:26px;filter:drop-shadow(0 0 6px var(--y-glow))}
+.feat h3{font-size:30px;margin:10px 0 12px}
+.feat p{color:var(--muted);margin:0 0 22px;font-size:15.5px}
+.feat .spec{margin-top:auto;font:600 13px/1.3 var(--mono);color:var(--y);display:flex;align-items:baseline;gap:8px;padding-top:16px;border-top:1px dashed #30343a}
+.feat .spec small{color:var(--dim);font-weight:500}
+
+/* code / live patch */
+.patch{display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:center}
+.code{padding:0;overflow:hidden}
+.code-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-bottom:1px solid #2a2d32;font:500 12px/1 var(--mono);color:var(--dim)}
+.code-bar .status{color:var(--y);display:flex;align-items:center;gap:8px}
+.code-bar .status i{width:7px;height:7px;border-radius:50%;background:var(--y);box-shadow:0 0 10px var(--y)}
+.code pre{margin:0;padding:22px 26px 28px;font:400 14px/1.75 var(--mono);color:#c8c9cb;overflow-x:auto;counter-reset:ln}
+.code pre .ln{display:block}
+.code pre .ln::before{counter-increment:ln;content:counter(ln);display:inline-block;width:26px;color:#3e4146;user-select:none}
+.k{color:#ff9f5a}.t{color:#ffd84d}.s{color:#9fd88a}.c{color:#5b5f66;font-style:italic}.n{color:#7ec3ff}.f{color:#e8e3d4}
+.hot{background:rgba(255,194,26,.12);box-shadow:inset 2px 0 0 var(--y);transition:background .2s}
+.hot.flash{background:rgba(255,194,26,.3)}
+.patch-ctl{margin-top:28px}
+.patch-ctl label{display:flex;justify-content:space-between;font:600 13px/1 var(--mono);color:var(--muted);margin-bottom:14px}
+.patch-ctl label b{color:var(--y)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:8px;background:linear-gradient(90deg,var(--y) var(--p,40%),#25282d var(--p,40%));box-shadow:inset 0 0 0 1px #33373d;border-radius:0;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:28px;background:linear-gradient(180deg,#e5e7ea,#8b9097);clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);cursor:grab}
+input[type=range]::-moz-range-thumb{width:24px;height:28px;border:0;background:#c4c8cd;cursor:grab}
+.patch-copy h2{margin:18px 0 20px}
+.patch-copy p{color:var(--muted);font-size:17px}
+.patch-copy ul{list-style:none;padding:0;margin:26px 0 0;display:grid;gap:12px}
+.patch-copy li{display:flex;gap:12px;color:#c9c8c4}
+.patch-copy li::before{content:"";flex:none;width:10px;height:10px;margin-top:8px;background:var(--y);clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);box-shadow:0 0 8px var(--y)}
+.mini-view{height:180px;margin-top:22px;position:relative;overflow:hidden;background:linear-gradient(180deg,#1a1812,#0e0e10);box-shadow:inset 0 0 0 1px #2b2f35}
+.mini-view .plat{position:absolute;bottom:20px;left:10%;right:10%;height:12px;background:linear-gradient(180deg,#5d6168,#2a2d31)}
+.mini-view .bot{left:calc(50% - 17px);bottom:32px}
+.mini-view .ruler{position:absolute;right:16px;bottom:32px;width:1px;height:var(--jump,110px);background:var(--y);box-shadow:0 0 6px var(--y);transition:height .15s}
+.mini-view .ruler::before{content:attr(data-v);position:absolute;right:8px;top:-6px;font:600 11px/1 var(--mono);color:var(--y);white-space:nowrap}
+
+/* testimonials */
+.quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.quote{padding:36px 32px 30px;display:flex;flex-direction:column}
+.quote blockquote{margin:0 0 28px;font-size:17px;line-height:1.6;color:#d7d5cf}
+.quote blockquote::before{content:"“";display:block;font:800 64px/.6 var(--display);color:var(--y);margin-bottom:14px;text-shadow:0 0 18px var(--y-glow)}
+.quote .who{margin-top:auto;display:flex;align-items:center;gap:14px;padding-top:20px;border-top:1px solid #2a2d32}
+.quote .who i{width:42px;height:42px;display:grid;place-items:center;font:800 16px/1 var(--display);font-style:normal;color:#111;background:linear-gradient(180deg,var(--y-hot),var(--y-deep));clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)}
+.quote .who b{display:block;font-weight:600}
+.quote .who span{font-size:13px;color:var(--dim)}
+.quote .metric{font:600 12px/1 var(--mono);color:var(--y);margin-bottom:12px;letter-spacing:.06em}
+
+/* pricing */
+.prices{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch}
+.price{padding:40px 34px 36px;display:flex;flex-direction:column}
+.price.feat-plan{background:
+    radial-gradient(circle at 18px 18px,#8a7a3a 0 2px,#2a2410 2.5px 4px,transparent 4.5px),
+    radial-gradient(circle at calc(100% - 18px) 18px,#8a7a3a 0 2px,#2a2410 2.5px 4px,transparent 4.5px),
+    radial-gradient(circle at 18px calc(100% - 18px),#8a7a3a 0 2px,#2a2410 2.5px 4px,transparent 4.5px),
+    radial-gradient(circle at calc(100% - 18px) calc(100% - 18px),#8a7a3a 0 2px,#2a2410 2.5px 4px,transparent 4.5px),
+    radial-gradient(90% 60% at 50% 0%,rgba(255,194,26,.14),transparent 70%),
+    linear-gradient(160deg,#25231c,#151412 60%);box-shadow:inset 0 0 0 1px rgba(255,194,26,.5),inset 0 1px 0 rgba(255,220,120,.3)}
+.price.feat-plan::before{opacity:1}
+.price h3{font-size:28px}
+.price .amt{font:800 64px/1 var(--display);margin:22px 0 4px}
+.price .amt small{font:500 15px/1 var(--body);color:var(--dim);margin-left:4px}
+.price .note{color:var(--muted);font-size:14px;min-height:44px}
+.price ul{list-style:none;padding:0;margin:24px 0 30px;display:grid;gap:10px;font-size:15px;color:#c9c8c4}
+.price li::before{content:"—";color:var(--y);margin-right:10px}
+.price .btn{margin-top:auto;justify-content:center}
+.tag{position:absolute;top:22px;right:26px;font:600 10px/1 var(--mono);letter-spacing:.16em;color:#111;background:var(--y);padding:6px 9px;text-transform:uppercase}
+.license{margin-top:26px;color:var(--dim);font:500 13px/1.6 var(--mono);text-align:center}
+
+/* final cta */
+.final{padding:0 0 120px}
+.final-plate{position:relative;overflow:hidden;padding:90px 60px;text-align:center;--chamfer:22px}
+.final-plate .stripes{position:absolute;left:0;right:0;height:10px;background:repeating-linear-gradient(-45deg,var(--y) 0 14px,#111 14px 28px);opacity:.9}
+.final-plate .stripes.top{top:0}.final-plate .stripes.bot{bottom:0}
+.final-plate .halo{position:absolute;left:50%;top:50%;width:700px;height:700px;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(255,194,26,.16),transparent 60%);pointer-events:none}
+.final-plate h2{font-size:clamp(46px,6.5vw,92px);position:relative}
+.final-plate p{color:var(--muted);font-size:19px;margin:20px auto 36px;max-width:560px;position:relative}
+.final-plate .cta-row{justify-content:center;position:relative}
+.final-plate .micro{justify-content:center;position:relative}
+.final-glyph{width:84px;height:84px;margin:0 auto 26px;color:var(--y);filter:drop-shadow(0 0 22px rgba(255,194,26,.5));position:relative}
+.final-glyph .scrap-glyph-solo{width:100%;height:100%}
+
+/* footer */
+footer{border-top:1px solid var(--line);padding:56px 0 40px;color:var(--dim);font-size:14px}
+footer .wrap{display:grid;grid-template-columns:2fr repeat(3,1fr);gap:40px}
+footer h6{margin:0 0 14px;font:600 11px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:#7c7f84}
+footer ul{list-style:none;padding:0;margin:0;display:grid;gap:9px}
+footer a:hover{color:var(--y)}
+footer .logo{font-size:26px;margin-bottom:14px}
+.foot-base{grid-column:1/-1;display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:26px;margin-top:10px;font:500 12px/1 var(--mono)}
+
+/* reveal */
+.rv{opacity:0;transform:translateY(24px);transition:opacity .8s ease,transform .8s ease}
+.rv.in{opacity:1;transform:none}
+
+@media (max-width:1000px){
+  .nav ul{display:none}
+  .nav .btn{margin-left:auto}
+  #hero3d,.hero-fade{width:100%;right:0}
+  #hero3d{opacity:.45}
+  #hero3d.is-live{opacity:.45}
+  .hero-fallback{opacity:.25;right:-10%;width:70vw}
+  .strip .wrap{grid-template-columns:repeat(2,1fr)}
+  .stat:nth-child(3){border-left:0}
+  .stat{border-top:1px solid var(--line)}
+  .features,.quotes,.prices{grid-template-columns:1fr}
+  .patch{grid-template-columns:1fr}
+  .editor{grid-template-columns:1fr;grid-template-rows:40px 340px 110px;height:auto}
+  .ed-tree,.ed-insp{display:none}
+  .ed-tabs span:not(.on){display:none}
+  footer .wrap{grid-template-columns:1fr 1fr}
+  footer .wrap > div:first-child{grid-column:1/-1}
+  .sec{padding:84px 0}
+  .final-plate{padding:70px 24px}
+}
+@media (max-width:560px){
+  .wrap{padding:0 16px}
+  .hero{padding-top:110px;align-items:flex-start}
+  .hero h1{font-size:clamp(40px,12vw,56px)}
+  .hero h1 .ln{white-space:normal}
+  .hero .cta-row .btn,.hero .cta-row .btn-y-wrap{width:100%;justify-content:center}
+  .hero .cta-row .btn-y-wrap .btn{width:100%}
+  .micro{gap:6px 14px}
+  .badge{font-size:11px}
+  .nav .wrap{gap:12px}
+  .proof-line{flex-wrap:wrap;gap:10px}
+  .hero .lede{font-size:17px}
+  .btn{padding:15px 20px;font-size:15px}
+  .logo small{display:none}
+  .stat b{font-size:36px}
+  .stat{padding:24px 16px}
+  .logos{justify-content:flex-start;gap:18px 26px}
+  .logos b{font-size:18px}
+  .editor-caption{flex-direction:column;gap:6px}
+  .toast{left:12px;right:12px}
+  .foot-base{flex-direction:column;gap:12px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .rv{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav">
+  <div class="wrap">
+    <a href="#" class="logo"><span data-scrap-wordmark></span><small>by ScrapWorks</small></a>
+    <ul>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#live-patch">Live Patch</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#">Docs</a></li>
+      <li><a href="#">Discord</a></li>
+    </ul>
+    <a href="#download" class="btn btn-y">Download</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-fallback" data-scrap-glyph></div>
+  <canvas id="hero3d" aria-hidden="true"></canvas>
+  <div class="hero-fade"></div>
+  <div class="wrap">
+    <div class="hero-copy">
+      <div class="badge"><b>v1.4</b> Live Patch now reloads shaders too →</div>
+      <h1><span class="ln">Build games like</span><br><span class="ln">you build <span class="glowline">machines.</span></span></h1>
+      <p class="lede">Scrap is the game engine workshop. Change code, art, or shaders while your game runs — patches land in about 140&nbsp;ms and play mode never restarts.</p>
+      <div class="cta-row" id="download">
+        <span class="btn-y-wrap"><a href="#" class="btn btn-y">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"><path d="M12 3v12M6 10l6 6 6-6M4 21h16"/></svg>
+          Download Scrap — free</a></span>
+        <a href="#" class="btn btn-ghost">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8z"/></svg>
+          Watch the 90 s demo</a>
+      </div>
+      <div class="micro"><span>Windows · macOS · Linux</span><span>No account</span><span>Free under $250k</span></div>
+      <div class="proof-line">
+        <div class="avatars"><i>MK</i><i>JR</i><i>AO</i><i>TS</i></div>
+        <div><span class="stars">★★★★★</span> 4.9 on itch.io · 12,400 games shipped</div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-cue">Scroll</div>
+</header>
+
+<section class="strip brushed">
+  <div class="wrap">
+    <div class="stat"><b>140<em>ms</em></b><span>Median Live Patch</span></div>
+    <div class="stat"><b>100<em>k</em></b><span>Entities @ 60 fps, 2019 laptop</span></div>
+    <div class="stat"><b>5</b><span>Export targets, one click</span></div>
+    <div class="stat"><b>38<em>k</em></b><span>Developers on Discord</span></div>
+  </div>
+  <div class="wrap logos">
+    <small>Shipping on Scrap</small>
+    <b>Ironclad</b><b>Lumen&nbsp;Forge</b><b>Rivet&nbsp;&amp;&nbsp;Co</b><b>Hexbit</b><b>Slagworks</b><b>Torque</b>
+  </div>
+</section>
+
+<section class="sec editor-sec">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div class="eyebrow">The workshop</div>
+      <h2 style="margin-top:18px">One bench. <em>Every tool.</em></h2>
+      <p>Scene, code, assets, and profiler share one window. Hit play once in the morning and keep it running until you ship.</p>
+    </div>
+    <div class="editor-frame rv">
+      <div class="editor" role="img" aria-label="Scrap editor with scene tree, live game viewport, inspector, and console">
+        <div class="ed-top">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <span class="wm" data-scrap-wordmark></span>
+          <div class="ed-tabs"><span class="on">level_03.scene</span><span>player.rs</span><span>shaders/rim.wgsl</span></div>
+          <div class="ed-play"><b>■</b><b>❚❚</b><span class="live">● LIVE · 60 FPS</span></div>
+        </div>
+        <div class="ed-tree">
+          <h5>Scene</h5>
+          <ul>
+            <li><i>▾</i>level_03</li>
+            <li style="padding-left:28px"><i>▸</i>environment</li>
+            <li style="padding-left:28px"><i>▾</i>platforms</li>
+            <li style="padding-left:42px"><i>□</i>plat_a</li>
+            <li style="padding-left:42px"><i>□</i>plat_hazard</li>
+            <li class="sel" style="padding-left:28px"><i>◆</i>player</li>
+            <li style="padding-left:42px"><i>○</i>collider</li>
+            <li style="padding-left:42px"><i>○</i>controller</li>
+            <li style="padding-left:28px"><i>▸</i>enemies (24)</li>
+            <li style="padding-left:28px"><i>▸</i>lights</li>
+            <li style="padding-left:28px"><i>▸</i>ui</li>
+          </ul>
+        </div>
+        <div class="ed-view">
+          <div class="sky"></div><div class="floor"></div>
+          <div class="plat p1"></div><div class="plat p2"></div>
+          <div class="bot"></div><div class="gizmo"></div>
+          <div class="ed-hud"><span>PERSP</span><span>LIT</span><span><b>Δ</b> 16.4 ms</span></div>
+          <div class="toast"><span class="bolt">⚡</span><div>Live Patch applied<small>player.rs · jump_height · 138 ms</small></div></div>
+        </div>
+        <div class="ed-insp">
+          <h5>Inspector · player</h5>
+          <div class="row"><span>position</span><span>4.0, 1.2</span></div>
+          <div class="row"><span>velocity</span><span>0.0, 3.8</span></div>
+          <div class="row hl"><span>jump_height</span><span>3.4</span></div>
+          <div class="row"><span>gravity</span><span>-24.0</span></div>
+          <div class="row"><span>coyote_ms</span><span>90</span></div>
+          <hr>
+          <h5>Teardown</h5>
+          <div class="row"><span>physics</span><span>1.9 ms</span></div>
+          <div class="meter"><i></i></div>
+          <div class="row"><span>render</span><span>5.2 ms</span></div>
+          <div class="meter"><i style="width:62%"></i></div>
+          <div class="row"><span>scripts</span><span>0.7 ms</span></div>
+          <div class="meter"><i style="width:14%"></i></div>
+        </div>
+        <div class="ed-con">
+          <p><span class="d">13:42:07</span> <span class="ok">✓</span> compiled player.rs <span class="d">(incremental, 1 unit)</span></p>
+          <p><span class="d">13:42:07</span> <span class="y">⚡</span> patched 1 system in running world <span class="d">— state kept: 24 enemies, 1 player, 3 timers</span></p>
+          <p><span class="d">13:42:11</span> <span class="ok">✓</span> Parts Bin imported robot_v2.blend <span class="d">→ 3 LODs, 1 atlas (2048²)</span></p>
+          <p><span class="d">13:42:19</span> <span class="ok">✓</span> rim.wgsl hot-swapped <span class="d">(0 pipeline stalls)</span></p>
+        </div>
+      </div>
+    </div>
+    <div class="editor-caption"><span>↑ Editor mock · play mode running while a patch lands</span><span>Teardown profiler docked right</span></div>
+  </div>
+</section>
+
+<section class="sec" id="features">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div class="eyebrow">The toolkit</div>
+      <h2 style="margin-top:18px">Six tools. <em>No glue code.</em></h2>
+      <p>Every part ships in the box and talks to the others. No plugins to hunt down before you can make a game.</p>
+    </div>
+    <div class="features">
+      <article class="plate feat rv">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></div>
+        <span class="engrave">01 · Live Patch</span>
+        <h3>Hot reload that keeps state</h3>
+        <p>Edit code, textures, audio, and shaders while the game runs. Positions, timers, and enemy AI keep going.</p>
+        <div class="spec">~140 ms <small>median patch, 2,000-file project</small></div>
+      </article>
+      <article class="plate feat rv">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4zM3 7v10l9 4 9-4V7M12 11v10"/></svg></div>
+        <span class="engrave">02 · Parts Bin</span>
+        <h3>Drag in. Done.</h3>
+        <p>Drop .blend, .fbx, .gltf, .png, or .wav. Scrap imports, builds LODs, and packs atlases on save.</p>
+        <div class="spec">0 import dialogs <small>sensible defaults, override per file</small></div>
+      </article>
+      <article class="plate feat rv">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="6" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M7.5 6h9M6 8.5l5 7M18 8.5l-5 7"/></svg></div>
+        <span class="engrave">03 · Wiring</span>
+        <h3>Nodes that compile</h3>
+        <p>Visual scripting for designers that compiles to readable native code. Engineers can open the output and edit it.</p>
+        <div class="spec">1:1 <small>graph to source, round-trip safe</small></div>
+      </article>
+      <article class="plate feat rv">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div>
+        <span class="engrave">04 · Chassis</span>
+        <h3>Data-oriented core</h3>
+        <p>An ECS runtime laid out for the cache. Big crowds, bullet hell, and sims stay smooth on old hardware.</p>
+        <div class="spec">100k entities <small>@ 60 fps, 2019 laptop</small></div>
+      </article>
+      <article class="plate feat rv">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19L19 5M19 5h-8M19 5v8"/><path d="M4 12v8h8"/></svg></div>
+        <span class="engrave">05 · Ship It</span>
+        <h3>One click, five targets</h3>
+        <p>Export to Windows, macOS, Linux, Web, and Steam Deck from one build profile. Signing and icons included.</p>
+        <div class="spec">5 targets <small>reproducible builds, CI-ready CLI</small></div>
+      </article>
+      <article class="plate feat rv">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20h18M6 16v-5M10 16V6M14 16v-8M18 16v-3"/></svg></div>
+        <span class="engrave">06 · Teardown</span>
+        <h3>See every millisecond</h3>
+        <p>A frame profiler with per-system timings and spike capture. Click a spike to jump to the line that caused it.</p>
+        <div class="spec">per-system <small>timings, zero setup</small></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="sec brushed" id="live-patch" style="border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap patch">
+    <div class="plate code rv">
+      <div class="code-bar"><span>src/player.rs</span><span class="status"><i></i><span id="patchStatus">Live · patched in 138 ms</span></span></div>
+<pre><span class="ln"><span class="k">use</span> scrap::prelude::*;</span><span class="ln"> </span><span class="ln"><span class="c">// Runs every frame for entities with Player + Body.</span></span><span class="ln"><span class="k">pub fn</span> <span class="f">player_jump</span>(input: <span class="t">Res</span>&lt;<span class="t">Input</span>&gt;, <span class="k">mut</span> q: <span class="t">Query</span>&lt;(&amp;<span class="t">Player</span>, &amp;<span class="k">mut</span> <span class="t">Body</span>)&gt;) {</span><span class="ln">    <span class="k">for</span> (player, <span class="k">mut</span> body) <span class="k">in</span> q.<span class="f">iter_mut</span>() {</span><span class="ln">        <span class="k">if</span> input.<span class="f">just_pressed</span>(<span class="t">Key</span>::Space) &amp;&amp; player.<span class="f">grounded</span>() {</span><span class="ln hot" id="hotline">            <span class="k">let</span> jump_height = <span class="n" id="jumpVal">3.4</span>; <span class="c">// meters</span></span><span class="ln">            body.velocity.y = (<span class="n">2.0</span> * <span class="n">24.0</span> * jump_height).<span class="f">sqrt</span>();</span><span class="ln">            body.<span class="f">play</span>(<span class="s">"sfx/jump.wav"</span>);</span><span class="ln">        }</span><span class="ln">    }</span><span class="ln">}</span></pre>
+    </div>
+    <div class="patch-copy rv">
+      <div class="eyebrow">Try Live Patch</div>
+      <h2>Tune it <em>while it runs.</em></h2>
+      <p>Drag the slider. In Scrap, that edit compiles, patches the running world, and the robot jumps higher on its next hop. No restart, no lost state.</p>
+      <div class="patch-ctl">
+        <label for="jump">jump_height <b id="jumpOut">3.4 m</b></label>
+        <input type="range" id="jump" min="1" max="6" step="0.1" value="3.4">
+      </div>
+      <div class="mini-view" id="miniView"><div class="plat"></div><div class="bot" id="miniBot"></div><div class="ruler" data-v="3.4 m"></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div class="eyebrow">From the shop floor</div>
+      <h2 style="margin-top:18px">Teams that <em>switched.</em></h2>
+    </div>
+    <div class="quotes">
+      <figure class="plate quote rv" style="margin:0">
+        <div class="metric">ITERATION LOOP · 45 s → 0.2 s</div>
+        <blockquote>We tuned our whole movement feel in one afternoon. Before Scrap, every tweak was a 45-second rebuild and a walk back to the test room.</blockquote>
+        <figcaption class="who"><i>MK</i><div><b>Mara Kessel</b><span>Lead Designer, Ironclad Interactive</span></div></figcaption>
+      </figure>
+      <figure class="plate quote rv" style="margin:0">
+        <div class="metric">PORT TIME · 6 weeks → 2 days</div>
+        <blockquote>The Steam Deck build was a checkbox. We spent the six weeks we budgeted for porting on two extra levels instead.</blockquote>
+        <figcaption class="who"><i>JR</i><div><b>Jonah Reyes</b><span>Technical Director, Hexbit</span></div></figcaption>
+      </figure>
+      <figure class="plate quote rv" style="margin:0">
+        <div class="metric">ENTITIES ON SCREEN · 8k → 90k</div>
+        <blockquote>Our swarm boss was impossible in our old engine. Chassis runs 90,000 drones and still leaves headroom for the particles.</blockquote>
+        <figcaption class="who"><i>AO</i><div><b>Ada Okafor</b><span>Engine Programmer, Slagworks</span></div></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="pricing" style="padding-top:40px">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div class="eyebrow">Pricing</div>
+      <h2 style="margin-top:18px">Free until <em>you're paid.</em></h2>
+      <p>No royalties. No revenue share. You pay per seat only after your studio passes $250k a year.</p>
+    </div>
+    <div class="prices">
+      <div class="plate price rv">
+        <h3>Apprentice</h3>
+        <div class="amt">$0</div>
+        <div class="note">Solo devs and teams under $250k annual revenue.</div>
+        <ul><li>Every tool, no feature locks</li><li>All 5 export targets</li><li>Community support on Discord</li></ul>
+        <a href="#" class="btn btn-ghost">Download free</a>
+      </div>
+      <div class="plate price feat-plan rv">
+        <span class="tag">Most teams</span>
+        <h3>Pro</h3>
+        <div class="amt">$24<small>/ seat / month</small></div>
+        <div class="note">Studios over $250k. Billed annually, cancel any time.</div>
+        <ul><li>Everything in Apprentice</li><li>Console export add-ons</li><li>Priority support, 1 business day</li><li>Team asset cache server</li></ul>
+        <span class="btn-y-wrap" style="margin-top:auto;display:block"><a href="#" class="btn btn-y" style="width:100%">Start 30-day Pro trial</a></span>
+      </div>
+      <div class="plate price rv">
+        <h3>Foundry</h3>
+        <div class="amt">Custom</div>
+        <div class="note">Large studios that need source access and SLAs.</div>
+        <ul><li>Full source license</li><li>Dedicated engineer</li><li>On-prem build farm</li></ul>
+        <a href="#" class="btn btn-ghost">Book a 20-min call</a>
+      </div>
+    </div>
+    <p class="license">Source-available · Your games are 100% yours · No splash screen required</p>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <div class="plate final-plate rv">
+      <div class="stripes top"></div><div class="halo"></div>
+      <div class="final-glyph" data-scrap-glyph></div>
+      <h2>Clock in. <span style="color:var(--y)">Build something.</span></h2>
+      <p>Download Scrap and have a character jumping in under ten minutes. The tutorial ships in the box.</p>
+      <div class="cta-row">
+        <span class="btn-y-wrap"><a href="#" class="btn btn-y">Download Scrap — free</a></span>
+        <a href="#" class="btn btn-ghost">Read the docs</a>
+      </div>
+      <div class="micro"><span>Windows · macOS · Linux</span><span>412 MB</span><span>No account</span></div>
+      <div class="stripes bot"></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <a href="#" class="logo"><span data-scrap-wordmark></span></a>
+      <p style="max-width:320px;margin:0">The game engine workshop. Made by ScrapWorks, a small team that likes tools that feel like tools.</p>
+    </div>
+    <div><h6>Product</h6><ul><li><a href="#">Download</a></li><li><a href="#">Changelog</a></li><li><a href="#">Roadmap</a></li><li><a href="#">Pricing</a></li></ul></div>
+    <div><h6>Learn</h6><ul><li><a href="#">Docs</a></li><li><a href="#">Tutorials</a></li><li><a href="#">Samples</a></li><li><a href="#">API</a></li></ul></div>
+    <div><h6>ScrapWorks</h6><ul><li><a href="#">About</a></li><li><a href="#">Discord</a></li><li><a href="#">GitHub</a></li><li><a href="#">Press kit</a></li></ul></div>
+    <div class="foot-base"><span>© 2026 ScrapWorks</span><span>Mockup 01 · Foundry</span></div>
+  </div>
+</footer>
+
+<script>
+// Nav background, reveal on scroll, and the Live Patch slider. No 3D here.
+(function () {
+  var nav = document.getElementById('nav');
+  function onScroll() { nav.classList.toggle('scrolled', window.scrollY > 40); }
+  window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.rv').forEach(function (el) { io.observe(el); });
+
+  var r = document.getElementById('jump'), out = document.getElementById('jumpOut'),
+      val = document.getElementById('jumpVal'), hot = document.getElementById('hotline'),
+      st = document.getElementById('patchStatus'), view = document.getElementById('miniView'),
+      ruler = view.querySelector('.ruler'), bot = document.getElementById('miniBot'), t;
+  function apply() {
+    var v = parseFloat(r.value), px = Math.round(v * 30);
+    r.style.setProperty('--p', ((v - 1) / 5 * 100) + '%');
+    out.textContent = v.toFixed(1) + ' m';
+    val.textContent = v.toFixed(1);
+    view.style.setProperty('--jump', px + 'px');
+    bot.style.setProperty('--jump', px + 'px');
+    ruler.setAttribute('data-v', v.toFixed(1) + ' m');
+    hot.classList.add('flash');
+    st.textContent = 'Live · patched in ' + (120 + Math.round(Math.random() * 40)) + ' ms';
+    clearTimeout(t); t = setTimeout(function () { hot.classList.remove('flash'); }, 220);
+  }
+  r.addEventListener('input', apply); apply();
+})();
+</script>
+
+<script type="module">
+// Hero 3D: yellow clearcoat wrench-C on a dark steel disc, glow ring, rim lights, bloom.
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+try {
+  const kit = ScrapBrand.three(THREE, { RoomEnvironment, EffectComposer, RenderPass, UnrealBloomPass, OutputPass });
+  const canvas = document.getElementById('hero3d');
+  const s = kit.stage(canvas, { bloom: { strength: 0.55, radius: 0.5, threshold: 0.95 }, fov: 30, z: 8.4, exposure: 1.05, envIntensity: 0.55 });
+  const { scene, camera, pointer } = s;
+  // Opaque background: bloom on an alpha canvas washes the frame. The CSS mask blends the edge.
+  scene.background = new THREE.Color(0x0e0f11);
+  const M = kit.materials;
+
+  const rig = new THREE.Group();
+  scene.add(rig);
+
+  // Backplate: machined dark-steel disc with a bevel lip and six bolts.
+  const plate = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.82, 0.12, 6, 1), M.darkSteel({ roughness: 0.5 }));
+  plate.rotation.x = Math.PI / 2; plate.rotation.y = Math.PI / 6; plate.position.z = -0.9;
+  rig.add(plate);
+  const inner = new THREE.Mesh(new THREE.CylinderGeometry(1.45, 1.45, 0.14, 6, 1), M.castIron());
+  inner.rotation.x = Math.PI / 2; inner.rotation.y = Math.PI / 6; inner.position.z = -0.88;
+  rig.add(inner);
+  for (let i = 0; i < 6; i++) {
+    const a = i * Math.PI / 3 + Math.PI / 6;
+    const b = kit.bolt({ r: 0.07, material: M.steel() });
+    b.rotation.x = Math.PI / 2;
+    b.position.set(Math.cos(a) * 1.6, Math.sin(a) * 1.6, -0.8);
+    rig.add(b);
+  }
+
+  // Glow ring and a hairline outer ring. Only these bloom.
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.52, 0.012, 12, 160), M.glow(0xffb300, 2.6));
+  ring.position.z = -0.78; rig.add(ring);
+  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(1.9, 0.004, 8, 160), M.glow(0xffc21a, 1.4));
+  ring2.position.z = -0.95; rig.add(ring2);
+
+  // Tick marks on the glow ring, like a dial.
+  const tickGeo = new THREE.BoxGeometry(0.008, 0.07, 0.01), tickMat = M.glow(0xffc21a, 1.1);
+  for (let i = 0; i < 60; i++) {
+    const a = i / 60 * Math.PI * 2, t = new THREE.Mesh(tickGeo, tickMat);
+    t.position.set(Math.cos(a) * 1.68, Math.sin(a) * 1.68, -0.78);
+    t.rotation.z = a - Math.PI / 2;
+    if (i % 5 === 0) t.scale.y = 2;
+    rig.add(t);
+  }
+
+  // The wrench-C.
+  const wrench = kit.wrench({ scale: 0.0115, depth: 16, material: M.paint({ envMapIntensity: 1.8, roughness: 0.3 }) });
+  rig.add(wrench);
+
+  // Floating hex nuts.
+  const nuts = [];
+  [[1.55, 1.05, 0.2, 0.16], [-1.45, -1.15, 0.4, 0.12], [1.25, -1.35, -0.2, 0.09]].forEach(([x, y, z, r], i) => {
+    const n = kit.hexNut({ r, material: i === 1 ? M.anodized() : M.steel() });
+    n.position.set(x, y, z); n.userData.base = n.position.clone(); n.userData.seed = i * 1.7;
+    rig.add(n); nuts.push(n);
+  });
+
+  // Lights: warm rim from behind, cool fill from front-left.
+  const rimA = new THREE.PointLight(0xffb020, 9, 6, 2); rimA.position.set(1.8, 1.4, -0.6); scene.add(rimA);
+  const rimB = new THREE.PointLight(0xff9a00, 7, 6, 2); rimB.position.set(-1.9, -1.2, -0.4); scene.add(rimB);
+  const key = new THREE.DirectionalLight(0xfff4e0, 1.6); key.position.set(-4, 4, 2.5); scene.add(key);
+  const fill = new THREE.DirectionalLight(0x9fb4ff, 0.35); fill.position.set(3, -1, 2); scene.add(fill);
+
+  // Frame layout: keep the rig to the right of the copy on wide screens.
+  function layout() {
+    const wide = canvas.clientWidth > 600;
+    rig.position.set(wide ? 0.75 : 0.5, wide ? 0 : -1.5, 0);
+    rig.scale.setScalar(wide ? 0.92 : 0.62);
+  }
+  layout(); window.addEventListener('resize', layout);
+
+  s.onFrame((t) => {
+    wrench.rotation.y = -0.35 + Math.sin(t * 0.45) * 0.5 + pointer.sx * 0.45;
+    wrench.rotation.x = 0.18 - pointer.sy * 0.3 + Math.sin(t * 0.3) * 0.05;
+    wrench.position.y = Math.sin(t * 0.9) * 0.05;
+    rig.rotation.y = pointer.sx * 0.12;
+    rig.rotation.x = -pointer.sy * 0.08;
+    ring2.rotation.z = t * 0.05;
+    nuts.forEach((n) => {
+      n.rotation.x = t * 0.4 + n.userData.seed; n.rotation.y = t * 0.6 + n.userData.seed;
+      n.position.y = n.userData.base.y + Math.sin(t * 0.8 + n.userData.seed) * 0.07;
+    });
+    rimA.intensity = 9 + Math.sin(t * 1.3) * 1.5;
+  });
+  document.body.classList.add('has-3d');
+} catch (e) {
+  console.warn('Scrap hero 3D disabled:', e);
+}
+</script>
+</body>
+</html>
