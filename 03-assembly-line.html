@@ -97,8 +97,14 @@
     nav { gap: 18px; padding: 18px 16px; }
     nav a.l { display: none; }
     section { align-items: flex-end; padding: 96px 16px 48px; }
-    .hero { padding-top: 46vh; }
+    .hero { padding-top: 33vh; align-items: flex-start; }
     h1 { font-size: 40px; }
+    .hero h1 { font-size: 29px; margin-bottom: 12px; }
+    .hero .lede { font-size: 15px; margin-bottom: 18px; }
+    .hero .btn { padding: 12px 16px; font-size: 13px; }
+    .hero .term { margin-top: 18px; }
+    .hero .tx { font-size: 13px; }
+    .hero .glass { padding: 14px 16px; }
     .lede { font-size: 17px; }
     .term { width: 100%; }
     .tx { font-size: 15px; }
@@ -123,7 +129,7 @@
   <section class="hero" data-stage="0">
     <div class="col">
       <h1>You make the art. <em>Scrap handles the code.</em></h1>
-      <p class="lede">Drop in sprites, models, and sounds. Scrap builds the game around them while you keep creating.</p>
+      <p class="lede">Drop in sprites, models, and sounds. Scrap builds the game around them.</p>
       <div class="cta">
         <a class="btn" href="#download">Download Scrap &mdash; free</a>
         <a class="link" href="#how">See how it works</a>
@@ -131,40 +137,30 @@
       <div class="plat" data-plat></div>
       <div class="term" id="how"><div class="glass"><div class="tx">
         <div class="h type">SCRAP // BUILD SYSTEM</div>
-        <div class="s type">&gt; art found: hero.png</div>
+        <div class="s type">&gt; art found: stella_nova/</div>
         <div class="s type">&gt; READY</div>
       </div></div></div>
     </div>
   </section>
 
   <section data-stage="1"><div class="col"><div class="term"><div class="glass"><div class="tx">
-    <div class="h type">01 // PARTS IN</div>
-    <div class="s type">Your sprites, models, and sounds, imported and sliced.</div>
+    <div class="h type">01 // TOOLS</div>
+    <div class="s type">Scrap brings its own tools.</div>
   </div></div></div></div></section>
 
   <section data-stage="2"><div class="col"><div class="term"><div class="glass"><div class="tx">
-    <div class="h type">02 // LOGIC WIRED</div>
-    <div class="s type">Movement, physics, and collisions, set up for you.</div>
+    <div class="h type">02 // BUILD</div>
+    <div class="s type">Your parts, bolted together. No code to write.</div>
   </div></div></div></div></section>
 
   <section data-stage="3"><div class="col"><div class="term"><div class="glass"><div class="tx">
-    <div class="h type">03 // CODE BUILT</div>
-    <div class="s type">Readable code you never have to touch.</div>
+    <div class="h type">03 // PLAY</div>
+    <div class="s type">Stella Nova, running. Built from your art.</div>
   </div></div></div></div></section>
 
-  <section data-stage="4"><div class="col"><div class="term"><div class="glass"><div class="tx">
-    <div class="h type">04 // SCREEN UP</div>
-    <div class="s type">Camera, levels, and menus framed around your art.</div>
-  </div></div></div></div></section>
-
-  <section data-stage="5"><div class="col"><div class="term"><div class="glass"><div class="tx">
-    <div class="h type">05 // PLAY</div>
-    <div class="s type">Your character runs and jumps. Repaint it, and the game updates.</div>
-  </div></div></div></div></section>
-
-  <section class="final" data-stage="6" id="download">
+  <section class="final" data-stage="4" id="download">
     <div class="col rise">
-      <h2>Ship it.</h2>
+      <h2>Make your game.</h2>
       <p>One click builds for Windows, macOS, and Linux.</p>
       <div class="cta"><a class="btn" href="#download">Download Scrap &mdash; free</a></div>
       <div class="plat" data-plat></div>
@@ -193,7 +189,7 @@
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   window.SCRAP = {
     fixed: fixed,
-    target: function () { return fixed != null ? fixed : Math.min(6, window.scrollY / window.innerHeight); }
+    target: function () { return fixed != null ? fixed : Math.min(4, window.scrollY / window.innerHeight); }
   };
   if (fixed != null) {
     // Headless screenshots break on scrolled pages with fixed layers, so show only section N.
@@ -244,480 +240,295 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
+/*
+ * Four stages on native scroll (P = scroll position in screens):
+ *   0-1  the logo wrench assembles: head, handle, nut
+ *   1-3  a box assembles from six panels; the nut leaves the jaw for the
+ *        first corner, three more nuts drop in, and the wrench tightens all four,
+ *        then stands beside the box
+ *   3-4  the front panel is a CRT; it boots and plays Stella Nova
+ *   4    the finished box faces the camera above the final CTA
+ * Mesh count: head, handle, nut, 6 panels, screen, corner nuts (instanced)
+ * = 11. Only the screen blooms.
+ */
 const k = ScrapBrand.three(THREE, { RoomEnvironment, EffectComposer, RenderPass, UnrealBloomPass, OutputPass, RoundedBoxGeometry, BufferGeometryUtils });
 const M = k.materials;
 const canvas = document.getElementById('scene');
-const s = k.stage(canvas, { bloom: { strength: 0.3, radius: 0.35, threshold: 1.05 }, fov: 30, z: 10, exposure: 1.0, envIntensity: 0.55 });
-const BG = 0x0a0a0b;
-s.scene.background = new THREE.Color(BG);
-s.scene.fog = new THREE.Fog(BG, 14, 26);
+const s = k.stage(canvas, { bloom: { strength: 0.32, radius: 0.35, threshold: 1.05 }, fov: 30, z: 10, exposure: 1.0, envIntensity: 0.6 });
+s.scene.background = new THREE.Color(0x0a0a0b);
 
-/* ---------- helpers ---------- */
+const key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(-3, 4, 5);
+const rim = new THREE.DirectionalLight(0xffb000, 0.8); rim.position.set(4, 1, -4);
+s.scene.add(key, rim);
+
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
-const span = (P, a, b) => clamp((P - a) / (b - a));
-const ease = (t) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-const out = (t) => 1 - Math.pow(1 - t, 3);
-const lerp = (a, b, t) => a + (b - a) * t;
+const ss = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+const mix = (a, b, t) => a + (b - a) * t;
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
-const dummy = new THREE.Object3D();
 
-/*
- * Soft geometry from the kit (k.soft): rounded plan corners, matching rounded
- * bevels, smooth normals. Every solid part on the page goes through G().
- */
-const G = (name, ...args) => k.soft[name](...args);
-// Pipes get round end caps, so no open rim shows.
-function cappedPipe(curve, r) {
-  const a = new THREE.SphereGeometry(r, 16, 10), b = new THREE.SphereGeometry(r, 16, 10);
-  a.translate(...curve.getPointAt(0).toArray()); b.translate(...curve.getPointAt(1).toArray());
-  return BufferGeometryUtils.mergeGeometries([G('pipe', curve, r, 96), a, b]);
-}
-const mesh = (g, m) => new THREE.Mesh(g, m);
-const axisZ = (g) => { g.rotateX(Math.PI / 2); return g; };   // lathe axis y -> z
-const axisX = (g) => { g.rotateZ(Math.PI / 2); return g; };   // lathe axis y -> x
-
-const paint = M.paint(), steel = M.steel({ anisotropy: 0 }), dark = M.darkSteel({ anisotropy: 0 }), iron = M.castIron();
-const rubber = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.75, metalness: 0 });
-const glow = M.glow(0xffa21a, 2.2);
-
-/* Generic arrivals: each part flies from an offset to its seat over its own [a, b]. */
-const parts = [];
-function part(o, seat, from, a, b, rFrom) {
-  o.position.copy(seat); parts.push({ o, seat: seat.clone(), from, a, b, r0: o.rotation.clone(), rFrom });
-  rig.add(o); return o;
-}
-function updateParts(P) {
-  parts.forEach(p => {
-    const u = out(span(P, p.a, p.b));
-    p.o.visible = u > 0;
-    p.o.position.copy(p.seat).addScaledVector(p.from, 1 - u);
-    if (p.rFrom) p.o.rotation.set(p.r0.x + p.rFrom.x * (1 - u), p.r0.y + p.rFrom.y * (1 - u), p.r0.z + p.rFrom.z * (1 - u));
-  });
-}
-const UP = (d = 5) => V(0, d, 0), LEFT = (d = 5) => V(-d, 0, 0), RIGHT = (d = 5) => V(d, 0, 0), BACK = (d = 4) => V(0, 0, -d), FRONT = (d = 4) => V(0, 0, d);
-
-/* Instanced repeats with per-instance arrival windows. */
-function instanced(geo, mat, list) {
-  const im = new THREE.InstancedMesh(geo, mat, list.length);
-  im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); im.userData.list = list; rig.add(im); return im;
-}
-function updateInstanced(im, P, extra) {
-  im.userData.list.forEach((it, i) => {
-    const u = out(span(P, it.a, it.b));
-    dummy.position.copy(it.p).addScaledVector(it.from || UP(3), 1 - u);
-    dummy.rotation.set(it.r ? it.r.x : 0, it.r ? it.r.y : 0, it.r ? it.r.z : 0);
-    dummy.scale.setScalar(u > 0 ? (it.s || 1) : 0);
-    if (extra) extra(it, i, u, dummy);
-    dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix);
-  });
-  im.instanceMatrix.needsUpdate = true;
-}
-
-/* ---------- the creator's character ---------- */
-const SPRITE = [
-  '....YYYY....', '...YYYYYY...', '...YKYYKY...', '...YYYYYY...', '....YYYY....', '..GGGGGGGG..',
-  '.GGYGGGGYGG.', '.GG.GGGG.GG.', '....GGGG....', '....G..G....', '...KK..KK...',
-];
-function drawSprite(g, x, y, px, pal) {
-  SPRITE.forEach((row, j) => [...row].forEach((c, i) => {
-    if (c === '.') return;
-    g.fillStyle = pal[c]; g.fillRect(Math.round(x + i * px), Math.round(y + j * px), Math.ceil(px), Math.ceil(px));
-  }));
-}
-
-/* ---------- rig ---------- */
 const rig = new THREE.Group();
 s.scene.add(rig);
-const X = 1.08, ZF = 0.62, YB = -1.37, YT = 0.76;
 
-const bench = mesh(G('box', 9, 0.22, 4.2, 0.05), iron); bench.position.set(0, -1.62, 0); rig.add(bench);
-const plate = mesh(G('box', 2.5, 0.14, 1.55, 0.05), dark); plate.position.set(0, -1.44, 0); rig.add(plate);
+/* ---------- the logo wrench, in three pieces ---------- */
+const L = ScrapBrand.LOGO, HD = L.handle, DEPTH = 16;
+const paint = M.paint(), steel = M.steel({ anisotropy: 0 }), body = M.steel({ color: 0x5d6168, roughness: 0.55, anisotropy: 0 });
 
-// Parts bin with spare nuts and washers.
-const bin = new THREE.Group(); bin.position.set(1.95, -1.36, -1.15); rig.add(bin);
-[[0, 0, 0, 1.1, 0.06, 0.8], [0, 0.17, 0.38, 1.1, 0.34, 0.05], [0, 0.17, -0.38, 1.1, 0.34, 0.05],
- [0.53, 0.17, 0, 0.05, 0.34, 0.8], [-0.53, 0.17, 0, 0.05, 0.34, 0.8]].forEach(b => {
-  const m = mesh(G('box', b[3], b[4], b[5], 0.02), paint); m.position.set(b[0], b[1], b[2]); bin.add(m);
-});
-// The wrench is the logo wrench. Its jaw center becomes the tool origin, and the
-// page nuts take the size of the logo nut, so the jaw fits them.
-const WS = 0.0041, ICON = ScrapBrand.LOGO.iconAngle * Math.PI / 180;
-const wrenchRaw = k.wrench({ depth: 14, scale: WS });
-wrenchRaw.updateMatrixWorld(true);
-const jaw = wrenchRaw.userData.nut ? wrenchRaw.userData.nut.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3();
-if (wrenchRaw.userData.nut) wrenchRaw.userData.nut.visible = false;
-const NUT_R = ScrapBrand.nutPoly ? ScrapBrand.nutPoly(ScrapBrand.LOGO).r * WS : 0.09;
-const nutGeo = G('hexNut', NUT_R, NUT_R * 0.85);
-const washerGeo = axisZ(G('ring', NUT_R * 1.35, NUT_R * 0.5, 0.02, 0.006));
-const binNuts = new THREE.InstancedMesh(nutGeo, steel, 9);
-for (let i = 0; i < 9; i++) {
-  dummy.position.set(-0.38 + (i % 4) * 0.25 + (i > 3 ? 0.1 : 0), 0.09 + (i > 3 ? 0.05 : 0) + (i > 7 ? 0.05 : 0), -0.16 + (i > 3 ? 0.28 : 0));
-  dummy.rotation.set(Math.PI / 2 + (i % 3) * 0.3, 0, i); dummy.scale.setScalar(1); dummy.updateMatrix(); binNuts.setMatrixAt(i, dummy.matrix);
+const headGeo = k.soft.extrude(ScrapBrand.headPoly(L, false).map(q => [q[0], q[1], 0]), { depth: DEPTH, radius: 2.6, corner: 0 });
+// Handle: flares where it enters the head, so the joint reads as one forged part.
+const hp = [[-30, 26, 10], [-62, HD.w0, 14], [-HD.L, HD.w1, 0]];
+for (let i = 1; i < 16; i++) { const b = Math.PI / 2 + i * Math.PI / 16; hp.push([-HD.L + Math.cos(b) * HD.w1, Math.sin(b) * HD.w1, 0]); }
+hp.push([-HD.L, -HD.w1, 0], [-62, -HD.w0, 14], [-30, -26, 10]);
+const handleGeo = k.soft.extrude(hp, { depth: DEPTH, radius: 2.6, corner: 0, holes: [[-HD.L, 0, HD.w1 * HD.hole]] });
+const NP = ScrapBrand.nutPoly(L);
+const nutGeoLogo = k.soft.hexNut(NP.r, DEPTH * 1.15, 0.42);
+
+const head = new THREE.Mesh(headGeo, paint);
+const handle = new THREE.Mesh(handleGeo, paint);
+const nut = new THREE.Mesh(nutGeoLogo, steel);
+const NUT_HOME = V(NP.center[0], NP.center[1], 0);
+const inner = new THREE.Group();
+inner.add(head, handle, nut);
+inner.rotation.z = L.iconAngle * Math.PI / 180;
+const W = new THREE.Group();
+W.add(inner);
+rig.add(W);
+
+// Icon center and nut center in W units at scale 1 (logo units x 0.01).
+inner.scale.setScalar(0.01);
+inner.updateMatrixWorld(true);
+const C0 = new THREE.Box3().setFromObject(inner).getCenter(V(0, 0, 0)).sub(W.getWorldPosition(V(0, 0, 0)));
+C0.z = 0;
+const N0 = NUT_HOME.clone().multiplyScalar(0.01).applyAxisAngle(V(0, 0, 1), inner.rotation.z);
+
+/* ---------- the box ---------- */
+const BW = 2.4, BH = 1.9, BD = 1.5, T = 0.08;
+const S2 = 0.6;                               // wrench scale while it works on the box
+const nutR = NP.r * 0.01 * S2, nutD = DEPTH * 1.15 * 0.01 * S2;
+const panels = [];
+function panel(geo, mat, seat, from, a, b, rot) {
+  const m = new THREE.Mesh(geo, mat); m.position.copy(seat); rig.add(m);
+  panels.push({ m, seat, from, a, b, rot: rot || V(0, 0, 0) }); return m;
 }
-bin.add(binNuts);
+panel(k.soft.box(BW, T, BD - 2 * T, 0.03), body, V(0, -BH / 2 + T / 2, 0), V(0, -2.4, 0), 1.1, 1.4);
+panel(k.soft.box(BW, BH, T, 0.03), body, V(0, 0, -BD / 2 + T / 2), V(0, 0, -3), 1.16, 1.46);
+panel(k.soft.box(T, BH - 2 * T, BD - 2 * T, 0.03), body, V(-BW / 2 + T / 2, 0, 0), V(-3, 0.4, 0), 1.22, 1.52, V(0, 0, 0.5));
+panel(k.soft.box(T, BH - 2 * T, BD - 2 * T, 0.03), body, V(BW / 2 - T / 2, 0, 0), V(3, 0.4, 0), 1.28, 1.58, V(0, 0, -0.5));
+panel(k.soft.box(BW, T, BD - 2 * T, 0.03), body, V(0, BH / 2 - T / 2, 0), V(0, 2.4, 0), 1.34, 1.64);
+// Front panel: a yellow frame around the screen opening.
+const SW = 1.78, SH = 1.32, R0 = 0.14;
+const frameOuter = [[-BW / 2, -BH / 2, R0], [BW / 2, -BH / 2, R0], [BW / 2, BH / 2, R0], [-BW / 2, BH / 2, R0]];
+const holePts = ScrapBrand.roundPoly([[-SW / 2, -SH / 2, 0.1], [-SW / 2, SH / 2, 0.1], [SW / 2, SH / 2, 0.1], [SW / 2, -SH / 2, 0.1]], 8);
+const holePath = new THREE.Path(); holePts.forEach((q, i) => i ? holePath.lineTo(q[0], q[1]) : holePath.moveTo(q[0], q[1])); holePath.closePath();
+const frameGeo = k.soft.extrude(frameOuter, { depth: T, radius: 0.025, holes: [holePath] });
+panel(frameGeo, paint, V(0, 0, BD / 2 - T / 2), V(0, 0.2, 3), 1.4, 1.7);
 
-// Cartridge reader: the art card slots in here.
-const reader = mesh(G('box', 0.95, 0.3, 0.42, 0.05), dark); reader.position.set(-0.55, -1.22, 0.42); rig.add(reader);
-const readerLip = mesh(G('box', 0.75, 0.04, 0.09, 0.015), paint); readerLip.position.set(-0.55, -1.06, 0.42); rig.add(readerLip);
+/* ---------- the CRT screen (canvas texture, the only bloom) ---------- */
+const CW = 640, CH = 480, cv = document.createElement('canvas'); cv.width = CW; cv.height = CH;
+const g = cv.getContext('2d');
+const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+const scrGeo = new THREE.PlaneGeometry(SW + 0.06, SH + 0.06, 24, 18);
+{ const p = scrGeo.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i) / (SW / 2), y = p.getY(i) / (SH / 2); p.setZ(i, 0.05 * (1 - 0.5 * x * x) * (1 - 0.5 * y * y)); } scrGeo.computeVertexNormals(); }
+const screenMat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, color: new THREE.Color(1.45, 1.45, 1.45) });
+const screen = new THREE.Mesh(scrGeo, screenMat);
+screen.position.set(0, 0, BD / 2 - T - 0.04);
+rig.add(screen);
 
-// The art card.
-const artCv = document.createElement('canvas'); artCv.width = 256; artCv.height = 320;
-(function () {
-  const g = artCv.getContext('2d');
-  const grd = g.createLinearGradient(0, 0, 0, 320); grd.addColorStop(0, '#2c3442'); grd.addColorStop(1, '#4a3a2a');
-  g.fillStyle = grd; g.fillRect(0, 0, 256, 320);
-  g.fillStyle = 'rgba(255,255,255,.06)'; for (let i = 0; i < 40; i++) g.fillRect((i * 53) % 256, (i * 97) % 320, 2, 2);
-  g.fillStyle = '#5b4733'; g.fillRect(0, 262, 256, 58);
-  drawSprite(g, 56, 80, 12, { Y: '#ffc21a', G: '#8f97a3', K: '#141414' });
-})();
-const artTex = new THREE.CanvasTexture(artCv); artTex.colorSpace = THREE.SRGBColorSpace; artTex.anisotropy = 8;
-const art = new THREE.Group();
-const artFace = mesh(new THREE.PlaneGeometry(0.6, 0.76), new THREE.MeshStandardMaterial({ map: artTex, roughness: 0.8 }));
-artFace.position.z = 0.026; art.add(artFace);
-art.add(mesh(G('box', 0.74, 0.9, 0.05, 0.02), paint));
-rig.add(art);
-const ART_DESK = { p: V(-1.95, -1.08, 0.75), r: V(-0.28, 0.35, 0.02) };
-const ART_SLOT = { p: V(-0.55, -0.82, 0.42), r: V(0, 0, 0) };
-
-/* ---------- stage 1: frame ---------- */
-const postGeo = G('box', 0.14, YT - YB, 0.14, 0.035);
-[[-X, ZF], [X, ZF], [-X, -ZF], [X, -ZF]].forEach(([x, z], i) =>
-  part(mesh(postGeo, paint), V(x, (YT + YB) / 2, z), UP(5), 0.1 + i * 0.045, 0.28 + i * 0.045));
-part(mesh(G('box', 2.3, 0.12, 0.14, 0.035), dark), V(0, YT + 0.06, ZF), LEFT(5), 0.25, 0.4);
-part(mesh(G('box', 2.3, 0.12, 0.14, 0.035), dark), V(0, YT + 0.06, -ZF), RIGHT(5), 0.28, 0.43);
-part(mesh(G('box', 0.14, 0.12, 1.38, 0.035), dark), V(-X, YT + 0.06, 0), BACK(5), 0.31, 0.46);
-part(mesh(G('box', 0.14, 0.12, 1.38, 0.035), dark), V(X, YT + 0.06, 0), FRONT(5), 0.34, 0.49);
-// Base rails on the plate.
-part(mesh(G('box', 2.2, 0.07, 0.1, 0.025), dark), V(0, -1.335, ZF), LEFT(4), 0.05, 0.18);
-part(mesh(G('box', 2.2, 0.07, 0.1, 0.025), dark), V(0, -1.335, -ZF), RIGHT(4), 0.07, 0.2);
-// Corner brackets behind the nuts.
-const bracketGeo = G('box', 0.26, 0.3, 0.03, 0.012);
-const NUT_POS = [V(-X, -1.2, ZF + 0.12), V(X, -1.2, ZF + 0.12), V(-X, YT - 0.12, ZF + 0.12), V(X, YT - 0.12, ZF + 0.12),
-  V(-0.78, 0.98, 0.78), V(0.78, 0.98, 0.78)];
-const brackets = instanced(bracketGeo, dark, NUT_POS.slice(0, 4).map((p, i) => ({ p: p.clone().add(V(0, 0, -0.045)), from: FRONT(2), a: 0.3 + i * 0.02, b: 0.38 + i * 0.02 })));
-const washers = instanced(washerGeo, steel, NUT_POS.map((p, i) => ({ p: p.clone().add(V(0, 0, -0.02)), from: FRONT(1.5), a: i < 4 ? 0.33 + i * 0.02 : 3.5, b: i < 4 ? 0.4 + i * 0.02 : 3.56 })));
-const nuts = instanced(nutGeo, steel, NUT_POS.map((p, i) => ({ p, from: FRONT(1.5), a: i < 4 ? 0.34 + i * 0.02 : 3.52, b: i < 4 ? 0.42 + i * 0.02 : 3.58 })));
-const nutTurn = new Array(NUT_POS.length).fill(0.5), nutSeat = new Array(NUT_POS.length).fill(0);
-
-const wrench = new THREE.Group(); wrenchRaw.position.copy(jaw).negate(); wrench.add(wrenchRaw); rig.add(wrench);
-const WRENCH_PARK = { p: V(1.75, -1.48, 1.1), r: V(-Math.PI / 2, 0, 0.5) };
-
-/* ---------- stage 2: mechanisms ---------- */
-part(mesh(G('box', 2.0, 1.95, 0.05, 0.02), dark), V(0, -0.3, -0.56), BACK(3), 1.04, 1.22);
-const GZ = -0.46;
-const gA = { n: 18, rp: 0.42 }, gB = { n: 12, rp: 0.28 }, gC = { n: 10, rp: 0.233 };
-gA.c = V(-0.22, -0.42, GZ);
-const phiB = -0.55, phiC = 2.25;
-gB.c = V(gA.c.x + Math.cos(phiB) * (gA.rp + gB.rp), gA.c.y + Math.sin(phiB) * (gA.rp + gB.rp), GZ);
-gC.c = V(gA.c.x + Math.cos(phiC) * (gA.rp + gC.rp), gA.c.y + Math.sin(phiC) * (gA.rp + gC.rp), GZ);
-gA.m = part(mesh(G('gear', gA.n, gA.rp / 0.92, 0.08), steel), gA.c, UP(4), 1.2, 1.42);
-gB.m = part(mesh(G('gear', gB.n, gB.rp / 0.92, 0.08), paint), gB.c, UP(4), 1.3, 1.52);
-gC.m = part(mesh(G('gear', gC.n, gC.rp / 0.92, 0.08), dark), gC.c, UP(4), 1.38, 1.6);
-const gears = [gA, gB, gC];
-const axles = instanced(axisZ(G('cylinder', 0.055, 0.16, 0.02, 24)), paint,
-  gears.map((g, i) => ({ p: g.c.clone().add(V(0, 0, 0.05)), from: FRONT(2), a: 1.45 + i * 0.04, b: 1.55 + i * 0.04 })));
-// Piston with a mount, a rod, and a spring on the rod.
-const PISTON = V(0.66, 0.2, -0.3);
-part(mesh(G('box', 0.34, 0.08, 0.3, 0.025), dark), PISTON.clone().add(V(0, -0.29, 0)), RIGHT(4), 1.45, 1.6);
-const pistonHouse = part(mesh(G('cylinder', 0.1, 0.5, 0.025, 32), steel), PISTON.clone(), UP(4), 1.5, 1.66);
-const pistonRod = mesh(G('cylinder', 0.045, 0.5, 0.015, 20), steel); rig.add(pistonRod);
-function helix(r, h, turns, wire) {
-  const pts = []; for (let i = 0; i <= turns * 24; i++) { const a = i / 24 * Math.PI * 2; pts.push(V(Math.cos(a) * r, i / (turns * 24) * h - h / 2, Math.sin(a) * r)); }
-  return cappedPipe(new THREE.CatmullRomCurve3(pts), wire);
-}
-const spring1 = mesh(helix(0.075, 0.24, 6, 0.012), steel); rig.add(spring1);
-// Belt drive with a spring tensioner.
-const P1 = V(-0.68, -1.06, -0.2), P2 = V(-0.68, -0.36, -0.2), R1 = 0.15, R2 = 0.1;
-const pulleys = new THREE.Group(); rig.add(pulleys);
-const pul1 = mesh(axisZ(G('cylinder', R1, 0.09, 0.025, 36)), dark); pul1.position.copy(P1);
-const pul2 = mesh(axisZ(G('cylinder', R2, 0.09, 0.025, 36)), dark); pul2.position.copy(P2);
-const beltPts = [];
-for (let i = 0; i < 24; i++) { const a = Math.PI + i / 23 * Math.PI; beltPts.push(V(P1.x + Math.cos(a) * (R1 + 0.02), P1.y + Math.sin(a) * (R1 + 0.02), P1.z)); }
-for (let i = 0; i < 24; i++) { const a = i / 23 * Math.PI; beltPts.push(V(P2.x + Math.cos(a) * (R2 + 0.02), P2.y + Math.sin(a) * (R2 + 0.02), P2.z)); }
-const belt = mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(beltPts, true), 120, 0.018, 10, true), rubber);
-pulleys.add(pul1, pul2, belt);
-const spring2 = mesh(helix(0.035, 0.4, 10, 0.008), steel); spring2.position.set(-0.92, -0.72, -0.2);
-pulleys.add(spring2);
-
-/* ---------- stage 3: wiring, pipes, panels ---------- */
-// Junction box with three small lamps that light one after another.
-part(mesh(G('box', 0.42, 0.3, 0.16, 0.035), dark), V(-0.62, 0.42, -0.45), LEFT(4), 2.02, 2.16);
-const jLampMat = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
-const jLamps = instanced(new THREE.SphereGeometry(0.03, 14, 10), jLampMat,
-  [0, 1, 2].map(i => ({ p: V(-0.74 + i * 0.12, 0.44, -0.36), from: LEFT(4), a: 2.02, b: 2.16 })));
-const lampOffC = new THREE.Color(0x2a1d08);
-const cables = [], CABLE_PTS = [
-  [V(-0.5, 0.5, -0.42), V(0.1, 0.55, -0.38), V(0.5, 0.56, -0.32), V(0.64, 0.5, -0.3)],
-  [V(-0.75, 0.3, -0.4), V(-0.94, -0.2, 0.05), V(-0.62, -0.95, 0.3), V(-0.55, -1.06, 0.42)],
-  [V(-0.6, 0.56, -0.44), V(0.2, 0.68, -0.46), V(0.95, 0.5, -0.42), V(0.98, -0.9, -0.1), V(0.75, -1.25, 0.45), V(0.64, -1.24, 0.6)],
-];
-CABLE_PTS.forEach(pts => {
-  const curve = new THREE.CatmullRomCurve3(pts);
-  const geo = new THREE.TubeGeometry(curve, 72, 0.026, 10, false);
-  const m = mesh(geo, rubber); rig.add(m);
-  const pulse = mesh(new THREE.SphereGeometry(0.034, 12, 10), glow); rig.add(pulse);
-  cables.push({ m, curve, pulse, count: geo.index.count });
-});
-// Two rigid pipes on the back panel, with clamps.
-const PIPES = [
-  [V(0.2, -1.3, -0.5), V(0.2, 0.1, -0.5), V(0.35, 0.3, -0.45), V(0.55, 0.3, -0.35)],
-  [V(0.86, -1.3, -0.48), V(0.86, 0.55, -0.48), V(0.86, 0.68, -0.3)],
-];
-PIPES.forEach((pts, i) => part(mesh(cappedPipe(new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.1), 0.035), steel), V(0, 0, 0), UP(4), 2.05 + i * 0.06, 2.25 + i * 0.06));
-const clamps = instanced(G('box', 0.12, 0.05, 0.1, 0.02), paint,
-  [V(0.2, -0.9, -0.5), V(0.2, -0.3, -0.5), V(0.86, -0.8, -0.48), V(0.86, 0.1, -0.48)].map((p, i) => ({ p, from: BACK(1), a: 2.2 + i * 0.03, b: 2.28 + i * 0.03 })));
-// Right side: an upper panel with four screws, and a hinged lower door.
-part(mesh(G('box', 0.05, 0.72, 1.16, 0.02), dark), V(X + 0.09, 0.34, 0), RIGHT(4), 2.18, 2.36);
-const SCREW_POS = [V(X + 0.12, 0.6, 0.45), V(X + 0.12, 0.6, -0.45), V(X + 0.12, 0.08, 0.45), V(X + 0.12, 0.08, -0.45)];
-const screws = instanced(axisX(G('cylinder', 0.04, 0.035, 0.012, 20)), steel, SCREW_POS.map(p => ({ p, from: V(0.12, 0, 0), a: 0, b: 0 })));
-const door = new THREE.Group(); door.position.set(X + 0.09, -0.62, 0.58); rig.add(door);
-const doorPlate = mesh(G('box', 0.05, 1.16, 1.14, 0.02), dark); doorPlate.position.z = -0.58; door.add(doorPlate);
-const doorHandle = mesh(G('box', 0.06, 0.24, 0.05, 0.02), paint); doorHandle.position.set(0.05, 0, -1.02); door.add(doorHandle);
-const hinges = instanced(G('cylinder', 0.035, 0.18, 0.012, 20), steel,
-  [V(X + 0.1, -0.25, 0.6), V(X + 0.1, -1.0, 0.6)].map((p, i) => ({ p, from: UP(2), a: 2.3 + i * 0.03, b: 2.38 + i * 0.03 })));
-// Screwdriver.
-const driver = new THREE.Group(), driverSpin = new THREE.Group(); driver.add(driverSpin); rig.add(driver);
-(function () {
-  const handle = mesh(G('cylinder', 0.072, 0.34, 0.03, 28), paint); handle.position.y = 0.36;
-  const grip = mesh(G('cylinder', 0.077, 0.1, 0.02, 28), rubber); grip.position.y = 0.42;
-  const shaft = mesh(G('cylinder', 0.017, 0.38, 0.006, 14), steel); shaft.position.y = 0.01;
-  driverSpin.add(handle, grip, shaft);
-})();
-const DRIVER_PARK = { p: V(1.5, -1.46, 0.3), r: V(0, 0, Math.PI / 2 + 0.25) };
-
-/* ---------- stage 4: deck, CRT monitor on a hoist, control deck ---------- */
-part(mesh(G('box', 2.3, 0.06, 1.38, 0.025), dark), V(0, YT + 0.15, 0), LEFT(5), 3.0, 3.14);
-const mon = new THREE.Group(); rig.add(mon);
-const MON_END = V(0, 1.53, 0.02);
-(function () {
-  const shell = mesh(G('box', 2.05, 1.5, 1.05, 0.08), dark); shell.position.z = -0.05; mon.add(shell);
-  const back = mesh(G('box', 1.4, 1.05, 0.5, 0.07), dark); back.position.z = -0.75; mon.add(back);
-  const fw = 2.15, fh = 1.6, t = 0.15;
-  [[0, fh / 2 - t / 2, fw, t], [0, -fh / 2 + t / 2, fw, t], [-fw / 2 + t / 2, 0, t, fh], [fw / 2 - t / 2, 0, t, fh]].forEach(f => {
-    const m = mesh(G('box', f[2], f[3], 0.1, 0.035), paint); m.position.set(f[0], f[1], 0.5); mon.add(m);
-  });
-  const lip = mesh(G('box', 1.86, 1.32, 0.06, 0.03), new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.6 })); lip.position.z = 0.47; mon.add(lip);
-  // Vent slats on the back of the shell.
-  const slats = new THREE.InstancedMesh(G('box', 0.9, 0.035, 0.04, 0.015), dark, 5);
-  for (let i = 0; i < 5; i++) { dummy.position.set(0, 0.3 - i * 0.12, -1.02); dummy.rotation.set(0, 0, 0); dummy.scale.setScalar(1); dummy.updateMatrix(); slats.setMatrixAt(i, dummy.matrix); }
-  mon.add(slats);
-})();
-const scrCv = document.createElement('canvas'); scrCv.width = 512; scrCv.height = 384;
-const scrG = scrCv.getContext('2d');
-const scrTex = new THREE.CanvasTexture(scrCv); scrTex.colorSpace = THREE.SRGBColorSpace; scrTex.anisotropy = 8;
-const scrGeo = new THREE.PlaneGeometry(1.74, 1.22, 24, 18);
-{ const p = scrGeo.attributes.position;
-  for (let i = 0; i < p.count; i++) { const x = p.getX(i) / 0.87, y = p.getY(i) / 0.61; p.setZ(i, 0.05 * (1 - x * x) * (1 - y * y)); }
-  scrGeo.computeVertexNormals(); }
-const scrMat = new THREE.MeshStandardMaterial({ color: 0x0c0a07, roughness: 0.55, metalness: 0, emissive: 0xffffff, emissiveMap: scrTex, emissiveIntensity: 0 });
-const screen = mesh(scrGeo, scrMat); screen.position.z = 0.49; mon.add(screen);
-const hoistLine = mesh(G('cylinder', 0.012, 1, 0.004, 10), steel);
-const hook = mesh(new THREE.TorusGeometry(0.11, 0.025, 12, 32, Math.PI * 1.5), steel);
-rig.add(hoistLine, hook);
-// Control deck in front of the monitor: buttons and a joystick.
-const deck = part(mesh(G('box', 1.7, 0.09, 0.42, 0.035), paint), V(0, YT + 0.1, ZF + 0.36), FRONT(4), 3.84, 3.98);
-deck.rotation.x = 0.28; parts[parts.length - 1].r0.x = 0.28;
-const buttons = instanced(G('cylinder', 0.055, 0.05, 0.018, 24), dark,
-  [-0.55, -0.38, 0.38, 0.55].map((x, i) => ({ p: V(x, YT + 0.16, ZF + 0.34), r: V(0.28, 0, 0), from: UP(2), a: 3.9 + i * 0.015, b: 3.97 + i * 0.015 })));
-const joy = new THREE.Group();
-joy.add(mesh(G('cylinder', 0.016, 0.12, 0.006, 14), steel)); const ball = mesh(new THREE.SphereGeometry(0.045, 20, 16), paint); ball.position.y = 0.07; joy.add(ball);
-part(joy, V(-0.05, YT + 0.2, ZF + 0.38), UP(2), 3.93, 3.99);
-
-/* ---------- stage 5: marquee, lever, lamp ---------- */
-const marquee = new THREE.Group();
-marquee.add(mesh(G('box', 2.15, 0.32, 0.6, 0.05), dark));
-const marqueeFace = mesh(G('box', 1.8, 0.16, 0.02, 0.008), new THREE.MeshStandardMaterial({ color: 0x1a1406, roughness: 0.5 }));
-marqueeFace.position.z = 0.3; marquee.add(marqueeFace);
-part(marquee, V(0, MON_END.y + 0.96, -0.02), UP(4), 4.0, 4.12);
-const marqueeOn = M.glow(0xffb21a, 1.25), marqueeOff = marqueeFace.material;
-const leverBase = part(mesh(G('box', 0.3, 0.16, 0.22, 0.035), dark), V(0.62, -1.3, 0.62), UP(3), 3.98, 4.1);
-const lever = new THREE.Group();
-{ const rod = mesh(G('cylinder', 0.022, 0.36, 0.008, 14), steel); rod.position.y = 0.18;
-  const knob = mesh(new THREE.SphereGeometry(0.06, 20, 16), paint); knob.position.y = 0.37; lever.add(rod, knob); }
-part(lever, V(0.62, -1.24, 0.62), UP(3), 3.98, 4.1);
-const lampOff = dark;
-const lamp = part(mesh(new THREE.SphereGeometry(0.045, 18, 14), lampOff), V(0.98, -1.24, 0.72), UP(3), 4.0, 4.1);
-
-/* ---------- lights ---------- */
-const key = new THREE.DirectionalLight(0xfff0dc, 1.5); key.position.set(4, 6, 6); s.scene.add(key);
-const rim = new THREE.DirectionalLight(0xffc06a, 0.9); rim.position.set(-5, 3, -4); s.scene.add(rim);
-
-/* ---------- the game on the CRT ---------- */
-const AMB = '#ffb000', AMB_D = '#7a4c00';
-let monoFont = false;
-document.fonts.load("20px 'Share Tech Mono'").then(() => { monoFont = true; });
-function drawScreen(P, t) {
-  const g = scrG, W = 512, H = 384;
-  g.fillStyle = '#120a01'; g.fillRect(0, 0, W, H);
-  const f = monoFont ? "'Share Tech Mono'" : 'monospace';
-  const boot = span(P, 4.32, 4.55), build = span(P, 4.5, 4.85), play = P > 4.82;
-  g.fillStyle = AMB; g.font = '22px ' + f;
-  if (!play) {
-    const lines = ['SCRAP // BUILD SYSTEM', '> load hero.png ....... ok', '> slice sprite ........ ok', '> wire physics ........ ok', '> build level'];
-    const n = Math.floor(boot * lines.length + 0.001);
-    lines.slice(0, Math.max(1, n)).forEach((l, i) => g.fillText(l, 32, 56 + i * 34));
-  }
-  const tiles = 16, shown = Math.floor(build * tiles + (play ? tiles : 0)), ground = 300, tw = 32;
-  for (let i = 0; i < Math.min(tiles, shown); i++) {
-    if (i === 9 || i === 10) continue;
-    const drop = play ? 0 : Math.max(0, (i + 1 - build * tiles) * 26);
-    g.fillStyle = AMB_D; g.fillRect(i * tw, ground + drop, tw - 2, 14);
-    g.fillStyle = AMB; g.fillRect(i * tw, ground + drop, tw - 2, 4);
-  }
-  if (play) {
-    g.fillStyle = AMB; g.fillRect(380, 196, 72, 6); g.fillRect(140, 222, 56, 6);
-    const run = (t * 90) % (W + 80) - 70, gapC = 10 * tw, d = Math.abs(run + 36 - gapC);
-    const jump = d < 90 ? Math.cos(d / 90 * Math.PI / 2) * 80 : 0;
-    drawSprite(g, run, ground - 11 * 6 - jump, 6, { Y: '#ffc21a', G: '#c98a00', K: '#2a1800' });
-    g.font = '18px ' + f; g.fillStyle = AMB; g.fillText('LEVEL 1-1', 28, 40); g.fillText('HERO.PNG', W - 124, 40);
-  }
-  g.fillStyle = 'rgba(0,0,0,.32)'; for (let y = 0; y < H; y += 3) g.fillRect(0, y, W, 1);
-  const v = g.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.85);
-  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.6)'); g.fillStyle = v; g.fillRect(0, 0, W, H);
-  scrTex.needsUpdate = true;
-}
-
-/* ---------- tool poses ---------- */
-function lerpPose(obj, a, b, t) {
-  obj.position.lerpVectors(a.p, b.p, t);
-  obj.rotation.set(lerp(a.r.x, b.r.x, t), lerp(a.r.y, b.r.y, t), lerp(a.r.z, b.r.z, t));
-}
-const W_JOBS = [[0.44, 0.55, 0], [0.55, 0.66, 1], [0.66, 0.77, 2], [0.77, 0.88, 3], [3.58, 3.71, 4], [3.71, 3.84, 5]];
-const atNut = (i, ang) => ({ p: NUT_POS[i].clone().add(V(0, 0, 0.02)), r: V(0, 0, ang) });
-function poseWrench(P) {
-  for (let j = 0; j < W_JOBS.length; j++) {
-    const [a, b, n] = W_JOBS[j];
-    const prevNut = j > 0 && W_JOBS[j - 1][1] === a ? W_JOBS[j - 1][2] : -1;
-    const next = W_JOBS[j + 1], chained = next && next[0] === b;
-    if (P >= a && P < b) {
-      const u = (P - a) / (b - a), from = prevNut >= 0 ? atNut(prevNut, -2.1) : WRENCH_PARK;
-      if (u < 0.3) { lerpPose(wrench, from, atNut(n, 0.5), ease(u / 0.3)); return; }
-      lerpPose(wrench, atNut(n, 0.5), atNut(n, -2.1), ease((u - 0.3) / 0.7)); return;
-    }
-    if (!chained && P >= b && P < b + 0.1) { lerpPose(wrench, atNut(n, -2.1), WRENCH_PARK, ease((P - b) / 0.1)); return; }
-  }
-  lerpPose(wrench, WRENCH_PARK, WRENCH_PARK, 0);
-}
-const D_JOBS = [[2.4, 2.5, 0], [2.5, 2.6, 1], [2.6, 2.7, 2], [2.7, 2.8, 3]];
-const atScrew = (i, o) => ({ p: SCREW_POS[i].clone().add(V(0.22 + o, 0, 0)), r: V(0, 0, Math.PI / 2) });
-function poseDriver(P) {
-  for (let j = 0; j < D_JOBS.length; j++) {
-    const [a, b, n] = D_JOBS[j];
-    if (P >= a && P < b) {
-      const u = (P - a) / (b - a), from = j ? atScrew(D_JOBS[j - 1][2], 0) : DRIVER_PARK;
-      if (u < 0.3) { lerpPose(driver, from, atScrew(n, 0.12), ease(u / 0.3)); driverSpin.rotation.y = 0; return; }
-      const v = ease((u - 0.3) / 0.7);
-      lerpPose(driver, atScrew(n, 0.12), atScrew(n, 0), v); driverSpin.rotation.y = -v * 9; return;
+const STARS = Array.from({ length: 70 }, () => [Math.random() * CW, Math.random() * CH, 0.3 + Math.random() * 1.2]);
+const AMBER = '#ffb000';
+function drawScreen(on, t) {
+  g.fillStyle = '#0a0601'; g.fillRect(0, 0, CW, CH);
+  if (on) {
+    if (t < 0.35) {                                   // power-on line
+      const h = Math.max(2, CH * Math.pow(t / 0.35, 2));
+      g.fillStyle = 'rgba(255,190,60,0.9)'; g.fillRect(0, CH / 2 - h / 2, CW, h);
+    } else if (t < 1.9) {                             // boot log
+      g.fillStyle = '#1a1003'; g.fillRect(0, 0, CW, CH);
+      g.fillStyle = AMBER; g.font = '22px "Share Tech Mono", monospace';
+      ['SCRAP RUNTIME', '> load stella_nova/', '> sprites ok', '> sound ok', '> READY'].forEach((l, i) => {
+        if (t > 0.45 + i * 0.25) g.fillText(l, 48, 80 + i * 36);
+      });
+    } else {                                          // Stella Nova
+      const gt = t - 1.9;
+      g.fillStyle = '#140c02'; g.fillRect(0, 0, CW, CH);
+      STARS.forEach(st => {
+        const y = (st[1] + gt * 40 * st[2]) % CH;
+        g.fillStyle = `rgba(255,176,0,${0.25 + st[2] * 0.4})`; g.fillRect(Math.round(st[0]), Math.round(y), st[2] > 1 ? 3 : 2, st[2] > 1 ? 3 : 2);
+      });
+      g.fillStyle = AMBER; g.textAlign = 'center';
+      g.font = '700 46px Orbitron, sans-serif'; g.fillText('STELLA NOVA', CW / 2, 92);
+      g.textAlign = 'left';
+      const sx = CW / 2 + Math.sin(gt * 1.3) * 170, sy = CH - 96;
+      for (let i = 0; i < 6; i++) {                   // shots, one every 0.35 s
+        const age = (gt - i * 0.35) % 2.1;
+        if (age < 0 || gt < i * 0.35) continue;
+        const fx = CW / 2 + Math.sin((gt - age) * 1.3) * 170, fy = sy - 24 - age * 300;
+        if (fy > 120) { g.fillStyle = '#ffd36a'; g.fillRect(Math.round(fx) - 2, Math.round(fy), 4, 14); }
+      }
+      g.fillStyle = AMBER;                            // ship
+      g.beginPath(); g.moveTo(sx, sy - 26); g.lineTo(sx + 22, sy + 14); g.lineTo(sx + 8, sy + 8); g.lineTo(sx, sy + 16);
+      g.lineTo(sx - 8, sy + 8); g.lineTo(sx - 22, sy + 14); g.closePath(); g.fill();
     }
   }
-  const last = D_JOBS[D_JOBS.length - 1];
-  if (P >= last[1] && P < last[1] + 0.1) { lerpPose(driver, atScrew(last[2], 0), DRIVER_PARK, ease((P - last[1]) / 0.1)); driverSpin.rotation.y = 0; return; }
-  lerpPose(driver, DRIVER_PARK, DRIVER_PARK, 0); driverSpin.rotation.y = 0;
+  // Scanlines and vignette.
+  g.fillStyle = 'rgba(0,0,0,0.28)';
+  for (let y = 0; y < CH; y += 3) g.fillRect(0, y, CW, 1);
+  const v = g.createRadialGradient(CW / 2, CH / 2, CH * 0.35, CW / 2, CH / 2, CH * 0.8);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.6)');
+  g.fillStyle = v; g.fillRect(0, 0, CW, CH);
+  tex.needsUpdate = true;
 }
+drawScreen(false, 0);
 
-/* ---------- camera keys per stage ---------- */
-const CAM = [
-  { p: V(0.9, 1.6, 11.8), l: V(0.2, -0.7, 0) },
-  { p: V(0.6, 1.5, 11.0), l: V(0, -0.3, 0) },
-  { p: V(0.3, 0.6, 8.8), l: V(0, -0.35, 0) },
-  { p: V(1.9, 0.7, 9.0), l: V(0.35, -0.3, 0) },
-  { p: V(0.5, 1.9, 11.4), l: V(0, 0.55, 0) },
-  { p: V(0.2, 1.7, 9.0), l: V(0, 1.15, 0) },
-  { p: V(0, 1.4, 14.2), l: V(0, 0.6, 0) },
-];
-const camL = V(0, 0, 0);
+/* ---------- corner hardware ---------- */
+const zFace = BD / 2;
+const CORNERS = [[-1, 1], [1, 1], [1, -1], [-1, -1]].map(([x, y]) => V(x * (BW / 2 - 0.2), y * (BH / 2 - 0.19), 0));
+const washerT = 0.0;
+const nuts = new THREE.InstancedMesh(k.soft.hexNut(nutR, nutD, 0.42), steel, 4);
+nuts.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+rig.add(nuts);
+const dummy = new THREE.Object3D();
+const NUT_Z = zFace + washerT + nutD / 2;
+
+/* ---------- wrench poses ---------- */
+const TH0 = 0.7, TH1 = -0.35;                                // jaw turn while tightening (radians)
+const WIN = [[1.95, 2.1], [2.1, 2.25], [2.25, 2.4], [2.4, 2.55]];
+function poseCentered(q, euler, sc) {
+  const e = new THREE.Euler(...euler);
+  return { pos: q.clone().sub(C0.clone().multiplyScalar(sc).applyEuler(e)), quat: new THREE.Quaternion().setFromEuler(e), s: sc };
+}
+function poseOnNut(i, th, lift) {
+  const e = new THREE.Euler(0, 0, th), sc = S2, c = CORNERS[i];
+  const pn = V(c.x, c.y, NUT_Z + lift);
+  return { pos: pn.sub(N0.clone().multiplyScalar(sc).applyEuler(e)), quat: new THREE.Quaternion().setFromEuler(e), s: sc };
+}
+function mixPose(a, b, t) {
+  return { pos: a.pos.clone().lerp(b.pos, t), quat: a.quat.clone().slerp(b.quat, t), s: mix(a.s, b.s, t) };
+}
+let narrow = false;
+function poses() {
+  return {
+    show: poseCentered(V(0, 0, 0), [0, 0, 0], narrow ? 0.58 : 1.1),
+    hover: poseCentered(V(-BW / 2 - 0.8, 0.5, zFace + 0.35), [0, 0, 0.15], S2),
+    park: poseCentered(V(-BW / 2 - 0.95, -0.35, 0.35), [0, 0.3, 0.2], S2)
+  };
+}
+function wrenchPose(P) {
+  const ps = poses();
+  if (P < 1.15) return ps.show;
+  if (P < 1.6) return mixPose(ps.show, ps.hover, ss(1.15, 1.6, P));
+  if (P < WIN[0][0]) return ps.hover;
+  for (let i = 0; i < 4; i++) {
+    const [a, b] = WIN[i];
+    if (P < b) {
+      const u = (P - a) / (b - a), prev = i === 0 ? ps.hover : poseOnNut(i - 1, TH1, 0);
+      if (u < 0.25) return mixPose(prev, poseOnNut(i, TH0, 0.22), ss(0, 0.25, u));
+      if (u < 0.4) return mixPose(poseOnNut(i, TH0, 0.22), poseOnNut(i, TH0, 0), ss(0.25, 0.4, u));
+      return poseOnNut(i, mix(TH0, TH1, ss(0.4, 1, u)), 0);
+    }
+  }
+  const end = poseOnNut(3, TH1, 0);
+  if (P < 2.85) {
+    const u = ss(2.55, 2.85, P), mid = mixPose(end, ps.park, u);
+    mid.pos.z += Math.sin(u * Math.PI) * 0.4;             // lift off the face, then stand it beside the box
+    return mid;
+  }
+  return ps.park;
+}
 
 /* ---------- update ---------- */
-let P = window.SCRAP.target();
-const mobile = () => window.innerWidth < 760;
+const OFF = {
+  head:   { p: [22, 16, -10], r: [0.0, -0.6, 0.2] },
+  handle: { p: [-42, -32, 20], r: [0.45, 0.35, -0.3] },
+  nut:    { p: [75, 15, 30], r: [0.9, 0.5, 0.4] }
+};
+function place(obj, off, e, base, t, phase) {
+  const f = 1 - e, w = Math.sin(t * 0.8 + phase) * 4 * f;
+  obj.position.set(base.x + off.p[0] * f, base.y + off.p[1] * f + w, off.p[2] * f);
+  obj.rotation.set(off.r[0] * f + w * 0.01, off.r[1] * f, off.r[2] * f);
+}
+const ZERO = V(0, 0, 0), tmp = V(0, 0, 0);
+let powerAt = -1;
 function update(P, t) {
-  // Art card: on the desk, then into the reader.
-  const ac = span(P, 0.06, 0.38), mid = { p: V(-1.1, 0.2, 0.9), r: V(0, 0.1, 0) };
-  if (ac < 0.6) lerpPose(art, ART_DESK, mid, ease(ac / 0.6)); else lerpPose(art, mid, ART_SLOT, ease((ac - 0.6) / 0.4));
+  narrow = canvas.clientWidth / canvas.clientHeight < 0.85;
 
-  updateParts(P);
-  updateInstanced(brackets, P);
-  updateInstanced(washers, P);
-  W_JOBS.forEach(([a, b, n]) => { const u = span(P, a + (b - a) * 0.3, b); nutTurn[n] = lerp(0.5, -2.1, ease(u)); nutSeat[n] = 1 - ease(u); });
-  updateInstanced(nuts, P, (it, i, u, d) => { d.position.z += nutSeat[i] * 0.08; d.rotation.z = nutTurn[i] + ICON; });
-  poseWrench(P);
+  // Stage 1: the wrench assembles.
+  place(head, OFF.head, ss(0.1, 0.85, P), ZERO, t, 0);
+  place(handle, OFF.handle, ss(0.3, 1.0, P), ZERO, t, 1.7);
+  place(nut, OFF.nut, ss(0.65, 1.15, P), NUT_HOME, t, 3.1);
 
-  // Mechanisms run once they are in.
-  const runOn = span(P, 1.7, 1.9), thA = runOn * t * 1.3;
-  gA.m.rotation.z = thA;
-  gB.m.rotation.z = phiB + Math.PI + Math.PI / gB.n - (gA.n / gB.n) * (thA - phiB);
-  gC.m.rotation.z = phiC + Math.PI + Math.PI / gC.n - (gA.n / gC.n) * (thA - phiC);
-  updateInstanced(axles, P);
-  const pu = out(span(P, 1.5, 1.66)), pump = Math.sin(thA * 1.5) * 0.1 * runOn;
-  pistonRod.visible = spring1.visible = pu > 0;
-  pistonRod.position.copy(PISTON).add(V(0, 0.3 + pump + (1 - pu) * 4, 0));
-  spring1.position.copy(PISTON).add(V(0, 0.38 + pump * 0.5 + (1 - pu) * 4, 0)); spring1.scale.y = 1 + pump * 1.5;
-  const bu = out(span(P, 1.55, 1.78)); pulleys.position.set(0, (1 - bu) * 4, 0); pulleys.visible = bu > 0;
-  pul1.rotation.z = -thA * 1.4; pul2.rotation.z = -thA * 2.1;
-  spring2.scale.y = 1 + Math.sin(thA * 3) * 0.04 * runOn;
+  const wp = wrenchPose(P);
+  W.position.copy(wp.pos); W.quaternion.copy(wp.quat); inner.scale.setScalar(0.01 * wp.s);
 
-  // Wiring, pipes, lamps, panels, screws, door.
-  cables.forEach((c, i) => {
-    const u = span(P, 2.1 + i * 0.06, 2.38 + i * 0.06);
-    c.m.geometry.setDrawRange(0, Math.floor(c.count * u / 6) * 6); c.m.visible = u > 0;
-    const on = span(P, 2.38, 2.5); c.pulse.visible = on > 0;
-    if (on > 0) c.pulse.position.copy(c.curve.getPointAt((t * 0.22 + i * 0.33) % 1));
+  // Box panels.
+  panels.forEach(p => {
+    const e = ss(p.a, p.b, P);
+    p.m.visible = e > 0.001;
+    p.m.position.copy(p.seat).addScaledVector(p.from, 1 - e);
+    p.m.rotation.set(p.rot.x * (1 - e), p.rot.y * (1 - e), p.rot.z * (1 - e));
   });
-  updateInstanced(clamps, P);
-  updateInstanced(jLamps, P);
-  for (let i = 0; i < 3; i++) jLamps.setColorAt(i, span(P, 2.3 + i * 0.12, 2.36 + i * 0.12) > 0 ? new THREE.Color(1.8, 1.05, 0.2) : lampOffC);
-  jLamps.instanceColor.needsUpdate = true;
-  updateInstanced(screws, P, (it, i, u, d) => {
-    const job = D_JOBS[i], v = span(P, job[0] + (job[1] - job[0]) * 0.3, job[1]);
-    d.scale.setScalar(span(P, job[0], job[0] + 0.03)); d.position.x += (1 - ease(v)) * 0.12; d.rotation.x = -v * 9;
-  });
-  poseDriver(P);
-  const dIn = out(span(P, 2.26, 2.4)), dShut = ease(span(P, 2.82, 2.95));
-  door.visible = dIn > 0; door.position.y = -0.62 + (1 - dIn) * 4; door.rotation.y = lerp(1.6, 0, dShut);
-  updateInstanced(hinges, P);
+  screen.visible = P > 1.55;
 
-  // Monitor on the hoist.
-  const md = span(P, 3.14, 3.5), mu = span(P, 3.5, 3.62);
-  mon.position.copy(MON_END).add(V(0, (1 - out(md)) * 6, 0)); mon.visible = md > 0;
-  const hookY = MON_END.y + 0.92 + (1 - out(md)) * 6 + ease(mu) * 6;
-  hook.position.set(0, hookY, 0); hook.rotation.z = Math.PI * 0.75;
-  hoistLine.position.set(0, hookY + 6, 0); hoistLine.scale.y = 12; hoistLine.visible = hook.visible = md > 0 && mu < 1;
-  updateInstanced(buttons, P);
-
-  // Power.
-  lever.rotation.x = lerp(-0.7, 0.7, ease(span(P, 4.14, 4.28)));
-  const pw = span(P, 4.28, 4.42);
-  lamp.material = pw > 0 ? glow : lampOff;
-  marqueeFace.material = pw > 0.5 ? marqueeOn : marqueeOff;
-  const flicker = pw > 0 && pw < 1 ? (0.6 + 0.4 * Math.sin(t * 60)) : 1;
-  scrMat.emissiveIntensity = 1.6 * ease(pw) * flicker;
-
-  // Ship: turn to face the camera.
-  rig.rotation.y = lerp(-0.55, 0, ease(span(P, 5.1, 5.85))) + s.pointer.sx * 0.05;
-
-  const i0 = Math.min(5, Math.floor(P)), f = ease(P - i0), A = CAM[i0], B = CAM[Math.min(6, i0 + 1)];
-  const mob = mobile();
-  s.camera.position.lerpVectors(A.p, B.p, f).multiplyScalar(mob ? 1.45 : 1);
-  s.camera.position.y += s.pointer.sy * 0.15;
-  camL.lerpVectors(A.l, B.l, f); s.camera.lookAt(camL);
-  const w = canvas.clientWidth, h = canvas.clientHeight;
-  if (w && h) {
-    const center = span(P, 5.2, 5.9);
-    const ox = mob ? 0 : -w * 0.2 * (1 - center), oy = mob ? h * (0.2 + 0.06 * center) : h * 0.2 * center;
-    s.camera.setViewOffset(w, h, ox, oy, w, h);
+  // The logo nut leaves the jaw for corner 0. Nuts 1-3 drop in.
+  const hand = ss(1.66, 1.82, P);
+  nut.visible = hand <= 0;
+  nut.updateWorldMatrix(true, false);
+  for (let i = 0; i < 4; i++) {
+    const c = CORNERS[i];
+    let spin = 0, seat = 0.035;
+    const [a, b] = WIN[i];
+    if (P > a) { const u = clamp((P - a) / (b - a)); const turn = ss(0.4, 1, u); spin = (TH1 - TH0) * turn; seat = 0.035 * (1 - turn); }
+    if (i === 0) {
+      // Fly from the nut's place in the jaw to the corner.
+      rig.worldToLocal(nut.getWorldPosition(tmp));
+      const to = V(c.x, c.y, NUT_Z + seat);
+      dummy.position.copy(tmp).lerp(to, hand);
+      dummy.scale.setScalar(hand > 0 ? mix(wp.s / S2, 1, hand) : 0);
+    } else {
+      const ed = ss(1.7 + i * 0.06, 1.84 + i * 0.06, P);
+      dummy.position.set(c.x, c.y, NUT_Z + seat + (1 - ed) * 1.2);
+      dummy.scale.setScalar(ed > 0 ? 1 : 0);
+    }
+    dummy.rotation.set(0, 0, spin + (i === 0 ? (1 - hand) * (W.rotation.z + inner.rotation.z) : 0));
+    dummy.updateMatrix(); nuts.setMatrixAt(i, dummy.matrix);
   }
+  nuts.instanceMatrix.needsUpdate = true;
+
+  // Rig: wrench on the right, then the box on the right, then the box centered.
+  const eBox = ss(1.05, 1.6, P), eFin = ss(3.15, 4.0, P);
+  const x0 = narrow ? 0.1 : 1.7, y0 = narrow ? 1.5 : 0;
+  const xb = narrow ? 0.28 : 2.0, yb = narrow ? 1.2 : -0.05, sb = narrow ? 0.52 : 1;
+  const xf = narrow ? 0.3 : 0.3, yf = narrow ? 1.15 : 0.62, sf = narrow ? 0.52 : 0.9;
+  rig.position.set(mix(mix(x0, xb, eBox), xf, eFin), mix(mix(y0, yb, eBox), yf, eFin), 0);
+  rig.scale.setScalar(mix(mix(1, sb, eBox), sf, eFin));
+  const p = s.pointer;
+  const ry = mix(mix(-0.45, -0.4, ss(0, 1, P)), mix(-0.55, -0.24, eFin), eBox) + p.sx * 0.1 + Math.sin(t * 0.3) * 0.03 * (1 - eBox);
+  rig.rotation.set(-p.sy * 0.05 + mix(0, 0.12, eBox), ry, 0);
+
+  // CRT power.
+  const on = P > 2.8;
+  if (on && powerAt < 0) powerAt = t;
+  if (!on) powerAt = -1;
 }
 
-let lastScr = -1;
-s.onFrame((t, dt) => {
+let P = window.SCRAP.target(), lastDraw = -1;
+function frame(t, dt) {
   const target = window.SCRAP.target();
   P = window.SCRAP.fixed != null ? target : P + (target - P) * Math.min(1, dt * 4);
   update(P, t);
-  if (P > 4.25 && t - lastScr > 0.05) { lastScr = t; drawScreen(P, t); }
-});
+  // The screen redraws at 20 fps.
+  if (t - lastDraw > 0.05) {
+    lastDraw = t;
+    const on = powerAt >= 0;
+    drawScreen(on, on ? (window.SCRAP.fixed != null ? 4 : t - powerAt) : 0);
+  }
+}
 if (s.reduceMotion) {
-  const still = () => { P = window.SCRAP.target(); update(P, 1.5); if (P > 4.25) drawScreen(P, 1.5); s.render(); };
-  window.addEventListener('scroll', still, { passive: true }); window.addEventListener('resize', still); still();
+  const still = () => { P = window.SCRAP.target(); update(P, 1.5); drawScreen(P > 2.8, 4); s.render(); };
+  window.addEventListener('scroll', still, { passive: true });
+  window.addEventListener('resize', still);
+  still();
+} else {
+  s.onFrame(frame);
 }
 document.body.classList.add('live');
 </script>
