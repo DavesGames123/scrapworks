@@ -3,145 +3,235 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Scrap — Assembly Line</title>
+<title>Scrap — You make the art</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@700;800&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Sans:wght@400;500&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <script src="shared/scrap-brand.js"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <style>
   :root {
-    --bg: #0a0a0b; --y: #ffc21a; --ink: #ecebe7; --mute: #8e8f93;
-    --display: 'Oxanium', sans-serif; --body: 'Manrope', system-ui, sans-serif;
-    --s-xl: clamp(44px, 5.4vw, 76px);  /* three sizes: xl, l, text */
-    --s-l: clamp(30px, 3vw, 42px);
-    --s-t: 17px;
-    --gut: max(24px, 6vw);
+    --bg: #0a0a0b; --y: #ffc21a; --ink: #ecebe6; --mute: #8b8c91; --line: rgba(255,255,255,.1);
+    --display: 'Chakra Petch', sans-serif; --body: 'IBM Plex Sans', system-ui, sans-serif; --mono: 'Share Tech Mono', ui-monospace, monospace;
+    --amber: #ffb000; --gut: max(24px, 6vw);
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--ink); }
-  body { font: 400 var(--s-t)/1.6 var(--body); overflow-x: hidden; }
+  body { font: 400 17px/1.6 var(--body); overflow-x: hidden; }
   a { color: inherit; }
 
+  /* Scene: fixed behind the page. The shade keeps the text column readable. */
   #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
   .shade { position: fixed; inset: 0; z-index: 1; pointer-events: none;
-    background: radial-gradient(120% 90% at 62% 48%, transparent 45%, rgba(10,10,11,.75) 100%); }
-  .fallback { display: none; position: fixed; z-index: 1; right: 12vw; top: 50%; margin-top: -120px;
-    font-size: 240px; color: var(--y); }
+    background: linear-gradient(90deg, rgba(10,10,11,.92) 0, rgba(10,10,11,.6) 30%, rgba(10,10,11,0) 52%); }
+  .fallback { display: none; position: fixed; z-index: 1; right: 10vw; top: 50%; transform: translateY(-50%);
+    font-size: 260px; color: var(--y); opacity: .9; }
   .no-webgl .fallback { display: block; }
-  .live .fallback { display: none; }
 
-  nav { position: fixed; z-index: 3; top: 0; left: 0; right: 0; display: flex; align-items: center;
-    gap: 32px; padding: 26px var(--gut); }
-  .mark { font: 800 26px/1 var(--display); color: var(--y); text-decoration: none; margin-right: auto; }
-  nav a.l { text-decoration: none; color: var(--mute); transition: color .2s; }
+  nav { position: fixed; z-index: 4; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 30px;
+    padding: 24px var(--gut); background: linear-gradient(180deg, rgba(10,10,11,.85), rgba(10,10,11,0)); }
+  .mark { font-size: 24px; line-height: 1; color: var(--y); text-decoration: none; margin-right: auto; }
+  nav a.l { text-decoration: none; color: var(--mute); font-size: 15px; transition: color .2s; }
   nav a.l:hover { color: var(--ink); }
-  nav .btn { padding: 9px 16px; background: transparent; color: var(--y); border: 1px solid rgba(255,194,26,.6); }
-  nav .btn:hover { background: rgba(255,194,26,.08); box-shadow: none; }
+
+  .btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; background: var(--y); color: #111;
+    font: 600 15px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; text-decoration: none;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); transition: background .2s; }
+  .btn:hover { background: #ffd24d; }
+  nav .btn { padding: 10px 16px; font-size: 13px; }
+  .link { color: var(--ink); text-decoration: none; border-bottom: 1px solid rgba(236,235,230,.35); padding-bottom: 2px; font-size: 16px; }
+  .link:hover { border-color: var(--y); }
+
+  /* Platform row: icons, then text. */
+  .plat { display: flex; align-items: center; gap: 12px; margin-top: 16px; color: var(--mute); font-size: 14px; }
+  .plat svg { width: 16px; height: 16px; fill: currentColor; flex: none; display: block; }
+  .plat span { margin-left: 4px; }
 
   main { position: relative; z-index: 2; }
-  .screen { min-height: 100vh; min-height: 100svh; display: flex; align-items: center; padding: 0 var(--gut); }
-  .copy { max-width: 460px; opacity: 0; transition: opacity .9s ease; }
-  .hero .copy { max-width: 640px; }
-  .hero p:first-of-type { max-width: 34ch; }
-  .copy.in, .shot .copy, .hero .copy { opacity: 1; }
-  h1, h2 { font-family: var(--display); font-weight: 700; margin: 0 0 18px; letter-spacing: -0.01em; }
-  h1 { font-size: var(--s-xl); line-height: 1.02; }
-  h2 { font-size: var(--s-l); line-height: 1.1; }
-  p { margin: 0; color: #bdbcb7; }
-  .mute { color: var(--mute); }
+  section { min-height: 100vh; min-height: 100svh; display: flex; align-items: center; padding: 120px var(--gut) 80px; }
+  .col { width: min(520px, 100%); }
+  .hero .col { width: min(700px, 100%); }
+  .hero .lede { max-width: 520px; }
+  h1 { margin: 0 0 20px; font: 700 clamp(38px, 3.6vw, 52px)/1.06 var(--display); letter-spacing: -.005em; text-transform: uppercase; }
+  h1 em { font-style: normal; color: var(--y); display: block; }
+  .lede { margin: 0 0 32px; color: #c9c8c2; font-size: 19px; max-width: 470px; }
+  .cta { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
 
-  .btn { display: inline-block; padding: 14px 22px; background: var(--y); color: #121212; font-weight: 700;
-    text-decoration: none; border-radius: 2px; transition: box-shadow .25s; }
-  .btn:hover { box-shadow: 0 0 0 1px var(--y), 0 0 28px rgba(255,194,26,.35); }
-  .actions { display: flex; align-items: center; gap: 26px; margin: 34px 0 16px; flex-wrap: wrap; }
-  .actions a.t { text-underline-offset: 4px; text-decoration-thickness: 1px; }
+  /* Terminal panel: the CRT construction monitor. Glow on the text is the one allowed exception. */
+  .term { position: relative; width: min(440px, 100%); padding: 12px; border-radius: 18px; background: #0d0e10;
+    box-shadow: inset 0 0 0 1px #2b2e33, inset 0 1px 0 rgba(255,255,255,.05), 0 24px 60px rgba(0,0,0,.55);
+    background-image:
+      radial-gradient(circle at 10px 10px, #3a3d42 0 2px, transparent 3px),
+      radial-gradient(circle at calc(100% - 10px) 10px, #3a3d42 0 2px, transparent 3px),
+      radial-gradient(circle at 10px calc(100% - 10px), #3a3d42 0 2px, transparent 3px),
+      radial-gradient(circle at calc(100% - 10px) calc(100% - 10px), #3a3d42 0 2px, transparent 3px); }
+  .glass { position: relative; overflow: hidden; border-radius: 14px / 17px; padding: 22px 24px 22px; color: var(--amber);
+    background: radial-gradient(ellipse at 50% 45%, #2a1a04 0%, #140c02 60%, #070401 100%);
+    box-shadow: inset 0 0 0 2px #000, inset 0 0 40px 8px rgba(0,0,0,.85); }
+  .glass::before { content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+    background: repeating-linear-gradient(180deg, rgba(0,0,0,.3) 0 1px, transparent 1px 3px); }
+  .glass::after { content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none; border-radius: inherit;
+    background: radial-gradient(ellipse at 28% 12%, rgba(255,255,255,.06), transparent 42%), radial-gradient(ellipse at center, transparent 58%, rgba(0,0,0,.5) 100%); }
+  .tx { position: relative; z-index: 2; font: 400 16px/1.6 var(--mono); text-shadow: 0 0 6px rgba(255,160,0,.6), 0 0 16px rgba(255,130,0,.2); }
+  .tx .h { color: #ffcf5a; letter-spacing: .16em; font-size: 13px; margin-bottom: 8px; }
+  .tx .s { color: #f2b43a; }
+  .tx .d { color: #a8761c; }
+  .cur { display: inline-block; width: .6em; height: 1.05em; background: var(--amber); vertical-align: -3px; margin-left: 2px;
+    animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .hero .term { margin-top: 44px; }
 
-  .final { justify-content: center; align-items: flex-end; text-align: center; padding-bottom: 16vh; position: relative; }
-  .final .copy { max-width: none; }
-  .final .actions { justify-content: center; margin: 28px 0 14px; }
-  footer { position: absolute; left: 0; right: 0; bottom: 26px; text-align: center; color: var(--mute); }
+  .final { justify-content: center; align-items: flex-end; text-align: center; padding-bottom: 7vh; }
+  .final .col { width: min(560px, 100%); }
+  .final h2 { margin: 0 0 12px; font: 700 clamp(36px, 4vw, 56px)/1 var(--display); text-transform: uppercase; }
+  .final p { margin: 0 0 28px; color: #c9c8c2; }
+  .final .cta, .final .plat { justify-content: center; }
+  footer { position: relative; z-index: 2; padding: 22px var(--gut); color: var(--mute); font-size: 13px;
+    border-top: 1px solid var(--line); background: var(--bg); }
+
+  .rise { opacity: 0; transition: opacity .8s ease; }
+  .rise.in { opacity: 1; }
 
   @media (max-width: 760px) {
-    nav { gap: 20px; padding: 20px 22px; }
+    .shade { background: linear-gradient(180deg, rgba(10,10,11,0) 0, rgba(10,10,11,0) 30%, rgba(10,10,11,.7) 58%, rgba(10,10,11,.92) 100%); }
+    nav { gap: 18px; padding: 18px 16px; }
     nav a.l { display: none; }
-    .screen { align-items: flex-end; padding-bottom: 12vh; }
-    .final { padding-bottom: 14vh; }
-    .fallback { right: 50%; margin-right: -90px; top: 22%; font-size: 180px; }
-    .shade { background: radial-gradient(120% 80% at 50% 30%, transparent 40%, rgba(10,10,11,.8) 100%); }
+    section { align-items: flex-end; padding: 96px 16px 48px; }
+    .hero { padding-top: 46vh; }
+    h1 { font-size: 40px; }
+    .lede { font-size: 17px; }
+    .term { width: 100%; }
+    .tx { font-size: 15px; }
+    .fallback { right: 50%; top: 24vh; transform: translateX(50%); font-size: 160px; }
   }
+  @media (prefers-reduced-motion: reduce) { .rise { transition: none; } .cur { animation: none; } }
 </style>
 </head>
 <body>
 <canvas id="scene" aria-hidden="true"></canvas>
 <div class="shade"></div>
-<div class="fallback" data-scrap-glyph="icon" aria-hidden="true"></div>
+<div class="fallback" data-scrap-glyph="icon"></div>
 
 <nav>
-  <a class="mark" href="#" data-scrap-wordmark></a>
-  <a class="l" href="#">Docs</a>
-  <a class="l" href="#">GitHub</a>
+  <a class="mark" href="#" aria-label="Scrap home"><span data-scrap-wordmark></span></a>
+  <a class="l" href="#docs">Docs</a>
+  <a class="l" href="#github">GitHub</a>
   <a class="btn" href="#download">Download</a>
 </nav>
 
 <main>
-  <section class="screen hero">
-    <div class="copy">
-      <h1>Build games like machines.</h1>
-      <p>Scrap is the game engine workshop. Patch, wire, and ship without stopping the game.</p>
-      <div class="actions">
-        <a class="btn" href="#download">Download Scrap — free</a>
-        <a class="t" href="#">Read the docs</a>
+  <section class="hero" data-stage="0">
+    <div class="col">
+      <h1>You make the art. <em>Scrap handles the code.</em></h1>
+      <p class="lede">Drop in sprites, models, and sounds. Scrap builds the game around them while you keep creating.</p>
+      <div class="cta">
+        <a class="btn" href="#download">Download Scrap &mdash; free</a>
+        <a class="link" href="#how">See how it works</a>
       </div>
-      <p class="mute">Windows · macOS · Linux · no account</p>
+      <div class="plat" data-plat></div>
+      <div class="term" id="how"><div class="glass"><div class="tx">
+        <div class="h type">SCRAP // BUILD SYSTEM</div>
+        <div class="s type">&gt; art found: hero.png</div>
+        <div class="s type">&gt; READY</div>
+      </div></div></div>
     </div>
   </section>
 
-  <section class="screen">
-    <div class="copy">
-      <h2>Live Patch</h2>
-      <p>Code and assets reload in about 140 ms while the game keeps running.</p>
-    </div>
-  </section>
+  <section data-stage="1"><div class="col"><div class="term"><div class="glass"><div class="tx">
+    <div class="h type">01 // PARTS IN</div>
+    <div class="s type">Your sprites, models, and sounds, imported and sliced.</div>
+  </div></div></div></div></section>
 
-  <section class="screen">
-    <div class="copy">
-      <h2>Visual Wiring</h2>
-      <p>Wire logic with nodes. Scrap compiles them to native code.</p>
-    </div>
-  </section>
+  <section data-stage="2"><div class="col"><div class="term"><div class="glass"><div class="tx">
+    <div class="h type">02 // LOGIC WIRED</div>
+    <div class="s type">Movement, physics, and collisions, set up for you.</div>
+  </div></div></div></div></section>
 
-  <section class="screen">
-    <div class="copy">
-      <h2>Ship It</h2>
-      <p>One click to Windows, macOS, Linux, Web, and Steam Deck.</p>
-    </div>
-  </section>
+  <section data-stage="3"><div class="col"><div class="term"><div class="glass"><div class="tx">
+    <div class="h type">03 // CODE BUILT</div>
+    <div class="s type">Readable code you never have to touch.</div>
+  </div></div></div></div></section>
 
-  <section class="screen final" id="download">
-    <div class="copy">
-      <h2>Pick up the wrench.</h2>
-      <div class="actions"><a class="btn" href="#">Download Scrap — free</a></div>
-      <p class="mute">Free for small teams.</p>
+  <section data-stage="4"><div class="col"><div class="term"><div class="glass"><div class="tx">
+    <div class="h type">04 // SCREEN UP</div>
+    <div class="s type">Camera, levels, and menus framed around your art.</div>
+  </div></div></div></div></section>
+
+  <section data-stage="5"><div class="col"><div class="term"><div class="glass"><div class="tx">
+    <div class="h type">05 // PLAY</div>
+    <div class="s type">Your character runs and jumps. Repaint it, and the game updates.</div>
+  </div></div></div></div></section>
+
+  <section class="final" data-stage="6" id="download">
+    <div class="col rise">
+      <h2>Ship it.</h2>
+      <p>One click builds for Windows, macOS, and Linux.</p>
+      <div class="cta"><a class="btn" href="#download">Download Scrap &mdash; free</a></div>
+      <div class="plat" data-plat></div>
     </div>
-    <footer>© 2026 ScrapWorks</footer>
   </section>
 </main>
+<footer>&copy; 2026 ScrapWorks</footer>
 
 <script>
-  // Text reveal (opacity only, so text is never at a sub-pixel transform at rest).
-  (function () {
-    var q = new URLSearchParams(location.search);
-    if (q.has('p')) document.documentElement.classList.add('shot');
-    var io = new IntersectionObserver(function (es) {
-      es.forEach(function (e) { if (e.isIntersecting) e.target.classList.add('in'); });
-    }, { threshold: 0.35 });
-    document.querySelectorAll('.copy').forEach(function (el) { io.observe(el); });
-    // Static icon if WebGL or the CDN does not come up.
-    setTimeout(function () {
-      if (!document.querySelector('#scene.is-live')) document.documentElement.classList.add('no-webgl');
-    }, 6000);
-  })();
+/* Platform row: three CC0 glyphs (Windows and Apple from Simple Icons, Tux drawn here), then text. */
+(function () {
+  var win = '<svg viewBox="0 0 24 24" role="img" aria-label="Windows"><title>Windows</title><path d="M0 0h11.377v11.372H0zm12.623 0H24v11.372H12.623zM0 12.623h11.377V24H0zm12.623 0H24V24H12.623z"/></svg>';
+  var mac = '<svg viewBox="0 0 24 24" role="img" aria-label="macOS"><title>macOS</title><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>';
+  var tux = '<svg viewBox="0 0 24 24" role="img" aria-label="Linux"><title>Linux</title><defs><mask id="tuxm"><rect width="24" height="24" fill="#fff"/>' +
+    '<ellipse cx="12" cy="15.6" rx="3.5" ry="4.8" fill="#000"/><circle cx="10.4" cy="5.6" r="1" fill="#000"/><circle cx="13.6" cy="5.6" r="1" fill="#000"/></mask></defs>' +
+    '<g mask="url(#tuxm)"><ellipse cx="12" cy="6.2" rx="4.1" ry="4.6"/><ellipse cx="12" cy="15" rx="6.2" ry="7.2"/></g>' +
+    '<path d="M10.2 7.6h3.6L12 9.4z"/><ellipse cx="7.6" cy="21.6" rx="3.2" ry="1.6"/><ellipse cx="16.4" cy="21.6" rx="3.2" ry="1.6"/></svg>';
+  document.querySelectorAll('[data-plat]').forEach(function (el) {
+    el.innerHTML = win + mac + tux + '<span>Free &middot; no account</span>';
+  });
+})();
+
+/* Scroll position in screens. The 3D module reads window.SCRAP.target(). ?p=N fixes it for screenshots. */
+(function () {
+  var q = new URLSearchParams(location.search), fixed = q.has('p') ? parseFloat(q.get('p')) : null;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.SCRAP = {
+    fixed: fixed,
+    target: function () { return fixed != null ? fixed : Math.min(6, window.scrollY / window.innerHeight); }
+  };
+  if (fixed != null) {
+    // Headless screenshots break on scrolled pages with fixed layers, so show only section N.
+    window.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('section').forEach(function (sec, i) { if (i !== Math.round(fixed)) sec.style.display = 'none'; });
+      document.querySelector('footer').style.display = 'none';
+    });
+  }
+
+  // Terminal lines type in when their panel comes into view.
+  var panels = document.querySelectorAll('.term');
+  panels.forEach(function (p) {
+    var lines = p.querySelectorAll('.type');
+    lines.forEach(function (l) { l.dataset.full = l.textContent; if (!reduce && fixed == null) l.textContent = ' '; });
+    var last = lines[lines.length - 1], cur = document.createElement('span'); cur.className = 'cur'; last.appendChild(cur);
+    if (reduce || fixed != null) return;
+    var done = false;
+    new IntersectionObserver(function (es, ob) {
+      if (!es[0].isIntersecting || done) return;
+      done = true; ob.disconnect();
+      var i = 0, c = 0;
+      (function tick() {
+        if (i >= lines.length) return;
+        var l = lines[i], full = l.dataset.full;
+        c++;
+        l.textContent = full.slice(0, c);
+        if (i === lines.length - 1) l.appendChild(cur);
+        if (c >= full.length) { i++; c = 0; setTimeout(tick, 180); } else setTimeout(tick, 22);
+      })();
+    }, { threshold: 0.6 }).observe(p);
+  });
+  document.querySelectorAll('.rise').forEach(function (el) {
+    if (reduce || fixed != null) { el.classList.add('in'); return; }
+    new IntersectionObserver(function (es) { if (es[0].isIntersecting) el.classList.add('in'); }, { threshold: 0.3 }).observe(el);
+  });
+  // Static fallback if the 3D does not start.
+  setTimeout(function () { if (!document.body.classList.contains('live')) document.body.classList.add('no-webgl'); }, 6000);
+})();
 </script>
 
 <script type="module">
@@ -151,110 +241,485 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
-try {
-  const k = ScrapBrand.three(THREE, { RoomEnvironment, EffectComposer, RenderPass, UnrealBloomPass, OutputPass });
-  const canvas = document.getElementById('scene');
-  const st = k.stage(canvas, { bloom: { strength: 0.55, radius: 0.5, threshold: 1.25 }, fov: 30, z: 9, exposure: 1.0, envIntensity: 0.6 });
-  st.renderer.setClearColor(0x0a0a0b, 1);
-  st.scene.background = new THREE.Color(0x0a0a0b);
-  document.documentElement.classList.add('live');
-  const { scene } = st;
+const k = ScrapBrand.three(THREE, { RoomEnvironment, EffectComposer, RenderPass, UnrealBloomPass, OutputPass, RoundedBoxGeometry, BufferGeometryUtils });
+const M = k.materials;
+const canvas = document.getElementById('scene');
+const s = k.stage(canvas, { bloom: { strength: 0.3, radius: 0.35, threshold: 1.05 }, fov: 30, z: 10, exposure: 1.0, envIntensity: 0.55 });
+const BG = 0x0a0a0b;
+s.scene.background = new THREE.Color(BG);
+s.scene.fog = new THREE.Fog(BG, 14, 26);
 
-  const key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(-3, 4, 5);
-  const rim = new THREE.DirectionalLight(0xffb000, 1.6); rim.position.set(4, 1, -4);
-  scene.add(key, rim);
+/* ---------- helpers ---------- */
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const span = (P, a, b) => clamp((P - a) / (b - a));
+const ease = (t) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const out = (t) => 1 - Math.pow(1 - t, 3);
+const lerp = (a, b, t) => a + (b - a) * t;
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const dummy = new THREE.Object3D();
 
-  // Parts, in the local frame of the finished icon (outline units x 0.01).
-  const head = k.wrench({ variant: 'letter', depth: 16 });
-  head.userData.mesh.rotation.z = 0;
-
-  const hs = new THREE.Shape();
-  hs.moveTo(-29, 11); hs.lineTo(-150, 11);
-  hs.absarc(-150, 0, 11, Math.PI / 2, Math.PI * 1.5, false);
-  hs.lineTo(-29, -11); hs.closePath();
-  const hole = new THREE.Path(); hole.absarc(-146, 0, 5, 0, Math.PI * 2, true); hs.holes.push(hole);
-  const hg = new THREE.ExtrudeGeometry(hs, { depth: 12, bevelEnabled: true, bevelThickness: 3, bevelSize: 2, bevelSegments: 6, curveSegments: 40 });
-  hg.translate(0, 0, -6);
-  const handle = new THREE.Mesh(hg, k.materials.steel({ roughness: 0.36 }));
-  handle.scale.setScalar(0.01);
-  const handleG = new THREE.Group(); handleG.add(handle);
-
-  // No bump or anisotropy on the nut: its UVs are tiny, so the UV derivatives are zero and
-  // the shader returns NaN, which bloom spreads into a white square.
-  const nut = k.hexNut({ r: 0.265, material: k.materials.steel({ color: 0xc9ccd0, anisotropy: 0 }) });
-  const NUT_HOME = new THREE.Vector3(0.10, 0, 0);
-
-  const asm = new THREE.Group();
-  asm.add(head, handleG, nut);
-  const ang = THREE.MathUtils.degToRad(k.ICON_ANGLE);
-  asm.rotation.z = ang;
-  const rig = new THREE.Group(); rig.add(asm); scene.add(rig);
-
-  // One glow line: a light bar under the part.
-  const bar = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), k.materials.glow(0xffb300, 2.4));
-  scene.add(bar);
-
-  const ss = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
-  const mix = (a, b, t) => a + (b - a) * t;
-
-  // Exploded offsets (local frame) that each part leaves as it docks.
-  const OFF = {
-    head:   { p: [0.22, 0.16, -0.1],  r: [0.0, -0.6, 0.2] },
-    handle: { p: [-0.42, -0.32, 0.2], r: [0.45, 0.35, -0.3] },
-    nut:    { p: [0.75, 0.15, 0.3],   r: [0.9, 0.5, 0.4] }
-  };
-  function place(obj, off, e, base, t, phase) {
-    const f = 1 - e, w = Math.sin(t * 0.8 + phase) * 0.04 * f;
-    obj.position.set((base ? base.x : 0) + off.p[0] * f, (base ? base.y : 0) + off.p[1] * f + w, off.p[2] * f);
-    obj.rotation.set(off.r[0] * f + w, off.r[1] * f, off.r[2] * f);
-  }
-
-  function update(s, t) {
-    const narrow = canvas.clientWidth / canvas.clientHeight < 0.85;
-    const eHead = ss(0.2, 1.4, s), eHandle = ss(0.6, 2.1, s), eNut = ss(1.9, 3.0, s), eFinal = ss(3.1, 4.0, s);
-    place(head, OFF.head, eHead, null, t, 0);
-    place(handleG, OFF.handle, eHandle, null, t, 1.7);
-    place(nut, OFF.nut, eNut, NUT_HOME, t, 3.1);
-
-    const sc = narrow ? 0.78 : 1.1;
-    asm.scale.setScalar(sc);
-    // Center the finished icon: its middle sits 0.65 units down the handle axis.
-    asm.position.set(Math.cos(ang) * 0.65 * sc, Math.sin(ang) * 0.65 * sc, 0);
-
-    const x0 = narrow ? 0 : 1.7, y0 = narrow ? 1.05 : 0, y1 = narrow ? 0.95 : 0.55;
-    rig.position.set(mix(x0, 0, eFinal), mix(y0, y1, eFinal), 0);
-    const p = st.pointer;
-    rig.rotation.set(-p.sy * 0.08, mix(-0.45, 0, ss(0, 4, s)) + p.sx * 0.15 + Math.sin(t * 0.3) * 0.06, 0);
-
-    const assembled = (eHead + eHandle + eNut) / 3;
-    bar.position.set(rig.position.x, rig.position.y - (narrow ? 0.85 : 1.1), -0.4);
-    const bw = (narrow ? 1.8 : 2.4) * ss(0.35, 1, assembled);
-    bar.visible = bw > 0.01;
-    bar.scale.set(Math.max(bw, 0.001), 0.012, 1);
-  }
-
-  const q = new URLSearchParams(location.search);
-  const forced = q.has('p') ? parseFloat(q.get('p')) : null;
-  if (forced != null) document.querySelector('main').style.transform = 'translateY(' + (-forced * 100) + 'vh)';
-  let cur = forced != null ? forced : window.scrollY / window.innerHeight;
-  const target = () => forced != null ? forced : window.scrollY / window.innerHeight;
-
-  if (st.reduceMotion) {
-    const still = () => { update(target(), 0); st.render(); };
-    window.addEventListener('scroll', still, { passive: true });
-    window.addEventListener('resize', still);
-    still();
-  } else {
-    st.onFrame((t, dt) => {
-      cur += (target() - cur) * (1 - Math.exp(-dt * 5));
-      update(cur, t);
-    });
-  }
-} catch (err) {
-  console.error(err);
-  document.documentElement.classList.add('no-webgl');
+/*
+ * Soft geometry from the kit (k.soft): rounded plan corners, matching rounded
+ * bevels, smooth normals. Every solid part on the page goes through G().
+ */
+const G = (name, ...args) => k.soft[name](...args);
+// Pipes get round end caps, so no open rim shows.
+function cappedPipe(curve, r) {
+  const a = new THREE.SphereGeometry(r, 16, 10), b = new THREE.SphereGeometry(r, 16, 10);
+  a.translate(...curve.getPointAt(0).toArray()); b.translate(...curve.getPointAt(1).toArray());
+  return BufferGeometryUtils.mergeGeometries([G('pipe', curve, r, 96), a, b]);
 }
+const mesh = (g, m) => new THREE.Mesh(g, m);
+const axisZ = (g) => { g.rotateX(Math.PI / 2); return g; };   // lathe axis y -> z
+const axisX = (g) => { g.rotateZ(Math.PI / 2); return g; };   // lathe axis y -> x
+
+const paint = M.paint(), steel = M.steel({ anisotropy: 0 }), dark = M.darkSteel({ anisotropy: 0 }), iron = M.castIron();
+const rubber = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 0.75, metalness: 0 });
+const glow = M.glow(0xffa21a, 2.2);
+
+/* Generic arrivals: each part flies from an offset to its seat over its own [a, b]. */
+const parts = [];
+function part(o, seat, from, a, b, rFrom) {
+  o.position.copy(seat); parts.push({ o, seat: seat.clone(), from, a, b, r0: o.rotation.clone(), rFrom });
+  rig.add(o); return o;
+}
+function updateParts(P) {
+  parts.forEach(p => {
+    const u = out(span(P, p.a, p.b));
+    p.o.visible = u > 0;
+    p.o.position.copy(p.seat).addScaledVector(p.from, 1 - u);
+    if (p.rFrom) p.o.rotation.set(p.r0.x + p.rFrom.x * (1 - u), p.r0.y + p.rFrom.y * (1 - u), p.r0.z + p.rFrom.z * (1 - u));
+  });
+}
+const UP = (d = 5) => V(0, d, 0), LEFT = (d = 5) => V(-d, 0, 0), RIGHT = (d = 5) => V(d, 0, 0), BACK = (d = 4) => V(0, 0, -d), FRONT = (d = 4) => V(0, 0, d);
+
+/* Instanced repeats with per-instance arrival windows. */
+function instanced(geo, mat, list) {
+  const im = new THREE.InstancedMesh(geo, mat, list.length);
+  im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); im.userData.list = list; rig.add(im); return im;
+}
+function updateInstanced(im, P, extra) {
+  im.userData.list.forEach((it, i) => {
+    const u = out(span(P, it.a, it.b));
+    dummy.position.copy(it.p).addScaledVector(it.from || UP(3), 1 - u);
+    dummy.rotation.set(it.r ? it.r.x : 0, it.r ? it.r.y : 0, it.r ? it.r.z : 0);
+    dummy.scale.setScalar(u > 0 ? (it.s || 1) : 0);
+    if (extra) extra(it, i, u, dummy);
+    dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix);
+  });
+  im.instanceMatrix.needsUpdate = true;
+}
+
+/* ---------- the creator's character ---------- */
+const SPRITE = [
+  '....YYYY....', '...YYYYYY...', '...YKYYKY...', '...YYYYYY...', '....YYYY....', '..GGGGGGGG..',
+  '.GGYGGGGYGG.', '.GG.GGGG.GG.', '....GGGG....', '....G..G....', '...KK..KK...',
+];
+function drawSprite(g, x, y, px, pal) {
+  SPRITE.forEach((row, j) => [...row].forEach((c, i) => {
+    if (c === '.') return;
+    g.fillStyle = pal[c]; g.fillRect(Math.round(x + i * px), Math.round(y + j * px), Math.ceil(px), Math.ceil(px));
+  }));
+}
+
+/* ---------- rig ---------- */
+const rig = new THREE.Group();
+s.scene.add(rig);
+const X = 1.08, ZF = 0.62, YB = -1.37, YT = 0.76;
+
+const bench = mesh(G('box', 9, 0.22, 4.2, 0.05), iron); bench.position.set(0, -1.62, 0); rig.add(bench);
+const plate = mesh(G('box', 2.5, 0.14, 1.55, 0.05), dark); plate.position.set(0, -1.44, 0); rig.add(plate);
+
+// Parts bin with spare nuts and washers.
+const bin = new THREE.Group(); bin.position.set(1.95, -1.36, -1.15); rig.add(bin);
+[[0, 0, 0, 1.1, 0.06, 0.8], [0, 0.17, 0.38, 1.1, 0.34, 0.05], [0, 0.17, -0.38, 1.1, 0.34, 0.05],
+ [0.53, 0.17, 0, 0.05, 0.34, 0.8], [-0.53, 0.17, 0, 0.05, 0.34, 0.8]].forEach(b => {
+  const m = mesh(G('box', b[3], b[4], b[5], 0.02), paint); m.position.set(b[0], b[1], b[2]); bin.add(m);
+});
+// The wrench is the logo wrench. Its jaw center becomes the tool origin, and the
+// page nuts take the size of the logo nut, so the jaw fits them.
+const WS = 0.0041, ICON = ScrapBrand.LOGO.iconAngle * Math.PI / 180;
+const wrenchRaw = k.wrench({ depth: 14, scale: WS });
+wrenchRaw.updateMatrixWorld(true);
+const jaw = wrenchRaw.userData.nut ? wrenchRaw.userData.nut.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3();
+if (wrenchRaw.userData.nut) wrenchRaw.userData.nut.visible = false;
+const NUT_R = ScrapBrand.nutPoly ? ScrapBrand.nutPoly(ScrapBrand.LOGO).r * WS : 0.09;
+const nutGeo = G('hexNut', NUT_R, NUT_R * 0.85);
+const washerGeo = axisZ(G('ring', NUT_R * 1.35, NUT_R * 0.5, 0.02, 0.006));
+const binNuts = new THREE.InstancedMesh(nutGeo, steel, 9);
+for (let i = 0; i < 9; i++) {
+  dummy.position.set(-0.38 + (i % 4) * 0.25 + (i > 3 ? 0.1 : 0), 0.09 + (i > 3 ? 0.05 : 0) + (i > 7 ? 0.05 : 0), -0.16 + (i > 3 ? 0.28 : 0));
+  dummy.rotation.set(Math.PI / 2 + (i % 3) * 0.3, 0, i); dummy.scale.setScalar(1); dummy.updateMatrix(); binNuts.setMatrixAt(i, dummy.matrix);
+}
+bin.add(binNuts);
+
+// Cartridge reader: the art card slots in here.
+const reader = mesh(G('box', 0.95, 0.3, 0.42, 0.05), dark); reader.position.set(-0.55, -1.22, 0.42); rig.add(reader);
+const readerLip = mesh(G('box', 0.75, 0.04, 0.09, 0.015), paint); readerLip.position.set(-0.55, -1.06, 0.42); rig.add(readerLip);
+
+// The art card.
+const artCv = document.createElement('canvas'); artCv.width = 256; artCv.height = 320;
+(function () {
+  const g = artCv.getContext('2d');
+  const grd = g.createLinearGradient(0, 0, 0, 320); grd.addColorStop(0, '#2c3442'); grd.addColorStop(1, '#4a3a2a');
+  g.fillStyle = grd; g.fillRect(0, 0, 256, 320);
+  g.fillStyle = 'rgba(255,255,255,.06)'; for (let i = 0; i < 40; i++) g.fillRect((i * 53) % 256, (i * 97) % 320, 2, 2);
+  g.fillStyle = '#5b4733'; g.fillRect(0, 262, 256, 58);
+  drawSprite(g, 56, 80, 12, { Y: '#ffc21a', G: '#8f97a3', K: '#141414' });
+})();
+const artTex = new THREE.CanvasTexture(artCv); artTex.colorSpace = THREE.SRGBColorSpace; artTex.anisotropy = 8;
+const art = new THREE.Group();
+const artFace = mesh(new THREE.PlaneGeometry(0.6, 0.76), new THREE.MeshStandardMaterial({ map: artTex, roughness: 0.8 }));
+artFace.position.z = 0.026; art.add(artFace);
+art.add(mesh(G('box', 0.74, 0.9, 0.05, 0.02), paint));
+rig.add(art);
+const ART_DESK = { p: V(-1.95, -1.08, 0.75), r: V(-0.28, 0.35, 0.02) };
+const ART_SLOT = { p: V(-0.55, -0.82, 0.42), r: V(0, 0, 0) };
+
+/* ---------- stage 1: frame ---------- */
+const postGeo = G('box', 0.14, YT - YB, 0.14, 0.035);
+[[-X, ZF], [X, ZF], [-X, -ZF], [X, -ZF]].forEach(([x, z], i) =>
+  part(mesh(postGeo, paint), V(x, (YT + YB) / 2, z), UP(5), 0.1 + i * 0.045, 0.28 + i * 0.045));
+part(mesh(G('box', 2.3, 0.12, 0.14, 0.035), dark), V(0, YT + 0.06, ZF), LEFT(5), 0.25, 0.4);
+part(mesh(G('box', 2.3, 0.12, 0.14, 0.035), dark), V(0, YT + 0.06, -ZF), RIGHT(5), 0.28, 0.43);
+part(mesh(G('box', 0.14, 0.12, 1.38, 0.035), dark), V(-X, YT + 0.06, 0), BACK(5), 0.31, 0.46);
+part(mesh(G('box', 0.14, 0.12, 1.38, 0.035), dark), V(X, YT + 0.06, 0), FRONT(5), 0.34, 0.49);
+// Base rails on the plate.
+part(mesh(G('box', 2.2, 0.07, 0.1, 0.025), dark), V(0, -1.335, ZF), LEFT(4), 0.05, 0.18);
+part(mesh(G('box', 2.2, 0.07, 0.1, 0.025), dark), V(0, -1.335, -ZF), RIGHT(4), 0.07, 0.2);
+// Corner brackets behind the nuts.
+const bracketGeo = G('box', 0.26, 0.3, 0.03, 0.012);
+const NUT_POS = [V(-X, -1.2, ZF + 0.12), V(X, -1.2, ZF + 0.12), V(-X, YT - 0.12, ZF + 0.12), V(X, YT - 0.12, ZF + 0.12),
+  V(-0.78, 0.98, 0.78), V(0.78, 0.98, 0.78)];
+const brackets = instanced(bracketGeo, dark, NUT_POS.slice(0, 4).map((p, i) => ({ p: p.clone().add(V(0, 0, -0.045)), from: FRONT(2), a: 0.3 + i * 0.02, b: 0.38 + i * 0.02 })));
+const washers = instanced(washerGeo, steel, NUT_POS.map((p, i) => ({ p: p.clone().add(V(0, 0, -0.02)), from: FRONT(1.5), a: i < 4 ? 0.33 + i * 0.02 : 3.5, b: i < 4 ? 0.4 + i * 0.02 : 3.56 })));
+const nuts = instanced(nutGeo, steel, NUT_POS.map((p, i) => ({ p, from: FRONT(1.5), a: i < 4 ? 0.34 + i * 0.02 : 3.52, b: i < 4 ? 0.42 + i * 0.02 : 3.58 })));
+const nutTurn = new Array(NUT_POS.length).fill(0.5), nutSeat = new Array(NUT_POS.length).fill(0);
+
+const wrench = new THREE.Group(); wrenchRaw.position.copy(jaw).negate(); wrench.add(wrenchRaw); rig.add(wrench);
+const WRENCH_PARK = { p: V(1.75, -1.48, 1.1), r: V(-Math.PI / 2, 0, 0.5) };
+
+/* ---------- stage 2: mechanisms ---------- */
+part(mesh(G('box', 2.0, 1.95, 0.05, 0.02), dark), V(0, -0.3, -0.56), BACK(3), 1.04, 1.22);
+const GZ = -0.46;
+const gA = { n: 18, rp: 0.42 }, gB = { n: 12, rp: 0.28 }, gC = { n: 10, rp: 0.233 };
+gA.c = V(-0.22, -0.42, GZ);
+const phiB = -0.55, phiC = 2.25;
+gB.c = V(gA.c.x + Math.cos(phiB) * (gA.rp + gB.rp), gA.c.y + Math.sin(phiB) * (gA.rp + gB.rp), GZ);
+gC.c = V(gA.c.x + Math.cos(phiC) * (gA.rp + gC.rp), gA.c.y + Math.sin(phiC) * (gA.rp + gC.rp), GZ);
+gA.m = part(mesh(G('gear', gA.n, gA.rp / 0.92, 0.08), steel), gA.c, UP(4), 1.2, 1.42);
+gB.m = part(mesh(G('gear', gB.n, gB.rp / 0.92, 0.08), paint), gB.c, UP(4), 1.3, 1.52);
+gC.m = part(mesh(G('gear', gC.n, gC.rp / 0.92, 0.08), dark), gC.c, UP(4), 1.38, 1.6);
+const gears = [gA, gB, gC];
+const axles = instanced(axisZ(G('cylinder', 0.055, 0.16, 0.02, 24)), paint,
+  gears.map((g, i) => ({ p: g.c.clone().add(V(0, 0, 0.05)), from: FRONT(2), a: 1.45 + i * 0.04, b: 1.55 + i * 0.04 })));
+// Piston with a mount, a rod, and a spring on the rod.
+const PISTON = V(0.66, 0.2, -0.3);
+part(mesh(G('box', 0.34, 0.08, 0.3, 0.025), dark), PISTON.clone().add(V(0, -0.29, 0)), RIGHT(4), 1.45, 1.6);
+const pistonHouse = part(mesh(G('cylinder', 0.1, 0.5, 0.025, 32), steel), PISTON.clone(), UP(4), 1.5, 1.66);
+const pistonRod = mesh(G('cylinder', 0.045, 0.5, 0.015, 20), steel); rig.add(pistonRod);
+function helix(r, h, turns, wire) {
+  const pts = []; for (let i = 0; i <= turns * 24; i++) { const a = i / 24 * Math.PI * 2; pts.push(V(Math.cos(a) * r, i / (turns * 24) * h - h / 2, Math.sin(a) * r)); }
+  return cappedPipe(new THREE.CatmullRomCurve3(pts), wire);
+}
+const spring1 = mesh(helix(0.075, 0.24, 6, 0.012), steel); rig.add(spring1);
+// Belt drive with a spring tensioner.
+const P1 = V(-0.68, -1.06, -0.2), P2 = V(-0.68, -0.36, -0.2), R1 = 0.15, R2 = 0.1;
+const pulleys = new THREE.Group(); rig.add(pulleys);
+const pul1 = mesh(axisZ(G('cylinder', R1, 0.09, 0.025, 36)), dark); pul1.position.copy(P1);
+const pul2 = mesh(axisZ(G('cylinder', R2, 0.09, 0.025, 36)), dark); pul2.position.copy(P2);
+const beltPts = [];
+for (let i = 0; i < 24; i++) { const a = Math.PI + i / 23 * Math.PI; beltPts.push(V(P1.x + Math.cos(a) * (R1 + 0.02), P1.y + Math.sin(a) * (R1 + 0.02), P1.z)); }
+for (let i = 0; i < 24; i++) { const a = i / 23 * Math.PI; beltPts.push(V(P2.x + Math.cos(a) * (R2 + 0.02), P2.y + Math.sin(a) * (R2 + 0.02), P2.z)); }
+const belt = mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(beltPts, true), 120, 0.018, 10, true), rubber);
+pulleys.add(pul1, pul2, belt);
+const spring2 = mesh(helix(0.035, 0.4, 10, 0.008), steel); spring2.position.set(-0.92, -0.72, -0.2);
+pulleys.add(spring2);
+
+/* ---------- stage 3: wiring, pipes, panels ---------- */
+// Junction box with three small lamps that light one after another.
+part(mesh(G('box', 0.42, 0.3, 0.16, 0.035), dark), V(-0.62, 0.42, -0.45), LEFT(4), 2.02, 2.16);
+const jLampMat = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
+const jLamps = instanced(new THREE.SphereGeometry(0.03, 14, 10), jLampMat,
+  [0, 1, 2].map(i => ({ p: V(-0.74 + i * 0.12, 0.44, -0.36), from: LEFT(4), a: 2.02, b: 2.16 })));
+const lampOffC = new THREE.Color(0x2a1d08);
+const cables = [], CABLE_PTS = [
+  [V(-0.5, 0.5, -0.42), V(0.1, 0.55, -0.38), V(0.5, 0.56, -0.32), V(0.64, 0.5, -0.3)],
+  [V(-0.75, 0.3, -0.4), V(-0.94, -0.2, 0.05), V(-0.62, -0.95, 0.3), V(-0.55, -1.06, 0.42)],
+  [V(-0.6, 0.56, -0.44), V(0.2, 0.68, -0.46), V(0.95, 0.5, -0.42), V(0.98, -0.9, -0.1), V(0.75, -1.25, 0.45), V(0.64, -1.24, 0.6)],
+];
+CABLE_PTS.forEach(pts => {
+  const curve = new THREE.CatmullRomCurve3(pts);
+  const geo = new THREE.TubeGeometry(curve, 72, 0.026, 10, false);
+  const m = mesh(geo, rubber); rig.add(m);
+  const pulse = mesh(new THREE.SphereGeometry(0.034, 12, 10), glow); rig.add(pulse);
+  cables.push({ m, curve, pulse, count: geo.index.count });
+});
+// Two rigid pipes on the back panel, with clamps.
+const PIPES = [
+  [V(0.2, -1.3, -0.5), V(0.2, 0.1, -0.5), V(0.35, 0.3, -0.45), V(0.55, 0.3, -0.35)],
+  [V(0.86, -1.3, -0.48), V(0.86, 0.55, -0.48), V(0.86, 0.68, -0.3)],
+];
+PIPES.forEach((pts, i) => part(mesh(cappedPipe(new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.1), 0.035), steel), V(0, 0, 0), UP(4), 2.05 + i * 0.06, 2.25 + i * 0.06));
+const clamps = instanced(G('box', 0.12, 0.05, 0.1, 0.02), paint,
+  [V(0.2, -0.9, -0.5), V(0.2, -0.3, -0.5), V(0.86, -0.8, -0.48), V(0.86, 0.1, -0.48)].map((p, i) => ({ p, from: BACK(1), a: 2.2 + i * 0.03, b: 2.28 + i * 0.03 })));
+// Right side: an upper panel with four screws, and a hinged lower door.
+part(mesh(G('box', 0.05, 0.72, 1.16, 0.02), dark), V(X + 0.09, 0.34, 0), RIGHT(4), 2.18, 2.36);
+const SCREW_POS = [V(X + 0.12, 0.6, 0.45), V(X + 0.12, 0.6, -0.45), V(X + 0.12, 0.08, 0.45), V(X + 0.12, 0.08, -0.45)];
+const screws = instanced(axisX(G('cylinder', 0.04, 0.035, 0.012, 20)), steel, SCREW_POS.map(p => ({ p, from: V(0.12, 0, 0), a: 0, b: 0 })));
+const door = new THREE.Group(); door.position.set(X + 0.09, -0.62, 0.58); rig.add(door);
+const doorPlate = mesh(G('box', 0.05, 1.16, 1.14, 0.02), dark); doorPlate.position.z = -0.58; door.add(doorPlate);
+const doorHandle = mesh(G('box', 0.06, 0.24, 0.05, 0.02), paint); doorHandle.position.set(0.05, 0, -1.02); door.add(doorHandle);
+const hinges = instanced(G('cylinder', 0.035, 0.18, 0.012, 20), steel,
+  [V(X + 0.1, -0.25, 0.6), V(X + 0.1, -1.0, 0.6)].map((p, i) => ({ p, from: UP(2), a: 2.3 + i * 0.03, b: 2.38 + i * 0.03 })));
+// Screwdriver.
+const driver = new THREE.Group(), driverSpin = new THREE.Group(); driver.add(driverSpin); rig.add(driver);
+(function () {
+  const handle = mesh(G('cylinder', 0.072, 0.34, 0.03, 28), paint); handle.position.y = 0.36;
+  const grip = mesh(G('cylinder', 0.077, 0.1, 0.02, 28), rubber); grip.position.y = 0.42;
+  const shaft = mesh(G('cylinder', 0.017, 0.38, 0.006, 14), steel); shaft.position.y = 0.01;
+  driverSpin.add(handle, grip, shaft);
+})();
+const DRIVER_PARK = { p: V(1.5, -1.46, 0.3), r: V(0, 0, Math.PI / 2 + 0.25) };
+
+/* ---------- stage 4: deck, CRT monitor on a hoist, control deck ---------- */
+part(mesh(G('box', 2.3, 0.06, 1.38, 0.025), dark), V(0, YT + 0.15, 0), LEFT(5), 3.0, 3.14);
+const mon = new THREE.Group(); rig.add(mon);
+const MON_END = V(0, 1.53, 0.02);
+(function () {
+  const shell = mesh(G('box', 2.05, 1.5, 1.05, 0.08), dark); shell.position.z = -0.05; mon.add(shell);
+  const back = mesh(G('box', 1.4, 1.05, 0.5, 0.07), dark); back.position.z = -0.75; mon.add(back);
+  const fw = 2.15, fh = 1.6, t = 0.15;
+  [[0, fh / 2 - t / 2, fw, t], [0, -fh / 2 + t / 2, fw, t], [-fw / 2 + t / 2, 0, t, fh], [fw / 2 - t / 2, 0, t, fh]].forEach(f => {
+    const m = mesh(G('box', f[2], f[3], 0.1, 0.035), paint); m.position.set(f[0], f[1], 0.5); mon.add(m);
+  });
+  const lip = mesh(G('box', 1.86, 1.32, 0.06, 0.03), new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.6 })); lip.position.z = 0.47; mon.add(lip);
+  // Vent slats on the back of the shell.
+  const slats = new THREE.InstancedMesh(G('box', 0.9, 0.035, 0.04, 0.015), dark, 5);
+  for (let i = 0; i < 5; i++) { dummy.position.set(0, 0.3 - i * 0.12, -1.02); dummy.rotation.set(0, 0, 0); dummy.scale.setScalar(1); dummy.updateMatrix(); slats.setMatrixAt(i, dummy.matrix); }
+  mon.add(slats);
+})();
+const scrCv = document.createElement('canvas'); scrCv.width = 512; scrCv.height = 384;
+const scrG = scrCv.getContext('2d');
+const scrTex = new THREE.CanvasTexture(scrCv); scrTex.colorSpace = THREE.SRGBColorSpace; scrTex.anisotropy = 8;
+const scrGeo = new THREE.PlaneGeometry(1.74, 1.22, 24, 18);
+{ const p = scrGeo.attributes.position;
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i) / 0.87, y = p.getY(i) / 0.61; p.setZ(i, 0.05 * (1 - x * x) * (1 - y * y)); }
+  scrGeo.computeVertexNormals(); }
+const scrMat = new THREE.MeshStandardMaterial({ color: 0x0c0a07, roughness: 0.55, metalness: 0, emissive: 0xffffff, emissiveMap: scrTex, emissiveIntensity: 0 });
+const screen = mesh(scrGeo, scrMat); screen.position.z = 0.49; mon.add(screen);
+const hoistLine = mesh(G('cylinder', 0.012, 1, 0.004, 10), steel);
+const hook = mesh(new THREE.TorusGeometry(0.11, 0.025, 12, 32, Math.PI * 1.5), steel);
+rig.add(hoistLine, hook);
+// Control deck in front of the monitor: buttons and a joystick.
+const deck = part(mesh(G('box', 1.7, 0.09, 0.42, 0.035), paint), V(0, YT + 0.1, ZF + 0.36), FRONT(4), 3.84, 3.98);
+deck.rotation.x = 0.28; parts[parts.length - 1].r0.x = 0.28;
+const buttons = instanced(G('cylinder', 0.055, 0.05, 0.018, 24), dark,
+  [-0.55, -0.38, 0.38, 0.55].map((x, i) => ({ p: V(x, YT + 0.16, ZF + 0.34), r: V(0.28, 0, 0), from: UP(2), a: 3.9 + i * 0.015, b: 3.97 + i * 0.015 })));
+const joy = new THREE.Group();
+joy.add(mesh(G('cylinder', 0.016, 0.12, 0.006, 14), steel)); const ball = mesh(new THREE.SphereGeometry(0.045, 20, 16), paint); ball.position.y = 0.07; joy.add(ball);
+part(joy, V(-0.05, YT + 0.2, ZF + 0.38), UP(2), 3.93, 3.99);
+
+/* ---------- stage 5: marquee, lever, lamp ---------- */
+const marquee = new THREE.Group();
+marquee.add(mesh(G('box', 2.15, 0.32, 0.6, 0.05), dark));
+const marqueeFace = mesh(G('box', 1.8, 0.16, 0.02, 0.008), new THREE.MeshStandardMaterial({ color: 0x1a1406, roughness: 0.5 }));
+marqueeFace.position.z = 0.3; marquee.add(marqueeFace);
+part(marquee, V(0, MON_END.y + 0.96, -0.02), UP(4), 4.0, 4.12);
+const marqueeOn = M.glow(0xffb21a, 1.25), marqueeOff = marqueeFace.material;
+const leverBase = part(mesh(G('box', 0.3, 0.16, 0.22, 0.035), dark), V(0.62, -1.3, 0.62), UP(3), 3.98, 4.1);
+const lever = new THREE.Group();
+{ const rod = mesh(G('cylinder', 0.022, 0.36, 0.008, 14), steel); rod.position.y = 0.18;
+  const knob = mesh(new THREE.SphereGeometry(0.06, 20, 16), paint); knob.position.y = 0.37; lever.add(rod, knob); }
+part(lever, V(0.62, -1.24, 0.62), UP(3), 3.98, 4.1);
+const lampOff = dark;
+const lamp = part(mesh(new THREE.SphereGeometry(0.045, 18, 14), lampOff), V(0.98, -1.24, 0.72), UP(3), 4.0, 4.1);
+
+/* ---------- lights ---------- */
+const key = new THREE.DirectionalLight(0xfff0dc, 1.5); key.position.set(4, 6, 6); s.scene.add(key);
+const rim = new THREE.DirectionalLight(0xffc06a, 0.9); rim.position.set(-5, 3, -4); s.scene.add(rim);
+
+/* ---------- the game on the CRT ---------- */
+const AMB = '#ffb000', AMB_D = '#7a4c00';
+let monoFont = false;
+document.fonts.load("20px 'Share Tech Mono'").then(() => { monoFont = true; });
+function drawScreen(P, t) {
+  const g = scrG, W = 512, H = 384;
+  g.fillStyle = '#120a01'; g.fillRect(0, 0, W, H);
+  const f = monoFont ? "'Share Tech Mono'" : 'monospace';
+  const boot = span(P, 4.32, 4.55), build = span(P, 4.5, 4.85), play = P > 4.82;
+  g.fillStyle = AMB; g.font = '22px ' + f;
+  if (!play) {
+    const lines = ['SCRAP // BUILD SYSTEM', '> load hero.png ....... ok', '> slice sprite ........ ok', '> wire physics ........ ok', '> build level'];
+    const n = Math.floor(boot * lines.length + 0.001);
+    lines.slice(0, Math.max(1, n)).forEach((l, i) => g.fillText(l, 32, 56 + i * 34));
+  }
+  const tiles = 16, shown = Math.floor(build * tiles + (play ? tiles : 0)), ground = 300, tw = 32;
+  for (let i = 0; i < Math.min(tiles, shown); i++) {
+    if (i === 9 || i === 10) continue;
+    const drop = play ? 0 : Math.max(0, (i + 1 - build * tiles) * 26);
+    g.fillStyle = AMB_D; g.fillRect(i * tw, ground + drop, tw - 2, 14);
+    g.fillStyle = AMB; g.fillRect(i * tw, ground + drop, tw - 2, 4);
+  }
+  if (play) {
+    g.fillStyle = AMB; g.fillRect(380, 196, 72, 6); g.fillRect(140, 222, 56, 6);
+    const run = (t * 90) % (W + 80) - 70, gapC = 10 * tw, d = Math.abs(run + 36 - gapC);
+    const jump = d < 90 ? Math.cos(d / 90 * Math.PI / 2) * 80 : 0;
+    drawSprite(g, run, ground - 11 * 6 - jump, 6, { Y: '#ffc21a', G: '#c98a00', K: '#2a1800' });
+    g.font = '18px ' + f; g.fillStyle = AMB; g.fillText('LEVEL 1-1', 28, 40); g.fillText('HERO.PNG', W - 124, 40);
+  }
+  g.fillStyle = 'rgba(0,0,0,.32)'; for (let y = 0; y < H; y += 3) g.fillRect(0, y, W, 1);
+  const v = g.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.85);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.6)'); g.fillStyle = v; g.fillRect(0, 0, W, H);
+  scrTex.needsUpdate = true;
+}
+
+/* ---------- tool poses ---------- */
+function lerpPose(obj, a, b, t) {
+  obj.position.lerpVectors(a.p, b.p, t);
+  obj.rotation.set(lerp(a.r.x, b.r.x, t), lerp(a.r.y, b.r.y, t), lerp(a.r.z, b.r.z, t));
+}
+const W_JOBS = [[0.44, 0.55, 0], [0.55, 0.66, 1], [0.66, 0.77, 2], [0.77, 0.88, 3], [3.58, 3.71, 4], [3.71, 3.84, 5]];
+const atNut = (i, ang) => ({ p: NUT_POS[i].clone().add(V(0, 0, 0.02)), r: V(0, 0, ang) });
+function poseWrench(P) {
+  for (let j = 0; j < W_JOBS.length; j++) {
+    const [a, b, n] = W_JOBS[j];
+    const prevNut = j > 0 && W_JOBS[j - 1][1] === a ? W_JOBS[j - 1][2] : -1;
+    const next = W_JOBS[j + 1], chained = next && next[0] === b;
+    if (P >= a && P < b) {
+      const u = (P - a) / (b - a), from = prevNut >= 0 ? atNut(prevNut, -2.1) : WRENCH_PARK;
+      if (u < 0.3) { lerpPose(wrench, from, atNut(n, 0.5), ease(u / 0.3)); return; }
+      lerpPose(wrench, atNut(n, 0.5), atNut(n, -2.1), ease((u - 0.3) / 0.7)); return;
+    }
+    if (!chained && P >= b && P < b + 0.1) { lerpPose(wrench, atNut(n, -2.1), WRENCH_PARK, ease((P - b) / 0.1)); return; }
+  }
+  lerpPose(wrench, WRENCH_PARK, WRENCH_PARK, 0);
+}
+const D_JOBS = [[2.4, 2.5, 0], [2.5, 2.6, 1], [2.6, 2.7, 2], [2.7, 2.8, 3]];
+const atScrew = (i, o) => ({ p: SCREW_POS[i].clone().add(V(0.22 + o, 0, 0)), r: V(0, 0, Math.PI / 2) });
+function poseDriver(P) {
+  for (let j = 0; j < D_JOBS.length; j++) {
+    const [a, b, n] = D_JOBS[j];
+    if (P >= a && P < b) {
+      const u = (P - a) / (b - a), from = j ? atScrew(D_JOBS[j - 1][2], 0) : DRIVER_PARK;
+      if (u < 0.3) { lerpPose(driver, from, atScrew(n, 0.12), ease(u / 0.3)); driverSpin.rotation.y = 0; return; }
+      const v = ease((u - 0.3) / 0.7);
+      lerpPose(driver, atScrew(n, 0.12), atScrew(n, 0), v); driverSpin.rotation.y = -v * 9; return;
+    }
+  }
+  const last = D_JOBS[D_JOBS.length - 1];
+  if (P >= last[1] && P < last[1] + 0.1) { lerpPose(driver, atScrew(last[2], 0), DRIVER_PARK, ease((P - last[1]) / 0.1)); driverSpin.rotation.y = 0; return; }
+  lerpPose(driver, DRIVER_PARK, DRIVER_PARK, 0); driverSpin.rotation.y = 0;
+}
+
+/* ---------- camera keys per stage ---------- */
+const CAM = [
+  { p: V(0.9, 1.6, 11.8), l: V(0.2, -0.7, 0) },
+  { p: V(0.6, 1.5, 11.0), l: V(0, -0.3, 0) },
+  { p: V(0.3, 0.6, 8.8), l: V(0, -0.35, 0) },
+  { p: V(1.9, 0.7, 9.0), l: V(0.35, -0.3, 0) },
+  { p: V(0.5, 1.9, 11.4), l: V(0, 0.55, 0) },
+  { p: V(0.2, 1.7, 9.0), l: V(0, 1.15, 0) },
+  { p: V(0, 1.4, 14.2), l: V(0, 0.6, 0) },
+];
+const camL = V(0, 0, 0);
+
+/* ---------- update ---------- */
+let P = window.SCRAP.target();
+const mobile = () => window.innerWidth < 760;
+function update(P, t) {
+  // Art card: on the desk, then into the reader.
+  const ac = span(P, 0.06, 0.38), mid = { p: V(-1.1, 0.2, 0.9), r: V(0, 0.1, 0) };
+  if (ac < 0.6) lerpPose(art, ART_DESK, mid, ease(ac / 0.6)); else lerpPose(art, mid, ART_SLOT, ease((ac - 0.6) / 0.4));
+
+  updateParts(P);
+  updateInstanced(brackets, P);
+  updateInstanced(washers, P);
+  W_JOBS.forEach(([a, b, n]) => { const u = span(P, a + (b - a) * 0.3, b); nutTurn[n] = lerp(0.5, -2.1, ease(u)); nutSeat[n] = 1 - ease(u); });
+  updateInstanced(nuts, P, (it, i, u, d) => { d.position.z += nutSeat[i] * 0.08; d.rotation.z = nutTurn[i] + ICON; });
+  poseWrench(P);
+
+  // Mechanisms run once they are in.
+  const runOn = span(P, 1.7, 1.9), thA = runOn * t * 1.3;
+  gA.m.rotation.z = thA;
+  gB.m.rotation.z = phiB + Math.PI + Math.PI / gB.n - (gA.n / gB.n) * (thA - phiB);
+  gC.m.rotation.z = phiC + Math.PI + Math.PI / gC.n - (gA.n / gC.n) * (thA - phiC);
+  updateInstanced(axles, P);
+  const pu = out(span(P, 1.5, 1.66)), pump = Math.sin(thA * 1.5) * 0.1 * runOn;
+  pistonRod.visible = spring1.visible = pu > 0;
+  pistonRod.position.copy(PISTON).add(V(0, 0.3 + pump + (1 - pu) * 4, 0));
+  spring1.position.copy(PISTON).add(V(0, 0.38 + pump * 0.5 + (1 - pu) * 4, 0)); spring1.scale.y = 1 + pump * 1.5;
+  const bu = out(span(P, 1.55, 1.78)); pulleys.position.set(0, (1 - bu) * 4, 0); pulleys.visible = bu > 0;
+  pul1.rotation.z = -thA * 1.4; pul2.rotation.z = -thA * 2.1;
+  spring2.scale.y = 1 + Math.sin(thA * 3) * 0.04 * runOn;
+
+  // Wiring, pipes, lamps, panels, screws, door.
+  cables.forEach((c, i) => {
+    const u = span(P, 2.1 + i * 0.06, 2.38 + i * 0.06);
+    c.m.geometry.setDrawRange(0, Math.floor(c.count * u / 6) * 6); c.m.visible = u > 0;
+    const on = span(P, 2.38, 2.5); c.pulse.visible = on > 0;
+    if (on > 0) c.pulse.position.copy(c.curve.getPointAt((t * 0.22 + i * 0.33) % 1));
+  });
+  updateInstanced(clamps, P);
+  updateInstanced(jLamps, P);
+  for (let i = 0; i < 3; i++) jLamps.setColorAt(i, span(P, 2.3 + i * 0.12, 2.36 + i * 0.12) > 0 ? new THREE.Color(1.8, 1.05, 0.2) : lampOffC);
+  jLamps.instanceColor.needsUpdate = true;
+  updateInstanced(screws, P, (it, i, u, d) => {
+    const job = D_JOBS[i], v = span(P, job[0] + (job[1] - job[0]) * 0.3, job[1]);
+    d.scale.setScalar(span(P, job[0], job[0] + 0.03)); d.position.x += (1 - ease(v)) * 0.12; d.rotation.x = -v * 9;
+  });
+  poseDriver(P);
+  const dIn = out(span(P, 2.26, 2.4)), dShut = ease(span(P, 2.82, 2.95));
+  door.visible = dIn > 0; door.position.y = -0.62 + (1 - dIn) * 4; door.rotation.y = lerp(1.6, 0, dShut);
+  updateInstanced(hinges, P);
+
+  // Monitor on the hoist.
+  const md = span(P, 3.14, 3.5), mu = span(P, 3.5, 3.62);
+  mon.position.copy(MON_END).add(V(0, (1 - out(md)) * 6, 0)); mon.visible = md > 0;
+  const hookY = MON_END.y + 0.92 + (1 - out(md)) * 6 + ease(mu) * 6;
+  hook.position.set(0, hookY, 0); hook.rotation.z = Math.PI * 0.75;
+  hoistLine.position.set(0, hookY + 6, 0); hoistLine.scale.y = 12; hoistLine.visible = hook.visible = md > 0 && mu < 1;
+  updateInstanced(buttons, P);
+
+  // Power.
+  lever.rotation.x = lerp(-0.7, 0.7, ease(span(P, 4.14, 4.28)));
+  const pw = span(P, 4.28, 4.42);
+  lamp.material = pw > 0 ? glow : lampOff;
+  marqueeFace.material = pw > 0.5 ? marqueeOn : marqueeOff;
+  const flicker = pw > 0 && pw < 1 ? (0.6 + 0.4 * Math.sin(t * 60)) : 1;
+  scrMat.emissiveIntensity = 1.6 * ease(pw) * flicker;
+
+  // Ship: turn to face the camera.
+  rig.rotation.y = lerp(-0.55, 0, ease(span(P, 5.1, 5.85))) + s.pointer.sx * 0.05;
+
+  const i0 = Math.min(5, Math.floor(P)), f = ease(P - i0), A = CAM[i0], B = CAM[Math.min(6, i0 + 1)];
+  const mob = mobile();
+  s.camera.position.lerpVectors(A.p, B.p, f).multiplyScalar(mob ? 1.45 : 1);
+  s.camera.position.y += s.pointer.sy * 0.15;
+  camL.lerpVectors(A.l, B.l, f); s.camera.lookAt(camL);
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (w && h) {
+    const center = span(P, 5.2, 5.9);
+    const ox = mob ? 0 : -w * 0.2 * (1 - center), oy = mob ? h * (0.2 + 0.06 * center) : h * 0.2 * center;
+    s.camera.setViewOffset(w, h, ox, oy, w, h);
+  }
+}
+
+let lastScr = -1;
+s.onFrame((t, dt) => {
+  const target = window.SCRAP.target();
+  P = window.SCRAP.fixed != null ? target : P + (target - P) * Math.min(1, dt * 4);
+  update(P, t);
+  if (P > 4.25 && t - lastScr > 0.05) { lastScr = t; drawScreen(P, t); }
+});
+if (s.reduceMotion) {
+  const still = () => { P = window.SCRAP.target(); update(P, 1.5); if (P > 4.25) drawScreen(P, 1.5); s.render(); };
+  window.addEventListener('scroll', still, { passive: true }); window.addEventListener('resize', still); still();
+}
+document.body.classList.add('live');
 </script>
 </body>
 </html>
