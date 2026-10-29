@@ -278,6 +278,7 @@ const SMALL = Math.min(window.innerWidth, window.innerHeight) < 760;
 const s = k.stage(canvas, { bloom: { strength: 0.32, radius: 0.35, threshold: 1.05 }, fov: 30, z: 10, exposure: 1.0, envIntensity: 0.6 });
 s.scene.background = new THREE.Color(0x0a0a0b);
 const cam = s.camera;
+const Z_DESK = 8.6;   // desktop camera distance; smaller = larger in frame
 
 const key = new THREE.DirectionalLight(0xffffff, 1.15); key.position.set(-3, 4, 5);
 const rim = new THREE.DirectionalLight(0xffe2b0, 0.35); rim.position.set(2, 4, -5);
@@ -534,7 +535,7 @@ function mixPose(a, b, t, lift) {
   return { pos: bez(a.pos, c, b.pos, t), phi: mix(a.phi, b.phi, t), s: mix(a.s, b.s, t) };
 }
 let narrow = false;
-function heroPose() { const sc = narrow ? 0.9 : 0.78; return { pos: V(-C0.x * sc, -C0.y * sc, 0), phi: 0, s: sc }; }
+function heroPose() { const sc = narrow ? 1.3 : 1.2; return { pos: V(-C0.x * sc, -C0.y * sc, 0), phi: 0, s: sc }; }
 function restPose() {
   return narrow
     ? { pos: V(-0.45, -BH / 2 - 0.55, 0.25), phi: 0 - ICON_A, s: S2 }                 // under the box, jaw right
@@ -569,7 +570,7 @@ const HEAD_T = [0.04, 0.34], HANDLE_T = [0.25, 0.55], NUT_T = [0.46, 0.78], JOIN
 let powerAt = -1;
 function update(P, t) {
   narrow = canvas.clientWidth / canvas.clientHeight < 0.85;
-  const f = narrow ? 0.5 : 1;
+  const f = narrow ? 0.42 : 0.62;   // explode spread; tighter on desktop because the wrench is larger there
 
   // Stage 1: three pieces arrive on arcs (logo units, inner frame), then join.
   const ah = arrive(HEAD_T[0], HEAD_T[1], P), al = arrive(HANDLE_T[0], HANDLE_T[1], P), an = arrive(NUT_T[0], NUT_T[1], P);
@@ -623,7 +624,14 @@ function update(P, t) {
     rig.scale.setScalar(1);
     rig.rotation.set(mix(0, 0.1, eBox), mix(mix(-0.1, -0.28, eBox), -0.18, eFin), 0);
   } else {
-    rig.position.set(mix(mix(1.7, 1.72, eBox), 0.3, eFin), mix(mix(0, -0.05, eBox), 0.62, eFin), 0);
+    // Rig offsets were tuned at camera distance 10. Scale them with the desktop distance,
+    // so the object stays centered in the right half when the camera moves in.
+    // x is a share of the visible width at the rig plane, so the object stays centered
+    // in the right half at any window size and camera distance. y was tuned at distance 10.
+    const zr = Z_DESK / 10, visW = 2 * Z_DESK * Math.tan(THREE.MathUtils.degToRad(15)) * (canvas.clientWidth / canvas.clientHeight);
+    // The exploded hero pieces spread upward, so the rig sits lower until they join.
+    const yHero = mix(-0.42, 0, ss(0.2, 0.6, P));
+    rig.position.set(visW * mix(mix(0.25, 0.23, eBox), 0.04, eFin), zr * mix(mix(yHero, -0.05, eBox), 0.62, eFin), 0);
     rig.scale.setScalar(mix(1, 0.9, eFin));
     const p = s.pointer;
     rig.rotation.set(-p.sy * 0.03 + mix(0, 0.12, eBox), mix(mix(-0.2, -0.45, eBox), -0.24, eFin) + p.sx * 0.05, 0);
@@ -634,7 +642,7 @@ function update(P, t) {
   // Portrait: the box takes about 60% of the width, which leaves room for the wrench at the corner bolts.
   // Portrait tablets are wide but short in the top half, so the height can set the distance there.
   const tn = 2 * Math.tan(THREE.MathUtils.degToRad(15));
-  const base = narrow ? Math.max((BW / 0.6) / (tn * aspect), 8.0 / tn) : 10;
+  const base = narrow ? Math.max((BW / 0.6) / (tn * aspect), 8.0 / tn) : Z_DESK;
   const z = base * mix(1.03, 0.97, clamp(P / 4)) * (1 - 0.05 * ss(ON_AT, 3.4, P));
   const orb = mix(0.026, -0.026, clamp(P / 4));
   cam.position.set(Math.sin(orb) * z, 0, Math.cos(orb) * z);
