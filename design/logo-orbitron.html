@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scrap Orbitron Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link id="gf" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=block">
+<script src="logo-geo.js"></script>
+<style>
+  :root { --bg: #0b0b0c; --line: rgba(255,255,255,.07); --ink: #e8e6e1; --mute: #7d7f85; --y: #ffc21a; }
+  * { box-sizing: border-box; }
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.4 -apple-system, BlinkMacSystemFont, sans-serif; }
+  #top { position: sticky; top: 0; z-index: 5; background: rgba(11,11,12,.96); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  #focus { display: flex; flex-wrap: wrap; align-items: center; gap: 34px; padding: 22px 22px 10px; min-height: 150px; }
+  #controls { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px 22px; padding: 8px 22px 14px; }
+  label { display: flex; align-items: center; gap: 8px; color: var(--mute); white-space: nowrap; }
+  label span { width: 78px; }
+  input[type=range] { flex: 1; accent-color: var(--y); min-width: 80px; }
+  output { width: 40px; text-align: right; color: var(--ink); font-variant-numeric: tabular-nums; }
+  select { background: #1b1c1f; color: var(--ink); border: 1px solid #2c2d31; border-radius: 6px; padding: 4px 8px; font: inherit; flex: 1; }
+  .btns { display: flex; gap: 8px; align-items: center; }
+  button { background: #1b1c1f; color: var(--ink); border: 1px solid #2c2d31; border-radius: 6px; padding: 5px 10px; font: inherit; cursor: pointer; }
+  button.on { border-color: var(--y); color: var(--y); }
+  #copied { color: var(--y); opacity: 0; transition: opacity .2s; }
+  h2 { font: 600 12px/1 -apple-system, sans-serif; color: var(--mute); text-transform: uppercase; letter-spacing: .12em; margin: 0; padding: 22px 22px 10px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1px; background: var(--line); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .card { background: var(--bg); padding: 16px 16px 12px; cursor: pointer; position: relative; }
+  .card:hover { background: #111214; }
+  .card .name { color: var(--mute); font-size: 11.5px; margin-top: 10px; }
+  .card .small { display: block; margin-top: 8px; }
+  .fav { position: absolute; top: 9px; right: 11px; color: #3a3b3f; font-size: 15px; }
+  .fav.on { color: var(--y); }
+  .wm { display: inline-flex; align-items: baseline; line-height: 1; white-space: nowrap; color: var(--y); }
+  .wm svg { overflow: visible; flex: none; }
+  body.inv, body.inv .card, body.inv #top { background: var(--y); }
+  body.inv .wm { color: #0b0b0c; }
+  body.inv .card .name, body.inv h2, body.inv label { color: #4a3a05; }
+</style>
+</head>
+<body>
+<div id="top">
+  <div id="focus"></div>
+  <div id="controls">
+    <label><span>Font weight</span><input id="weight" type="range" min="400" max="900" step="10"><output></output></label>
+    <label><span>Jaw tilt</span><input id="tilt" type="range" min="-30" max="40" step="1"><output></output></label>
+    <label><span>Jaw opening</span><input id="h" type="range" min="12" max="32" step="0.5"><output></output></label>
+    <label><span>Jaw depth</span><input id="depth" type="range" min="-10" max="20" step="0.5"><output></output></label>
+    <label><span>Back</span><select id="back"><option value="v">V (hex)</option><option value="round">Round</option><option value="flat">Flat</option></select></label>
+    <label><span>Nut size</span><input id="nut" type="range" min="0" max="1.1" step="0.01"><output></output></label>
+    <label><span>Nut gap</span><input id="gap" type="range" min="0" max="10" step="0.5"><output></output></label>
+    <label><span>Nut spin</span><input id="spin" type="range" min="0" max="60" step="1"><output></output></label>
+    <label><span>Nut hole</span><input id="hole" type="range" min="0" max="0.7" step="0.01"><output></output></label>
+    <label><span>Nut tone</span><input id="tone" type="range" min="0.15" max="1" step="0.01"><output></output></label>
+    <label><span>Nut slide</span><input id="slide" type="range" min="-12" max="12" step="0.5"><output></output></label>
+    <label><span>Head width</span><input id="sx" type="range" min="0.7" max="1.3" step="0.01"><output></output></label>
+    <label><span>Tip round</span><input id="tipR" type="range" min="0" max="10" step="0.5"><output></output></label>
+    <label><span>Spacing</span><input id="space" type="range" min="-10" max="20" step="0.5"><output></output></label>
+    <label><span>C follows weight</span><input id="link" type="checkbox" checked></label>
+    <div class="btns"><button id="inv">Invert</button><button id="copy">Copy params</button><button id="favsOnly">Starred only</button><span id="copied">Copied</span></div>
+  </div>
+</div>
+<div id="groups"></div>
+<script>
+const G = LogoGeo, $ = id => document.getElementById(id);
+const FAMILY = 'Orbitron';
+// Base: C 18, round head, level jaw, nut. depth = how far the jaw back sits from the head center (+ = deeper).
+const BASE = { weight: 800, tilt: 0, h: 23, depth: 0, back: 'v', nut: 1, gap: 4, spin: 0, hole: 0, tone: 0.55, slide: 0, sx: 1.12, tipR: 4, space: 4 };
+let cur = Object.assign({}, BASE);
+const favs = new Set(); try { JSON.parse(localStorage.getItem('scrapOrbFavs') || '[]').forEach(k => favs.add(k)); } catch (e) {}
+const saveFavs = () => { try { localStorage.setItem('scrapOrbFavs', JSON.stringify([...favs])); } catch (e) {} };
+
+const metricsCache = {};
+function metrics(w) {
+  if (metricsCache[w]) return metricsCache[w];
+  const c = document.createElement('canvas').getContext('2d');
+  c.font = `${w} 400px '${FAMILY}'`;
+  const H = c.measureText('H'), C = c.measureText('C'), I = c.measureText('I'), cap = H.actualBoundingBoxAscent;
+  return metricsCache[w] = { capEm: cap / 400, cw: (C.actualBoundingBoxLeft + C.actualBoundingBoxRight) / cap * 100,
+    adv: C.width / cap * 100, t: (I.actualBoundingBoxLeft + I.actualBoundingBoxRight) / cap * 100 };
+}
+
+// Hex nut polygon (optionally with a round hole, as a second subpath drawn with evenodd).
+function nutPath(p, o) {
+  if (p.nut <= 0) return '';
+  const rMax = (p.h - p.gap) / Math.cos(Math.PI / 6);   // flats touch the jaw flats minus the gap
+  const r = rMax * p.nut, back = o.jb, cx = back + p.gap + rMax + p.slide;
+  const pts = [];
+  for (let i = 0; i < 6; i++) {
+    const a = (i * 60 + p.spin) * Math.PI / 180;
+    const q = G.rot([cx + Math.cos(a) * r, Math.sin(a) * r], o.tilt);
+    pts.push([q[0], q[1], r * 0.1]);
+  }
+  let d = G.svgPath(G.roundPoly(pts, 6).map(q => [q[0] * o.sx, q[1]]));
+  if (p.hole > 0) {
+    const c = G.rot([cx, 0], o.tilt), hr = r * p.hole, x = c[0] * o.sx, y = -c[1];
+    d += `M${x + hr},${y}A${hr},${hr} 0 1 0 ${x - hr},${y}A${hr},${hr} 0 1 0 ${x + hr},${y}Z`;
+  }
+  return `<path d="${d}" fill="currentColor" fill-rule="evenodd" opacity="${p.tone}"/>`;
+}
+
+function headOpts(p, m) {
+  const R = 50, tine = R - p.h;
+  // Jaw back: V back starts at the point where a regular hex would sit; depth moves it.
+  const jb = -(p.h * Math.tan(Math.PI / 6)) - p.depth - 6;
+  return { outer: 'circle', R, h: p.h, jb, tilt: p.tilt, sx: p.sx, back: p.back, tipR: p.tipR, vr: 4 };
+}
+
+function wordmark(p, px) {
+  const m = metrics(p.weight), o = headOpts(p, m), u = m.capEm, pad = 24;
+  const head = `<path d="${G.svgPath(G.letterHead2(o))}" fill="currentColor"/>`;
+  const w = 100 * o.sx + p.space * 2;
+  return `<span class="wm" style="font:${p.weight} ${px}px '${FAMILY}'">S<svg viewBox="${-w / 2} ${-50 - pad} ${w} ${100 + 2 * pad}" ` +
+    `shape-rendering="geometricPrecision" style="width:${w * u / 100}em;height:${(100 + 2 * pad) * u / 100}em;transform:translateY(${pad * u / 100}em)">` +
+    head + nutPath(p, o) + `</svg>RAP</span>`;
+}
+
+// Variation groups around the base.
+function V(label, d) { return { label, p: Object.assign({}, BASE, d) }; }
+const GROUPS = [
+  ['Jaw angle', [-20, -10, 0, 5, 10, 15, 20, 25, 30].map(t => V(`tilt ${t}°`, { tilt: t }))],
+  ['Jaw opening', [17, 19, 21, 23, 25, 27, 29].map(h => V(`opening ${h}`, { h }))],
+  ['Jaw depth', [-8, -4, 0, 4, 8, 12, 16].map(d => V(`depth ${d}`, { depth: d }))],
+  ['Nut size', [0, 0.55, 0.7, 0.8, 0.9, 1].map(n => V(n ? `nut ${Math.round(n * 100)}%` : 'no nut', { nut: n }))],
+  ['Nut detail', [
+    V('hole 30%', { hole: 0.3 }), V('hole 45%', { hole: 0.45 }), V('spin 30°', { spin: 30 }), V('spin 15°', { spin: 15 }),
+    V('gap 1', { gap: 1 }), V('gap 7', { gap: 7 }), V('solid tone', { tone: 1, gap: 5 }), V('faint tone', { tone: 0.3 }),
+    V('slid out', { slide: 8, nut: 0.85 }), V('seated deep', { slide: -4, nut: 0.85 })]],
+  ['Back shape', [V('V back', {}), V('round back', { back: 'round' }), V('flat back', { back: 'flat' }),
+    V('round back, no nut', { back: 'round', nut: 0 }), V('flat back, no nut', { back: 'flat', nut: 0 })]],
+  ['Head width', [0.92, 1, 1.06, 1.12, 1.18, 1.24].map(s => V(`width ${s}`, { sx: s }))],
+  ['Mixes', [
+    V('tilt 15, nut 80%', { tilt: 15, nut: 0.8 }), V('tilt 10, hole', { tilt: 10, hole: 0.4 }),
+    V('tilt -10, small nut', { tilt: -10, nut: 0.65 }), V('open 27, nut 70%', { h: 27, nut: 0.7 }),
+    V('tilt 20, deep, spin 30', { tilt: 20, depth: 8, spin: 30 }), V('round back, hole', { back: 'round', hole: 0.4 }),
+    V('flat back, tilt 15', { back: 'flat', tilt: 15 }), V('solid nut, gap 6, tilt 12', { tone: 1, gap: 6, tilt: 12 })]],
+];
+
+const IDS = ['weight', 'tilt', 'h', 'depth', 'back', 'nut', 'gap', 'spin', 'hole', 'tone', 'slide', 'sx', 'tipR', 'space'];
+function syncControls() {
+  IDS.forEach(id => { const el = $(id); el.value = cur[id]; const out = el.parentNode.querySelector('output'); if (out) out.textContent = cur[id]; });
+}
+function keyOf(p) { return JSON.stringify(IDS.map(k => p[k])); }
+function renderFocus() {
+  $('focus').innerHTML = [150, 56, 28, 16].map(px => wordmark(cur, px)).join('');
+}
+let favsOnly = false;
+function renderGrid() {
+  const groups = favsOnly
+    ? [['Starred', [...favs].map(k => { const a = JSON.parse(k), p = {}; IDS.forEach((id, i) => p[id] = a[i]); return { label: 'starred', p }; })]]
+    : GROUPS;
+  $('groups').innerHTML = groups.map(([title, vs]) => `<h2>${title}</h2><div class="grid">` + vs.map((v, i) => {
+    const p = Object.assign({}, v.p, { weight: cur.weight }), k = keyOf(p);
+    return `<div class="card" data-k='${k}'><span class="fav${favs.has(k) ? ' on' : ''}">&#9733;</span>` +
+      wordmark(p, 60) + `<span class="small">${wordmark(p, 18)}</span><div class="name">${v.label}</div></div>`;
+  }).join('') + `</div>`).join('');
+}
+function render() { syncControls(); renderFocus(); }
+
+function init() {
+  syncControls(); renderFocus(); renderGrid();
+  IDS.forEach(id => $(id).addEventListener('input', e => {
+    cur[id] = id === 'back' ? e.target.value : +e.target.value;
+    // Keep the tine thickness equal to the font stem at the new weight.
+    if (id === 'weight' && $('link').checked) cur.h = Math.round(Math.max(12, Math.min(32, 50 - metrics(cur.weight).t * 1.12)) * 2) / 2;
+    render();
+    if (id === 'weight') renderGrid();
+  }));
+  $('inv').onclick = e => { document.body.classList.toggle('inv'); e.target.classList.toggle('on'); };
+  $('favsOnly').onclick = e => { favsOnly = !favsOnly; e.target.classList.toggle('on'); renderGrid(); };
+  $('copy').onclick = () => {
+    const txt = JSON.stringify(Object.assign({ font: FAMILY }, cur));
+    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).catch(() => prompt('Params', txt));
+    $('copied').style.opacity = 1; setTimeout(() => $('copied').style.opacity = 0, 1200);
+  };
+  $('groups').onclick = e => {
+    const card = e.target.closest('.card'); if (!card) return;
+    const k = card.dataset.k;
+    if (e.target.closest('.fav')) { favs.has(k) ? favs.delete(k) : favs.add(k); saveFavs(); renderGrid(); return; }
+    const a = JSON.parse(k); IDS.forEach((id, i) => cur[id] = a[i]); render();
+  };
+}
+const gf = $('gf');
+const go = () => document.fonts.load(`800 40px '${FAMILY}'`, 'SCRAPHI').then(() => document.fonts.load(`400 40px '${FAMILY}'`, 'SCRAP')).then(init, init);
+if (gf.sheet) go(); else { gf.addEventListener('load', go); gf.addEventListener('error', init); }
+</script>
+</body>
+</html>
