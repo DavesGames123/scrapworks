@@ -2,115 +2,112 @@
  * ScrapWorks brand kit. The five mockups load this file as a classic script.
  *
  * Contents (grep -n for the names):
- *   WRENCH_SVG_PATH   - 2D outline of the wrench C, SVG y-down units
- *   glyphSVG()        - inline SVG for the wrench C, sized in em
- *   hydrate()         - fills [data-scrap-wordmark] and [data-scrap-glyph] nodes
- *   three()           - Three.js helpers: stage, PBR materials, wrench mesh,
- *                       hex nut, bolt, brushed-metal texture, bloom
+ *   LETTER, ICON       - 2D outlines (math units, y-up, cap height 100)
+ *   glyphSVG()         - inline SVG: variant 'letter' (the C) or 'icon' (full wrench)
+ *   wordmarkHTML()     - S + letter C + RAP, sized in em to the page font
+ *   hydrate()          - fills [data-scrap-wordmark] and [data-scrap-glyph], sets favicon
+ *   three()            - Three.js helpers: stage (MSAA bloom), PBR materials,
+ *                        wrench mesh, hex nut, bolt, brushed-metal texture
  *
- * The wrench is an open-end wrench. Its jaw grips a hex nut and makes the
- * opening of the C. The glyph turns 40 degrees counterclockwise, so the jaw
- * points up and right, and the handle points down and left.
+ * The C is the head of an open-end wrench. Its outline is a chamfered C,
+ * so it reads as a letter at text size. The jaw inside it is the half of a
+ * hex nut, so it reads as a wrench up close. The letter turns 10 degrees
+ * counterclockwise. The icon adds the handle and turns 35 degrees.
+ * The wordmark has no handle, because a handle makes the C read as "F".
  */
 (function () {
   'use strict';
 
-  var JAW = 20.78; // half of the hex nut flat-to-flat distance (r = 24)
-  var ANGLE = 30;  // glyph turn, degrees counterclockwise
-  var HANDLE_END = -80, HANDLE_R = 11, HOLE_X = -79, HOLE_R = 4.5;
+  // Head geometry. X, Y: half width and half height. CH: corner chamfer.
+  // NR: hex nut radius. NX: nut center x. NH: half the nut flat-to-flat size.
+  var X = 31, Y = 50, CH = 16, NR = 28, NX = 10, NH = NR * Math.sin(Math.PI / 3);
+  var LETTER_ANGLE = 10, ICON_ANGLE = 35;
+  var HW = 11, HANDLE_END = -150, HOLE_X = -146, HOLE_R = 5;
 
-  // Outline in math units (y-up). The SVG path below is the same outline, y-down.
-  // Head: flat-top hexagon ring, outer r = 58, tips cut flat at x = 42.
-  var OUTLINE = [
-    [42, 27.7], [29, 50.2], [-29, 50.2], [-51.6, HANDLE_R], [HANDLE_END, HANDLE_R],
-    'ARC',
-    [HANDLE_END, -HANDLE_R], [-51.6, -HANDLE_R], [-29, -50.2], [29, -50.2], [42, -27.7],
-    [42, -JAW], [-12, -JAW], [-24, 0], [-12, JAW], [42, JAW]
-  ];
-  var HEAD = [[42, 27.7], [29, 50.2], [-29, 50.2], [-58, 0], [-29, -50.2], [29, -50.2], [42, -27.7]];
+  var JAW = [[X, -NH], [NX - NR / 2, -NH], [NX - NR, 0], [NX - NR / 2, NH], [X, NH]];
+  var LETTER = [[X, Y], [-X + CH, Y], [-X, Y - CH], [-X, -Y + CH], [-X + CH, -Y], [X, -Y]].concat(JAW);
+  var ICON = [[X, Y], [-X + CH, Y], [-X, Y - CH], [-X, HW], [HANDLE_END, HW], 'ARC',
+    [HANDLE_END, -HW], [-X, -HW], [-X, -Y + CH], [-X + CH, -Y], [X, -Y]].concat(JAW);
 
-  // Turned bounding box in SVG units (y-down), so viewBox and em sizing follow the outline.
-  function bbox(points) {
-    var a = ANGLE * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), b = [1e9, 1e9, -1e9, -1e9];
+  // Turned bounding box in SVG units (y-down).
+  function bbox(points, deg, pad) {
+    var a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), b = [1e9, 1e9, -1e9, -1e9];
     points.forEach(function (p) {
+      if (p === 'ARC') return;
       var x = p[0] * c - p[1] * s, y = -(p[0] * s + p[1] * c);
       b[0] = Math.min(b[0], x); b[1] = Math.min(b[1], y); b[2] = Math.max(b[2], x); b[3] = Math.max(b[3], y);
     });
-    return b;
+    pad = pad || 0;
+    return [b[0] - pad, b[1] - pad, b[2] + pad, b[3] + pad];
   }
   var capPts = [];
   for (var k = 0; k <= 12; k++) {
     var t = Math.PI / 2 + k * Math.PI / 12;
-    capPts.push([HANDLE_END + Math.cos(t) * HANDLE_R, Math.sin(t) * HANDLE_R]);
+    capPts.push([HANDLE_END + Math.cos(t) * HW, Math.sin(t) * HW]);
   }
-  var FULL = bbox(OUTLINE.filter(function (p) { return p !== 'ARC'; }).concat(capPts));
-  var HEADB = bbox(HEAD);
-  var PAD = 4;
-  FULL = [FULL[0] - PAD, FULL[1] - PAD, FULL[2] + PAD, FULL[3] + PAD];
+  var LETTER_BOX = bbox(LETTER, LETTER_ANGLE, 2);
+  var ICON_BOX = bbox(ICON.concat(capPts), ICON_ANGLE, 4);
 
-  var WRENCH_SVG_PATH = (function () {
+  function svgPath(outline) {
     var d = '';
-    OUTLINE.forEach(function (p, i) {
-      if (p === 'ARC') { d += ' A' + HANDLE_R + ',' + HANDLE_R + ' 0 0 0 '; return; }
+    outline.forEach(function (p, i) {
+      if (p === 'ARC') { d += ' A' + HW + ',' + HW + ' 0 0 0 '; return; }
       var s = p[0] + ',' + (-p[1]);
-      if (i === 0) d += 'M' + s;
-      else if (OUTLINE[i - 1] === 'ARC') d += s;
-      else d += ' L' + s;
+      if (i === 0) d += 'M' + s; else if (outline[i - 1] === 'ARC') d += s; else d += ' L' + s;
     });
     return d + ' Z';
-  })();
-
+  }
+  var LETTER_PATH = svgPath(LETTER), ICON_PATH = svgPath(ICON);
   var uid = 0;
 
   /*
    * glyphSVG(opts)
-   *   opts.fill   - CSS color or 'url(#id)' (default: currentColor)
-   *   opts.stroke - stroke color for the outline bevel (default: same as fill)
-   *   opts.defs   - extra <defs> markup (gradients, filters)
-   *   opts.hole   - true adds the hang hole in the handle
-   *   opts.cls    - class for the <svg>
+   *   opts.variant - 'letter' (default) or 'icon'
+   *   opts.fill    - CSS color or 'url(#id)' (default: currentColor)
+   *   opts.defs    - extra <defs> markup (gradients, filters)
+   *   opts.cls, opts.style - class and inline style for the <svg>
    */
   function glyphSVG(opts) {
     opts = opts || {};
-    var fill = opts.fill || 'currentColor';
-    var stroke = opts.stroke || fill;
-    var id = 'scrapHole' + (uid++);
-    var hole = opts.hole === false ? '' :
-      '<mask id="' + id + '"><rect x="-120" y="-120" width="240" height="240" fill="#fff"/>' +
-      '<circle cx="' + HOLE_X + '" cy="0" r="' + HOLE_R + '" fill="#000"/></mask>';
-    var vb = FULL[0].toFixed(1) + ' ' + FULL[1].toFixed(1) + ' ' + (FULL[2] - FULL[0]).toFixed(1) + ' ' + (FULL[3] - FULL[1]).toFixed(1);
-    return '<svg class="' + (opts.cls || 'scrap-glyph') + '" viewBox="' + vb + '" style="' + (opts.style || '') + '" ' +
-      'aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">' +
-      '<defs>' + hole + (opts.defs || '') + '</defs>' +
-      '<g transform="rotate(-' + ANGLE + ')"' + (hole ? ' mask="url(#' + id + ')"' : '') + '>' +
-      '<path d="' + WRENCH_SVG_PATH + '" fill="' + fill + '" stroke="' + stroke +
-      '" stroke-width="5" stroke-linejoin="round"/></g></svg>';
+    var icon = opts.variant === 'icon';
+    var box = icon ? ICON_BOX : LETTER_BOX, fill = opts.fill || 'currentColor';
+    var vb = box.map(function (v, i) { return (i < 2 ? v : v - box[i - 2]).toFixed(2); }).join(' ');
+    var id = 'scrapHole' + (uid++), mask = '';
+    if (icon) {
+      mask = '<mask id="' + id + '"><rect x="-200" y="-200" width="400" height="400" fill="#fff"/>' +
+        '<circle cx="' + HOLE_X + '" cy="0" r="' + HOLE_R + '" fill="#000"/></mask>';
+    }
+    return '<svg class="' + (opts.cls || 'scrap-glyph') + '" viewBox="' + vb + '" style="' + (opts.style || '') +
+      '" shape-rendering="geometricPrecision" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">' +
+      '<defs>' + mask + (opts.defs || '') + '</defs>' +
+      '<g transform="rotate(-' + (icon ? ICON_ANGLE : LETTER_ANGLE) + ')"' + (icon ? ' mask="url(#' + id + ')"' : '') + '>' +
+      '<path d="' + (icon ? ICON_PATH : LETTER_PATH) + '" fill="' + fill +
+      '" stroke="' + fill + '" stroke-width="2" stroke-linejoin="round"/></g></svg>';
   }
 
   /*
-   * Wordmark markup: S + wrench + RAP. The page sets font, color, and size.
-   * The glyph head matches the cap height of a condensed sans at 0.72em.
+   * Wordmark: S + letter C + RAP. The page sets font, color, and size.
+   * CAP is the cap height of the display font in em. The C center sits at CAP/2.
    */
-  // Scale: the turned head is CAP em tall. The head center sits at CAP/2 over the baseline.
-  var CAP = 0.74;
   function wordmarkHTML(opts) {
     opts = opts || {};
-    var u = CAP / (HEADB[3] - HEADB[1]);
-    var w = (FULL[2] - FULL[0]) * u, h = (FULL[3] - FULL[1]) * u;
-    var drop = FULL[3] * u - CAP / 2;                 // origin to svg bottom, minus head center height
-    var left = -(HEADB[0] - FULL[0]) * u * 0.18 + 0.05; // handle fills the gap after the S
-    var right = (FULL[2] - HEADB[2]) * -u + 0.03;
+    var cap = opts.cap || 0.72, u = cap / (2 * Y), b = LETTER_BOX;
+    var w = (b[2] - b[0]) * u, h = (b[3] - b[1]) * u;
+    var drop = b[3] * u - cap / 2;
+    opts.variant = 'letter';
     opts.cls = 'scrap-glyph';
-    opts.style = 'width:' + w.toFixed(3) + 'em;height:' + h.toFixed(3) + 'em;margin:0 ' + right.toFixed(3) +
-      'em 0 ' + left.toFixed(3) + 'em;transform:translateY(' + drop.toFixed(3) + 'em)';
+    opts.style = 'width:' + w.toFixed(3) + 'em;height:' + h.toFixed(3) + 'em;margin:0 0.035em 0 0.03em;' +
+      'transform:translateY(' + drop.toFixed(3) + 'em)';
     return '<span class="scrap-wordmark" aria-label="Scrap" role="img">' +
-      '<span class="scrap-wm-l">S</span>' + glyphSVG(opts) + '<span class="scrap-wm-l">RAP</span></span>';
+      '<span>S</span>' + glyphSVG(opts) + '<span>RAP</span></span>';
   }
 
+  // Text antialiasing for every page that loads the kit.
   var CSS =
+    'html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;' +
+    'text-rendering:optimizeLegibility;font-kerning:normal}' +
     '.scrap-wordmark{display:inline-flex;align-items:baseline;white-space:nowrap;line-height:1}' +
-    '.scrap-wordmark .scrap-glyph{overflow:visible;flex:none;position:relative;z-index:0}' +
-    '.scrap-wordmark .scrap-wm-l{position:relative;z-index:1}' +
+    '.scrap-wordmark .scrap-glyph{overflow:visible;flex:none}' +
     '.scrap-glyph-solo{width:1em;height:1em;overflow:visible}';
 
   function hydrate(root) {
@@ -119,13 +116,25 @@
       var st = document.createElement('style');
       st.id = 'scrap-brand-css';
       st.textContent = CSS;
-      document.head.appendChild(st);
+      document.head.insertBefore(st, document.head.firstChild);
+    }
+    if (!document.querySelector('link[rel="icon"]')) {
+      var ic = document.createElement('link');
+      ic.rel = 'icon';
+      ic.href = 'data:image/svg+xml,' + encodeURIComponent(glyphSVG({ variant: 'icon', fill: '#ffc21a' }));
+      document.head.appendChild(ic);
     }
     root.querySelectorAll('[data-scrap-wordmark]').forEach(function (el) {
-      el.innerHTML = wordmarkHTML({ fill: el.getAttribute('data-fill') || undefined });
+      el.innerHTML = wordmarkHTML({
+        fill: el.getAttribute('data-fill') || undefined,
+        cap: parseFloat(el.getAttribute('data-cap')) || undefined
+      });
     });
     root.querySelectorAll('[data-scrap-glyph]').forEach(function (el) {
-      el.innerHTML = glyphSVG({ fill: el.getAttribute('data-fill') || undefined, cls: 'scrap-glyph-solo' });
+      el.innerHTML = glyphSVG({
+        variant: el.getAttribute('data-scrap-glyph') || 'icon',
+        fill: el.getAttribute('data-fill') || undefined, cls: 'scrap-glyph-solo'
+      });
     });
   }
 
@@ -138,16 +147,18 @@
     addons = addons || {};
     var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    function wrenchShape() {
-      var s = new THREE.Shape();
-      OUTLINE.forEach(function (p, i) {
-        if (p === 'ARC') { s.absarc(HANDLE_END, 0, HANDLE_R, Math.PI / 2, Math.PI * 1.5, false); return; }
+    function wrenchShape(variant) {
+      var icon = variant !== 'letter', outline = icon ? ICON : LETTER, s = new THREE.Shape();
+      outline.forEach(function (p, i) {
+        if (p === 'ARC') { s.absarc(HANDLE_END, 0, HW, Math.PI / 2, Math.PI * 1.5, false); return; }
         if (i === 0) s.moveTo(p[0], p[1]); else s.lineTo(p[0], p[1]);
       });
       s.closePath();
-      var h = new THREE.Path();
-      h.absarc(HOLE_X, 0, HOLE_R, 0, Math.PI * 2, true);
-      s.holes.push(h);
+      if (icon) {
+        var h = new THREE.Path();
+        h.absarc(HOLE_X, 0, HOLE_R, 0, Math.PI * 2, true);
+        s.holes.push(h);
+      }
       return s;
     }
 
@@ -227,21 +238,24 @@
     };
 
     /*
-     * wrench(opts) -> THREE.Mesh, centered, 40 degree turn applied.
-     * Size: head is about 1.1 units across with scale 0.01.
+     * wrench(opts) -> THREE.Group with the mesh in userData.mesh.
+     *   opts.variant - 'icon' (default, with handle) or 'letter' (the C only)
+     *   opts.scale   - units per outline unit (default 0.01: the head is 1 unit tall)
+     * The mesh is centered on the head, not on the bounding box, so the
+     * group turns about the jaw. The turn angle of the variant is applied.
      */
     function wrench(opts) {
       opts = opts || {};
-      var geo = new THREE.ExtrudeGeometry(wrenchShape(), {
-        depth: opts.depth || 14, bevelEnabled: true, bevelThickness: 3, bevelSize: 2.4,
-        bevelSegments: 5, curveSegments: 32
+      var icon = opts.variant !== 'letter';
+      var geo = new THREE.ExtrudeGeometry(wrenchShape(opts.variant), {
+        depth: opts.depth || 16, bevelEnabled: true, bevelThickness: 3, bevelSize: 2,
+        bevelSegments: 6, curveSegments: 40
       });
-      geo.center();
+      geo.translate(0, 0, -(opts.depth || 16) / 2);
       geo.computeVertexNormals();
-      // Planar UVs so brushed texture runs along the handle.
       var mesh = new THREE.Mesh(geo, opts.material || materials.paint());
       var pivot = new THREE.Group();
-      mesh.rotation.z = THREE.MathUtils.degToRad(ANGLE);
+      mesh.rotation.z = THREE.MathUtils.degToRad(icon ? ICON_ANGLE : LETTER_ANGLE);
       mesh.scale.setScalar(opts.scale || 0.01);
       pivot.add(mesh);
       pivot.userData.mesh = mesh;
@@ -304,7 +318,10 @@
 
       var composer = null;
       if (opts.bloom && addons.EffectComposer) {
-        composer = new addons.EffectComposer(renderer);
+        // The default composer target has no MSAA, so bloom pages lose the
+        // canvas antialias. A multisampled half-float target restores it.
+        var rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: opts.samples || 4 });
+        composer = new addons.EffectComposer(renderer, rt);
         composer.addPass(new addons.RenderPass(scene, camera));
         var b = opts.bloom;
         composer.addPass(new addons.UnrealBloomPass(new THREE.Vector2(256, 256),
@@ -366,13 +383,15 @@
     return {
       THREE: THREE, materials: materials, wrench: wrench, wrenchShape: wrenchShape,
       hexNut: hexNut, bolt: bolt, stage: stage,
-      brushedTexture: brushedTexture, noiseTexture: noiseTexture, ANGLE: ANGLE
+      brushedTexture: brushedTexture, noiseTexture: noiseTexture,
+      LETTER_ANGLE: LETTER_ANGLE, ICON_ANGLE: ICON_ANGLE,
+      ANGLE: ICON_ANGLE // older name, kept until no page reads it
     };
   }
 
   window.ScrapBrand = {
-    WRENCH_SVG_PATH: WRENCH_SVG_PATH, glyphSVG: glyphSVG, wordmarkHTML: wordmarkHTML,
-    hydrate: hydrate, three: three, ANGLE: ANGLE
+    LETTER_PATH: LETTER_PATH, ICON_PATH: ICON_PATH, glyphSVG: glyphSVG, wordmarkHTML: wordmarkHTML,
+    hydrate: hydrate, three: three, LETTER_ANGLE: LETTER_ANGLE, ICON_ANGLE: ICON_ANGLE
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { hydrate(); });
   else hydrate();
