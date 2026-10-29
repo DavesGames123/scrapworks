@@ -363,12 +363,13 @@ function clipX(poly, keep) {
   for (let i = 0; i < poly.length; i++) {
     const a = poly[i], b = poly[(i + 1) % poly.length], ia = inside(a), ib = inside(b);
     if (ia) out.push([a[0], a[1], 0]);
-    if (ia !== ib) { const t = (CUT - a[0]) / (b[0] - a[0]); out.push([CUT, a[1] + t * (b[1] - a[1]), 0]); }
+    // Cut corners get a radius larger than the bevel, or the bevel folds them into spikes.
+    if (ia !== ib) { const t = (CUT - a[0]) / (b[0] - a[0]); out.push([CUT, a[1] + t * (b[1] - a[1]), 4]); }
   }
   return out;
 }
 const outline = ScrapBrand.headPoly(L, true);
-const EXT = { depth: DEPTH, radius: 2.6, corner: 0 };
+const EXT = { depth: DEPTH, radius: Math.min(2.4, L.tipR * 0.7), corner: 0 };   // same bevel as kit.wrench()
 const paintW = M.paint();
 const head = new THREE.Mesh(k.soft.extrude(clipX(outline, 1), EXT), paintW);
 const handle = new THREE.Mesh(k.soft.extrude(clipX(outline, -1), Object.assign({}, EXT, { holes: [[-HD.L, 0, HD.w1 * HD.hole]] })), paintW);
@@ -497,10 +498,12 @@ const zFace = BD / 2;
 const BR = NP.r * 0.01 * S2;                             // bolt head vertex radius
 const AF = 2 * BR * Math.cos(Math.PI / 6);               // across flats
 const HH = AF * 0.55, WSH = 0.014, PROUD = 0.12;
-const hexPts = []; for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; hexPts.push([Math.cos(a) * BR, Math.sin(a) * BR, BR * 0.1]); }
-const headG = k.soft.extrude(hexPts, { depth: HH, radius: HH * 0.2, corner: BR * 0.1 }).translate(0, 0, WSH + HH / 2);
+// Corner radius must exceed the bevel radius, or the hex corners fold into spikes.
+const BEV = HH * 0.14, CR = Math.max(BR * 0.18, BEV * 1.6);
+const hexPts = []; for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; hexPts.push([Math.cos(a) * BR, Math.sin(a) * BR, CR]); }
+const headG = k.soft.extrude(hexPts, { depth: HH, radius: BEV }).translate(0, 0, WSH + HH / 2);
 const washG = k.soft.cylinder(BR * 0.96, WSH, WSH * 0.4, 40).rotateX(Math.PI / 2).translate(0, 0, WSH / 2);
-const boltGeo = BufferGeometryUtils.mergeGeometries([headG, washG.index ? washG.toNonIndexed() : washG].map(gg => {
+const boltGeo = BufferGeometryUtils.mergeGeometries([headG, washG].map(gg => gg.index ? gg.toNonIndexed() : gg).map(gg => {
   ['uv1', 'uv2'].forEach(n => gg.deleteAttribute && gg.deleteAttribute(n)); return gg; }));
 const bolts = new THREE.InstancedMesh(boltGeo, steel, 4);
 bolts.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
