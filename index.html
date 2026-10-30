@@ -1184,18 +1184,23 @@ const TILE_LANES = [1.14, 1.28, 1.42];
 const BEATS = [
   [deck, mainAt(DECK.u, DECK.v, 0), 2, T_DECK[0], T_DECK[1], DECK_H],
   ...tiles.map((tl, i) => [tl.obj, tl.seat, i % 3, T_TILE0 + i * T_TILE_STEP, T_TILE0 + i * T_TILE_STEP + T_TILE_DUR, 0.012, tl.rot, TILE_SRC[STATION[i][0]]]),
-  [lid, LID_SEAT, -2, 2.58, 2.8, 0.06]
+  [lid, LID_SEAT, -2, 2.6, 2.8, 0.06]   // after arm 0's last tile, so it is clear of the lid's flight in
 ].map(b => ({ obj: b[0], seat: b[1], arm: b[2], a: b[3], b: b[4], top: b[5], rot: b[6] || 0, cell: b[7] }));
 // Phases of a carry (fractions of the beat): grow at staging, travel, anticipation, drop, release.
-const PH_DEF = { grow: 0.28, tr: 0.68, an: 0.71, dr: 0.84, rel: 0.84 };   // grow: the gripper takes the tile at its cell
+const PH_DEF = { grow: 0.2, tr: 0.66, an: 0.71, dr: 0.84, rel: 0.84 };   // grow: the gripper takes the tile at its cell
 // The deck and the lid fly in from off-frame during 'grow' (at full size), to where the arms take them.
 const PH_DECK = { grow: 0.3, tr: 0.75, an: 0.8, dr: 0.9, rel: 0.9 };
 // The lid: a long, slow, eased final drop, then a hold while the lid screws seat, then release.
 const PH_LID = { grow: 0.25, tr: 0.55, an: 0.58, dr: 0.72, rel: 0.94 };
 BEATS.forEach(b => { b.ph = b.obj === lid ? PH_LID : b.obj === deck ? PH_DECK : PH_DEF; });
+// Between two tiles of one arm, the arm goes straight to its next pickup, not back to the hub: an idle
+// arm crossing the lanes passed under the other arms' tiles in flight.
+BEATS.forEach(b => { if (b.cell != null) b.next = BEATS.find(n => n.cell != null && n.arm === b.arm && n.a > b.a) || null; });
+function nextPick(nb, out) { out.copy(_cellP[nb.cell]).addScaledVector(SN_N, 0.16); out.z += nb.top + TIP_HOVER; return out; }
 const FAR_IN = { deck: V(0, 9, 1.2), lid: V(9, -1, 1.6) }, _lq = new THREE.Quaternion();
 const LID_ARMS = [0, 2], LID_GRIPS = [V(-1.16, 0, 0), V(1.16, 0, 0)];   // opposite short edges
 // Two lifting lugs on the lid border, at the middle of the short edges, outside the display: the lid grips.
+let lidFly = false;
 const LUG_SG = [-1, 1], LUG_X = 1.27, LUG_T = 0.012, LUG_TOP = 0.03 + 0.036;
 [-1, 1].forEach(sg => { const m = new THREE.Mesh(k.soft.box(LUG_T, 0.07, 0.036, 0.003), brassD); m.position.set(sg * LUG_X, 0, 0.03 + 0.018); lid.add(m); });
 // Idle tip: just out of the neck, the three arms fanned. out: the vector to write (allocation-free).
@@ -2441,7 +2446,8 @@ function gatherProxies() {
   // The packing interior: two dividers and the two side bays (cradles, tray, file racks).
   if (floor.visible) { addObb(floor, -0.635, 0, 0.06, 0.02, IH / 2, 0.07, 15, 1000); addObb(floor, 0.635, 0, 0.06, 0.02, IH / 2, 0.07, 15, 1001);
     addObb(floor, -0.93, 0, 0.04, 0.29, IH / 2, 0.05, 15, 1002); addObb(floor, 0.93, 0, 0.04, 0.29, IH / 2, 0.05, 15, 1003); }
-  if (lid.visible) { addObb(lid, 0, 0, 0.015, TW / 2, THt / 2, 0.015, 9, ID_LID); addObb(lid, DISP.x, DISP.y, 0.045, DISP.w / 2 + 0.03, DISP.h / 2 + 0.03, 0.016, 9, ID_LID); }
+  const lp2 = lidFly ? 0.12 : 0;   // in flight from off-frame the lid moves in large steps: keep the tools further off
+  if (lid.visible) { addObb(lid, 0, 0, 0.015, TW / 2 + lp2, THt / 2 + lp2, 0.015 + lp2, 9, ID_LID); addObb(lid, DISP.x, DISP.y, 0.045, DISP.w / 2 + 0.03, DISP.h / 2 + 0.03, 0.016, 9, ID_LID); }
   if (lid.visible) for (const sg of LUG_SG) addObb(lid, sg * LUG_X, 0, 0.048, LUG_T / 2, 0.035, 0.018, 9, ID_LID);   // the lid lugs
   efProxies();   // the tool racks and the docked tools
 }
@@ -2704,7 +2710,7 @@ const STAR_HOLD = [1.975, 2.043];
 // Arms 1 and 2 stop guiding cards in time for their first swap; the links go before arm 0 crosses them.
 const GUIDE_END = [9, 1.885, 1.825], LINKS_END = 1.988;
 
-const PB_L = SMALL ? 0.27 : 0.34;   // pinch body: on phones the tool is larger, the tiles are not
+const PB_L = SMALL ? 0.27 : 0.3;   // pinch body: on phones the tool is larger, the tiles are not
 const EG = {
   housing: cylZ(0.026, 0.04, 0.006, 20).translate(0, 0, -0.02),
   pitch: k.soft.gear(14, 0.03, 0.008, 0.5), roll: k.soft.gear(18, 0.031, 0.007, 0.62),
@@ -2911,7 +2917,9 @@ function efArm(j, c, tp, dt, grow, tm, pre) {
   efAttached(j);
   const mode = tp.has ? tp.mode : '', contact = mode === 'flat' || mode === 'edge' || mode === 'sphere';
   // Wrist alignment: the tool turns to the part over the last part of the approach.
-  const alT = mode ? (tp.grip && mode !== 'guide' ? 1 : 1 - clamp((armS[j].tip.distanceTo(tp.tip) - 0.05) / 0.9)) : 0;   // gripping: square to the part
+  // A tile, the deck or a lid lug: the tool hangs square to it for the whole job, so a long tool (the pinch)
+  // never swings its length into the sheet on a fast approach. Other jobs turn the wrist over the last part.
+  const alT = mode ? (mode === 'edge' || mode === 'flat' || (tp.grip && mode !== 'guide') ? 1 : 1 - clamp((armS[j].tip.distanceTo(tp.tip) - 0.05) / 0.9)) : 0;   // gripping: square to the part
   e.al = dt <= 0 || (e.gT > 0 && alT === 1) ? alT : e.al + (alT - e.al) * (alT === 1 ? 1 - Math.exp(-dt * 30) : kk);   // holding: square to the part
   if (mode) e.nrm.copy(tp.nrm);
   toolAxis(e.T, c, j);
@@ -3024,10 +3032,49 @@ function efTools(tm) {
 }
 function bbAdd(bb, v, r) { bb[0] = Math.min(bb[0], v.x - r); bb[1] = Math.min(bb[1], v.y - r); bb[2] = Math.min(bb[2], v.z - r); bb[3] = Math.max(bb[3], v.x + r); bb[4] = Math.max(bb[4], v.y + r); bb[5] = Math.max(bb[5], v.z + r); }
 if (COLLIDE) window.SCRAP._efScr = () => efA.map(e => { const v = e.O.clone().applyMatrix4(asm.matrixWorld).project(cam); return [+((v.x + 1) / 2).toFixed(3), +((1 - v.y) / 2).toFixed(3), e.t, +e.gT.toFixed(2), +e.q.toFixed(3)]; });   // screenshots: where each tool is
+// Final pass, after every arm and tool is drawn: an arm whose chain or tool still touches a component or
+// another arm (a fast scroll moves the parts and the other arms after this arm solved) is solved again
+// against this frame's final state, and drawn again. Most frames find nothing and do no work.
+const armRedo = [0, 1, 2].map(() => ({ wave: 0, ph: 0, show: false, grow: 0, dt: 0, tm: 0 }));
+function ptHit(p, R, own) {
+  for (let n = 0; n < nLocS; n++) { const i = locS[n]; if (sphId[i] !== own && p.distanceToSquared(sphC[i]) < (sphR[i] + R) * (sphR[i] + R)) return true; }
+  for (let n = 0; n < nLocO; n++) { const b = locO[n]; if (obbId[b] === own) continue; _pt.copy(p).sub(obbC[b]);
+    if (Math.abs(_pt.dot(obbX[b])) < obbH[b].x + R && Math.abs(_pt.dot(obbY[b])) < obbH[b].y + R && Math.abs(_pt.dot(obbZ[b])) < obbH[b].z + R) return true; }
+  for (const dc of drawnChains) { if (dc.j === j_fp) continue; const c = dc.c;
+    for (let i = 0; i < c.n; i++) { if (c.len[i] <= 1e-4) continue; closestOnSeg(_pt2, p, c.q[i], c.q[i + 1]);
+      const rr = R + (dc.isSub ? rSub : rMain)(c, i + 0.5) + dc.wave; if (p.distanceToSquared(_pt2) < rr * rr) return true; } }
+  return false;
+}
+let j_fp = -1;
+function armTouches(j) {
+  const c = mains[j], tp = armTips[j], own = tp.own, dock = tp.has && tp.mode === 'dock', w = armRedo[j].wave;
+  j_fp = j; localProxies(c);
+  for (let i = 0; i < c.n; i++) { if (c.len[i] <= 1e-4) continue; const R = rMain(c, i + 0.5) + w, last = i === c.n - 1;
+    for (let f = 0; f <= 1; f += 0.25) { _pt.copy(c.q[i]).lerp(c.q[i + 1], f); _fv.copy(_pt); if (ptHit(_fv, R, last ? own : -1)) return true; } }
+  for (let n = 0; n < efCapN[j]; n++) { const b = j * EFCAP + n, R = efCapR[b]; if (R <= 0) continue;
+    for (let f = 0; f <= 1; f += 0.5) { _fv.copy(efCapA[b]).lerp(efCapB[b], f); if (ptHit(_fv, R, efCapG[b] || dock ? own : -1)) return true;
+      for (let j2 = 0; j2 < ARMS; j2++) { if (j2 === j) continue; for (let m = 0; m < efCapN[j2]; m++) { const b2 = j2 * EFCAP + m; if (efCapR[b2] <= 0) continue;
+        closestOnSeg(_fw, _fv, efCapA[b2], efCapB[b2]); if (_fv.distanceTo(_fw) < R + efCapR[b2]) return true; } } } }
+  return false;
+}
+function finalPass() {
+  let redo = false;
+  for (let j = 0; j < ARMS; j++) {
+    const rd = armRedo[j]; if (!rd.show || !armTouches(j)) continue;
+    const c = mains[j], tp = armTips[j];
+    for (let n = drawnChains.length - 1; n >= 0; n--) if (drawnChains[n].c === c) drawnChains.splice(n, 1);
+    avoid(c, j, false, rd.wave);
+    for (let k = 0; k < 6 && toolOut(c, j) + clawOut(c, c.n, tp.own, j) > 1e-5; k++);
+    drawChain(c, j * (SEGS + SUBS * SUBSEG), 0.05, 0.028, rd.wave, rd.ph, rd.show);
+    efArm(j, c, tp, rd.dt, rd.grow, rd.tm, false);
+    redo = true;
+  }
+  return redo;
+}
 // Push p out of the other arms' tools (capsules), to clearance R.
 const _pt = new THREE.Vector3(), _pt2 = new THREE.Vector3();
 function pushTools(p, R, j) {
-  R += 0.02;   // the tool parts are one frame old here
+  R += 0.04;   // margin: the tool parts can be a frame old, and a lagging arm closes gaps fast
   for (let jj = 0; jj < ARMS; jj++) {
     if (jj === j) continue; const bb = efBB[jj], m = R + 0.14;
     if (p.x < bb[0] - m || p.x > bb[3] + m || p.y < bb[1] - m || p.y > bb[4] + m || p.z < bb[2] - m || p.z > bb[5] + m) continue;
@@ -3125,7 +3172,7 @@ function efCheck(T, log) {
 
 /* ---------- update ---------- */
 const HEAD_T = [0.04, 0.3], HANDLE_T = [0.16, 0.42], NUT_T = [0.3, 0.5], JOIN = 0.42;
-const SCREEN_ON = 2.76;   // the lid stands at 2.738
+const SCREEN_ON = 2.76;   // the lid stands at 2.744
 const T_FLOOR = [0.55, 0.8], T_WALLS = [0.64, 0.9], T_BOSS = [0.84, 1.0], T_ST = [0.98, 1.1];
 let lastP = -99;
 const wq = new THREE.Quaternion(), wsv = new THREE.Vector3();
@@ -3212,11 +3259,12 @@ function update(P, t) {
   for (let j = 0; j < ARMS; j++) { const tp = armTips[j]; tp.grip = tp.work = tp.has = tp.blink = false; tp.lift = tp.w = tp.dIn = tp.R = tp.unlock = 0; tp.own = -1; tp.mode = ''; tp.side.set(0, 0, 0); }
   inFlight.length = 0;
   updatePipeline(P, t, A);
+  lidFly = false;
   for (const bt of BEATS) {
     const u = clamp((P - bt.a) / (bt.b - bt.a)), o = bt.obj;
     o.visible = P > bt.a;
     if (!o.visible) continue;
-    if (P >= bt.b) { o.position.copy(bt.seat); if (o === lid) o.quaternion.copy(qLidStand); else o.quaternion.setFromAxisAngle(ZUP, bt.rot); o.scale.setScalar(1); continue; }
+    if (P >= bt.b) { o.position.copy(bt.seat); if (o === lid) o.quaternion.copy(qLidStand); else o.quaternion.setFromAxisAngle(ZUP, bt.rot); o.scale.setScalar(1); if (bt.next && P < bt.next.a) { const tp = armTips[bt.arm]; nextPick(bt.next, tp.tip); tp.has = true; tp.mode = 'guide'; tp.nrm.set(0, 0, 1); } continue; }
     const two = bt.arm === -2, lead = two ? 1 : bt.arm, H = two ? LID_LANE : bt.cell != null ? TILE_LANES[bt.arm] : LANES[bt.arm], ph = bt.ph;
     // Staging: below the arm's root, behind the back wall, at the arm's own lane height (never above it),
     // so the path starts level in its lane and two pieces in flight never share a height.
@@ -3229,6 +3277,7 @@ function update(P, t) {
     const hl = pathHL(_P0, _P1, _P2, _P3), L = PS[5];
     // No scale-in: a tile is already at its atlas cell; the deck and the lid fly in from off-frame at full size.
     const far = o === lid ? FAR_IN.lid : o === deck ? FAR_IN.deck : null;
+    if (o === lid) lidFly = u < ph.grow;
     if (u < ph.grow) { if (far) { _pos.lerpVectors(far, _P0, easeOut(u / ph.grow)); grip = false; } else _pos.copy(_P0); }
     else if (u < ph.tr) pathAt(_pos, _P0, _P1, _P2, _P3, easeIO((u - ph.grow) / (ph.tr - ph.grow)) * hl);
     else if (u < ph.an) { pathAt(_pos, _P0, _P1, _P2, _P3, hl); lift = 0.03 * Math.sin(Math.PI * (u - ph.tr) / (ph.an - ph.tr)); _pos.z += lift; }  // anticipation
@@ -3268,8 +3317,8 @@ function update(P, t) {
       }
       tp.has = true; tp.grip = grip && u > 0.04; tp.work = grip; tp.lift = lift;
       tp.own = two ? ID_LID : bt.cell != null ? ID_TILE + tiles.findIndex(tl => tl.obj === o) : o === deck ? ID_DECK : -1;
-      if (!grip && u < ph.grow) { tp.tip.copy(_P0); tp.tip.z += bt.top + TIP_HOVER; if (two) { _e.set(1, 0, 0).applyQuaternion(o.quaternion); tp.tip.copy(_P0).addScaledVector(_e, (n ? 1 : -1) * LUG_X); tp.tip.z += 0.6; tp.mode = 'guide'; tp.nrm.set(0, 0, 1); } tp.grip = tp.work = false; continue; }   // the lid edges: wait above and out   // wait at the hand-over
-      if (!grip) { const r = easeIO((u - ph.rel) / (1 - ph.rel)); idleTip(j, A[j], _e); tp.tip.lerp(_e, r); tp.tip.z += 0.08 * Math.sin(Math.PI * r); }  // recoil, then relax
+      if (!grip && u < ph.grow) { tp.tip.copy(_P0); tp.tip.z += bt.top + TIP_HOVER; if (two) { _e.set(1, 0, 0).applyQuaternion(o.quaternion); tp.tip.copy(_P0).addScaledVector(_e, (n ? 1 : -1) * (LUG_X + 0.45)); tp.tip.z += 0.6; tp.mode = 'guide'; tp.nrm.set(0, 0, 1); } tp.grip = tp.work = false; continue; }   // the lid edges: wait above and out   // wait at the hand-over
+      if (!grip) { const r = easeIO((u - ph.rel) / (1 - ph.rel)); if (bt.next) nextPick(bt.next, _e); else idleTip(j, A[j], _e); tp.tip.lerp(_e, r); tp.tip.z += 0.08 * Math.sin(Math.PI * r); }  // recoil, then relax
     }
   }
 
@@ -3337,6 +3386,7 @@ function update(P, t) {
     efArm(j, c, tp, dt, ss(0.2, 0.45, ext), tm, true);   // the wrist and grip state, and the tool capsules for avoid
     if (show) avoid(c, j, false, wave);              // no joint of the drawn arm inside any component
     drawChain(c, j * (SEGS + SUBS * SUBSEG), 0.05, 0.028, wave, tm * 3.2 + j * 2.1, show);
+    const rd = armRedo[j]; rd.wave = wave; rd.ph = tm * 3.2 + j * 2.1; rd.show = show; rd.grow = ss(0.2, 0.45, ext); rd.dt = dt; rd.tm = tm;
     efArm(j, c, tp, dt, ss(0.2, 0.45, ext), tm, false);   // the wrist frame from the final chain, and the arm-side parts
     // Sub-arms: rooted 8 joints back from the tip; the socket goes to the screw that is driving now.
     const rj = Math.max(1, c.n - 8);
@@ -3368,6 +3418,7 @@ function update(P, t) {
     }
   }
   efTools(s.reduceMotion ? 0 : t);
+  if (finalPass()) efTools(s.reduceMotion ? 0 : t);   // an arm still touching something after all arms moved: solve it again
   if (COLLIDE) collisionCheck();
 
   // Lights: the key warms as the build completes and drifts slowly.
