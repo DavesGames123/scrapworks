@@ -117,7 +117,9 @@
   .final .cta, .final .plat { justify-content: center; }
   /* The wordmark the 3D wrench lands in. Its C starts hidden; the scene fades it in as the wrench hands over. */
   .final-mark { font-size: clamp(56px, 8vw, 112px); color: var(--y); margin-bottom: 18px; line-height: 1; }
-  .final-mark .scrap-glyph { opacity: 0; }
+  /* Hidden only while the live 3D runs (the wrench lands in its place). Without the scene, the C shows. */
+  body.warm:not(.poster):not(.lost) .final-mark .scrap-glyph { opacity: 0; }
+  body.lost .final-mark .scrap-glyph, body.poster .final-mark .scrap-glyph { opacity: 1 !important; }   /* the landing code sets an inline opacity */
   .btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px rgba(236,235,230,.35); }
   .btn.ghost:hover { background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 1px var(--y); }
   /* Stella Nova media: a neutral 16:9 frame until the trailer or screenshot is set in data-src. */
@@ -600,8 +602,15 @@ deck.userData.boxes = [new THREE.Box3(V(-DECK.w / 2, -DECK.h / 2, DECK_H - DECK_
 const ATLAS = { cols: 4, rows: 2, cell: { foundry: [0, 0], assembler: [1, 0], componentlab: [2, 0], living_quarters: [3, 0],
   wall_t: [0, 1], wall_x: [1, 1], fuel_processor: [2, 1], thruster_block: [3, 1] } };
 const texL = new THREE.TextureLoader();
+// Phones get half-size textures: iOS Safari drops the WebGL context (or reloads the tab) when GPU memory
+// runs high, and at phone pixel density the full-size atlases add memory, not detail.
+function halve(t) {
+  const im = t.image; if (!SMALL || !im || !im.width) return;
+  const c = document.createElement('canvas'); c.width = Math.max(1, im.width >> 1); c.height = Math.max(1, im.height >> 1);
+  c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); t.image = c; t.needsUpdate = true;
+}
 const loadTex = (f, srgb) => new Promise(res => {
-  const t = texL.load('media/sprites/' + f, () => res(t), undefined, () => res(t));
+  const t = texL.load('media/sprites/' + f, () => { halve(t); res(t); }, undefined, () => res(t));
   if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
 });
 // The game's albedo is flat and near white (231); under the key light and bloom it blew out, so it is toned down.
@@ -638,7 +647,8 @@ const lid = new THREE.Group(); lid.visible = false; asm.add(lid);
 const acrylic = new THREE.MeshStandardMaterial({ color: 0x1b1f25, transparent: true, opacity: 0.3, roughness: 0.42, metalness: 0, envMapIntensity: 0.4, depthWrite: false });
 lid.add(new THREE.Mesh(k.soft.extrude(rr(TW, THt, 0.16), { depth: 0.03, radius: 0.008 }).translate(0, 0, 0.015), acrylic));
 // The display covers the lid, inside the ring of lid screws, and plays the Stella Nova trailer.
-const DISP = { x: 0, y: 0, w: TW - 0.28, h: THt - 0.28 };
+// 16:9, the trailer's own aspect, so the video shows full-frame (a fill crop cut off the game's UI).
+const DISP = { x: 0, y: 0, w: TW - 0.28, h: (TW - 0.28) * 9 / 16 };
 lid.add(new THREE.Mesh(k.soft.box(DISP.w + 0.06, DISP.h + 0.06, 0.03, 0.012).translate(DISP.x, DISP.y, 0.045), plastic));
 const SCW = SMALL ? 480 : 720, SCH = Math.round(SCW * DISP.h / DISP.w);
 const scv = document.createElement('canvas'); scv.width = SCW; scv.height = SCH; const sg = scv.getContext('2d');
@@ -652,8 +662,11 @@ const screenMat = new THREE.MeshBasicMaterial({ map: stex, toneMapped: false, co
  */
 const vid = document.createElement('video');
 vid.muted = true; vid.loop = true; vid.playsInline = true; vid.setAttribute('playsinline', ''); vid.preload = 'none';
-const VID_SRC = SMALL ? 'media/stella-nova-loop-480.mp4' : 'media/stella-nova-trailer-720.mp4';
+// A silent 720p loop of the trailer's gameplay stretch (colony management, then the orbital view), on every device.
+const VID_SRC = 'media/stella-nova-gameplay-720.mp4';
 const vtex = new THREE.VideoTexture(vid); vtex.colorSpace = THREE.SRGBColorSpace;
+vtex.minFilter = THREE.LinearFilter; vtex.magFilter = THREE.LinearFilter; vtex.generateMipmaps = false;
+vtex.anisotropy = s.renderer.capabilities.getMaxAnisotropy();
 let vidLoading = false;
 function fitVideo() {   // center crop to the display aspect
   const va = (vid.videoWidth || 16) / (vid.videoHeight || 9), da = DISP.w / DISP.h;
@@ -1142,6 +1155,9 @@ function wrenchPose(P, t) {
   if (P < 0.95) return mixPose(hero, build, easeIO(clamp((P - 0.5) / 0.45)), V(0, 0.15, 0.2));
   if (P >= FEED[0] && P < FEED[3]) {
     const feed = feedPose();
+    // Once the head has folded shut, the wrench moves aside to its rest pose, clear of the trailer screen.
+    // (It sat in front of the screen through stage 03, and the screen light bloomed its brass.)
+    if (P >= XF_IN[1]) return mixPose(feed, restPose(), easeIO(clamp((P - XF_IN[1]) / 0.2)), V(0, -0.3, 0.25));
     if (P < FEED[1]) return mixPose(build, feed, easeIO((P - FEED[0]) / (FEED[1] - FEED[0])), V(0, 0, 0.25));
     if (P >= FEED[2]) return mixPose(feed, build, easeIO((P - FEED[2]) / (FEED[3] - FEED[2])), V(0, 0, 0.25));
     return Object.assign(feed, { pos: feed.pos.clone().add(V(0, Math.sin(t * 0.8) * 0.01, 0)) });
@@ -1293,7 +1309,18 @@ const Q = (() => {
   if (/Apple/i.test(r) && !/Pro|Max|Ultra/i.test(r)) return 'mid';
   return 'high';
 })();
-window.SCRAP.benchInfo = { tier: Q }; window.SCRAP.benchDyn = () => ({ dprEnd: window.SCRAP.dpr, refreshHz: window.SCRAP.refreshHz, probe: window.SCRAP.probe });
+window.SCRAP.benchInfo = { tier: Q };
+if (Q === 'low' && s.composer) {
+  // At phone DPR the jaggies are small; the 4x MSAA half-float buffer costs more GPU memory than the textures.
+  [s.composer.renderTarget1, s.composer.renderTarget2].forEach(rt => { if (rt && rt.samples) { rt.samples = 0; rt.dispose(); } });
+}
+// A lost WebGL context (iOS under memory pressure) shows the still fallback and the plain wordmark, not a dead canvas.
+canvas.addEventListener('webglcontextlost', e => {
+  e.preventDefault();
+  document.body.classList.add('lost', 'poster');
+  canvas.style.display = 'none';
+  const el = document.querySelector('.final-mark .scrap-glyph'); if (el) el.style.opacity = '';
+}, false); window.SCRAP.benchDyn = () => ({ dprEnd: window.SCRAP.dpr, refreshHz: window.SCRAP.refreshHz, probe: window.SCRAP.probe });
 window.SCRAP.sceneStats = () => {
   const rows = [];
   s.scene.traverse(o => {
@@ -2627,12 +2654,13 @@ function update(P, t) {
   let letter = 0, fold = 0, fade = 0;
   const target = P > 3.0 ? logoTarget() : null;
   if (target) {
-    const f = easeIO(clamp((P - 3.15) / 0.5));
-    const lift = posW.clone().lerp(target.pos, 0.5).add(V(0, 0.5, 0.3));
+    // The flight waits until 3.35 and dips low, so the wrench never crosses the trailer screen.
+    const f = easeIO(clamp((P - 3.35) / 0.45));
+    const lift = posW.clone().lerp(target.pos, 0.5).add(V(0, -0.45, 0.35));
     posW.copy(bez(posW, lift, target.pos, f));
     qW.slerp(target.q, f);
     sW = mix(sW, target.s, f);
-    letter = ss(3.5, 3.75, P); fold = ss(3.55, 3.8, P); fade = ss(3.86, 3.98, P);
+    letter = ss(3.6, 3.8, P); fold = ss(3.62, 3.84, P); fade = ss(3.88, 3.99, P);
   }
   W.position.copy(posW); W.quaternion.copy(qW); W.scale.setScalar(1);
   inner.rotation.z = ICON_A * (1 - letter);
