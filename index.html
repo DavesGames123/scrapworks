@@ -75,6 +75,11 @@
   .cta { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
 
   /* Terminal panel: the CRT construction monitor. Glow on the text is the one allowed exception. */
+  /* Tool logos (01): they name the tools the art comes from. Real marks, brand colors, no claim of partnership. */
+  .works { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 14px; }
+  .works img { width: 22px; height: 22px; display: block; }
+  .works .chip { font: 12px/1 "Share Tech Mono", ui-monospace, monospace; color: #c9c7c1; border: 1px solid rgba(255,255,255,.18); border-radius: 4px; padding: 4px 6px; }
+  footer .tm { display: block; margin-top: 6px; font-size: 11px; opacity: .6; max-width: 760px; }
   .term { position: relative; width: min(440px, 100%); padding: 12px; border-radius: 18px; background: #0d0e10;
     box-shadow: inset 0 0 0 1px #2b2e33, inset 0 1px 0 rgba(255,255,255,.05), 0 24px 60px rgba(0,0,0,.55);
     background-image:
@@ -212,6 +217,14 @@
     <div class="h type">01 // YOUR TOOLS</div>
     <div class="s type">Make the art where you already make it.</div>
     <div class="s type">Paint, pixel, and render in your own tools, then export the images.</div>
+    <div class="works" aria-label="Works with your tools">
+      <img src="media/logos/photoshop.svg" alt="Photoshop" title="Photoshop" width="22" height="22">
+      <img src="media/logos/aseprite.svg" alt="Aseprite" title="Aseprite" width="22" height="22">
+      <img src="media/logos/blender.svg" alt="Blender" title="Blender" width="22" height="22">
+      <img src="media/logos/krita.svg" alt="Krita" title="Krita" width="22" height="22">
+      <img src="media/logos/git.svg" alt="Git" title="Git" width="22" height="22">
+      <span class="chip">VS Code</span>
+    </div>
   </div></div></div></div></section>
 
   <section data-stage="2"><div class="col"><div class="term"><div class="glass"><div class="tx">
@@ -242,7 +255,8 @@
     </video>
   </section>
 </main>
-<footer>&copy; 2026 ScrapWorks</footer>
+<footer>&copy; 2026 ScrapWorks
+  <span class="tm">Photoshop, Aseprite, Blender, Krita, Git, and Visual Studio Code are trademarks of their respective owners and are shown to name the tools. ScrapWorks is not affiliated with or endorsed by them. Git logo by Jason Long, CC BY 3.0.</span></footer>
 
 <script>
 /* Platform row: three CC0 glyphs (Windows and Apple from Simple Icons, Tux drawn here), then text. */
@@ -373,7 +387,7 @@ import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js'
  *   0.93-1.03 the wrench head transforms: six machined pieces (tines, cheeks, jaw back,
  *             handle) open on straight seams, the nut hub rises; three segmented arms
  *             pay out of the hub, each with two branch arms (hex socket, driver)
- *   1.0-1.24  SOURCE: three generic tool windows (Photoshop, Aseprite, Blender) rise
+ *   1.0-1.24  SOURCE: three tool windows (Photoshop, Aseprite, Blender, real logos) rise
  *   1.12-1.3  arm 2 sets a clear deck on four posts in the open box
  *   1.4-1.96  the asset cards stream around the sheet sides into the atlas sheet;
  *             arms 1 and 2 guide them up the face into their cells
@@ -1645,7 +1659,9 @@ const pipeReady = Promise.all([loadTex('pipeline-atlas.webp', true)].concat([0, 
   });
 
 /* ---- tool windows: a dark panel with a canvas screen. Generic chrome, plain labels. ---- */
-const WIN = [{ label: 'Photoshop', file: 'planet_earth.png' }, { label: 'Aseprite', file: 'module_foundry.png' }, { label: 'Blender', file: 'asteroid_007.blend' }];
+const WIN = [{ label: 'Photoshop', file: 'planet_earth.png', logo: 'photoshop' }, { label: 'Aseprite', file: 'module_foundry.png', logo: 'aseprite' }, { label: 'Blender', file: 'asteroid_007.blend', logo: 'blender' }];
+// Real app logos in the title bars (media/logos, Simple Icons paths in brand colors). They draw once loaded.
+WIN.forEach(w => { const im = new Image(); im.src = 'media/logos/' + w.logo + '.svg'; im.onload = () => { w.logoImg = im; }; });
 const WCW = 512, WCH = 352, WIN_W = 1.5, WIN_H = WIN_W * WCH / WCW;
 const winBackMat = new THREE.MeshStandardMaterial({ color: 0x16181d, metalness: 0.6, roughness: 0.48 });
 const windows = WIN.map((w, i) => {
@@ -1666,7 +1682,8 @@ function chrome(w, g, prog, exporting) {
   g.fillStyle = '#0f1115'; g.fillRect(0, 0, WCW, WCH);
   g.fillStyle = '#1b1e24'; g.fillRect(0, 0, WCW, 30);
   ['#3a3d44', '#3a3d44', '#3a3d44'].forEach((col, i) => { g.fillStyle = col; g.beginPath(); g.arc(16 + i * 16, 15, 4.5, 0, 7); g.fill(); });
-  g.font = '600 15px "IBM Plex Sans", system-ui, sans-serif'; g.fillStyle = '#d8d6d0'; g.textBaseline = 'middle'; g.fillText(w.label, 66, 16);
+  if (w.logoImg) g.drawImage(w.logoImg, 64, 5, 20, 20);
+  g.font = '600 15px "IBM Plex Sans", system-ui, sans-serif'; g.fillStyle = '#d8d6d0'; g.textBaseline = 'middle'; g.fillText(w.label, w.logoImg ? 92 : 66, 16);
   g.font = '13px "Share Tech Mono", ui-monospace, monospace'; g.fillStyle = '#7d7f85'; g.textAlign = 'right'; g.fillText(w.file, WCW - 12, 16); g.textAlign = 'left';
   g.fillStyle = '#15171b'; g.fillRect(0, WCH - 26, WCW, 26);
   g.fillStyle = exporting ? '#ffb000' : '#6f7177'; g.font = '13px "Share Tech Mono", ui-monospace, monospace';
