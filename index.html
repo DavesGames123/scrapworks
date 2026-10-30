@@ -75,10 +75,16 @@
   .cta { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
 
   /* Terminal panel: the CRT construction monitor. Glow on the text is the one allowed exception. */
-  /* Tool logos (01): they name the tools the art comes from. Real marks, brand colors, no claim of partnership. */
-  .works { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 14px; }
-  .works img { width: 22px; height: 22px; display: block; }
-  .works .chip { font: 12px/1 "Share Tech Mono", ui-monospace, monospace; color: #c9c7c1; border: 1px solid rgba(255,255,255,.18); border-radius: 4px; padding: 4px 6px; }
+  /* Tool logo wall (01): real marks in brand colors on light tiles, grouped by craft. The light tile keeps
+     dark marks (GitHub, Inkscape, Rider) readable without recoloring them. */
+  .works { display: grid; gap: 10px; margin-top: 16px; }
+  .wg { display: grid; grid-template-columns: 74px 1fr; align-items: center; gap: 8px; }
+  .wl { font: 11px/1.1 "Share Tech Mono", ui-monospace, monospace; letter-spacing: .12em; color: rgba(255,176,0,.75); }
+  .wt { display: flex; flex-wrap: wrap; gap: 7px; }
+  .wt img { width: 40px; height: 40px; box-sizing: border-box; padding: 7px; border-radius: 9px; display: block;
+    background: #f3f1ec; box-shadow: 0 1px 0 rgba(255,255,255,.5) inset, 0 6px 14px rgba(0,0,0,.45); transition: transform .15s ease; }
+  .wt img:hover { transform: translateY(-2px); }
+  @media (max-width: 760px) { .wg { grid-template-columns: 1fr; gap: 6px; } .wt img { width: 36px; height: 36px; padding: 6px; } }
   footer .tm { display: block; margin-top: 6px; font-size: 11px; opacity: .6; max-width: 760px; }
   .term { position: relative; width: min(440px, 100%); padding: 12px; border-radius: 18px; background: #0d0e10;
     box-shadow: inset 0 0 0 1px #2b2e33, inset 0 1px 0 rgba(255,255,255,.05), 0 24px 60px rgba(0,0,0,.55);
@@ -218,12 +224,10 @@
     <div class="s type">Make the art where you already make it.</div>
     <div class="s type">Paint, pixel, and render in your own tools, then export the images.</div>
     <div class="works" aria-label="Works with your tools">
-      <img src="media/logos/photoshop.svg" alt="Photoshop" title="Photoshop" width="22" height="22">
-      <img src="media/logos/aseprite.svg" alt="Aseprite" title="Aseprite" width="22" height="22">
-      <img src="media/logos/blender.svg" alt="Blender" title="Blender" width="22" height="22">
-      <img src="media/logos/krita.svg" alt="Krita" title="Krita" width="22" height="22">
-      <img src="media/logos/git.svg" alt="Git" title="Git" width="22" height="22">
-      <span class="chip">VS Code</span>
+      <div class="wg"><span class="wl">ART</span><div class="wt"><img src="media/logos/photoshop.svg" alt="Photoshop" title="Photoshop" width="40" height="40" loading="lazy"><img src="media/logos/illustrator.svg" alt="Illustrator" title="Illustrator" width="40" height="40" loading="lazy"><img src="media/logos/aseprite.svg" alt="Aseprite" title="Aseprite" width="40" height="40" loading="lazy"><img src="media/logos/krita.svg" alt="Krita" title="Krita" width="40" height="40" loading="lazy"><img src="media/logos/gimp.svg" alt="GIMP" title="GIMP" width="40" height="40" loading="lazy"><img src="media/logos/inkscape.svg" alt="Inkscape" title="Inkscape" width="40" height="40" loading="lazy"><img src="media/logos/affinity-designer.svg" alt="Affinity Designer" title="Affinity Designer" width="40" height="40" loading="lazy"><img src="media/logos/affinity-photo.svg" alt="Affinity Photo" title="Affinity Photo" width="40" height="40" loading="lazy"><img src="media/logos/figma.svg" alt="Figma" title="Figma" width="40" height="40" loading="lazy"></div></div>
+      <div class="wg"><span class="wl">3D &amp; MOTION</span><div class="wt"><img src="media/logos/blender.svg" alt="Blender" title="Blender" width="40" height="40" loading="lazy"><img src="media/logos/maya.svg" alt="Maya" title="Maya" width="40" height="40" loading="lazy"><img src="media/logos/houdini.svg" alt="Houdini" title="Houdini" width="40" height="40" loading="lazy"><img src="media/logos/cinema4d.svg" alt="Cinema 4D" title="Cinema 4D" width="40" height="40" loading="lazy"><img src="media/logos/spine.svg" alt="Spine" title="Spine" width="40" height="40" loading="lazy"><img src="media/logos/rive.svg" alt="Rive" title="Rive" width="40" height="40" loading="lazy"><img src="media/logos/after-effects.svg" alt="After Effects" title="After Effects" width="40" height="40" loading="lazy"><img src="media/logos/premiere-pro.svg" alt="Premiere Pro" title="Premiere Pro" width="40" height="40" loading="lazy"><img src="media/logos/davinci-resolve.svg" alt="DaVinci Resolve" title="DaVinci Resolve" width="40" height="40" loading="lazy"><img src="media/logos/obs-studio.svg" alt="OBS Studio" title="OBS Studio" width="40" height="40" loading="lazy"></div></div>
+      <div class="wg"><span class="wl">AUDIO</span><div class="wt"><img src="media/logos/audacity.svg" alt="Audacity" title="Audacity" width="40" height="40" loading="lazy"><img src="media/logos/bitwig.svg" alt="Bitwig" title="Bitwig" width="40" height="40" loading="lazy"><img src="media/logos/musescore.svg" alt="MuseScore" title="MuseScore" width="40" height="40" loading="lazy"><img src="media/logos/fmod.svg" alt="FMOD" title="FMOD" width="40" height="40" loading="lazy"><img src="media/logos/wwise.svg" alt="Wwise" title="Wwise" width="40" height="40" loading="lazy"></div></div>
+      <div class="wg"><span class="wl">CODE</span><div class="wt"><img src="media/logos/vscode.svg" alt="VS Code" title="VS Code" width="40" height="40" loading="lazy"><img src="media/logos/visual-studio.svg" alt="Visual Studio" title="Visual Studio" width="40" height="40" loading="lazy"><img src="media/logos/rider.svg" alt="Rider" title="Rider" width="40" height="40" loading="lazy"><img src="media/logos/neovim.svg" alt="Neovim" title="Neovim" width="40" height="40" loading="lazy"><img src="media/logos/sublime-text.svg" alt="Sublime Text" title="Sublime Text" width="40" height="40" loading="lazy"><img src="media/logos/xcode.svg" alt="Xcode" title="Xcode" width="40" height="40" loading="lazy"><img src="media/logos/git.svg" alt="Git" title="Git" width="40" height="40" loading="lazy"><img src="media/logos/github.svg" alt="GitHub" title="GitHub" width="40" height="40" loading="lazy"></div></div>
     </div>
   </div></div></div></div></section>
 
@@ -256,7 +260,7 @@
   </section>
 </main>
 <footer>&copy; 2026 ScrapWorks
-  <span class="tm">Photoshop, Aseprite, Blender, Krita, Git, and Visual Studio Code are trademarks of their respective owners and are shown to name the tools. ScrapWorks is not affiliated with or endorsed by them. Git logo by Jason Long, CC BY 3.0.</span></footer>
+  <span class="tm">All product names and logos are trademarks of their respective owners and are shown to name the tools. ScrapWorks is not affiliated with or endorsed by them. Git logo by Jason Long, CC BY 3.0.</span></footer>
 
 <script>
 /* Platform row: three CC0 glyphs (Windows and Apple from Simple Icons, Tux drawn here), then text. */
