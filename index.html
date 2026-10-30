@@ -370,15 +370,19 @@ import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js'
  *   0-0.5     the logo wrench assembles itself: head, handle, nut; at 0.42 the
  *             halves swap for the solid mesh (no seam)
  *   0.5-0.95  the wrench rises above the back wall; the enclosure tray arrives
- *   0.95-1.05 the wrench opens at the neck; three segmented arms unfold, each
- *             with two branch arms (hex socket, driver)
+ *   0.93-1.03 the wrench head transforms: tines swing out on hinges, cheek plates
+ *             split, the jaw back opens, the nut hub rises; three segmented arms
+ *             pay out of the hub, each with two branch arms (hex socket, driver)
  *   1.05-2.4  the arms carry each module out of the wrench and place it: board,
  *             LOGIC, RENDER (+ heatsink), MEMORY, AUDIO, POWER, PHYSICS, INPUT,
  *             NET, SAVE; cables grow; the fastener and SMD swarm seats in waves
  *             around them; branch arms hover over screws as they drive in
- *   2.2-2.6   all three arms set the smoked lid with its display; 20 lid screws
- *   2.5-2.7   the arms retract; the wrench closes back into one piece
- *   2.72-3.1  the display boots: a node graph of the game's objects
+ *   2.05-2.48 a clear deck goes in over the board, and the arms install ten
+ *             Stella Nova station sprites on it, spine first, then the modules
+ *   2.48-2.72 arms 0 and 2 carry the lid by opposite edges, lower it, hold it while
+ *             the lid screws seat, and release; the arms reel into the hub
+ *   2.85-2.97 the head folds shut (the exact reverse of the transform)
+ *   2.99-3.1  the display boots and plays the Stella Nova trailer
  *   3.15-4    the device rises; the wrench flies to the C of the wordmark in the
  *             final section, folds its handle into the head, and hands over to
  *             the SVG letter
@@ -717,6 +721,55 @@ const pulsePaths = traces.slice(0, NPULSE).map(tr => {
   return { p, L, tot: L[L.length - 1], ph: rnd() };
 });
 
+/* ---------- the Stella Nova station: sprite tiles on a clear deck ----------
+ * A smoked deck plate on four brass posts sits over the right half of the board, clear of the ribbon cable
+ * and under the lid. The arms install ten Stella Nova station sprites on it (the game's own module art):
+ * the wall spine first, then the modules, the way the game builds a station. Each tile is a thin dark steel
+ * slab with the sprite on top. The sprite is a lit relief: albedo, normal, roughness/metalness, and the
+ * molten-core emission maps from the game, cut out by its alpha (alphaTest + alpha to coverage under MSAA).
+ * All four maps are one atlas each (media/sprites, 232 KB), loaded before warm-up so they upload there.
+ */
+const DECK = { u: 0.38, v: 0.05, w: 0.66, h: 1.2, z: 0.36 };          // board-local center and size; z = deck top
+const DECK_C = mainAt(DECK.u, DECK.v, 0);
+const deck = module('DECK');                                         // origin at the board top, under the deck center
+const deckMat = new THREE.MeshStandardMaterial({ color: 0x1e242c, transparent: true, opacity: 0.42, roughness: 0.32, metalness: 0.25, depthWrite: false });
+const DECK_PT = 0.012, DECK_H = DECK.z - ZT;
+deck.add(new THREE.Mesh(k.soft.extrude(rr(DECK.w, DECK.h, 0.035), { depth: DECK_PT, radius: 0.003 }).translate(0, 0, DECK_H - DECK_PT / 2), deckMat));
+const DECK_POSTS = [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([x, y]) => [x * (DECK.w / 2 - 0.04), y * (DECK.h / 2 - 0.04)]);
+deck.add(new THREE.Mesh(merge(DECK_POSTS.map(q => zAxis(k.soft.cylinder(0.016, DECK_H - DECK_PT, 0.004, 16)).translate(q[0], q[1], (DECK_H - DECK_PT) / 2))), brassD));
+// Compound collision boxes (plate + posts), so the posts can stand between the modules under the deck.
+deck.userData.boxes = [new THREE.Box3(V(-DECK.w / 2, -DECK.h / 2, DECK_H - DECK_PT), V(DECK.w / 2, DECK.h / 2, DECK_H))]
+  .concat(DECK_POSTS.map(q => new THREE.Box3(V(q[0] - 0.016, q[1] - 0.016, 0), V(q[0] + 0.016, q[1] + 0.016, DECK_H))));
+const ATLAS = { cols: 4, rows: 2, cell: { foundry: [0, 0], assembler: [1, 0], componentlab: [2, 0], living_quarters: [3, 0],
+  wall_t: [0, 1], wall_x: [1, 1], fuel_processor: [2, 1], thruster_block: [3, 1] } };
+const texL = new THREE.TextureLoader();
+const loadTex = (f, srgb) => new Promise(res => {
+  const t = texL.load('media/sprites/' + f, () => res(t), undefined, () => res(t));
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+});
+// The game's albedo is flat and near white (231); under the key light and bloom it blew out, so it is toned down.
+const spriteMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(0.46, 0.46, 0.48), roughness: 1, metalness: 1, alphaTest: 0.5, alphaToCoverage: true,
+  emissive: new THREE.Color(1, 1, 1), emissiveIntensity: 1.15, normalScale: new THREE.Vector2(0.9, 0.9) });
+const spritesReady = Promise.all([loadTex('station-albedo.webp', true), loadTex('station-normal.webp'), loadTex('station-orm.webp'), loadTex('station-emission.webp', true)])
+  .then(([a, n, o, e]) => {
+    Object.assign(spriteMat, { map: a, normalMap: n, roughnessMap: o, metalnessMap: o, emissiveMap: e }); spriteMat.needsUpdate = true;
+    [a, n, o, e].forEach(tx => { try { s.renderer.initTexture(tx); } catch (er) {} });
+  });
+const TILE = 0.2, tileSlabMat = armMat;
+function spriteTile(name) {
+  const [cx, cy] = ATLAS.cell[name], g = new THREE.Group(); g.name = 'tile:' + name; g.visible = false; asm.add(g);
+  const pg = new THREE.PlaneGeometry(TILE * 0.98, TILE * 0.98), uv = pg.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, (cx + uv.getX(i)) / ATLAS.cols, (ATLAS.rows - 1 - cy + uv.getY(i)) / ATLAS.rows);
+  const sp = new THREE.Mesh(pg, spriteMat); sp.position.z = 0.0105; g.add(sp);
+  g.add(new THREE.Mesh(k.soft.extrude(rr(TILE * 0.86, TILE * 0.7, 0.018), { depth: 0.01, radius: 0.0025 }).translate(0, 0, 0.005), tileSlabMat));
+  return g;
+}
+// The station: [sprite, column, row, turn]. Columns -1..1 and rows 0..3 on a 0.2 grid, centered on the deck.
+const STATION = [['wall_x', 0, 1, 0], ['wall_x', 0, 2, 0], ['wall_t', 0, 0, Math.PI], ['wall_t', 0, 3, 0],
+  ['foundry', -1, 0, 0], ['assembler', -1, 1, 0], ['componentlab', -1, 2, 0], ['living_quarters', -1, 3, 0],
+  ['fuel_processor', 1, 1, 0], ['thruster_block', 1, 2, 0]];
+const tiles = STATION.map(([n, c, r, rot]) => ({ obj: spriteTile(n), seat: mainAt(DECK.u + c * TILE, DECK.v + (1.5 - r) * TILE, DECK.z), rot }));
+
 /* ---------- lid: smoked acrylic with the display ---------- */
 const lid = new THREE.Group(); lid.visible = false; asm.add(lid);
 // Satin smoked acrylic: a glossy lid caught the rim light and bloomed white, so its specular stays low.
@@ -794,7 +847,7 @@ const LIDP = [];
 BOSS.forEach(b => LIDP.push([b.x, b.y]));
 if (!SMALL) for (let i = 1; i <= 4; i++) { const x = -IW / 2 + i * IW / 5; LIDP.push([x, -THt / 2 + 0.035], [x, THt / 2 - 0.035]); }
 for (let i = 1; i <= 4; i += SMALL ? 3 : 1) { const y = -IH / 2 + i * IH / 5; LIDP.push([-TW / 2 + 0.035, y], [TW / 2 - 0.035, y]); }
-LIDP.sort((a, b) => Math.atan2(a[1], a[0]) - Math.atan2(b[1], b[0])).forEach((p, i) => addSeat('screw', V(p[0], p[1], LIDZ + 0.03), 2.6 + i * 0.006, 0.6, 'lid'));
+LIDP.sort((a, b) => Math.atan2(a[1], a[0]) - Math.atan2(b[1], b[0])).forEach((p, i) => addSeat('screw', V(p[0], p[1], LIDZ + 0.03), 2.66 + i * 0.0035, 0.6, 'lid'));
 const parts = [];
 function pool(geo, mat, n) { const m = inst(geo, mat, n); m.userData.n = 0; return m; }
 // Silver and gold: alternate the material per seat, one InstancedMesh each.
@@ -859,6 +912,71 @@ inner.rotation.z = ICON_A; inner.scale.setScalar(0.01); inner.updateMatrixWorld(
 unified.visible = true; head.visible = handle.visible = false;
 const C0 = new THREE.Box3().setFromObject(unified).getCenter(V(0, 0, 0)); C0.z = 0;
 const W_MATS = [wMat.mat, wNutMat];
+
+/* ---------- the transform: the head splits into plates; the arms come out of the nut hub ----------
+ * The head outline (x >= HCUT) is cut into five rigid plates along straight seams through the head
+ * center: two jaw tines, two cheek plates, and the jaw back. The rest of the outline is the body (the
+ * handle). Cut vertices get a corner radius larger than the bevel, and the dense outline points next to a
+ * cut are dropped, so the bevel never folds a cut corner into a spike. Closed, the plates line up exactly
+ * and swap for the solid wrench mesh, so no seam shows.
+ */
+const HCUT = -46;
+function clipHalf(poly, nx, ny, c) {            // keep nx*x + ny*y >= c (Sutherland-Hodgman, one half-plane)
+  const out = [], f = q => nx * q[0] + ny * q[1] - c;
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length], fa = f(a), fb = f(b);
+    if (fa >= 0) out.push([a[0], a[1], a[2] || 0, a[3] || 0]);
+    if ((fa >= 0) !== (fb >= 0)) { const t = fa / (fa - fb); out.push([a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1]), 3.2, 1]); }
+  }
+  return out;
+}
+function thinCuts(poly) {                        // drop outline points within 3.8 of a cut vertex
+  const cuts = poly.filter(q => q[3]);
+  return poly.filter(q => q[3] || !cuts.some(c => Math.hypot(c[0] - q[0], c[1] - q[1]) < 3.8)).map(q => [q[0], q[1], q[2]]);
+}
+function wedge(poly, a0, a1) {                   // the part of poly between rays a0 and a1 (deg, a1 - a0 < 180)
+  const r0 = a0 * Math.PI / 180, r1 = a1 * Math.PI / 180;
+  return clipHalf(clipHalf(poly, -Math.sin(r0), Math.cos(r0), 0), Math.sin(r1), -Math.cos(r1), 0);
+}
+const headOnly = clipHalf(outline, 1, 0, HCUT), bodyOnly = clipHalf(outline, -1, 0, -HCUT);
+const PLATES = [['tineU', 18, 80], ['cheekU', 80, 140], ['back', 140, 220], ['cheekL', 220, 280], ['tineL', 280, 342]].map(([name, a0, a1]) => {
+  const m = new THREE.Mesh(k.soft.extrude(thinCuts(wedge(headOnly, a0, a1)), EXT), wMat.mat);
+  m.name = name; m.visible = false; inner.add(m); return m;
+});
+const wBody = new THREE.Mesh(k.soft.extrude(thinCuts(bodyOnly), Object.assign({}, EXT, { holes: [[-HD.L, 0, HD.w1 * HD.hole]] })), wMat.mat);
+wBody.visible = false; inner.add(wBody);
+// Hinges (logo units): the tines swing about their root on the outer rim; the jaw back tips up about x = HCUT.
+const HINGE_U = V(50 * Math.cos(80 * Math.PI / 180), 50 * Math.sin(80 * Math.PI / 180), 0), HINGE_L = V(HINGE_U.x, -HINGE_U.y, 0);
+const PINS = [HINGE_U, HINGE_L, V(HCUT, 20, 0), V(HCUT, -20, 0)];
+const wPins = new THREE.InstancedMesh(zAxis(k.soft.cylinder(3.4, DEPTH * 1.4, 0.9, 16)), M.brassDark(), PINS.length);
+wPins.instanceMatrix.setUsage(THREE.DynamicDrawUsage); wPins.frustumCulled = false; inner.add(wPins);
+const easeBack = x => { const c = 0.9; return x <= 0 ? 0 : x >= 1 ? 1 : 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const XF_OUT = [0.93, 1.03], XF_IN = [2.85, 2.97];
+// Sub-steps of the transform (fractions of its window), with gaps for a short pause and a click at each lock.
+const XS = { tine: [0, 0.34], cheek: [0.22, 0.56], back: [0.42, 0.74], hub: [0.62, 0.94] };
+const xfState = { prev: { tine: 0, cheek: 0, back: 0, hub: 0 } };
+const _hq = new THREE.Quaternion(), _hv = new THREE.Vector3(), _hw = new THREE.Vector3(), XAX = V(1, 0, 0), YAX = V(0, 1, 0);
+function xfAmount(P) { return P < 2.4 ? clamp((P - XF_OUT[0]) / (XF_OUT[1] - XF_OUT[0])) : 1 - clamp((P - XF_IN[0]) / (XF_IN[1] - XF_IN[0])); }
+// Rigid motion about a hinge point H: rotate by q, then offset (all in logo units).
+function hinge(m, H, q, dz) { _hv.copy(H).applyQuaternion(q); m.position.copy(H).sub(_hv); m.position.z += dz; m.quaternion.copy(q); }
+let hubRise = 0;
+function updateTransform(P, t, xf) {
+  const e = k2 => easeBack(clamp((xf - XS[k2][0]) / (XS[k2][1] - XS[k2][0])));
+  const eT = e('tine'), eC = e('cheek'), eB = e('back'), eH = e('hub');
+  hinge(PLATES[0], HINGE_U, _hq.setFromAxisAngle(ZUP, 0.95 * eT), 7 * eT);
+  hinge(PLATES[4], HINGE_L, _hq.setFromAxisAngle(ZUP, -0.95 * eT), 7 * eT);
+  const cu = 110 * Math.PI / 180, cl = 250 * Math.PI / 180;
+  PLATES[1].position.set(Math.cos(cu) * 16 * eC, Math.sin(cu) * 16 * eC, 4 * eC); PLATES[1].quaternion.identity();
+  PLATES[3].position.set(Math.cos(cl) * 16 * eC, Math.sin(cl) * 16 * eC, 4 * eC); PLATES[3].quaternion.identity();
+  hinge(PLATES[2], _hw.set(HCUT, 0, 0), _hq.setFromAxisAngle(YAX, -0.8 * eB), 0);
+  hubRise = 22 * eH;
+  // Pins: each appears as its step locks.
+  const pinOn = [eT, eT, eB, eB].map(v => clamp((v - 0.85) / 0.15));
+  PINS.forEach((p, i) => { dummy.position.set(p.x, p.y, 0); dummy.quaternion.identity(); dummy.scale.setScalar(Math.max(0.0001, pinOn[i])); dummy.updateMatrix(); wPins.setMatrixAt(i, dummy.matrix); });
+  wPins.instanceMatrix.needsUpdate = true;
+  wPins.visible = xf > 0.001;
+  return { eT, eC, eB, eH };
+}
 
 /* ---------- arms: FABRIK chains with tapered vertebrae and tool tips ----------
  * Each arm is a jointed chain solved by FABRIK (forward and backward reaching IK) every frame, warm
@@ -1073,6 +1191,13 @@ function localBox(obj) {
   localBoxes.set(obj, b); return b;
 }
 function deviceBox(obj, out) { obj.updateMatrix(); return out.copy(localBox(obj)).applyMatrix4(obj.matrix); }
+// Objects with userData.boxes (the deck: plate + posts) are checked part by part.
+const _bxs = [0, 1, 2, 3, 4, 5].map(() => new THREE.Box3()), _bys = [0, 1, 2, 3, 4, 5].map(() => new THREE.Box3());
+function deviceBoxes(obj, outs) {
+  if (!obj.userData.boxes) { deviceBox(obj, outs[0]); return 1; }
+  obj.updateMatrix(); obj.userData.boxes.forEach((b, i) => outs[i].copy(b).applyMatrix4(obj.matrix)); return obj.userData.boxes.length;
+}
+function hitAny(A, na, B, nb) { for (let i = 0; i < na; i++) for (let j = 0; j < nb; j++) if (hit(A[i], B[j])) return true; return false; }
 const WALL_BOXES = [
   new THREE.Box3(V(-TW / 2, -THt / 2, 0), V(-IW / 2, THt / 2, HW)), new THREE.Box3(V(IW / 2, -THt / 2, 0), V(TW / 2, THt / 2, HW)),
   new THREE.Box3(V(-TW / 2, -THt / 2, 0), V(TW / 2, -IH / 2, HW)), new THREE.Box3(V(-TW / 2, IH / 2, 0), V(TW / 2, THt / 2, HW)),
@@ -1082,13 +1207,14 @@ function hit(a, b) { return a.max.x - EPS > b.min.x && a.min.x + EPS < b.max.x &
 function collisionCheck() {
   CSTAT.frames++; let any = 0;
   for (let i = 0; i < inFlight.length; i++) {
-    deviceBox(inFlight[i].obj, _bx);
-    for (let j = i + 1; j < inFlight.length; j++) { if (hit(_bx, deviceBox(inFlight[j].obj, _by))) { CSTAT.piecePiece++; any++; } }
-    for (const w of WALL_BOXES) if (hit(_bx, w)) { CSTAT.pieceWall++; any++; }
+    const na = deviceBoxes(inFlight[i].obj, _bxs);
+    for (let j = i + 1; j < inFlight.length; j++) { const nb = deviceBoxes(inFlight[j].obj, _bys); if (hitAny(_bxs, na, _bys, nb)) { CSTAT.piecePiece++; any++; } }
+    for (const w of WALL_BOXES) if (hitAny(_bxs, na, [w], 1)) { CSTAT.pieceWall++; any++; }
     for (const bt of BEATS) {
       if (P_ < bt.b || bt === inFlight[i]) continue;
       if (inFlight[i].obj !== lid && bt.obj === board) continue;   // modules sit on the board by design
-      if (hit(_bx, deviceBox(bt.obj, _by))) { CSTAT.pieceSeated++; any++; }
+      const nb = deviceBoxes(bt.obj, _bys);
+      if (hitAny(_bxs, na, _bys, nb)) { CSTAT.pieceSeated++; any++; if ((CSTAT.seatAt = CSTAT.seatAt || []).length < 8) CSTAT.seatAt.push([+P_.toFixed(3), inFlight[i].obj.name, bt.obj.name]); }
     }
   }
   for (let j = 0; j < ARMS; j++) {
@@ -1115,26 +1241,28 @@ function heroPose(t) {
   return { pos: V(-C0.x * sc, 0, HERO_H - C0.y * sc + Math.sin(bob * 0.7) * 0.025), phi: Math.sin(bob * 0.35) * 0.035, s: sc, gap: 0 };
 }
 // Build pose: hovering above the back wall, handle level, so the arms reach down into the tray.
-const buildPose = () => ({ pos: V(0.25, THt / 2 + (narrow ? 0.5 : 0.42), 0.82), phi: -ICON_A, s: S2, gap: 0 });
+// The head (the business end) points at the box (-y); the handle points away, behind the back wall.
+const buildPose = () => ({ pos: V(0.4, THt / 2 + (narrow ? 0.42 : 0.36), 1.25), phi: -Math.PI / 2 - ICON_A, s: S2, gap: 0 });
 const restPose = () => (narrow ? { pos: V(0.1, -THt / 2 - 0.95, 0.6), phi: -ICON_A, s: S2, gap: 0 } : { pos: V(TW / 2 + 0.62, 0.1, 0.6), phi: Math.PI / 2 - ICON_A, s: S2, gap: 0 });
 function mixPose(a, b, t, lift) {
   const c = a.pos.clone().lerp(b.pos, 0.5).add(lift || V(0, 0, 0));
   return { pos: bez(a.pos, c, b.pos, t), phi: mix(a.phi, b.phi, t), s: mix(a.s, b.s, t), gap: mix(a.gap, b.gap, t) };
 }
-const OPEN = [0.95, 1.06], CLOSE = [2.72, 2.84];
+const OPEN = [0.99, 1.09], XB0 = 2.71;   // arms pay out after the hub rises; they reel in from XB0, last arm first
 function wrenchPose(P, t) {
   const hero = heroPose(t), build = buildPose(), rest = restPose();
   if (P < 0.5) return hero;
   if (P < 0.95) return mixPose(hero, build, easeIO(clamp((P - 0.5) / 0.45)), V(0, 0.15, 0.2));
-  const g = ss(OPEN[0], OPEN[1], P) * (1 - ss(CLOSE[0], CLOSE[1], P));
-  if (P < 2.86) return Object.assign(build, { gap: g, pos: build.pos.clone().add(V(0, Math.sin(t * 0.8) * 0.01, 0)) });
-  return mixPose(build, rest, easeIO(clamp((P - 2.86) / 0.24)), V(0, 0.1, 0.2));
+  if (P < XF_IN[1]) return Object.assign(build, { pos: build.pos.clone().add(V(0, Math.sin(t * 0.8) * 0.01, 0)) });
+  return mixPose(build, rest, easeIO(clamp((P - XF_IN[1]) / 0.18)), V(0, 0.1, 0.2));
 }
-// Arm anchors: the opening at the neck, in device coordinates.
+// Arm anchors: the top of the raised nut hub in the open head, in device coordinates (z up), spread
+// across the jaw axis.
 function anchors(wp) {
-  const neck = rotZ(V(-0.5 * wp.s, 0, 0), wp.phi + ICON_A);
-  const base = wp.pos.clone().add(neck);
-  return [0, 1, 2].map(j => base.clone().add(V(0, -0.03, (j - 1) * 0.06)));
+  const a = wp.phi + ICON_A, k01 = 0.01 * wp.s;
+  const hub = wp.pos.clone().add(rotZ(V(NUT_HOME.x * k01, NUT_HOME.y * k01, (hubRise + DEPTH * 0.6) * k01), a));
+  const perp = rotZ(V(0, 1, 0), a), jaw = rotZ(V(1, 0, 0), a);
+  return [0, 1, 2].map(j => hub.clone().addScaledVector(perp, (j - 1) * 0.055).addScaledVector(jaw, 0.02));
 }
 
 /* ---------- carried modules: one beat each, assigned to an arm ---------- */
@@ -1150,9 +1278,16 @@ const BEATS = [
   [mInput, mainAt(Z.INPUT[0], Z.INPUT[1], ZT), 1, 1.76, 1.94, 0.2],
   [mNet, NET_SEAT, 2, 1.86, 2.02, 0.06],
   [mSave, mainAt(Z.SAVE[0], Z.SAVE[1], ZT), 0, 1.96, 2.1, 0.026],
-  [lid, V(0, 0, LIDZ), -1, 2.42, 2.6, 0.06]
-].map(b => ({ obj: b[0], seat: b[1], arm: b[2], a: b[3], b: b[4], top: b[5] }));
-const LID_GRIPS = [V(-0.9, 0.55, 0), V(0.9, 0.55, 0), V(0, -0.6, 0)];
+  [deck, mainAt(DECK.u, DECK.v, ZT), 2, 2.05, 2.15, DECK_H],
+  ...tiles.map((tl, i) => [tl.obj, tl.seat, i % 3, 2.12 + i * 0.03, 2.205 + i * 0.03, 0.012, tl.rot]),
+  [lid, V(0, 0, LIDZ), -2, 2.48, 2.72, 0.06]
+].map(b => ({ obj: b[0], seat: b[1], arm: b[2], a: b[3], b: b[4], top: b[5], rot: b[6] || 0 }));
+// Phases of a carry (fractions of the beat): grow at staging, travel, anticipation, drop, release.
+const PH_DEF = { grow: 0.12, tr: 0.66, an: 0.71, dr: 0.84, rel: 0.84 };
+// The lid: a long, slow, eased final drop, then a hold while the lid screws seat, then release.
+const PH_LID = { grow: 0.06, tr: 0.5, an: 0.53, dr: 0.68, rel: 0.94 };
+BEATS.forEach(b => { b.ph = b.obj === lid ? PH_LID : PH_DEF; });
+const LID_ARMS = [0, 2], LID_GRIPS = [V(-1.16, 0, 0), V(1.16, 0, 0)];   // opposite short edges
 // Idle tip: just out of the neck, the three arms fanned. out: the vector to write (allocation-free).
 function idleTip(j, A, out) { return (out || new THREE.Vector3()).copy(A).add(_ca.set((j - 1) * 0.28, -0.26 - (j === 1 ? 0.06 : 0), 0.12)); }
 
@@ -1191,12 +1326,16 @@ const SHOT_T = {
   hero: () => V(0, 0, 0), box: () => V(0, 0, 0.12),
   logic: () => mainAt(Z.LOGIC[0], Z.LOGIC[1], ZT + 0.03), render: () => mainAt(Z.RENDER[0], Z.RENDER[1], ZT + 0.09),
   audio: () => V(AUDIO_SEAT.x, AUDIO_SEAT.y, 0.18), lidc: () => V(-0.95, -0.62, LIDZ + 0.03),
-  disp: () => V(DISP.x, DISP.y, LIDZ + 0.06), fin: () => V(0, 0, 0.2)
+  disp: () => V(DISP.x, DISP.y, LIDZ + 0.06), fin: () => V(0, 0, 0.2),
+  whead: () => buildPose().pos.clone().add(V(0, -0.1, 0.02)), deck: () => V(DECK_C.x, DECK_C.y, DECK.z), lidw: () => V(0, 0.1, 0.55)
 };
 const SHOTS = [
   [0.0, 'hero', 30, 5, 9.2, 30],    // open: low 3/4 hero angle
   [0.46, 'hero', 22, 8, 8.1, 28],   // slow push-in while the wrench assembles
-  [0.9, 'box', 18, 38, 6.9, 30],    // wide: the tray arrives
+  [0.88, 'box', 18, 38, 6.9, 30],   // wide: the tray arrives
+  [0.95, 'whead', 26, 32, 3.7, 26], // close: the head transforms
+  [1.04, 'whead', 32, 36, 3.5, 26],
+  [1.12, 'box', 16, 40, 6.8, 30],
   [1.2, 'box', 14, 40, 6.7, 30],
   [1.27, 'logic', 6, 56, 3.1, 22],  // close: CPU seats
   [1.32, 'logic', 4, 57, 3.0, 22],
@@ -1206,13 +1345,17 @@ const SHOTS = [
   [1.56, 'audio', -28, 47, 3.3, 23],// close: speaker seats
   [1.65, 'audio', -32, 47, 3.15, 23],
   [1.74, 'box', 10, 38, 6.7, 30],
-  [2.28, 'box', 16, 34, 6.5, 30],
-  [2.46, 'box', -44, 29, 6.1, 28],  // orbit reveal: interior complete, light through the vents
-  [2.56, 'lidc', -30, 42, 3.5, 22], // close: the lid screw wave
-  [2.76, 'lidc', -22, 44, 3.3, 22],
-  [2.86, 'box', 0, 42, 6.5, 30],
-  [2.94, 'disp', 0, 80, 4.8, 28],   // straight-on push-in on the display
-  [3.12, 'disp', 0, 82, 4.4, 26],
+  [2.04, 'box', 14, 40, 6.6, 30],
+  [2.13, 'deck', 6, 60, 3.7, 24],   // close: the Stella Nova station goes in
+  [2.42, 'deck', -14, 58, 3.5, 24],
+  [2.5, 'lidw', -18, 50, 6.6, 28],  // wide and high: the lid carry reads as one move
+  [2.64, 'lidw', -8, 58, 6.2, 28],
+  [2.69, 'lidc', -30, 44, 3.5, 22], // close: the lid screw wave
+  [2.78, 'lidc', -22, 46, 3.3, 22],
+  [2.85, 'whead', -22, 36, 3.8, 26],// close: the head folds shut
+  [2.96, 'whead', -28, 38, 3.6, 26],
+  [3.0, 'disp', 0, 80, 4.8, 28],    // straight-on push-in on the display
+  [3.14, 'disp', 0, 82, 4.4, 26],
   [3.35, 'fin', 0, 34, 7.4, 30],    // settle front-on for the logo
   [4.0, 'fin', 0, 32, 7.8, 30]
 ];
@@ -1284,14 +1427,167 @@ const sparkLight = new THREE.PointLight(0xffc070, 0, 0.8, 2);
 if (Q !== 'low') asm.add(ledLight, screenLight, sparkLight);
 // Low tier: DPR 1.5 at most.
 
-// Sparks: a small pool of short-lived emissive points at a working driver tip.
-const NSPARK = Q === 'low' ? 24 : 64;
-const spGeo = new THREE.BufferGeometry(), spPos = new Float32Array(NSPARK * 3), spLife = new Float32Array(NSPARK).fill(-1), spVel = [];
-for (let i = 0; i < NSPARK; i++) { spPos[i * 3 + 1] = -99; spVel.push(V(0, 0, 0)); }
-spGeo.setAttribute('position', new THREE.BufferAttribute(spPos, 3));
-const sparks = new THREE.Points(spGeo, new THREE.PointsMaterial({ color: new THREE.Color(3.2, 1.9, 0.7), size: 0.022, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
-sparks.frustumCulled = false; asm.add(sparks);
-let spNext = 0, lastT = 0;
+/*
+ * Welding. A weld point is a tiny, very hot white-blue core with an irregular flicker, and the spark light
+ * flickers with it. Sparks are velocity-aligned streak quads (length follows speed, a motion-blur look),
+ * burst in a cone, fall under gravity, bounce once or twice off the deck, the board, or the floor with
+ * energy loss, and some split in two on the first impact. Each spark cools along a blackbody ramp (white,
+ * yellow, orange, deep red, dark) and its HDR intensity falls with it, so only the hot part blooms. The
+ * spot keeps a small orange-red heat mark that cools over 1.5 s, and a faint smoke wisp rises. Bursts come
+ * in welding pulses, and only while a tool works or a part locks. Everything is pooled: no allocations per
+ * frame. The low tier has fewer sparks and no smoke.
+ */
+const NSP = Q === 'low' ? 70 : 200;
+const spP = new Float32Array(NSP * 3), spV = new Float32Array(NSP * 3), spL = new Float32Array(NSP), spM = new Float32Array(NSP), spS = new Float32Array(NSP);
+const spB = new Uint8Array(NSP);
+const sgPos = new Float32Array(NSP * 12), sgCol = new Float32Array(NSP * 12), sgUv = new Float32Array(NSP * 8), sgIdx = new Uint16Array(NSP * 6);
+for (let i = 0; i < NSP; i++) {
+  sgUv.set([0, 0, 1, 0, 1, 1, 0, 1], i * 8);
+  sgIdx.set([i * 4, i * 4 + 1, i * 4 + 2, i * 4, i * 4 + 2, i * 4 + 3], i * 6);
+}
+const spGeo = new THREE.BufferGeometry();
+spGeo.setAttribute('position', new THREE.BufferAttribute(sgPos, 3).setUsage(THREE.DynamicDrawUsage));
+spGeo.setAttribute('color', new THREE.BufferAttribute(sgCol, 3).setUsage(THREE.DynamicDrawUsage));
+spGeo.setAttribute('uv', new THREE.BufferAttribute(sgUv, 2)); spGeo.setIndex(new THREE.BufferAttribute(sgIdx, 1));
+const radialTex = (stops, n) => { const c = document.createElement('canvas'); c.width = c.height = n || 64; const g = c.getContext('2d'), h = c.width / 2;
+  const gr = g.createRadialGradient(h, h, 0, h, h, h); stops.forEach(([o, col]) => gr.addColorStop(o, col)); g.fillStyle = gr; g.fillRect(0, 0, c.width, c.width); return new THREE.CanvasTexture(c); };
+// Streak texture: soft across the streak (u), bright at the head (v = 1), fading to the tail (v = 0).
+const streakTex = (() => { const c = document.createElement('canvas'); c.width = 16; c.height = 64; const g = c.getContext('2d'), im = g.createImageData(16, 64);
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 16; x++) { const u = (x + 0.5) / 16 - 0.5, v = 1 - (y + 0.5) / 64, a = Math.exp(-u * u * 40) * Math.pow(v, 1.6) * 255, k = (y * 16 + x) * 4;
+    im.data[k] = im.data[k + 1] = im.data[k + 2] = a; im.data[k + 3] = 255; } g.putImageData(im, 0, 0); return new THREE.CanvasTexture(c); })();
+const sparkMesh = new THREE.Mesh(spGeo, new THREE.MeshBasicMaterial({ map: streakTex, vertexColors: true, transparent: true, depthWrite: false,
+  blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
+sparkMesh.frustumCulled = false; asm.add(sparkMesh);
+const weldCore = new THREE.Sprite(new THREE.SpriteMaterial({ map: radialTex([[0, 'rgba(255,255,255,1)'], [0.18, 'rgba(210,225,255,0.9)'], [0.45, 'rgba(120,160,255,0.25)'], [1, 'rgba(60,90,255,0)']]),
+  color: new THREE.Color(2.6, 2.9, 3.6), blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, transparent: true }));
+weldCore.visible = false; asm.add(weldCore);
+const NHEAT = 8, heatMat = new THREE.MeshBasicMaterial({ map: radialTex([[0, 'rgba(255,255,255,1)'], [0.35, 'rgba(255,255,255,0.55)'], [1, 'rgba(255,255,255,0)']]),
+  blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, transparent: true });
+const heatMarks = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), heatMat, NHEAT);
+heatMarks.instanceMatrix.setUsage(THREE.DynamicDrawUsage); heatMarks.frustumCulled = false; asm.add(heatMarks);
+const heatP = Array.from({ length: NHEAT }, () => new THREE.Vector3()), heatT = new Float32Array(NHEAT).fill(-9);
+const HEAT_COL = new THREE.Color(), HEAT_OFF = new THREE.Color(0, 0, 0);
+for (let i = 0; i < NHEAT; i++) { heatMarks.setColorAt(i, HEAT_OFF); setInst(heatMarks, i, heatP[i], qI, 0); }
+const NSMOKE = Q === 'low' ? 0 : 6, smokeTex = radialTex([[0, 'rgba(190,190,195,0.55)'], [0.5, 'rgba(160,160,165,0.22)'], [1, 'rgba(140,140,145,0)']]);
+const smokes = Array.from({ length: NSMOKE }, () => { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: smokeTex, transparent: true, depthWrite: false, opacity: 0 }));
+  m.visible = false; asm.add(m); return { m, t: -9, p: new THREE.Vector3() }; });
+let spNext = 0, heatNext = 0, smokeNext = 0, lastT = 0;
+// Emit n sparks at (x, y, z) in a cone around +z; hot: 0..1 scales speed and size.
+function emitSparks(x, y, z, n, hot) {
+  for (let k3 = 0; k3 < n; k3++) {
+    const i = spNext; spNext = (spNext + 1) % NSP;
+    const th = Math.random() * 6.283, sp = (0.7 + Math.random() * 1.9) * (0.6 + 0.4 * hot), cz = 0.35 + Math.random() * 0.65;
+    spP[i * 3] = x; spP[i * 3 + 1] = y; spP[i * 3 + 2] = z;
+    spV[i * 3] = Math.cos(th) * Math.sqrt(1 - cz * cz) * sp; spV[i * 3 + 1] = Math.sin(th) * Math.sqrt(1 - cz * cz) * sp; spV[i * 3 + 2] = cz * sp;
+    spM[i] = spL[i] = 0.2 + Math.random() * Math.random() * 1.0; spS[i] = (0.0035 + Math.random() * 0.0035) * (0.7 + 0.3 * hot); spB[i] = 0;
+  }
+}
+function heatMark(x, y, z) { const i = heatNext; heatNext = (heatNext + 1) % NHEAT; heatP[i].set(x, y, z + 0.002); heatT[i] = lastT; }
+function smokePuff(x, y, z) { if (!NSMOKE) return; const sm = smokes[smokeNext]; smokeNext = (smokeNext + 1) % NSMOKE; sm.p.set(x, y, z); sm.t = lastT; }
+function weldBurst(x, y, z, n) { if (s.reduceMotion) return; emitSparks(x, y, z, Q === 'low' ? Math.ceil(n * 0.4) : n, 1); heatMark(x, y, z); smokePuff(x, y, z + 0.02); flashT = lastT; flashP.set(x, y, z); }
+let flashT = -9; const flashP = new THREE.Vector3();
+// The surface under a spark: the deck, the board, the tray floor, or (outside the tray) the table.
+function groundZ(x, y, z) {
+  const dx = x - DECK_C.x, dy = y - DECK_C.y;
+  if (P_ > 2.15 && Math.abs(dx) < DECK.w / 2 && Math.abs(dy) < DECK.h / 2 && z > DECK.z - 0.03) return DECK.z;
+  if (P_ > 1.2 && Math.abs(x - PC.x) < PW / 2 && Math.abs(y - PC.y) < PHb / 2 && z > ZT - 0.03) return ZT;
+  if (Math.abs(x) < IW / 2 && Math.abs(y) < IH / 2) return 0;
+  return -TB;
+}
+// Blackbody cooling: t 1 (white hot) -> 0 (dark). Writes HDR rgb.
+const _bb = new THREE.Color();
+function blackbody(t) {
+  if (t > 0.78) return _bb.setRGB(1, 0.92, 0.78).multiplyScalar(2.2 + 2.2 * (t - 0.78) / 0.22);
+  if (t > 0.5) { const f = (t - 0.5) / 0.28; return _bb.setRGB(1, 0.55 + 0.37 * f, 0.12 + 0.66 * f).multiplyScalar(1.3 + 0.9 * f); }
+  if (t > 0.22) { const f = (t - 0.22) / 0.28; return _bb.setRGB(0.78 + 0.22 * f, 0.12 + 0.43 * f, 0.02 + 0.1 * f).multiplyScalar(0.55 + 0.75 * f); }
+  const f = t / 0.22; return _bb.setRGB(0.5 * f + 0.05, 0.04 * f, 0.005).multiplyScalar(0.55 * f);
+}
+const _cl = new THREE.Vector3(), _sd = new THREE.Vector3(), _sv = new THREE.Vector3(), _ss = new THREE.Vector3();
+function updateSparks(dt) {
+  _cl.copy(cam.position); asm.worldToLocal(_cl);
+  for (let i = 0; i < NSP; i++) {
+    const o = i * 12;
+    if (spL[i] <= 0) { if (sgPos[o] !== 0 || sgPos[o + 1] !== 0) { sgPos.fill(0, o, o + 12); sgCol.fill(0, o, o + 12); } continue; }
+    spL[i] -= dt;
+    const i3 = i * 3;
+    spV[i3 + 2] -= 6.0 * dt;                                      // gravity (scaled for the frame)
+    spV[i3] *= 1 - 0.6 * dt; spV[i3 + 1] *= 1 - 0.6 * dt;          // a little drag
+    spP[i3] += spV[i3] * dt; spP[i3 + 1] += spV[i3 + 1] * dt; spP[i3 + 2] += spV[i3 + 2] * dt;
+    const gz = groundZ(spP[i3], spP[i3 + 1], spP[i3 + 2] + 0.02);
+    if (spP[i3 + 2] < gz && spV[i3 + 2] < 0) {
+      spP[i3 + 2] = gz; spV[i3 + 2] *= -0.32; spV[i3] *= 0.62; spV[i3 + 1] *= 0.62; spB[i]++;
+      if (spB[i] === 1 && Math.random() < 0.33 && spL[i] > 0.15) {   // break into two on the first impact
+        const j = spNext; spNext = (spNext + 1) % NSP;
+        if (j !== i) { spP[j * 3] = spP[i3]; spP[j * 3 + 1] = spP[i3 + 1]; spP[j * 3 + 2] = gz + 0.002;
+          spV[j * 3] = -spV[i3 + 1] * 1.1 + (Math.random() - 0.5) * 0.5; spV[j * 3 + 1] = spV[i3] * 1.1 + (Math.random() - 0.5) * 0.5; spV[j * 3 + 2] = Math.abs(spV[i3 + 2]) * 0.8;
+          spM[j] = spL[j] = spL[i] * 0.6; spS[j] = spS[i] * 0.65; spB[j] = 1; }
+      }
+      if (spB[i] > 2) spL[i] = Math.min(spL[i], 0.06);
+    }
+    // Streak quad, facing the camera: head at the spark, tail back along the velocity.
+    const vx = spV[i3], vy = spV[i3 + 1], vz = spV[i3 + 2], spd = Math.hypot(vx, vy, vz) || 1e-4;
+    _sd.set(vx / spd, vy / spd, vz / spd);
+    _sv.set(_cl.x - spP[i3], _cl.y - spP[i3 + 1], _cl.z - spP[i3 + 2]).normalize();
+    _ss.crossVectors(_sd, _sv); if (_ss.lengthSq() < 1e-8) _ss.set(1, 0, 0); _ss.normalize();
+    const tt = clamp(spL[i] / spM[i]), w = spS[i] * (0.45 + 0.55 * tt), len = clamp(spd * 0.032, 0.008, 0.075) * (0.5 + 0.5 * tt);
+    const hx = spP[i3], hy = spP[i3 + 1], hz = spP[i3 + 2], tx = hx - _sd.x * len, ty = hy - _sd.y * len, tz = hz - _sd.z * len;
+    sgPos[o] = tx - _ss.x * w * 0.5; sgPos[o + 1] = ty - _ss.y * w * 0.5; sgPos[o + 2] = tz - _ss.z * w * 0.5;
+    sgPos[o + 3] = tx + _ss.x * w * 0.5; sgPos[o + 4] = ty + _ss.y * w * 0.5; sgPos[o + 5] = tz + _ss.z * w * 0.5;
+    sgPos[o + 6] = hx + _ss.x * w; sgPos[o + 7] = hy + _ss.y * w; sgPos[o + 8] = hz + _ss.z * w;
+    sgPos[o + 9] = hx - _ss.x * w; sgPos[o + 10] = hy - _ss.y * w; sgPos[o + 11] = hz - _ss.z * w;
+    blackbody(tt);
+    for (let v = 0; v < 4; v++) { const f = v < 2 ? 0.35 : 1; sgCol[o + v * 3] = _bb.r * f; sgCol[o + v * 3 + 1] = _bb.g * f; sgCol[o + v * 3 + 2] = _bb.b * f; }
+  }
+  spGeo.attributes.position.needsUpdate = true; spGeo.attributes.color.needsUpdate = true;
+  // Heat marks: orange-red, cooling over 1.5 s.
+  for (let i = 0; i < NHEAT; i++) {
+    const a = lastT - heatT[i], e = a >= 0 && a < 1.5 ? 1 - a / 1.5 : 0;
+    if (e <= 0) { setInst(heatMarks, i, heatP[i], qI, 0); continue; }
+    heatMarks.setColorAt(i, HEAT_COL.setRGB(1.4 * e * e + 0.2 * e, 0.38 * e * e, 0.06 * e * e));
+    setInst(heatMarks, i, heatP[i], qI, 0.03 + 0.012 * (1 - e));
+  }
+  heatMarks.instanceColor.needsUpdate = true;
+  // Smoke: a faint wisp rises, grows, and fades over 2 s.
+  smokes.forEach(sm => { const a = lastT - sm.t;
+    if (a < 0 || a > 2) { sm.m.visible = false; return; }
+    sm.m.visible = true; sm.m.position.set(sm.p.x + Math.sin(a * 1.7 + sm.p.x * 9) * 0.02, sm.p.y, sm.p.z + a * 0.13);
+    sm.m.scale.setScalar(0.05 + a * 0.06); sm.m.material.opacity = 0.1 * Math.sin(Math.PI * a / 2) * (1 - a / 2); });
+}
+// Welding pulses at a working tool tip: about 0.16 s on, 0.07 s off, with jitter.
+let pulseOn = false, pulseNext = 0;
+function weldAt(w, dt) {
+  if (!w || s.reduceMotion) { pulseOn = false; return false; }
+  if (lastT >= pulseNext) { pulseOn = !pulseOn; pulseNext = lastT + (pulseOn ? 0.11 + Math.random() * 0.1 : 0.05 + Math.random() * 0.06); if (pulseOn) heatMark(w.x, w.y, w.z - 0.02); }
+  if (pulseOn) {
+    const rate = Q === 'low' ? 60 : 170, n = Math.floor(rate * dt + Math.random());
+    if (n > 0) emitSparks(w.x, w.y, w.z - 0.015, n, 1);
+    if (Math.random() < 0.02) smokePuff(w.x, w.y, w.z);
+  }
+  return pulseOn;
+}
+// Locks of the transform: a small weld flash at the hinge as each step clicks into place (both ways).
+const _hd = new THREE.Vector3();
+function xfLocks(xe, t) {
+  const pr = xfState.prev, steps = [['tine', xe.eT, [HINGE_U, HINGE_L]], ['back', xe.eB, [PINS[2], PINS[3]]], ['hub', xe.eH, [NUT_HOME]]];
+  steps.forEach(([k4, v, pts]) => {
+    const was = pr[k4]; pr[k4] = v;
+    if (!primed || s.reduceMotion) return;
+    if ((was < 0.97 && v >= 0.97) || (was > 0.03 && v <= 0.03)) pts.forEach(h => {
+      _hd.set(h.x, h.y, DEPTH * 0.6); inner.localToWorld(_hd); asm.worldToLocal(_hd); weldBurst(_hd.x, _hd.y, _hd.z, 14);
+    });
+  });
+}
+// Seat locks: a short spot weld where a carried part (a tile, a module, the lid) comes to rest.
+function seatWelds(t) {
+  BEATS.forEach(bt => {
+    if (!bt.seatedAt || bt.welded === bt.seatedAt) return;
+    bt.welded = bt.seatedAt;
+    if (!primed || t - bt.seatedAt > 0.3) return;
+    const b = deviceBox(bt.obj, _bx), n = bt.obj === lid ? 4 : 2;
+    for (let q = 0; q < n; q++) { const fx = q % 2 ? 0.85 : 0.15, fy = q < 2 ? 0.15 : 0.85;
+      weldBurst(mix(b.min.x, b.max.x, fx), mix(b.min.y, b.max.y, fy), bt.obj === lid ? b.max.z : b.min.z + 0.005, bt.obj === lid ? 10 : 12); }
+  });
+}
 
 // Light shafts through the vent slots: additive gradient planes, very faint, shown in the reveal orbit.
 const shaftTex = (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 256; const g = c.getContext('2d');
@@ -1422,22 +1718,20 @@ function cinemaUpdate(P, t) {
   // Practical lights follow their sources.
   ledLight.intensity = 0.9 * ss(T_LED, T_LED + 0.2, P);
   screenLight.intensity = 1.6 * ss(SCREEN_ON + 0.05, SCREEN_ON + 0.3, P) * (0.92 + 0.08 * Math.sin(t * 11));
-  // Sparks and the light kick at working driver tips; the driver glows while it works.
+  // Welding at the working driver tip (pulses), spot welds at seat locks, then the spark physics.
   let work = null; workTips.forEach(w => { if (w && !work) work = w; });
-  driverMat.emissiveIntensity = work ? 1.6 : 0;
-  if (work && !s.reduceMotion) for (let n = 0; n < 2; n++) {
-    const i = spNext; spNext = (spNext + 1) % NSPARK; spLife[i] = 0.28 + Math.random() * 0.12;
-    spPos[i * 3] = work.x; spPos[i * 3 + 1] = work.y; spPos[i * 3 + 2] = work.z;
-    spVel[i].set((Math.random() - 0.5) * 0.9, (Math.random() - 0.5) * 0.9, 0.3 + Math.random() * 0.6);
-  }
-  for (let i = 0; i < NSPARK; i++) {
-    if (spLife[i] <= 0) { spPos[i * 3 + 2] = -99; continue; }
-    spLife[i] -= dt; spVel[i].z -= 2.6 * dt;
-    spPos[i * 3] += spVel[i].x * dt; spPos[i * 3 + 1] += spVel[i].y * dt; spPos[i * 3 + 2] += spVel[i].z * dt;
-  }
-  spGeo.attributes.position.needsUpdate = true;
-  if (work) sparkLight.position.copy(work);
-  sparkLight.intensity = work ? 0.5 + Math.random() * 0.5 : sparkLight.intensity * 0.8;
+  const on = weldAt(work, dt);
+  driverMat.emissiveIntensity = work ? (on ? 2.2 : 0.9) : 0;
+  seatWelds(t);
+  updateSparks(dt);
+  // The core and the light: an irregular flicker while a pulse is on, and a short flash at a lock.
+  const fl = lastT - flashT < 0.12 ? 1 - (lastT - flashT) / 0.12 : 0;
+  const flick = on ? 0.55 + Math.random() * 0.45 * (Math.random() < 0.15 ? 0.2 : 1) : fl;
+  weldCore.visible = flick > 0.02;
+  if (weldCore.visible) { weldCore.position.copy(on ? work : flashP); weldCore.position.z += on ? -0.012 : 0.01; weldCore.scale.setScalar(0.035 + 0.04 * flick); weldCore.material.opacity = flick; }
+  if (on) sparkLight.position.copy(work); else if (fl > 0) sparkLight.position.copy(flashP);
+  sparkLight.color.setRGB(0.85, 0.9, 1);
+  sparkLight.intensity = flick > 0.02 ? 0.25 + 0.9 * flick : sparkLight.intensity * 0.7;
   // Shafts: only in the reveal orbit, nearly subliminal.
   shaftMat.opacity = 0.07 * ss(2.2, 2.32, P) * (1 - ss(2.5, 2.6, P));
   // Lens: focus follows the shot target; post time.
@@ -1445,7 +1739,7 @@ function cinemaUpdate(P, t) {
 
 /* ---------- update ---------- */
 const HEAD_T = [0.04, 0.3], HANDLE_T = [0.16, 0.42], NUT_T = [0.3, 0.5], JOIN = 0.42;
-const SCREEN_ON = 2.9, T_LED = 2.92, T_PULSE = 3.0;
+const SCREEN_ON = 2.99, T_LED = 3.01, T_PULSE = 3.07;
 const T_FLOOR = [0.55, 0.8], T_WALLS = [0.64, 0.9], T_BOSS = [0.84, 1.0], T_ST = [0.98, 1.1];
 let lastP = -99;
 const wq = new THREE.Quaternion(), wsv = new THREE.Vector3();
@@ -1503,6 +1797,13 @@ function update(P, t) {
   const halves = P < JOIN || gap > 0.002 || fold > 0;
   head.visible = handle.visible = halves; unified.visible = !halves;
   handle.visible = handle.visible && fold < 0.999;
+  // The transform: plates and body replace the solid mesh while the head is open.
+  W.updateMatrixWorld(true);
+  const xf = P >= JOIN ? xfAmount(P) : 0, xe = updateTransform(P, t, xf), open = xf > 0.0005;
+  PLATES.forEach(m => { m.visible = open; }); wBody.visible = open;
+  if (open) { unified.visible = head.visible = handle.visible = false; }
+  if (P >= JOIN) { wNut.position.z = NUT_HOME.z + hubRise; wNut.quaternion.setFromAxisAngle(ZUP, NUT_ROT + 1.05 * xe.eH); }
+  xfLocks(xe, t);
   lock(wMat.st, P >= JOIN, t);
 
   // 3. Tray.
@@ -1532,29 +1833,33 @@ function update(P, t) {
     const u = clamp((P - bt.a) / (bt.b - bt.a)), o = bt.obj;
     o.visible = P > bt.a;
     if (!o.visible) continue;
-    if (P >= bt.b) { o.position.copy(bt.seat); o.quaternion.identity(); o.scale.setScalar(1); continue; }
-    const lead = bt.arm < 0 ? 1 : bt.arm, H = bt.arm < 0 ? LID_LANE : LANES[bt.arm];
-    // Staging: just below the arm's root, behind the back wall and above its top.
-    _P0.copy(A[lead]); _P0.y -= 0.2; _P0.z -= 0.1;
+    if (P >= bt.b) { o.position.copy(bt.seat); o.quaternion.setFromAxisAngle(ZUP, bt.rot); o.scale.setScalar(1); continue; }
+    const two = bt.arm === -2, lead = two ? 1 : bt.arm, H = two ? LID_LANE : LANES[bt.arm], ph = bt.ph;
+    // Staging: below the arm's root, behind the back wall, at the arm's own lane height (never above it),
+    // so the path starts level in its lane and two pieces in flight never share a height.
+    _P0.copy(A[lead]); _P0.y -= 0.2; _P0.z = Math.min(A[lead].z - 0.25, H);
     const top = Math.max(_P0.z, H);
     _P1.set(_P0.x, _P0.y, top); _P2.set(bt.seat.x, bt.seat.y, top); _P3.copy(bt.seat);
     let sc = 1, grip = true, lift = 0;
     const hl = pathHL(_P0, _P1, _P2, _P3), L = PS[5];
-    if (u < 0.12) { sc = mix(0.12, 1, easeOut(u / 0.12)); _pos.copy(_P0); }
-    else if (u < 0.66) pathAt(_pos, _P0, _P1, _P2, _P3, easeIO((u - 0.12) / 0.54) * hl);
-    else if (u < 0.71) { pathAt(_pos, _P0, _P1, _P2, _P3, hl); lift = 0.03 * Math.sin(Math.PI * (u - 0.66) / 0.05); _pos.z += lift; }  // anticipation
-    else pathAt(_pos, _P0, _P1, _P2, _P3, mix(hl, L, easeOut(clamp((u - 0.71) / 0.13))));   // the drop decelerates onto the seat
-    if (u > 0.84) { _pos.copy(bt.seat); grip = false; }
-    const comp = Math.sin(Math.PI * clamp((u - 0.84) / 0.06)) * 0.015;
-    o.position.copy(_pos); o.quaternion.setFromAxisAngle(ZUP, 0.5 * (1 - easeIO(clamp(u / 0.66)))); o.scale.set(sc, sc, sc * (1 - comp));
-    if (u < 0.84) inFlight.push(bt);
-    const nA = bt.arm < 0 ? ARMS : 1;
+    if (u < ph.grow) { sc = mix(0.12, 1, easeOut(u / ph.grow)); _pos.copy(_P0); }
+    else if (u < ph.tr) pathAt(_pos, _P0, _P1, _P2, _P3, easeIO((u - ph.grow) / (ph.tr - ph.grow)) * hl);
+    else if (u < ph.an) { pathAt(_pos, _P0, _P1, _P2, _P3, hl); lift = 0.03 * Math.sin(Math.PI * (u - ph.tr) / (ph.an - ph.tr)); _pos.z += lift; }  // anticipation
+    else pathAt(_pos, _P0, _P1, _P2, _P3, mix(hl, L, two ? 1 - Math.pow(1 - clamp((u - ph.an) / (ph.dr - ph.an)), 4) : easeOut(clamp((u - ph.an) / (ph.dr - ph.an)))));   // the drop decelerates onto the seat
+    if (u > ph.dr) _pos.copy(bt.seat);
+    if (u > ph.rel) grip = false;
+    const comp = Math.sin(Math.PI * clamp((u - ph.dr) / 0.06)) * (two ? 0.004 : 0.015);
+    // One clean rotation to align, finished by the end of the level travel.
+    o.position.copy(_pos); o.quaternion.setFromAxisAngle(ZUP, bt.rot + (two ? 0.35 : 0.5) * (1 - easeIO(clamp(u / ph.tr)))); o.scale.set(sc, sc, sc * (1 - comp));
+    if (u < ph.dr) inFlight.push(bt);
+    if (!bt.seatedAt && u >= ph.dr) bt.seatedAt = t; if (u < ph.dr) bt.seatedAt = 0;
+    const nA = two ? LID_ARMS.length : 1;
     for (let n = 0; n < nA; n++) {
-      const j = bt.arm < 0 ? n : bt.arm, tp = armTips[j];
-      if (bt.arm < 0) tp.tip.copy(_pos).add(LID_GRIPS[n]); else tp.tip.copy(_pos);
-      tp.tip.z += bt.arm < 0 ? bt.top : bt.top * sc + 0.02;
+      const j = two ? LID_ARMS[n] : bt.arm, tp = armTips[j];
+      if (two) tp.tip.copy(_pos).add(_e.copy(LID_GRIPS[n]).applyQuaternion(o.quaternion)); else tp.tip.copy(_pos);
+      tp.tip.z += two ? bt.top : bt.top * sc + 0.02;
       tp.has = true; tp.grip = grip && u > 0.04; tp.work = grip; tp.lift = lift;
-      if (!grip) { const r = easeIO((u - 0.84) / 0.16); idleTip(j, A[j], _e); tp.tip.lerp(_e, r); tp.tip.z += 0.08 * Math.sin(Math.PI * r); }  // recoil, then relax
+      if (!grip) { const r = easeIO((u - ph.rel) / (1 - ph.rel)); idleTip(j, A[j], _e); tp.tip.lerp(_e, r); tp.tip.z += 0.08 * Math.sin(Math.PI * r); }  // recoil, then relax
     }
   }
   if (P > 2.12 && P < 2.3) { sdCard.visible = true; const e = easeIO(clamp((P - 2.12) / 0.14)); sdCard.position.copy(mainAt(Z.SAVE[0], Z.SAVE[1] - 0.3 * (1 - e), ZT + 0.016)); }
@@ -1596,7 +1901,7 @@ function update(P, t) {
   const dt = armDt(t, P);
   for (let j = 0; j < ARMS; j++) {
     const a = A[j], st = armS[j], tp = armTips[j], c = mains[j];
-    const ext = ss(OPEN[0] - 0.02 + j * 0.05, OPEN[0] + 0.1 + j * 0.05, P) * (1 - ss(CLOSE[0] - 0.08 - j * 0.04, CLOSE[0] + 0.02 - j * 0.04, P));
+    const ext = ss(OPEN[0] - 0.02 + j * 0.05, OPEN[0] + 0.1 + j * 0.05, P) * (1 - ss(XB0 + (2 - j) * 0.03, XB0 + 0.08 + (2 - j) * 0.03, P));
     if (!tp.has) idleTip(j, a, tp.tip);
     // Idle breathing sway on the tip target.
     const tm = s.reduceMotion ? 0 : t;
@@ -1612,7 +1917,7 @@ function update(P, t) {
     _b.set(0, -0.35, -0.94).normalize();                       // out of the neck: forward and down
     fabrik(c, a, st.tip, dt <= 0 ? 24 : 12, 0.5, _b);
     trail(c, dt);
-    const show = ext > 0.004;
+    const show = ext > 0.004, tools = ext > 0.35;   // the tools appear once the arm has paid out, not at the hub
     const wave = (0.006 + 0.03 * Math.sin(Math.PI * clamp(ext)) * (ext < 0.999 ? 1 : 0) + (tp.has ? 0 : 0.01)) * (s.reduceMotion ? 0 : 1);
     drawChain(c, j * (SEGS + SUBS * SUBSEG), 0.05, 0.028, wave, tm * 3.2 + j * 2.1, show);
     // Claw: two fingers along the last segment; open on approach, closed on the grip, eased.
@@ -1621,8 +1926,8 @@ function update(P, t) {
     const openT = tp.grip ? 0.021 : (tp.has ? 0.05 : 0.036);
     st.open += (openT - st.open) * (dt <= 0 ? 1 : 1 - Math.exp(-dt * 14));
     _d.set(1, 0, 0).applyQuaternion(_q);
-    setInst(fingers, j * 2, _e.copy(c.q[c.n]).addScaledVector(_d, st.open), _q, show ? 1 : 0);
-    setInst(fingers, j * 2 + 1, _e.copy(c.q[c.n]).addScaledVector(_d, -st.open), _q, show ? 1 : 0);
+    setInst(fingers, j * 2, _e.copy(c.q[c.n]).addScaledVector(_d, st.open), _q, tools ? 1 : 0);
+    setInst(fingers, j * 2 + 1, _e.copy(c.q[c.n]).addScaledVector(_d, -st.open), _q, tools ? 1 : 0);
     // Sub-arms: rooted 8 joints back from the tip; the socket goes to the screw that is driving now.
     const rj = Math.max(1, c.n - 8);
     for (let k2 = 0; k2 < SUBS; k2++) {
@@ -1640,7 +1945,7 @@ function update(P, t) {
       // Tool orientation: along the sub-arm, turning to the bolt axis (straight down) as it reaches the screw.
       _q.setFromUnitVectors(ZUP, _e.copy(_c).negate());
       if (drive) { const near = clamp(1 - sc2.q[sc2.n].distanceTo(subT[j]) / 0.12); _q.slerp(qI, near); _q2.setFromAxisAngle(ZUP, tm * 11); _q.multiply(_q2); }
-      setInst(k2 ? drivers : sockets, j, sc2.q[sc2.n], _q, show ? 1 : 0);
+      setInst(k2 ? drivers : sockets, j, sc2.q[sc2.n], _q, tools ? 1 : 0);
     }
     // Nerve glow: points run root to tip while the arm carries or drives.
     const live = show && (tp.work || !!subT[j]);
@@ -1710,7 +2015,7 @@ function frame(t, dt) {
  */
 // A few stages are enough: the compile covers every program; these renders catch the post passes
 // and the screen. (41 positions cost seconds on phones, and the hero waited on them.)
-const WARM_AT = [0.2, 1.4, 2.5, 3.2];
+const WARM_AT = [0.2, 1.0, 1.4, 2.5, 3.2];
 // Pick the resolution before the canvas shows, so a normal visit never reallocates on screen.
 // Time a few forced renders of the heaviest stage, then take the highest DPR whose predicted cost
 // (scaled by pixel count) fits 75% of the refresh interval. gl.finish() returns at once under
@@ -1745,7 +2050,7 @@ function startScene() {
 // Safety: start after 2.5 s even if warm-up has not finished (a slow GPU or a stalled compile),
 // so no visitor waits on a blank canvas. A late warm-up then skips the probe.
 Promise.race([
-  Promise.all([measureRefresh(), s.warm(WARM_AT.map(wp => () => { update(wp, 2); runSweeps(99); drawScreen(wp > SCREEN_ON, 3); }))]).then(probeDpr),
+  Promise.all([measureRefresh(), spritesReady.then(() => s.warm(WARM_AT.map(wp => () => { update(wp, 2); runSweeps(99); drawScreen(wp > SCREEN_ON, 3); })))]).then(probeDpr),
   new Promise(r => setTimeout(r, 2500))
 ]).then(startScene);
 document.body.classList.add('live'); document.body.classList.remove('no-webgl');
