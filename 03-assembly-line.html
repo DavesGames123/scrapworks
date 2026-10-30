@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Scrap — You make the art</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,15 +21,19 @@
   a { color: inherit; }
 
   /* Scene: fixed behind the page. The shade keeps the text column readable. */
-  #scene { position: fixed; left: 0; top: 0; width: 100%; height: 100vh; height: 100lvh; display: block; z-index: 0; }
+  /* Fixed canvas on its own compositing layer, so page scroll stays smooth on mobile. lvh: the URL bar never resizes it. */
+  #scene { position: fixed; left: 0; top: 0; width: 100%; height: 100vh; height: 100lvh; display: block; z-index: 0; transform: translateZ(0); will-change: transform; }
   .vh-probe { position: absolute; top: 0; left: 0; width: 1px; height: 100vh; height: 100svh; pointer-events: none; visibility: hidden; }
   .shade { position: fixed; inset: 0; z-index: 1; pointer-events: none;
     background: linear-gradient(90deg, rgba(10,10,11,.92) 0, rgba(10,10,11,.6) 30%, rgba(10,10,11,0) 52%); }
   .fallback { display: none; position: fixed; z-index: 1; right: 10vw; top: 50%; transform: translateY(-50%);
     font-size: 260px; color: var(--y); opacity: .9; }
-  .no-webgl .fallback { display: block; }
+  .no-webgl .fallback, .poster .fallback { display: block; }
+  .poster .fallback { inset: 0; right: auto; top: 0; transform: none; width: 100%; height: 100lvh; }
+  .poster .fallback img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
   nav { position: fixed; z-index: 4; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 30px;
+    padding-top: max(24px, env(safe-area-inset-top)) !important; padding-left: max(var(--gut), env(safe-area-inset-left)) !important; padding-right: max(var(--gut), env(safe-area-inset-right)) !important;
     padding: 24px var(--gut); background: linear-gradient(180deg, rgba(10,10,11,.85), rgba(10,10,11,0)); }
   .mark { font-size: 24px; line-height: 1; color: var(--y); text-decoration: none; margin-right: auto; display: inline-flex; align-items: center; min-height: 44px; }
   nav a.l { text-decoration: none; color: var(--mute); font-size: 15px; transition: color .2s; display: inline-flex; align-items: center; min-height: 44px; }
@@ -83,7 +87,7 @@
   @keyframes blink { 50% { opacity: 0; } }
   .hero .term { margin-top: 44px; }
 
-  .final { justify-content: center; align-items: flex-end; text-align: center; padding-bottom: 7vh; }
+  .final { justify-content: center; align-items: flex-end; text-align: center; padding-bottom: max(7vh, calc(env(safe-area-inset-bottom) + 24px)); }
   .final .col { width: min(560px, 100%); }
   .final h2 { margin: 0 0 12px; font: 700 clamp(36px, 4vw, 56px)/1 var(--display); text-transform: uppercase; }
   .final p { margin: 0 0 28px; color: #c9c8c2; }
@@ -126,13 +130,36 @@
     .tx { font-size: 15px; }
     .final { padding-bottom: 32px; }
     .sn { padding: 40px 16px 64px; min-height: 0; align-items: center; }
-    .final .cta { flex-direction: column; gap: 12px; }
+    .final .cta { flex-direction: column; gap: 12px; align-items: stretch; width: 100%; }
+    .final .cta .btn { justify-content: center; width: 100%; }
+    nav { padding-top: max(8px, env(safe-area-inset-top)) !important; }
+    .final { padding-bottom: max(32px, calc(env(safe-area-inset-bottom) + 16px)); }
     .fallback { right: 50%; top: 24svh; transform: translateX(50%); font-size: 160px; }
   }
   @media (orientation: portrait) and (min-width: 600px) and (max-width: 1100px) {
     .hero h1 { font-size: clamp(30px, 5.4vw, 48px); }
     .hero .lede, .tx { font-size: 18px; }
     .term { width: min(560px, 100%); }
+  }
+  @media (orientation: landscape) and (max-height: 520px) {
+    :root { --gut: 20px; }
+    nav { padding: 8px 20px; padding-top: max(8px, env(safe-area-inset-top)) !important; }
+    nav a.l { display: none; }
+    .shade { background: linear-gradient(270deg, rgba(10,10,11,.94) 0, rgba(10,10,11,.7) 40%, rgba(10,10,11,0) 56%); }
+    section { min-height: 100svh; padding: 64px var(--gut) 20px; justify-content: flex-end; }
+    .col, .hero .col, .final .col { width: min(46%, 420px); }
+    h1, .hero h1 { font-size: clamp(20px, 3.4vw, 28px); margin-bottom: 8px; }
+    .lede, .hero .lede { font-size: 14px; line-height: 1.45; margin-bottom: 12px; }
+    .hero .term { margin-top: 10px; }
+    .tx, .hero .tx { font-size: 12.5px; line-height: 1.45; }
+    .glass { padding: 10px 14px; }
+    .btn { padding: 11px 14px; font-size: 12px; }
+    .cta { gap: 14px; }
+    .final { justify-content: flex-end; align-items: center; text-align: left; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+    .final-mark { font-size: clamp(36px, 7vw, 56px); margin-bottom: 8px; }
+    .final h2 { font-size: clamp(22px, 3.6vw, 30px); }
+    .final p { margin-bottom: 12px; font-size: 14px; }
+    .final .cta, .final .plat { justify-content: flex-start; }
   }
   @media (prefers-reduced-motion: reduce) { .rise { transition: none; } .cur { animation: none; } }
 </style>
@@ -686,8 +713,8 @@ addSeat('nut', V(bulk.position.x, IH / 2 + 0.07, 0.22), 2.06, 0.8, 'net');
 // Lid screws: four in the bosses and sixteen along the rim.
 const LIDP = [];
 BOSS.forEach(b => LIDP.push([b.x, b.y]));
-for (let i = 1; i <= 4; i++) { const x = -IW / 2 + i * IW / 5; LIDP.push([x, -THt / 2 + 0.035], [x, THt / 2 - 0.035]); }
-for (let i = 1; i <= 4; i++) { const y = -IH / 2 + i * IH / 5; LIDP.push([-TW / 2 + 0.035, y], [TW / 2 - 0.035, y]); }
+if (!SMALL) for (let i = 1; i <= 4; i++) { const x = -IW / 2 + i * IW / 5; LIDP.push([x, -THt / 2 + 0.035], [x, THt / 2 - 0.035]); }
+for (let i = 1; i <= 4; i += SMALL ? 3 : 1) { const y = -IH / 2 + i * IH / 5; LIDP.push([-TW / 2 + 0.035, y], [TW / 2 - 0.035, y]); }
 LIDP.sort((a, b) => Math.atan2(a[1], a[0]) - Math.atan2(b[1], b[0])).forEach((p, i) => addSeat('screw', V(p[0], p[1], LIDZ + 0.03), 2.6 + i * 0.006, 0.6, 'lid'));
 const parts = [];
 function pool(geo, mat, n) { const m = inst(geo, mat, n); m.userData.n = 0; return m; }
@@ -873,8 +900,8 @@ const SHOT_T = {
   disp: () => V(DISP.x, DISP.y, LIDZ + 0.06), fin: () => V(0, 0, 0.2)
 };
 const SHOTS = [
-  [0.0, 'hero', 30, 5, 7.6, 30],    // open: low 3/4 hero angle
-  [0.46, 'hero', 22, 8, 6.7, 28],   // slow push-in while the wrench assembles
+  [0.0, 'hero', 30, 5, 9.2, 30],    // open: low 3/4 hero angle
+  [0.46, 'hero', 22, 8, 8.1, 28],   // slow push-in while the wrench assembles
   [0.9, 'box', 18, 38, 6.9, 30],    // wide: the tray arrives
   [1.2, 'box', 14, 40, 6.7, 30],
   [1.27, 'logic', 6, 56, 3.1, 22],  // close: CPU seats
@@ -905,8 +932,13 @@ function camShot(P, t, aspect, eFin) {
   camTarget.copy(tA).lerp(tB, e);
   const az = THREE.MathUtils.degToRad(mix(A[2], B[2], e)), el = THREE.MathUtils.degToRad(mix(A[3], B[3], e));
   // Portrait screens are narrow: back off so the tray still fits the width.
-  let dist = mix(A[4], B[4], e) * (narrow ? clamp(0.72 / aspect, 1, 2.2) : 1);
+  // Per-aspect framing: portrait backs off by width (tablets a little more in the hero, so the wrench clears the headline);
+  // landscape narrower than 16:10 backs off so the right-half subject does not touch the edge or the nav.
+  let dist = mix(A[4], B[4], e) * (narrow ? clamp(0.8 / aspect, 1.15, 2.4) * (A[1] === 'hero' || B[1] === 'hero' ? 1.12 : 1)
+    : Math.max(1, 1.6 / aspect) * (aspect > 1.3 && canvas.clientHeight < 520 ? 1.12 : 1));
   cam.fov = mix(A[5], B[5], e);
+  // Portrait close-ups: the frame is narrow, so macro shots pull back further to keep the part whole.
+  if (narrow) dist *= mix(1, 1.45, clamp((30 - cam.fov) / 8));
   cam.position.set(camTarget.x + dist * Math.sin(az) * Math.cos(el), camTarget.y + dist * Math.sin(el), camTarget.z + dist * Math.cos(az) * Math.cos(el));
   cam.lookAt(camTarget);
   // Handheld drift: about 0.3 degrees, never static.
@@ -919,7 +951,8 @@ function camShot(P, t, aspect, eFin) {
   // Composition: desktop puts the subject in the right half (text on the left); portrait in the top half.
   // The end centers it over the wordmark. setViewOffset moves the lens center, not the subject.
   const cw = canvas.clientWidth, ch = canvas.clientHeight;
-  const ox = narrow ? 0 : mix(0.22, 0, eFin), oy = narrow ? mix(0.2, 0.26, eFin) : mix(0, 0.2, eFin);
+  const shortLand = aspect > 1.3 && ch < 520;     // phones on their side: object left, text right (see CSS)
+  const ox = narrow ? 0 : shortLand ? -0.24 : mix(0.22, 0, eFin), oy = narrow ? mix(0.2, 0.26, eFin) : shortLand ? 0 : mix(0, 0.2, eFin);
   cam.setViewOffset(cw, ch, -ox * cw, oy * ch, cw, ch);
   cam.updateProjectionMatrix(); cam.updateMatrixWorld(true);
   focusDist = cam.position.distanceTo(camTarget);
@@ -937,9 +970,13 @@ const Q = (() => {
 })();
 
 // Practical lights: two LED clusters and the display. One spark light. Counts are fixed, so shaders do not recompile.
-const ledLight = new THREE.PointLight(0xffb040, 0, 0.9, 2); ledLight.position.copy(mainAt(0.1, -0.62, ZT + 0.06)); asm.add(ledLight);
-const screenLight = new THREE.PointLight(0xffa020, 0, 1.6, 2); screenLight.position.set(DISP.x, DISP.y, LIDZ + 0.35); asm.add(screenLight);
-const sparkLight = new THREE.PointLight(0xffc070, 0, 0.8, 2); asm.add(sparkLight);
+// Low tier: no practical lights at all (each one costs every lit fragment); the LEDs and the screen stay emissive.
+const ledLight = new THREE.PointLight(0xffb040, 0, 0.9, 2); ledLight.position.copy(mainAt(0.1, -0.62, ZT + 0.06));
+const screenLight = new THREE.PointLight(0xffa020, 0, 1.6, 2); screenLight.position.set(DISP.x, DISP.y, LIDZ + 0.35);
+const sparkLight = new THREE.PointLight(0xffc070, 0, 0.8, 2);
+if (Q !== 'low') asm.add(ledLight, screenLight, sparkLight);
+// Low tier: DPR 1.5 at most.
+if (Q === 'low') { const pr = Math.min(window.devicePixelRatio || 1, 1.5); s.renderer.setPixelRatio(pr); if (s.composer) s.composer.setPixelRatio(pr); }
 
 // Sparks: a small pool of short-lived emissive points at a working driver tip.
 const NSPARK = Q === 'low' ? 24 : 64;
@@ -977,13 +1014,14 @@ if (s.composer) {
     s.composer.insertPass(bokeh, s.composer.passes.length - 1);
   }
   grade = new ShaderPass({
-    uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uGrain: { value: Q === 'low' ? 0.018 : 0.03 }, uVig: { value: 0.3 }, uCA: { value: Q === 'low' ? 0 : 0.006 } },
+    uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uGrain: { value: Q === 'low' ? 0.018 : 0.03 }, uVig: { value: 0.3 }, uCA: { value: Q === 'low' ? 0 : 0.003 } },
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
     fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime, uGrain, uVig, uCA; varying vec2 vUv;
       float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
       void main(){
         vec2 d = vUv - 0.5; float r2 = dot(d, d);
-        vec2 off = d * uCA * r2 * 4.0;                       // aberration grows only toward the edges
+        float rr = length(d) / 0.5;                          // 0 center, 1 at the edge midpoints
+        vec2 off = normalize(d + 1e-6) * uCA * smoothstep(0.7, 1.0, rr);   // zero inside the central 70%
         vec3 c = vec3(texture2D(tDiffuse, vUv - off).r, texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv + off).b);
         c *= 1.0 - uVig * smoothstep(0.12, 0.62, r2 * 2.0);
         c += (hash(vUv * vec2(1931.0, 1213.0) + fract(uTime * 7.31)) - 0.5) * uGrain;
@@ -999,10 +1037,70 @@ function governor(dt) {
   govT += dt; govN++; govSum += dt;
   if (govT < 2) return;
   const avg = govSum / govN; govT = govN = govSum = 0;
-  if (avg > 1 / 45) { if (gtao && gtao.enabled) gtao.enabled = false; else if (bokeh && bokeh.enabled) bokeh.enabled = false; }
+  if (avg > 1 / 45) {
+    if (gtao && gtao.enabled) gtao.enabled = false;
+    else if (bokeh && bokeh.enabled) bokeh.enabled = false;
+    else if (Q === 'low' && avg > 1 / 28) posterMode();
+  }
 }
 
 let workTips = [null, null, null];
+/* Poster: render the assembled device once, show it as a still image, and stop the canvas.
+   Used when the low tier still runs too slowly. If WebGL never starts, the SVG icon fallback shows. */
+let poster = false;
+function posterMode() {
+  if (poster) return; poster = true;
+  try {
+    update(3.05, 2); runSweeps(99); s.render();
+    const url = canvas.toDataURL('image/jpeg', 0.86);           // read in the same task as the render
+    const fb = document.querySelector('.fallback');
+    const img = new Image(); img.alt = 'The assembled Scrap device'; img.src = url; fb.replaceChildren(img);
+  } catch (e) {}
+  document.body.classList.add('poster');
+  canvas.style.display = 'none';                                 // the stage stops its loop when the canvas leaves the view
+}
+
+/* Hero bolts: a few plain silver hex bolts drifting around the wrench. They are placed in screen
+   space (NDC + depth), so they stay out of the headline on every layout, and they clear out as the build starts. */
+const heroBolts = (() => {
+  const N = SMALL ? 5 : 7;
+  const parts = [k.soft.hexNut(0.1, 0.068, 0).translate(0, 0, 0.034), zAxis(k.soft.cylinder(0.042, 0.3, 0.008, 20)).translate(0, 0, -0.15)];
+  for (let i = 0; i < 5; i++) parts.push(zAxis(k.soft.ring(0.047, 0.041, 0.012, 0.004)).translate(0, 0, -0.07 - i * 0.045));
+  const m = new THREE.InstancedMesh(merge(parts), M.steel({ anisotropy: 0, roughness: 0.3 }), N);
+  m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); s.scene.add(m);
+  const B = [];
+  for (let i = 0; i < N; i++) B.push({ u: (i + 0.5) / N + (rnd() - 0.5) * 0.08, v: rnd(), d: 3.4 + rnd() * 8, ph: rnd() * 6.283,
+    ax: V(rnd() - 0.5, rnd() - 0.5, rnd() - 0.5).normalize(), sp: 0.12 + rnd() * 0.18, tilt: qE(rnd() * 3, rnd() * 3, 0) });
+  return { m, B };
+})();
+const touch = window.matchMedia('(hover: none)').matches;
+const bv = new THREE.Vector3(), bq = new THREE.Quaternion();
+function updateHeroBolts(P, t) {
+  const { m, B } = heroBolts, e = ss(0.4, 0.62, P), on = P < 0.66;
+  const aspect = canvas.clientWidth / canvas.clientHeight, shortLand = aspect > 1.3 && canvas.clientHeight < 520;
+  cam.getWorldDirection(camFwd);
+  // Parallax: the pointer on desktop, a slow automatic drift on touch screens.
+  const px = touch || s.reduceMotion ? Math.sin(t * 0.21) * 0.5 : s.pointer.sx, py = touch || s.reduceMotion ? Math.cos(t * 0.17) * 0.5 : s.pointer.sy;
+  B.forEach((b, i) => {
+    if (!on) { dummy.scale.setScalar(0); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); return; }
+    const bt = s.reduceMotion ? 0 : t;
+    // Allowed screen regions (NDC): desktop right half; short landscape left half; portrait top half.
+    let x, y;
+    if (narrow) { x = mix(-0.86, 0.86, b.u); y = mix(0.14, 0.76, b.v); }     // top half, below the nav
+    else if (shortLand) { x = mix(-0.9, -0.1, b.u); y = mix(-0.78, 0.78, b.v); }
+    else { x = mix(0.1, 0.92, b.u); y = mix(-0.78, 0.66, b.v); }          // right half, below the nav
+    const par = 0.035 * 7 / b.d;
+    x += Math.sin(bt * 0.23 + b.ph) * 0.025 + px * par; y += Math.cos(bt * 0.19 + b.ph) * 0.025 + py * par;
+    const cx = narrow ? 0 : shortLand ? -0.5 : 0.5, cy = narrow ? 0.5 : 0;     // clear out: drift away from the subject
+    x = mix(x, x + (x - cx) * 1.2, e); y = mix(y, y + (y - cy) * 1.2, e);
+    bv.set(x, y, 0.5).unproject(cam).sub(cam.position).normalize();
+    const pos = cam.position.clone().addScaledVector(bv, b.d / bv.dot(camFwd));
+    bq.setFromAxisAngle(b.ax, bt * b.sp + b.ph).multiply(b.tilt);
+    dummy.position.copy(pos); dummy.quaternion.copy(bq); dummy.scale.setScalar(1 - e);
+    dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix);
+  });
+  m.instanceMatrix.needsUpdate = true;
+}
 function cinemaUpdate(P, t) {
   const dt = clamp(t - lastT, 0, 0.05); lastT = t;
   // Practical lights follow their sources.
@@ -1208,6 +1306,7 @@ function update(P, t) {
   key.color.copy(KEY_COOL).lerp(KEY_WARM, ss(1.0, 2.9, P));
   key.position.set(-4 + Math.sin(t * 0.13) * 0.5, 5, 4);
   cinemaUpdate(P, t);
+  updateHeroBolts(P, t);
   primed = true;
 }
 
@@ -1221,6 +1320,7 @@ function screenTick(t, still) {
   if (still || t - lastDraw > 1 / 20) { lastDraw = t; drawScreen(on, still ? 3 : t - bootAt); }
 }
 function frame(t, dt) {
+  if (poster) return;
   const target = window.SCRAP.target();
   if (window.SCRAP.fixed != null) { P = target; vel = 0; }
   else { const st = Math.min(dt, 1 / 30); vel += (KS * (target - P) - KD * vel) * st; P += vel * st; }
