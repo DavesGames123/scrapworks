@@ -884,8 +884,6 @@ const jointGeo = k.soft.ring(0.05, 0.03, 0.016, 0.005);                // axis Y
 const vertMat = M.brass({ roughness: 0.34 });
 const verts = inst(vertGeo, vertMat, ARMS * (SEGS + SUBS * SUBSEG));  // brass vertebrae
 const joints = inst(jointGeo, armMat, ARMS * (SEGS + SUBS * SUBSEG));  // dark steel collars between them
-const fingerGeo = k.soft.box(0.022, 0.03, 0.11, 0.008).translate(0, 0, -0.055);
-const fingers = inst(fingerGeo, steel, ARMS * 2);
 const sockets = inst(k.soft.hexNut(0.032, 0.07, 0.58).translate(0, 0, -0.035), brass, ARMS);
 const driverMat = M.steel({ anisotropy: 0, roughness: 0.3, emissive: new THREE.Color(1.0, 0.55, 0.12), emissiveIntensity: 0 });
 const drivers = inst(zAxis(k.soft.cylinder(0.008, 0.11, 0.003, 12)).translate(0, 0, -0.055), driverMat, ARMS);
@@ -907,7 +905,7 @@ const mains = [0, 1, 2].map(() => makeChain(SEGS, SEG_L));
 const subC = [0, 1, 2].map(() => [makeChain(SUBSEG, SUB_L), makeChain(SUBSEG, SUB_L)]);
 // Per arm: spring state for the tip, sub tips, claw opening, and the root direction.
 const armS = [0, 1, 2].map(() => ({ tip: new THREE.Vector3(), tipV: new THREE.Vector3(), sub: [new THREE.Vector3(), new THREE.Vector3()],
-  subV: [new THREE.Vector3(), new THREE.Vector3()], open: 0.035, grip: false, work: false, init: false }));
+  subV: [new THREE.Vector3(), new THREE.Vector3()], open: 0.035, grip: false, work: false, init: false, pT: new THREE.Vector3(), ff: new THREE.Vector3() }));
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), _d = new THREE.Vector3(), _e = new THREE.Vector3(), _f = new THREE.Vector3();
 // The arm tip moves at most TIP_STEP per frame: a fast scroll (a large P step) cannot carry a tip through a thin part.
 const TIP_STEP = 0.06;
@@ -1051,7 +1049,8 @@ function pathAt(out, P0, P1, P2, P3, s) {
 }
 function pathL(P0, P1, P2, P3) { pathSetup(P0, P1, P2, P3); return PS[5]; }
 function pathHL(P0, P1, P2, P3) { pathSetup(P0, P1, P2, P3); return PS[5] - PS[4]; }   // up to the straight drop
-const armTips = [0, 1, 2].map(() => ({ tip: new THREE.Vector3(), has: false, grip: false, work: false, lift: 0, own: -1 }));
+const armTips = [0, 1, 2].map(() => ({ tip: new THREE.Vector3(), has: false, grip: false, work: false, lift: 0, own: -1,
+  mode: '', con: new THREE.Vector3(), nrm: new THREE.Vector3(0, 0, 1), side: new THREE.Vector3(), w: 0, dIn: 0, R: 0, unlock: 0, blink: false }));   // the job for the end effector (see efArm)
 const inFlight = [];
 let armT = -1, armP = -99;
 // Frame time for the arm springs; 0 after a jump in P (warm-up, ?p, a fast scroll), which snaps them.
@@ -1179,7 +1178,7 @@ function anchors(wp) {
 /* ---------- carried modules: one beat each, assigned to an arm ---------- */
 // [object, seat (device), arm, start, end, top height of the part (claw grip)]
 // The deck goes in during Stage 1; the station tiles in the live stage, each from its atlas cell; then the lid.
-const T_DECK = [1.12, 1.3], T_TILE0 = 2.0, T_TILE_STEP = 0.05, T_TILE_DUR = 0.1;
+const T_DECK = [1.12, 1.3], T_TILE0 = 2.08, T_TILE_STEP = 0.042, T_TILE_DUR = 0.09;   // after the tool swaps (see SWAPS)
 // Tiles leave the sheet in front of the box, so they travel above its top edge (z ~1.03), one lane per arm.
 const TILE_LANES = [1.14, 1.28, 1.42];
 const BEATS = [
@@ -1188,7 +1187,7 @@ const BEATS = [
   [lid, LID_SEAT, -2, 2.58, 2.8, 0.06]
 ].map(b => ({ obj: b[0], seat: b[1], arm: b[2], a: b[3], b: b[4], top: b[5], rot: b[6] || 0, cell: b[7] }));
 // Phases of a carry (fractions of the beat): grow at staging, travel, anticipation, drop, release.
-const PH_DEF = { grow: 0.12, tr: 0.66, an: 0.71, dr: 0.84, rel: 0.84 };
+const PH_DEF = { grow: 0.28, tr: 0.68, an: 0.71, dr: 0.84, rel: 0.84 };   // grow: the gripper takes the tile at its cell
 // The deck and the lid fly in from off-frame during 'grow' (at full size), to where the arms take them.
 const PH_DECK = { grow: 0.3, tr: 0.75, an: 0.8, dr: 0.9, rel: 0.9 };
 // The lid: a long, slow, eased final drop, then a hold while the lid screws seat, then release.
@@ -1196,6 +1195,9 @@ const PH_LID = { grow: 0.25, tr: 0.55, an: 0.58, dr: 0.72, rel: 0.94 };
 BEATS.forEach(b => { b.ph = b.obj === lid ? PH_LID : b.obj === deck ? PH_DECK : PH_DEF; });
 const FAR_IN = { deck: V(0, 9, 1.2), lid: V(9, -1, 1.6) }, _lq = new THREE.Quaternion();
 const LID_ARMS = [0, 2], LID_GRIPS = [V(-1.16, 0, 0), V(1.16, 0, 0)];   // opposite short edges
+// Two lifting lugs on the lid border, at the middle of the short edges, outside the display: the lid grips.
+const LUG_SG = [-1, 1], LUG_X = 1.27, LUG_T = 0.012, LUG_TOP = 0.03 + 0.036;
+[-1, 1].forEach(sg => { const m = new THREE.Mesh(k.soft.box(LUG_T, 0.07, 0.036, 0.003), brassD); m.position.set(sg * LUG_X, 0, 0.03 + 0.018); lid.add(m); });
 // Idle tip: just out of the neck, the three arms fanned. out: the vector to write (allocation-free).
 function idleTip(j, A, out) { return (out || new THREE.Vector3()).copy(A).add(_ca.set((j - 1) * 0.28, -0.26 - (j === 1 ? 0.06 : 0), 0.12)); }
 
@@ -2191,14 +2193,14 @@ function updatePipeline(P, t, A) {
     if (u < 1) { cardPos[k2].copy(dummy.position); cardQ[k2].copy(dummy.quaternion); cardRad[k2] = sc; }   // in flight: a thin box; slotted cards are part of the sheet's box
     // The arm that owns this card (cell % 3) meets it for the last stretch.
     const j = colArm(k2 % AT_COLS);   // left and right halves: the arms keep apart
-    if (u > GUIDE_U && u < 1 && u > guideU[j]) { guide[j] = k2; guideU[j] = u; armTips[j].tip.copy(dummy.position).addScaledVector(SN_N, CARD_HOVER); }
+    if (u > GUIDE_U && u < 1 && u > guideU[j] && P < GUIDE_END[j]) { guide[j] = k2; guideU[j] = u; armTips[j].tip.copy(dummy.position).addScaledVector(SN_N, CARD_HOVER); }
   }
   cards.instanceMatrix.needsUpdate = true;
-  for (let j = 0; j < 3; j++) if (guide[j] >= 0) { const tp = armTips[j]; tp.has = true; tp.grip = true; tp.work = true; tp.lift = 0; tp.own = ID_CARD + guide[j]; }
+  for (let j = 0; j < 3; j++) if (guide[j] >= 0) { const tp = armTips[j]; tp.has = true; tp.grip = true; tp.work = true; tp.lift = 0; tp.own = ID_CARD + guide[j]; tp.mode = 'guide'; tp.nrm.copy(SN_N); }   // the suction cup guides, no contact
   // Between cards an arm waits high over its next card's path, so it never sweeps across the sheet
   // (and through the cards coming in) to catch up.
   if (cards.visible && P < PIPE_T.flow[1] + FLIGHT) for (let j = 1; j < 3; j++) {
-    if (guide[j] >= 0) continue;
+    if (guide[j] >= 0 || P >= GUIDE_END[j]) continue;
     let nk = -1;
     for (const k2 of ORDER_I) { if (colArm(k2 % AT_COLS) === j && P < cardT0[k2] + FLIGHT * GUIDE_U) { nk = k2; break; } }
     if (nk < 0) continue;
@@ -2219,13 +2221,21 @@ function updatePipeline(P, t, A) {
     const u = pk(T_PACK.star);
     if (u > 0) packMove(star.position, _pb, _pw.set(PACK.star.x, PACK.star.y, 0.04 + STAR_R * PK_STAR_S), u); else star.position.copy(_pb);
     star.scale.setScalar(mix(ls, PK_STAR_S, easeIO(u)));
+    // Arm 1 cradles the star in its magnetic prongs for the last of the rise, between its two swaps.
+    if (P > STAR_HOLD[0] && P < STAR_HOLD[1]) {
+      const uh = (P - STAR_HOLD[0]) / (STAR_HOLD[1] - STAR_HOLD[0]), tp = armTips[1], R = STAR_R * star.scale.x;
+      tp.nrm.copy(SN_N).add(_pw.set(0, 0, 1.4)).normalize();
+      tp.tip.copy(star.position).addScaledVector(tp.nrm, 1.6 * R + TIP_HOVER);
+      tp.con.copy(star.position); tp.R = R; tp.mode = 'sphere'; tp.side.set(1, 0, 0);
+      tp.has = true; tp.grip = uh > 0.3 && uh < 0.85; tp.work = tp.grip; tp.lift = 0; tp.own = 1;
+    }
     starMat.uniforms.uT.value = coronaMat.uniforms.uT.value = tm;
     corona.quaternion.copy(_camQ);                                  // the corona card faces the lens (star has no rotation)
   }
   // The star lights the planets (starLight: the scene's light count stays the same); packed, it lights the box.
   starLight.position.copy(star.position); starLight.intensity = star.visible ? 1.3 * le : 0;
   PLANETS.forEach(([r, orb, spd, cell], i) => {
-    const m = planets[i], pe = easeIO(clamp((P - PIPE_T.live[0] - i * 0.018) / 0.12));
+    const m = planets[i], pe = easeIO(clamp((P - PIPE_T.live[0] - i * 0.012) / 0.12));   // out of their cells before the first tile leaves
     m.visible = pe > 0 && !!m.material.map;
     if (!m.visible) return;
     const th = i * 1.7 + tm * spd * 0.35 + P * spd * 2.2;
@@ -2339,13 +2349,14 @@ function updatePipeline(P, t, A) {
         } else tp.copy(_pd); }
       else armTips[0].tip.copy(g.position).addScaledVector(_pv, CARD_HOVER);
       const tp = armTips[0];
-      tp.has = true; tp.grip = u > 0.04; tp.work = true; tp.lift = 0; tp.own = ID_CODE + i;
+      tp.has = true; tp.grip = u > 0.22; tp.work = true; tp.lift = 0; tp.own = ID_CODE + i;
+      tp.mode = 'flat'; tp.con.copy(g.position).addScaledVector(_pv, 0.006); tp.nrm.copy(_pv); tp.side.set(1, 0, 0).applyQuaternion(g.quaternion);   // suction on the face
     } else if (P > T_CODE0 - 0.05 && P < T_CODE0 + NCODE * T_CODE_STEP && armTips[0].own < 0) {   // between modules: wait over the tangle
       const tp = armTips[0]; tp.tip.copy(KNOT[L]).addScaledVector(KNOT_OUT, KNOT_WAIT); tp.has = true;
     }
   });
   // Links: from every linked atlas cell to its module once the module sits in the rack.
-  links.visible = sheet.visible && seated > 0 && P < T_TILE0 - 0.02;   // gone before the tiles leave their cells
+  links.visible = sheet.visible && seated > 0 && P < LINKS_END;   // gone before the tiles leave their cells
   if (links.visible) {
     const pos = linkGeo.attributes.position.array, col = linkGeo.attributes.color.array;
     const pulse = 0.55 + 0.45 * Math.sin(tm * 2.4);
@@ -2376,13 +2387,15 @@ function updatePipeline(P, t, A) {
  *   gatherProxies()   avoid(chain, arm, isSub, wave)   tentacleCheck() (?collide: counts in CSTAT.t)
  */
 const CARD_HOVER = 0.3, GUIDE_U = 0.8;   // the arm meets its card halfway up the face, clear of the ports   // over a sliding card the claw stays higher: the next cards come in under it
-const PX_MARGIN = 0.025, NSPH = 300, NOBB = 64, TIP_HOVER = 0.22, CLAW_L = 0.11, CLAW_R = 0.03, SOCKET_R = 0.035;
+// EFS: the end-effector scale (phones: larger). CLAW_L, CLAW_R: the wrist and coupling envelope along the tool axis.
+const EFS = SMALL ? 1.3 : 1;
+const PX_MARGIN = 0.025, NSPH = 300, NOBB = 80, TIP_HOVER = 0.22, CLAW_L = 0.11 * EFS, CLAW_R = 0.03 * EFS, SOCKET_R = 0.035;
 const sphC = Array.from({ length: NSPH }, () => new THREE.Vector3()), sphR = new Float32Array(NSPH), sphK = new Uint8Array(NSPH), sphId = new Int16Array(NSPH);
 const obbC = Array.from({ length: NOBB }, () => new THREE.Vector3()), obbX = Array.from({ length: NOBB }, () => new THREE.Vector3());
 const obbY = Array.from({ length: NOBB }, () => new THREE.Vector3()), obbZ = Array.from({ length: NOBB }, () => new THREE.Vector3());
 const obbH = Array.from({ length: NOBB }, () => new THREE.Vector3()), obbK = new Uint8Array(NOBB), obbId = new Int16Array(NOBB);
 let nSph = 0, nObb = 0;
-const PXK = ['', 'planet', 'asteroid', 'card', 'conduit', 'window', 'sheet', 'tile', 'deck', 'lid', 'arm', 'panel', 'code', 'rack', 'link', 'cradle'];
+const PXK = ['', 'planet', 'asteroid', 'card', 'conduit', 'window', 'sheet', 'tile', 'deck', 'lid', 'arm', 'panel', 'code', 'rack', 'link', 'cradle', 'toolrack', 'docked'];
 const ID_CARD = 100, ID_TILE = 200, ID_LID = 300, ID_DECK = 400, ID_WIN = 500, ID_SHEET = 600, ID_HUD = 700, ID_CODE = 800, ID_RACK = 900;
 const _pv = new THREE.Vector3(), _pv2 = new THREE.Vector3(), _pv3 = new THREE.Vector3();
 function addSph(p, r, k, id) { if (nSph >= NSPH || r <= 0) return; sphC[nSph].copy(p); sphR[nSph] = r; sphK[nSph] = k; sphId[nSph] = id; nSph++; }
@@ -2429,6 +2442,8 @@ function gatherProxies() {
   if (floor.visible) { addObb(floor, -0.635, 0, 0.06, 0.02, IH / 2, 0.07, 15, 1000); addObb(floor, 0.635, 0, 0.06, 0.02, IH / 2, 0.07, 15, 1001);
     addObb(floor, -0.93, 0, 0.04, 0.29, IH / 2, 0.05, 15, 1002); addObb(floor, 0.93, 0, 0.04, 0.29, IH / 2, 0.05, 15, 1003); }
   if (lid.visible) { addObb(lid, 0, 0, 0.015, TW / 2, THt / 2, 0.015, 9, ID_LID); addObb(lid, DISP.x, DISP.y, 0.045, DISP.w / 2 + 0.03, DISP.h / 2 + 0.03, 0.016, 9, ID_LID); }
+  if (lid.visible) for (const sg of LUG_SG) addObb(lid, sg * LUG_X, 0, 0.048, LUG_T / 2, 0.035, 0.018, 9, ID_LID);   // the lid lugs
+  efProxies();   // the tool racks and the docked tools
 }
 // Push point p out of every proxy except `own`, to clearance R. Returns nothing; p is moved in place.
 // Broad phase: avoid() lists the proxies near the chain it clears (locS, locO); pushPoint reads only those.
@@ -2483,6 +2498,7 @@ let prevChains = [];                          // last frame's chains: the arms n
 // Push p out of the capsules of the other arms: this frame's for the arms drawn before j, last frame's for the
 // arms after j. Without the second set, an earlier arm can put its tip on the root of a later arm, which can not move.
 function pushArms(p, R, j) {
+  pushTools(p, R, j);
   for (const dc of drawnChains) pushCaps(p, R, j, dc);
   for (const dc of prevChains) if (dc.j > j) pushCaps(p, R, j, dc);
 }
@@ -2501,22 +2517,41 @@ function pushCaps(p, R, j, dc) {
 }
 // Clear the claw (CLAW_L past the tip): its far end, then its quarter points, since a thin card or tile edge fits
 // between the tip and the far end. Each shift moves the tip joint with it.
+const _cw = new THREE.Vector3(), _lag = new THREE.Vector3();
 function clawOut(c, i, own, j) {
-  _pv.copy(c.q[i]).sub(c.q[i - 1]); const d = _pv.length(); if (d <= 1e-6) return 0;
-  _pv.multiplyScalar(CLAW_L / d);
+  if (c.q[i].distanceToSquared(c.q[i - 1]) <= 1e-12) return 0;
+  toolAxis(_cw, c, j).multiplyScalar(CLAW_L);   // along the wrist, which turns to the part (pushPoint uses _pv)
   let moved = 0;   // the caller repeats until the claw is clear
   for (const f of CLAW_F) {
-    _e.copy(c.q[i]).addScaledVector(_pv, f); const ox = _e.x, oy = _e.y, oz = _e.z;
-    for (let r = 0; r < 2; r++) { pushPoint(_e, CLAW_R + PX_MARGIN, own); pushArms(_e, CLAW_R + PX_MARGIN, j); }
+    _e.copy(c.q[i]).addScaledVector(_cw, f); const ox = _e.x, oy = _e.y, oz = _e.z;
+    const ow = armTips[j].mode === 'dock' ? own : -1;   // the wrist clears its own part too, except in a cradle
+    for (let r = 0; r < 2; r++) { pushPoint(_e, CLAW_R + PX_MARGIN, ow); pushArms(_e, CLAW_R + PX_MARGIN, j); }
     c.q[i].x += _e.x - ox; c.q[i].y += _e.y - oy; c.q[i].z += _e.z - oz;
     moved += Math.abs(_e.x - ox) + Math.abs(_e.y - oy) + Math.abs(_e.z - oz);
   }
   return moved;
 }
 const CLAW_F = [1, 0.5, 0.25, 0.75, 1];
+// Clear the attachment past the wrist (fingers, jaws, cup, prongs): its capsules from the last frame, moved
+// with the tip. A gripping part may touch the part it holds; in a cradle, every part may touch the rack.
+function toolOut(c, j) {
+  const tq = c.q[c.n], own = armTips[j].own, dock = armTips[j].mode === 'dock';
+  let moved = 0;
+  for (let n = 1; n < efCapN[j]; n++) {   // the quill, the coupling, and the attachment (the wrist is clawOut's)
+    const b = j * EFCAP + n, r = efCapR[b]; if (r <= 0) continue;
+    for (let e2 = 0; e2 < 3; e2++) {   // both ends and the middle: a plate edge fits between the ends
+      _e.copy(efCapA[b]).lerp(efCapB[b], e2 * 0.5).sub(efCapTip[j]).add(tq); const ox = _e.x, oy = _e.y, oz = _e.z;
+      pushPoint(_e, r + PX_MARGIN * 0.6, efCapG[b] || dock ? own : -1); pushArms(_e, r + PX_MARGIN * 0.6, j);
+      tq.x += _e.x - ox; tq.y += _e.y - oy; tq.z += _e.z - oz;
+      moved += Math.abs(_e.x - ox) + Math.abs(_e.y - oy) + Math.abs(_e.z - oz);
+    }
+  }
+  return moved;
+}
 // The constraint pass for one drawn chain (c.q), after trail(). wave: the vertebra wave amplitude.
 function avoid(c, j, isSub, wave) {
   const own = isSub ? -1 : armTips[j].own, rad = isSub ? rSub : rMain;
+  const ownT = !isSub && armTips[j].mode === 'dock' ? own : -1;   // the tip (the wrist) touches only a cradle
   localProxies(c);
   const pass = restore => {
     for (let i = 1; i <= c.n; i++) {
@@ -2524,7 +2559,7 @@ function avoid(c, j, isSub, wave) {
       const tip = i === c.n;
       const R = (tip ? (isSub ? SOCKET_R : CLAW_R) : rad(c, i)) + PX_MARGIN + wave;
       if (tip && !isSub) clawOut(c, i, own, j);   // the claw reaches CLAW_L past the tip: clear its far end first
-      for (let r = 0; r < 2; r++) { pushPoint(c.q[i], R, tip ? own : -1); pushArms(c.q[i], R, j); }
+      for (let r = 0; r < 2; r++) { pushPoint(c.q[i], R, tip ? ownT : -1); pushArms(c.q[i], R, j); }
       wallOut(c.q[i], 0.035);
     }
     // Segment midpoints: two cleared joints can still cut a box corner between them, so clear the middle too
@@ -2554,7 +2589,7 @@ function avoid(c, j, isSub, wave) {
     for (let i = 1; i <= c.n; i++) {
       if (c.len[i - 1] <= 1e-4) continue;
       const tip = i === c.n, R = (tip ? (isSub ? SOCKET_R : CLAW_R) : rad(c, i)) + PX_MARGIN + wave;
-      for (let r = 0; r < 2; r++) { pushPoint(c.q[i], R, tip ? own : -1); pushArms(c.q[i], R, j); if (tip && !isSub) clawOut(c, i, own, j); }   // the claw has the last word
+      for (let r = 0; r < 2; r++) { pushPoint(c.q[i], R, tip ? ownT : -1); pushArms(c.q[i], R, j); if (tip && !isSub) { clawOut(c, i, own, j); toolOut(c, j); } }   // the claw has the last word
     }
   };
   joints();
@@ -2570,7 +2605,7 @@ function avoid(c, j, isSub, wave) {
   }
   joints();
   // Two proxies can push the claw in turn (a tile edge, the sheet face, a neighbour arm): repeat until it is clear.
-  if (!isSub) for (let k = 0; k < 6 && clawOut(c, c.n, own, j) > 1e-5; k++);
+  if (!isSub) for (let k = 0; k < 6 && clawOut(c, c.n, own, j) + toolOut(c, j) > 1e-5; k++);
   const bb = [1e9, 1e9, 1e9, -1e9, -1e9, -1e9];
   for (let i = 0; i <= c.n; i++) { const q = c.q[i]; bb[0] = Math.min(bb[0], q.x); bb[1] = Math.min(bb[1], q.y); bb[2] = Math.min(bb[2], q.z); bb[3] = Math.max(bb[3], q.x); bb[4] = Math.max(bb[4], q.y); bb[5] = Math.max(bb[5], q.z); }
   drawnChains.push({ c, j, isSub, wave, bb });
@@ -2578,7 +2613,8 @@ function avoid(c, j, isSub, wave) {
 // ?collide: verify the drawn tentacles against every proxy and against each other (true radii, no margin).
 let DBGHIT = null;
 function tentacleCheck() {
-  const T = CSTAT.t = CSTAT.t || { planet: 0, asteroid: 0, card: 0, conduit: 0, window: 0, sheet: 0, tile: 0, deck: 0, lid: 0, panel: 0, code: 0, rack: 0, link: 0, cradle: 0, arm: 0, tool: 0, carried: 0 };
+  const T = CSTAT.t = CSTAT.t || { planet: 0, asteroid: 0, card: 0, conduit: 0, window: 0, sheet: 0, tile: 0, deck: 0, lid: 0, panel: 0, code: 0, rack: 0, link: 0, cradle: 0, toolrack: 0, docked: 0, arm: 0, tool: 0, carried: 0,
+    wrist: 0, quill: 0, coupling: 0, bellows: 0, cup: 0, palm: 0, finger: 0, rod: 0, pbody: 0, screw: 0, jaw: 0, hub: 0, prong: 0, stem: 0, toolarm: 0, tooltool: 0 };
   let any = 0;
   const hitSeg = (a, b, R, own) => {          // capsule ab, radius R, vs every proxy except own; returns kind or 0
     for (let i = 0; i < nSph; i++) { if (sphId[i] === own) continue; closestOnSeg(_pv3, sphC[i], a, b); if (_pv3.distanceTo(sphC[i]) < sphR[i] + R) return sphK[i]; }
@@ -2600,13 +2636,11 @@ function tentacleCheck() {
           for (let s2 = 0; s2 <= 4; s2++) { _pv.copy(c.q[i]).lerp(c.q[i + 1], s2 / 4); closestOnSeg(_pv3, _pv, ec.c.q[e], ec.c.q[e + 1]);
             if (_pv.distanceTo(_pv3) < R + R2) { T.arm++; any++; const L2 = (CSTAT.tAt = CSTAT.tAt || {}).arm = CSTAT.tAt.arm || []; if (L2.length < 6) L2.push([+P_.toFixed(3), dc.j, dc.isSub ? 's' : 'm', i, ec.j, ec.isSub ? 's' : 'm', e]); s2 = 9; e = ec.c.n; } } } }
     }
-    // Tools: the claw (main tip, CLAW_L past it) and the socket (sub tip).
-    const tq = c.q[c.n], pq = c.q[c.n - 1];
-    if (c.len[c.n - 1] > 1e-4) {
-      if (dc.isSub) { const k = hitSeg(tq, tq, SOCKET_R, -1); if (k) { T.tool++; any++; } }
-      else { _pv.copy(tq).sub(pq).normalize(); _e.copy(tq).addScaledVector(_pv, CLAW_L); const k = hitSeg(tq, _e, CLAW_R, own); if (k) { T.tool++; any++; const L2 = (CSTAT.tAt = CSTAT.tAt || {}).tool = CSTAT.tAt.tool || []; if (L2.length < 4) L2.push([+P_.toFixed(3), dc.j, 'claw', PXK[k], own, DBGHIT, +_pv3.copy(tq).sub(sheet.position).dot(SN_N).toFixed(3), +_pv3.copy(armTips[dc.j].tip).sub(sheet.position).dot(SN_N).toFixed(3), +tq.distanceTo(armTips[dc.j].tip).toFixed(3)]); } }
-    }
+    // Tools: the socket (sub tip). The main tools are checked part by part in efCheck().
+    const tq = c.q[c.n];
+    if (c.len[c.n - 1] > 1e-4 && dc.isSub) { const k = hitSeg(tq, tq, SOCKET_R, -1); if (k) { T.tool++; any++; } }
   });
+  any += efCheck(T, { hitSeg, push: (cat, v) => { const L2 = (CSTAT.tAt = CSTAT.tAt || {})[cat] = CSTAT.tAt[cat] || []; if (L2.length < 6) L2.push(v); } });
   // Carried tiles in flight vs every other proxy (their own seat on the deck is the allowed contact).
   for (const bt of inFlight) {
     if (!(bt.cell != null)) continue;
@@ -2617,6 +2651,473 @@ function tentacleCheck() {
       for (let i = 0; i < nSph; i++) if (_e.distanceTo(sphC[i]) < sphR[i]) { T.carried++; any++; const L2 = (CSTAT.tAt = CSTAT.tAt || {}).carried = CSTAT.tAt.carried || []; if (L2.length < 4) L2.push([+P_.toFixed(3), PXK[sphK[i]]]); }
       for (let bx = 0; bx < nObb; bx++) { if (obbId[bx] === id || obbId[bx] === ID_DECK) continue; _pv.copy(_e).sub(obbC[bx]);
         if (Math.abs(_pv.dot(obbX[bx])) < obbH[bx].x && Math.abs(_pv.dot(obbY[bx])) < obbH[bx].y && Math.abs(_pv.dot(obbZ[bx])) < obbH[bx].z) { T.carried++; any++; const L2 = (CSTAT.tAt = CSTAT.tAt || {}).carried = CSTAT.tAt.carried || []; if (L2.length < 4) L2.push([+P_.toFixed(3), PXK[obbK[bx]], obbId[bx]]); } }
+    }
+  }
+  return any;
+}
+
+/* ---------- end effectors: wrist, quick-change coupling, four attachments, two tool racks ----------
+ * Each main arm ends in a wrist module: a housing, a pitch gear and a roll gear that turn with the wrist,
+ * a collar with four bolts, and a status LED (amber: idle, green: secure grip). Under the collar a quill
+ * telescopes the coupling toward the part. The coupling is a face plate with three locating pins and a
+ * locking ring that turns 30 degrees to unlock. Four attachments fit the coupling:
+ *   S  suction cup: four bellows rings, a cup lip, a hose loop, a vacuum ring (green under vacuum)
+ *   F  three-finger adaptive gripper: three phalanges per finger, knuckle pins, linkage rods, a palm pad
+ *   P  parallel pinch gripper: two jaws on a lead screw that turns as they move, two rails, rubber pads
+ *   M  magnetic cradle: three prongs with coil windings that splay to the sphere, field beads
+ * Tool frame: origin at the arm tip, local -Z along the tool axis (toward the part), local Y across the
+ * grip. Geometry is in tool units; EFS scales the whole tool (phones: larger, so the mechanism reads).
+ * The job sets tp.mode ('flat', 'edge', 'sphere', 'guide', 'dock'), tp.con (contact point), tp.nrm
+ * (surface normal, out of the part), tp.side (grip direction), tp.w (half width across the grip),
+ * tp.dIn (grip depth past the contact plane) and tp.R (sphere radius). efArm() turns the wrist to the
+ * part in the last part of the approach, solves the quill and the grip to the part, and stops each
+ * finger, jaw and prong on contact. efTools() draws every attachment: on its arm, in its rack cradle, or
+ * between the two while a swap docks or takes it. SWAPS lists the tool changes; efSwap() drives them.
+ *   EFS  TOOLS  RACKS  SWAPS  efArm()  efTools()  efSwap()  efProxies()  efCheck() (?collide)
+ */
+const EF_LO = Q === 'low';
+const toolSteel = M.steel({ anisotropy: 0, roughness: SMALL ? 0.18 : 0.24 });   // moving parts: bright steel
+const rubber = new THREE.MeshStandardMaterial({ color: 0x161618, roughness: 0.85, metalness: 0 });
+const ledAMat = M.glow(0xffa030, 2.4), ledGMat = M.glow(0x3dff7a, 2.4), fieldMat = M.glow(0x7fd8ff, 1.3);
+const mergeP = gs => BufferGeometryUtils.mergeGeometries(gs.map(g => { const n = g.index ? g.toNonIndexed() : g;
+  for (const a of Object.keys(n.attributes)) if (a !== 'position' && a !== 'normal') n.deleteAttribute(a); return n; }));
+const EFM = [];   // every end-effector mesh: a mesh with no instance on shows no draw call
+function efInst(geo, mat, n) { const m = inst(geo, mat, n); m.userData.on = false; EFM.push(m); return m; }
+const cylZ = (r, h, b, seg) => zAxis(k.soft.cylinder(r, h, b, seg));
+const ringZ = (ro, ri, h, b) => zAxis(k.soft.ring(ro, ri, h, b));
+
+// The tools: kind, arm, rack, slot (y along the rack beam), attached at the start.
+const TOOLS = [
+  { k: 'S', j: 0, rack: 0, y: -0.14, start: true }, { k: 'S', j: 1, rack: 1, y: -0.4, start: true }, { k: 'S', j: 2, rack: 1, y: 0.2, start: true },
+  { k: 'P', j: 0, rack: 0, y: 0.16 }, { k: 'F', j: 1, rack: 1, y: 0 }, { k: 'F', j: 2, rack: 1, y: 0.4 }, { k: 'M', j: 1, rack: 1, y: -0.2 }];
+const KIND_N = { S: 0, P: 0, F: 0, M: 0 };
+TOOLS.forEach(t => { t.ki = KIND_N[t.k]++; });
+// Two racks on the outer side walls, in from beyond the frame edge before the first swap and out after the last.
+const RACKS = [{ x: -1.47, yc: 0.3, len: 0.62, id: 950, inT: [1.88, 1.96], outT: [2.07, 2.15] }, { x: 1.47, yc: 0.32, len: 1.02, id: 951, inT: [1.74, 1.82], outT: [2.115, 2.2] }];
+const RACK_Z = 0.5, CRADLE_X = 0.09;
+// [arm, tool out, tool in, start, end]. One rack visit each; at most two swaps per arm.
+const SWAPS = [[2, 2, 5, 1.835, 1.895], [1, 1, 6, 1.895, 1.955], [0, 0, 3, 1.988, 2.05], [1, 6, 4, 2.045, 2.105]]
+  .map(s => ({ j: s[0], from: s[1], to: s[2], a: s[3], b: s[4] })).sort((a, b) => a.a - b.a);
+const START = [0, 1, 2];
+// Star hold: arm 1 cradles the star as it rises out of the sheet, between its two swaps.
+const STAR_HOLD = [1.975, 2.043];
+// Arms 1 and 2 stop guiding cards in time for their first swap; the links go before arm 0 crosses them.
+const GUIDE_END = [9, 1.885, 1.825], LINKS_END = 1.988;
+
+const PB_L = SMALL ? 0.27 : 0.34;   // pinch body: on phones the tool is larger, the tiles are not
+const EG = {
+  housing: cylZ(0.026, 0.04, 0.006, 20).translate(0, 0, -0.02),
+  pitch: k.soft.gear(14, 0.03, 0.008, 0.5), roll: k.soft.gear(18, 0.031, 0.007, 0.62),
+  collar: ringZ(0.03, 0.02, 0.008, 0.002), bolt: k.soft.hexNut(0.0052, 0.005, 0),
+  led: new THREE.SphereGeometry(0.0068, 10, 8),
+  quill: cylZ(0.009, 1, 0.0008, 14).translate(0, 0, -0.5),
+  coup: mergeP([cylZ(0.027, 0.008, 0.002, 24).translate(0, 0, -0.004),
+    ...[0, 1, 2].map(i => cylZ(0.003, 0.014, 0.001, 8).translate(Math.cos(i * 2.094 + 0.5) * 0.017, Math.sin(i * 2.094 + 0.5) * 0.017, -0.015))]),
+  lock: k.soft.gear(6, 0.032, 0.006, 0.8),
+  adapter: cylZ(0.026, 0.01, 0.003, 24),
+  stem: cylZ(0.007, 0.04, 0.002, 14), vac: ringZ(0.0125, 0.0085, 0.004, 0.0012),
+  bel: ringZ(0.019, 0.007, 0.0065, 0.002), lip: ringZ(0.027, 0.011, 0.006, 0.002),
+  hose: new THREE.TorusGeometry(0.017, 0.0035, 6, 18, Math.PI).rotateZ(-Math.PI / 2).rotateX(Math.PI / 2),
+  palm: mergeP([cylZ(0.022, 0.012, 0.003, 20), k.soft.box(0.012, 0.06, 0.009, 0.003).translate(0, 0.03, 0),
+    k.soft.box(0.072, 0.012, 0.009, 0.003).translate(0, 0.06, 0), k.soft.box(0.012, 0.06, 0.009, 0.003).translate(0, -0.03, 0),
+    k.soft.box(0.022, 0.012, 0.012, 0.003).translate(0, -0.06, 0)]),
+  pad: cylZ(0.012, 0.004, 0.0015, 16),
+  ph: [0.042, 0.034, 0.026].map(L => k.soft.box(0.012, 0.011, L, 0.003).translate(0, 0, -L / 2)),
+  pin: k.soft.cylinder(0.0035, 0.018, 0.001, 8).rotateZ(Math.PI / 2),
+  rod: cylZ(0.0024, 1, 0.0004, 8).translate(0, 0, -0.5),
+  pbody: k.soft.box(0.03, PB_L, 0.02, 0.005), screw: k.soft.gear(8, 0.0058, PB_L - 0.01, 0.01).rotateX(Math.PI / 2),
+  rails: mergeP([k.soft.cylinder(0.0028, PB_L - 0.01, 0.001, 8).translate(0.012, 0, 0), k.soft.cylinder(0.0028, PB_L - 0.01, 0.001, 8).translate(-0.012, 0, 0)]),
+  jaw: k.soft.box(0.03, 0.009, 0.07, 0.003).translate(0, 0, -0.035), ppad: k.soft.box(0.026, 0.004, 0.034, 0.0015),
+  hub: cylZ(0.021, 0.016, 0.004, 20), prong: k.soft.box(0.008, 0.008, 0.08, 0.0025).translate(0, 0, -0.04),
+  coil: ringZ(0.0078, 0.0044, 0.007, 0.0015), bead: new THREE.SphereGeometry(0.0042, 6, 4),
+  beam: RACKS.map(r => mergeP([k.soft.box(0.05, r.len, 0.04, 0.008),
+    k.soft.box(0.17, 0.03, 0.03, 0.006).translate(-0.085, r.len / 2 - 0.06, 0), k.soft.box(0.17, 0.03, 0.03, 0.006).translate(-0.085, -r.len / 2 + 0.06, 0)])),
+  cradle: mergeP([ringZ(0.036, 0.027, 0.012, 0.003), k.soft.box(0.06, 0.016, 0.01, 0.003).translate(-0.058, 0, 0)]),
+  tag: k.soft.box(0.012, 0.03, 0.004, 0.0015)
+};
+const NT = TOOLS.length, NTS = KIND_N.S, NTF = KIND_N.F, NTP = KIND_N.P, NTM = KIND_N.M;
+const E = {
+  housing: efInst(EG.housing, brassD, ARMS), pitch: efInst(EG.pitch, toolSteel, ARMS), roll: efInst(EG.roll, toolSteel, ARMS),
+  collar: efInst(EG.collar, steel, ARMS), bolt: efInst(EG.bolt, steel, ARMS * 4), ledA: efInst(EG.led, ledAMat, ARMS), ledG: efInst(EG.led, ledGMat, ARMS),
+  quill: efInst(EG.quill, toolSteel, ARMS), coup: efInst(EG.coup, steel, ARMS), lock: efInst(EG.lock, brass, ARMS),
+  adapter: efInst(EG.adapter, brassD, NT),
+  stem: efInst(EG.stem, toolSteel, NTS), vacA: efInst(EG.vac, ledAMat, NTS), vacG: efInst(EG.vac, ledGMat, NTS), bel: efInst(EG.bel, rubber, NTS * 4),
+  lip: efInst(EG.lip, rubber, NTS), hose: efInst(EG.hose, rubber, NTS),
+  palm: efInst(EG.palm, brassD, NTF), pad: efInst(EG.pad, rubber, NTF), ph: EG.ph.map(g => efInst(g, toolSteel, NTF * 3)),
+  pin: efInst(EG.pin, brass, NTF * 9), rod: efInst(EG.rod, toolSteel, NTF * 3),
+  pbody: efInst(EG.pbody, brassD, NTP), screw: efInst(EG.screw, toolSteel, NTP), rails: efInst(EG.rails, steel, NTP),
+  jaw: efInst(EG.jaw, toolSteel, NTP * 2), ppad: efInst(EG.ppad, rubber, NTP * 2),
+  hub: efInst(EG.hub, brassD, NTM), prong: efInst(EG.prong, toolSteel, NTM * 3), coil: efInst(EG.coil, brass, NTM * 9), bead: efInst(EG.bead, fieldMat, NTM * 12),
+  beam: EG.beam.map(g => efInst(g, armMat, 1)), cradle: efInst(EG.cradle, steel, NT), tag: efInst(EG.tag, ledAMat, NT)
+};
+// Per arm: wrist state. Per tool: grip parameters (fingers s, jaw opening, prong angles, bellows pitch).
+const efA = [0, 1, 2].map(() => ({ T: new THREE.Vector3(0, 0, -1), nrm: new THREE.Vector3(0, 0, 1), side: new THREE.Vector3(0, 1, 0),
+  O: new THREE.Vector3(), Qf: new THREE.Quaternion(), S: 0, al: 0, q: 0, gT: 0, pitch: 0, roll: 0, unlock: 0, t: -1, w: 0,
+  p: { s: new Float32Array([0.3, 0.3, 0.3]), sep: 0.12, phi: new Float32Array([0.6, 0.6, 0.6]), bs: 0.013, vac: 0, mag: 0 } }));
+const IDLE = { s: new Float32Array([0.3, 0.3, 0.3]), sep: 0.12, phi: new Float32Array([0.6, 0.6, 0.6]), bs: 0.013, vac: 0, mag: 0 };
+const QMAX = 0.19, Z_ROOT = 0.068, FL = [0.042, 0.034, 0.026], F_B = 0.06, PRONG = 0.08;
+const _fp = new THREE.Vector3(), _fq = new THREE.Quaternion(), _fs = new THREE.Vector3(), _fx = new THREE.Vector3(), _fy = new THREE.Vector3();
+const _fz = new THREE.Vector3(), _fm = new THREE.Matrix4(), _fq2 = new THREE.Quaternion(), _fv = new THREE.Vector3(), _fw = new THREE.Vector3();
+const _phi = new Float32Array(3), _ft = { r: 0, z: 0 }, _J = [0, 1, 2, 3].map(() => new THREE.Vector3());
+const _qX = new THREE.Quaternion(), XAX_T = V(1, 0, 0), YAXL = V(0, 1, 0);
+// The current draw frame: origin, orientation, scale (0: hidden).
+const FO = new THREE.Vector3(), FQ = new THREE.Quaternion(); let FS = 0;
+function lp(m, i, x, y, z, ql, sz) {
+  if (CAPS_ONLY) return;
+  _fp.set(x, y, z).multiplyScalar(FS).applyQuaternion(FQ).add(FO);
+  _fq.copy(FQ); if (ql) _fq.multiply(ql);
+  _fs.set(FS, FS, FS * (sz == null ? 1 : sz));
+  setInst(m, i, _fp, _fq, _fs); if (FS > 0) m.userData.on = true;
+}
+// Collision capsules of the drawn tools (?collide only): per arm, in device coordinates.
+const EFCK = ['wrist', 'quill', 'coupling', 'bellows', 'cup', 'palm', 'finger', 'rod', 'pbody', 'screw', 'jaw', 'hub', 'prong', 'stem'];
+const EFCAP = 48, efCapA = Array.from({ length: ARMS * EFCAP }, () => new THREE.Vector3()), efCapB = Array.from({ length: ARMS * EFCAP }, () => new THREE.Vector3());
+const efCapR = new Float32Array(ARMS * EFCAP), efCapK = new Uint8Array(ARMS * EFCAP), efCapG = new Uint8Array(ARMS * EFCAP), efCapN = [0, 0, 0];
+let capJ = -1, capI = 0;
+const efBB = [0, 1, 2].map(() => new Float32Array([1e9, 1e9, 1e9, -1e9, -1e9, -1e9])), efCapTip = [0, 1, 2].map(() => new THREE.Vector3());
+// A capsule in the current frame. g: a gripping part (it may touch the part it holds). Slots 0..2 are the
+// arm side (efArm, this frame); the attachment follows (efTools, after all arms: last frame's while the arms solve).
+function cap(k2, g, ax, ay, az, bx, by, bz, r) {
+  if (capJ < 0 || capI >= EFCAP) return;
+  const n = capJ * EFCAP + capI++; efCapN[capJ] = Math.max(efCapN[capJ], capI);
+  if (FS <= 0) r = 0;
+  efCapA[n].set(ax, ay, az).multiplyScalar(FS).applyQuaternion(FQ).add(FO); efCapB[n].set(bx, by, bz).multiplyScalar(FS).applyQuaternion(FQ).add(FO);
+  efCapR[n] = r * FS; efCapK[n] = k2; efCapG[n] = g ? 1 : 0;
+}
+
+// Finger kinematics in the finger plane: closure s (0 open, 1 fully curled) to three joint angles
+// (from straight down, positive outward), and the fingertip (radius from the axis, depth under the knuckle).
+function fPhi(s) { _phi[0] = 0.95 - 1.55 * s; _phi[1] = _phi[0] + 0.15 - 0.6 * s; _phi[2] = _phi[1] + 0.1 - 0.75 * s; }
+function fTip(s) { fPhi(s); let r = F_B, z = 0; for (let i = 0; i < 3; i++) { r += FL[i] * Math.sin(_phi[i]); z -= FL[i] * Math.cos(_phi[i]); } _ft.r = r; _ft.z = z; }
+// The closure where the fingertip pad meets a face at w from the axis: the finger stops there.
+function fSolve(w) {
+  fTip(1); if (_ft.r > w + 0.006) return 1;
+  let lo = 0, hi = 1; for (let i = 0; i < 12; i++) { const m = (lo + hi) / 2; fTip(m); if (_ft.r > w + 0.006) lo = m; else hi = m; }
+  return lo;
+}
+// Prong contact: the prong from (rb, zb) at angle phi, length PRONG, against a sphere at depth zc, radius R.
+function prongGap(phi, rb, zb, zc, R) {
+  const dx = Math.sin(phi), dz = -Math.cos(phi), px = -rb, pz = zc - zb;   // sphere center relative to the base
+  const t = clamp(px * dx + pz * dz, 0, PRONG), ex = px - dx * t, ez = pz - dz * t;
+  return Math.sqrt(ex * ex + ez * ez) - (R + 0.004);
+}
+function pSolve(rb, zb, zc, R) {
+  if (prongGap(1.1, rb, zb, zc, R) <= 0) return 1.1;
+  if (prongGap(-0.5, rb, zb, zc, R) > 0) return -0.5;
+  let lo = -0.5, hi = 1.1; for (let i = 0; i < 12; i++) { const m = (lo + hi) / 2; if (prongGap(m, rb, zb, zc, R) > 0) hi = m; else lo = m; }
+  return hi;
+}
+
+// The attached tool of arm j at P_ (efA[j].t, -1 between tools) and how far it sits in its cradle (efA[j].w).
+function efAttached(j) {
+  const e = efA[j]; e.t = START[j]; e.w = 0;
+  for (const sw of SWAPS) {
+    if (sw.j !== j) continue;
+    if (P_ >= sw.b) { e.t = sw.to; continue; }
+    if (P_ > sw.a) { const u = (P_ - sw.a) / (sw.b - sw.a);
+      // The tool changes hands only once the coupling sits on the cradle (the arm may lag a fast scroll).
+      if (u < 0.58) { e.t = sw.from; e.w = u < 0.5 ? ss(0.42, 0.5, u) * onCradle(e, sw.from) : 1; } else if (u < 0.8) e.t = -1; else { e.t = sw.to; e.w = 1 - ss(0.8, 0.88, u) * onCradle(e, sw.to); } }
+    break;
+  }
+}
+function onCradle(e, t) { slotFrame(t, _sb, _sq); return 1 - clamp((e.O.distanceTo(_sb) - 0.03) / 0.08); }
+// A rack's pose: in from beyond the side edge (and a little low), out the same way.
+const _rk = [new THREE.Vector3(), new THREE.Vector3()], _rkQ = [new THREE.Quaternion(), new THREE.Quaternion().setFromAxisAngle(ZUP, Math.PI)];
+function rackAt(r) {
+  const R = RACKS[r], e = easeOut(clamp((P_ - R.inT[0]) / (R.inT[1] - R.inT[0]))) - easeIO(clamp((P_ - R.outT[0]) / (R.outT[1] - R.outT[0])));
+  const sg = R.x < 0 ? -1 : 1, off = 1 - e;
+  _rk[r].set(R.x + sg * 6 * off, R.yc, RACK_Z - 0.9 * off);
+  return e > 0.001;
+}
+// A docked tool's frame: hanging in its cradle, the adapter in the ring. P hangs across the rack (its long axis out from the wall).
+const _qSlotP = new THREE.Quaternion().setFromAxisAngle(ZUP, -Math.PI / 2);
+function slotFrame(t, o, q) {
+  const T2 = TOOLS[t], r = T2.rack, sg = RACKS[r].x < 0 ? -1 : 1;
+  o.copy(_rk[r]).add(_fv.set(sg * CRADLE_X, T2.y, 0.063 * EFS));
+  q.copy(T2.k === 'P' ? _qSlotP : qI);
+  return o;
+}
+function slotSide(t, out) { return TOOLS[t].k === 'P' ? out.set(1, 0, 0) : out.set(0, 1, 0); }
+
+// Swaps: dock the old tool in its cradle, unlock, lift, move over the new tool, drop, lock, lift.
+const _sa = new THREE.Vector3(), _sb = new THREE.Vector3(), _sq = new THREE.Quaternion();
+function efSwap(P) {
+  rackAt(0); rackAt(1);
+  for (let j = 0; j < ARMS; j++) efAttached(j);   // the docked tools for this frame's proxies
+  for (const sw of SWAPS) {
+    if (P <= sw.a || P >= sw.b) continue;
+    const u = (P - sw.a) / (sw.b - sw.a), tp = armTips[sw.j], H = 0.32, toB = u >= 0.58;
+    slotFrame(toB ? sw.to : sw.from, _sa, _sq);
+    let h = 0;
+    // Travel in an arc (up and away from the parts), drop in, hold while the ring turns, lift; the same for the new tool.
+    if (u < 0.22) h = H + 0.3 * Math.sin(Math.PI * u / 0.22);
+    else if (u < 0.32) h = H * (1 - easeIO((u - 0.22) / 0.1)); else if (u < 0.5) h = 0; else if (u < 0.58) h = H * easeIO((u - 0.5) / 0.08);
+    else if (u < 0.66) h = H; else if (u < 0.74) h = H * (1 - easeIO((u - 0.66) / 0.08)); else if (u < 0.9) h = 0; else h = H * easeIO(clamp((u - 0.9) / 0.07));
+    tp.tip.copy(_sa); tp.tip.z += h;
+    tp.has = true; tp.grip = false; tp.work = false; tp.lift = 0; tp.own = RACKS[TOOLS[sw.from].rack].id;
+    tp.mode = 'dock'; tp.nrm.set(0, 0, 1); slotSide(toB ? sw.to : sw.from, tp.side);
+    tp.unlock = u < 0.38 ? 0 : u < 0.46 ? (u - 0.38) / 0.08 : u < 0.8 ? 1 : u < 0.88 ? 1 - (u - 0.8) / 0.08 : 0;
+    tp.blink = u > 0.84 && u < 0.95;
+  }
+}
+
+// The rack and docked-tool proxies (kinds 16 and 17). Each docked tool's box is in its own frame.
+const DOCK_BOX = { S: [-0.1, 0.03, 0.03, 0.045], F: [-0.12, 0.05, 0.12, 0.065], P: [-0.11, 0.025, PB_L / 2 + 0.01, 0.05], M: [-0.13, 0.06, 0.06, 0.075] };
+function efProxies() {
+  for (let r = 0; r < 2; r++) {
+    if (!rackAt(r)) continue;
+    const R = RACKS[r], sg = R.x < 0 ? -1 : 1;
+    cardObj.position.copy(_rk[r]); cardObj.quaternion.copy(_rkQ[r]); cardObj.scale.set(1, 1, 1);
+    addObb(cardObj, 0.0, 0, -0.005, 0.15, R.len / 2 + 0.02, 0.035, 16, R.id);
+    TOOLS.forEach((T2, t) => { if (T2.rack !== r || !efDocked(t)) return;
+      slotFrame(t, cardObj.position, cardObj.quaternion); cardObj.scale.setScalar(EFS);
+      const b = DOCK_BOX[T2.k]; addObb(cardObj, 0, 0, b[0], b[1], b[2], b[3], 17, R.id); });
+    void sg;
+  }
+}
+// A tool is docked when no arm holds it (or its arm is setting it down or taking it up).
+function efDocked(t) { const e = efA[TOOLS[t].j]; return e.t !== t || e.w > 0.5; }
+
+// Per arm, after its chain is drawn: the wrist frame, the grip solve, and the arm-side parts.
+// Two calls per arm and frame. pre (before avoid): the state steps (alignment, grip timer, solve, quill)
+// and the tool capsules for toolOut(). post (after avoid): the frame again from the final chain, and the parts.
+function efFrame(j, c) {
+  const e = efA[j];
+  toolAxis(e.T, c, j); _fz.copy(e.T).negate();
+  e.side.addScaledVector(_fz, -e.side.dot(_fz)); if (e.side.lengthSq() < 1e-6) e.side.set(_fz.z, 0, -_fz.x); e.side.normalize();
+  _fx.crossVectors(e.side, _fz);
+  _fm.makeBasis(_fx, e.side, _fz); e.Qf.setFromRotationMatrix(_fm);
+  // Gear angles: pitch follows the wrist bend, roll follows the twist about the tool axis.
+  _fv.copy(c.q[c.n]).sub(c.q[c.n - 1]); if (_fv.lengthSq() > 1e-9) _fv.normalize(); else _fv.copy(e.T);
+  e.pitch = Math.acos(clamp(_fv.dot(e.T), -1, 1)) * 4;
+  _fq2.setFromUnitVectors(ZUP, _fz); _fw.set(0, 1, 0).applyQuaternion(_fq2);
+  e.roll = Math.atan2(_fv.crossVectors(_fw, e.side).dot(_fz), _fw.dot(e.side)) * 2;
+}
+let CAPS_ONLY = false;
+function efArm(j, c, tp, dt, grow, tm, pre) {
+  const e = efA[j], kk = dt <= 0 ? 1 : 1 - Math.exp(-dt * 14);
+  if (!pre) {
+    // The tool keeps the orientation it had for avoid (the wrist takes up the bend); its capsules move with the tip.
+    _fv.copy(c.q[c.n]).sub(efCapTip[j]);
+    for (let n = 0; n < efCapN[j]; n++) { efCapA[j * EFCAP + n].add(_fv); efCapB[j * EFCAP + n].add(_fv); }
+    efCapTip[j].copy(c.q[c.n]);
+    if (e.qOff > -1e8 && tp.has && tp.mode !== 'sphere') {   // avoid moved the tip: the quill never reaches past the contact
+      const rLf = _fw.copy(c.q[c.n]).sub(tp.con).dot(tp.nrm) / Math.max(0.3, -e.T.dot(tp.nrm)) / EFS;
+      e.q = clamp(Math.min(e.q, rLf + e.qOff), 0, QMAX);
+    }
+    _fw.copy(c.q[c.n]).sub(c.q[c.n - 1]); if (_fw.lengthSq() > 1e-9) e.pitch = Math.acos(clamp(_fw.normalize().dot(e.T), -1, 1)) * 4;
+    efDraw(j, c, tp, grow, tm); return;
+  }
+  efAttached(j);
+  const mode = tp.has ? tp.mode : '', contact = mode === 'flat' || mode === 'edge' || mode === 'sphere';
+  // Wrist alignment: the tool turns to the part over the last part of the approach.
+  const alT = mode ? (tp.grip && mode !== 'guide' ? 1 : 1 - clamp((armS[j].tip.distanceTo(tp.tip) - 0.05) / 0.9)) : 0;   // gripping: square to the part
+  e.al = dt <= 0 || (e.gT > 0 && alT === 1) ? alT : e.al + (alT - e.al) * (alT === 1 ? 1 - Math.exp(-dt * 30) : kk);   // holding: square to the part
+  if (mode) e.nrm.copy(tp.nrm);
+  toolAxis(e.T, c, j);
+  _fz.copy(e.T).negate();
+  // Grip direction, kept across the tool axis; the shorter way round (the grippers are symmetric).
+  if (mode && tp.side.lengthSq() > 0) _fy.copy(tp.side); else _fy.copy(e.side);
+  if (_fy.dot(e.side) < 0) _fy.negate();
+  _fy.addScaledVector(_fz, -_fy.dot(_fz)); if (_fy.lengthSq() < 1e-6) _fy.set(_fz.z, 0, -_fz.x).normalize(); else _fy.normalize();
+  const sideOK = _fy.dot(e.side) > 0.985;
+  if (dt <= 0 || e.gT > 0) e.side.copy(_fy); else e.side.lerp(_fy, alT === 1 ? 1 - Math.exp(-dt * 30) : kk);   // holding: the grip turns with the part
+  efFrame(j, c);
+  // Grip timer: closes over ~0.4 s, fingers 40 ms apart; opens in reverse (the last finger in opens first).
+  const gripOn = e.gripOn = !!(tp.has && tp.grip && contact) && (e.gT > 0 || (e.al > 0.92 && sideOK));   // close only once square to the part
+  e.gT = dt <= 0 ? (gripOn ? 1.25 : 0) : clamp(e.gT + (gripOn ? 1 : -1) * dt * 3, 0, 1.25);
+  e.unlock = mode === 'dock' ? tp.unlock : 0;
+  const t = e.t, kd = t >= 0 ? TOOLS[t].k : '', p = e.p, gs = EFS;
+  // Reach to the part along the tool axis, in tool units.
+  // flat and edge: along the axis to the contact plane; sphere: to the center.
+  const rL = !contact ? 0 : mode === 'sphere' ? _fv.copy(tp.con).sub(c.q[c.n]).dot(e.T) / gs : _fv.copy(c.q[c.n]).sub(tp.con).dot(tp.nrm) / Math.max(0.3, -e.T.dot(tp.nrm)) / gs, wL = (tp.w || 0) / gs, dL = (tp.dIn || 0) / gs;
+  let qS = 0;
+  const near = contact && t >= 0;
+  if (kd === 'S') {
+    const bsT = near && gripOn ? 0.0065 : 0.013;
+    p.bs = dt <= 0 ? bsT : p.bs + (bsT - p.bs) * (1 - Math.exp(-dt * 12));
+    if (near) qS = rL - (Z_ROOT + 0.046 + 4 * p.bs) - (gripOn ? 0 : 0.012);
+    const vT = gripOn ? clamp((e.gT - 0.3) / 0.6) : 0;
+    p.vac = mode === 'guide' ? 0.5 + 0.5 * Math.sin(tm * 6) : vT;
+  } else if (kd === 'F') {
+    // Pre-shape: open just past the part (a seated neighbour is close); close and stop on contact.
+    const sStar = near ? fSolve(wL) : 1, sOpen = near ? fSolve(wL + 0.004 / gs) : 0;
+    for (let f = 0; f < 3; f++) { const cf = clamp((e.gT - f * 0.12) / 0.76); p.s[f] = near ? mix(sOpen, sStar, easeIO(cf)) : 0.3 + 0.1 * cf; }
+    if (near) { fTip(sStar); qS = rL + dL + _ft.z - 0.08; }
+  } else if (kd === 'P') {
+    const open = near ? Math.min(PB_L - 0.03, 2 * wL + 0.008 / gs) : 0.12, cl = near ? clamp(e.gT / 1.0) : 0;
+    p.sep = mix(open, near ? 2 * wL : open, easeIO(cl));
+    if (near) qS = rL + dL - 0.141;
+  } else if (kd === 'M') {
+    const RL = (tp.R || 0) / gs;
+    if (near) {
+      qS = rL - 1.6 * RL - 0.01 - 0.084;
+      const qc = clamp(qS, 0, QMAX), zb = -(Z_ROOT + qc) - 0.012, ph = pSolve(0.019, zb, -rL, RL);
+      for (let f = 0; f < 3; f++) { const cf = clamp((e.gT - f * 0.08) / 0.8); p.phi[f] = mix(1.1, ph, easeIO(cf)); }
+      p.mag = clamp(e.gT);
+    } else { for (let f = 0; f < 3; f++) p.phi[f] = 0.6; p.mag = 0; }
+  }
+  e.qOff = near ? qS - rL : -1e9;   // the solve is the reach minus a constant: post re-checks it from the final tip
+  // The quill extends with the alignment and never past the contact solve.
+  const qMax = near ? clamp(qS, 0, QMAX) : 0, qT = gripOn ? qMax : Math.max(0, qMax - 0.03) * e.al * e.al;   // approach: square first, then reach
+  e.q = dt <= 0 ? qT : Math.min(qMax, e.q + (qT - e.q) * (1 - Math.exp(-dt * 12)));
+  if (!near) e.q = Math.max(0, e.q - (dt <= 0 ? e.q : dt * 0.6));
+  // Capsules for toolOut(): the arm side and the attached tool, at the pre-avoid tip.
+  CAPS_ONLY = true; efDraw(j, c, tp, grow, tm);
+  efCapN[j] = 3;
+  if (e.t >= 0 && e.w < 0.5) { _to.copy(e.T).multiplyScalar(e.q * e.S).add(e.O); FO.copy(_to); FQ.copy(e.Qf); FS = e.S; capJ = j; capI = 3; drawTool(e.t, e.p, tm, e); }
+  efCapTip[j].copy(c.q[c.n]); CAPS_ONLY = false;
+}
+function efDraw(j, c, tp, grow, tm) {
+  const e = efA[j], gripOn = e.gripOn;
+  FO.copy(c.q[c.n]); FQ.copy(e.Qf); FS = EFS * grow; e.S = FS; e.O.copy(FO);
+  capJ = j; capI = 0;
+  lp(E.housing, j, 0, 0, 0);
+  _fq2.setFromAxisAngle(YAXL, Math.PI / 2).multiply(_qX.setFromAxisAngle(ZUP, e.pitch)); lp(E.pitch, j, 0, 0, -0.014, _fq2);
+  lp(E.roll, j, 0, 0, -0.036, _qX.setFromAxisAngle(ZUP, e.roll));
+  lp(E.collar, j, 0, 0, -0.046);
+  for (let b = 0; b < 4; b++) { const sv = FS; if (EF_LO) FS = 0; lp(E.bolt, j * 4 + b, Math.cos(b * Math.PI / 2 + 0.785) * 0.025, Math.sin(b * Math.PI / 2 + 0.785) * 0.025, -0.051); FS = sv; }
+  const green = (gripOn && e.gT > 1) || (tp.blink && Math.sin(tm * 40) > 0);
+  { const sv = FS; FS = green ? sv : 0; lp(E.ledG, j, 0.0262, 0, -0.024); FS = green ? 0 : sv; lp(E.ledA, j, 0.0262, 0, -0.024); FS = sv; }
+  const zc = -0.05 - e.q;
+  { const sv = FS; if (e.q < 0.002) FS = 0; lp(E.quill, j, 0, 0, -0.05, null, Math.max(e.q, 1e-4)); FS = sv; }
+  lp(E.coup, j, 0, 0, zc);
+  lp(E.lock, j, 0, 0, zc - 0.004, _qX.setFromAxisAngle(ZUP, 0.52 * e.unlock));
+  cap(0, false, 0, 0, 0, 0, 0, -0.05, 0.031);
+  cap(1, false, 0, 0, -0.05, 0, 0, zc, e.q > 0.002 ? 0.009 : 0);
+  cap(2, false, 0, 0, zc, 0, 0, zc - 0.012, 0.03);
+}
+// The tool axis: along the last segment, turned toward the part by the wrist alignment.
+function toolAxis(out, c, j) {
+  const e = efA[j];
+  out.copy(c.q[c.n]).sub(c.q[c.n - 1]); if (out.lengthSq() < 1e-9) out.set(0, 0, -1); out.normalize();
+  if (e.al > 1e-3) { out.multiplyScalar(1 - e.al).addScaledVector(e.nrm, -e.al); if (out.lengthSq() < 1e-6) out.copy(e.nrm).negate(); out.normalize(); }
+  return out;
+}
+
+// Every attachment, every frame: on its arm (coupled under the quill), in its cradle, or between the two.
+const _to = new THREE.Vector3(), _tq = new THREE.Quaternion(), _so = new THREE.Vector3(), _sq2 = new THREE.Quaternion();
+function efTools(tm) {
+  const rv = [rackAt(0), rackAt(1)];
+  // Racks: beam, cradles, tags.
+  for (let r = 0; r < 2; r++) { FO.copy(_rk[r]); FQ.copy(_rkQ[r]); FS = rv[r] ? 1 : 0; capJ = -1; lp(E.beam[r], 0, 0, 0, 0); }
+  TOOLS.forEach((T2, t) => { const r = T2.rack, sg = RACKS[r].x < 0 ? -1 : 1;
+    FO.copy(_rk[r]); FQ.copy(qI); FS = rv[r] ? 1 : 0;
+    lp(E.cradle, t, sg * CRADLE_X, T2.y, 0, _rkQ[r]); lp(E.tag, t, 0, T2.y, 0.022); });
+  for (let j = 0; j < ARMS; j++) { efCapN[j] = 3; efCapTip[j].copy(efA[j].O); }
+  for (let t = 0; t < NT; t++) {
+    const T2 = TOOLS[t], e = efA[T2.j], on = e.t === t;
+    let w = on ? e.w : 1, S = 0;
+    const docked = rv[T2.rack];
+    if (on) {
+      _to.copy(e.T).multiplyScalar(e.q * e.S).add(e.O); _tq.copy(e.Qf); S = e.S;
+      if (w > 0) { slotFrame(t, _so, _sq2); _to.lerp(_so, w); _tq.slerp(_sq2, w); S = mix(S, EFS, w); }
+    } else if (docked) { slotFrame(t, _to, _tq); S = EFS; }
+    FO.copy(_to); FQ.copy(_tq); FS = S; capJ = on && w < 0.5 ? T2.j : -1; capI = 3;
+    drawTool(t, on ? e.p : IDLE, tm, on ? e : null);
+  }
+  for (const m of EFM) { m.visible = m.userData.on; m.userData.on = false; }
+  // Each arm's tool box, for the other arms' broad phase (pushTools).
+  for (let j = 0; j < ARMS; j++) { const bb = efBB[j]; bb.fill(1e9, 0, 3); bb.fill(-1e9, 3, 6);
+    for (let n = 0; n < efCapN[j]; n++) { const b = j * EFCAP + n, r = efCapR[b]; if (r <= 0) continue;
+      bbAdd(bb, efCapA[b], r); bbAdd(bb, efCapB[b], r); } }
+}
+function bbAdd(bb, v, r) { bb[0] = Math.min(bb[0], v.x - r); bb[1] = Math.min(bb[1], v.y - r); bb[2] = Math.min(bb[2], v.z - r); bb[3] = Math.max(bb[3], v.x + r); bb[4] = Math.max(bb[4], v.y + r); bb[5] = Math.max(bb[5], v.z + r); }
+if (COLLIDE) window.SCRAP._efScr = () => efA.map(e => { const v = e.O.clone().applyMatrix4(asm.matrixWorld).project(cam); return [+((v.x + 1) / 2).toFixed(3), +((1 - v.y) / 2).toFixed(3), e.t, +e.gT.toFixed(2), +e.q.toFixed(3)]; });   // screenshots: where each tool is
+// Push p out of the other arms' tools (capsules), to clearance R.
+const _pt = new THREE.Vector3(), _pt2 = new THREE.Vector3();
+function pushTools(p, R, j) {
+  R += 0.02;   // the tool parts are one frame old here
+  for (let jj = 0; jj < ARMS; jj++) {
+    if (jj === j) continue; const bb = efBB[jj], m = R + 0.14;
+    if (p.x < bb[0] - m || p.x > bb[3] + m || p.y < bb[1] - m || p.y > bb[4] + m || p.z < bb[2] - m || p.z > bb[5] + m) continue;
+    for (let n = 0; n < efCapN[jj]; n++) { const b = jj * EFCAP + n, rr = efCapR[b] + R; if (efCapR[b] <= 0) continue;
+      closestOnSeg(_pt, p, efCapA[b], efCapB[b]); _pt2.copy(p).sub(_pt); const d2 = _pt2.lengthSq();
+      if (d2 < rr * rr) { const d = Math.sqrt(d2); if (d < 1e-6) _pt2.set(0, 0, 1); else _pt2.multiplyScalar(1 / d); p.copy(_pt).addScaledVector(_pt2, rr); } }
+  }
+}
+function drawTool(t, p, tm, e) {
+  const T2 = TOOLS[t], i = T2.ki, zr = -Z_ROOT;
+  lp(E.adapter, t, 0, 0, -0.063);
+  if (T2.k === 'S') {
+    lp(E.stem, i, 0, 0, zr - 0.02);
+    const sv = FS, vg = p.vac > 0.6;
+    FS = vg ? sv : 0; lp(E.vacG, i, 0, 0, zr - 0.004); FS = vg ? 0 : sv; lp(E.vacA, i, 0, 0, zr - 0.004); FS = sv;
+    for (let b = 0; b < 4; b++) lp(E.bel, i * 4 + b, 0, 0, zr - 0.04 - p.bs * (b + 0.5));
+    const zl = zr - 0.04 - 4 * p.bs;
+    lp(E.lip, i, 0, 0, zl - 0.003); lp(E.hose, i, 0.016, 0, zr - 0.01);
+    cap(13, false, 0, 0, zr, 0, 0, zr - 0.04, 0.008); cap(3, true, 0, 0, zr - 0.04, 0, 0, zl + 0.012, 0.019);
+    cap(4, true, -0.021, 0, zl - 0.003, 0.021, 0, zl - 0.003, 0.0055); cap(4, true, 0, -0.021, zl - 0.003, 0, 0.021, zl - 0.003, 0.0055);
+    cap(3, true, 0.034, 0, zr - 0.012, 0.034, 0, zr - 0.004, 0.0035);
+  } else if (T2.k === 'F') {
+    lp(E.palm, i, 0, 0, zr - 0.006); lp(E.pad, i, 0, 0, zr - 0.014);
+    cap(5, false, 0, -0.06, zr - 0.006, 0, 0.06, zr - 0.006, 0.01); cap(5, false, -0.036, 0.06, zr - 0.006, 0.036, 0.06, zr - 0.006, 0.008);
+    for (let f = 0; f < 3; f++) {
+      const sg = f < 2 ? 1 : -1, bx = f === 0 ? -0.03 : f === 1 ? 0.03 : 0;
+      fPhi(p.s[f]);
+      _J[0].set(bx, sg * F_B, zr - 0.012);
+      for (let h = 0; h < 3; h++) {
+        _J[h + 1].set(bx, _J[h].y + sg * FL[h] * Math.sin(_phi[h]), _J[h].z - FL[h] * Math.cos(_phi[h]));
+        lp(E.ph[h], i * 3 + f, _J[h].x, _J[h].y, _J[h].z, _qX.setFromAxisAngle(XAX_T, sg * _phi[h]));
+        const sv = FS; if (EF_LO) FS = 0; lp(E.pin, i * 9 + f * 3 + h, _J[h].x, _J[h].y, _J[h].z); FS = sv;
+        cap(6, true, _J[h].x, _J[h].y, _J[h].z, _J[h + 1].x, _J[h + 1].y, _J[h + 1].z, 0.0065);
+      }
+      // Linkage rod: palm to the middle phalanx, so the finger curls as one mechanism.
+      _fv.set(bx, sg * 0.034, zr - 0.008); _fw.copy(_J[1]).lerp(_J[2], 0.5).sub(_fv);
+      const L = _fw.length(); _fw.multiplyScalar(1 / Math.max(L, 1e-6));
+      _fq2.setFromUnitVectors(ZDN, _fw); lp(E.rod, i * 3 + f, _fv.x, _fv.y, _fv.z, _fq2, L);
+      cap(7, true, _fv.x, _fv.y, _fv.z, _fv.x + _fw.x * L, _fv.y + _fw.y * L, _fv.z + _fw.z * L, 0.0024);
+    }
+  } else if (T2.k === 'P') {
+    const half = p.sep / 2, ang = (PB_L - 0.03 - p.sep) * 160;
+    lp(E.pbody, i, 0, 0, zr - 0.01); lp(E.rails, i, 0, 0, zr - 0.026);
+    lp(E.screw, i, 0, 0, zr - 0.026, _qX.setFromAxisAngle(YAXL, ang));
+    cap(8, false, 0, -PB_L / 2, zr - 0.01, 0, PB_L / 2, zr - 0.01, 0.016); cap(9, false, 0, -PB_L / 2 + 0.005, zr - 0.026, 0, PB_L / 2 - 0.005, zr - 0.026, 0.014);
+    for (let s2 = 0; s2 < 2; s2++) { const sg = s2 ? 1 : -1;
+      lp(E.jaw, i * 2 + s2, 0, sg * (half + 0.0085), zr - 0.02); lp(E.ppad, i * 2 + s2, 0, sg * (half + 0.002), zr - 0.073);
+      for (const x of [-0.01, 0.01]) cap(10, true, x, sg * (half + 0.0085), zr - 0.024, x, sg * (half + 0.0085), zr - 0.086, 0.0045); }
+  } else {
+    lp(E.hub, i, 0, 0, zr - 0.008);
+    cap(11, false, 0, 0, zr, 0, 0, zr - 0.016, 0.021);
+    for (let f = 0; f < 3; f++) {
+      const th = Math.PI / 2 + f * 2.094, ux = Math.cos(th), uy = Math.sin(th), ph = p.phi[f];
+      _fw.set(ux * Math.sin(ph), uy * Math.sin(ph), -Math.cos(ph)); _fq2.setFromUnitVectors(ZDN, _fw);
+      const bx = ux * 0.019, by = uy * 0.019, bz = zr - 0.012;
+      lp(E.prong, i * 3 + f, bx, by, bz, _fq2);
+      const sv = FS; if (EF_LO) FS = 0;
+      for (let c2 = 0; c2 < 3; c2++) { const d = 0.022 + c2 * 0.014; lp(E.coil, i * 9 + f * 3 + c2, bx + _fw.x * d, by + _fw.y * d, bz + _fw.z * d, _fq2); }
+      // Field beads: along an arc from the prong tip, down round the held sphere, while the magnet is on.
+      for (let b = 0; b < 4; b++) {
+        const fb = ((tm * 0.9 + b / 4 + f * 0.33) % 1), a = fb * 1.6;
+        const tx = bx + _fw.x * PRONG, ty = by + _fw.y * PRONG, tz = bz + _fw.z * PRONG, rr2 = 0.012 + 0.03 * Math.sin(Math.PI * fb);
+        if (EF_LO || p.mag < 0.5) FS = 0; else FS = sv * (0.6 + 0.4 * Math.sin(Math.PI * fb));
+        lp(E.bead, i * 12 + f * 4 + b, tx + ux * rr2, ty + uy * rr2, tz - a * 0.03);
+      }
+      FS = sv;
+      cap(12, true, bx, by, bz, bx + _fw.x * PRONG, by + _fw.y * PRONG, bz + _fw.z * PRONG, 0.005);
+    }
+  }
+  void e;
+}
+
+// ?collide: the drawn tools against every proxy (a gripping part may touch the part it holds; a docking
+// tool may touch its rack), against the other arms, and against the other arms' tools.
+function efCheck(T, log) {
+  let any = 0;
+  for (let j = 0; j < ARMS; j++) {
+    const own = armTips[j].own, dock = armTips[j].has && armTips[j].mode === 'dock';
+    for (let n = 0; n < efCapN[j]; n++) {
+      const b = j * EFCAP + n, cat = EFCK[efCapK[b]], a = efCapA[b], bb = efCapB[b], R = efCapR[b];
+      if (R <= 0) continue;
+      const k2 = log.hitSeg(a, bb, R, efCapG[b] || dock ? own : -1);
+      if (k2) { T[cat]++; any++; log.push(cat, [+P_.toFixed(3), j, PXK[k2], own, +efA[j].al.toFixed(2), +efA[j].gT.toFixed(2), DBGHIT]); }
+      for (const ec of drawnChains) { if (ec.j === j) continue;
+        for (let s2 = 0; s2 <= 2; s2++) { _fv.copy(a).lerp(bb, s2 / 2);
+          for (let i = 0; i < ec.c.n; i++) { if (ec.c.len[i] <= 1e-4) continue; closestOnSeg(_fw, _fv, ec.c.q[i], ec.c.q[i + 1]);
+            if (_fv.distanceTo(_fw) < R + (ec.isSub ? rSub : rMain)(ec.c, i + 0.5) + ec.wave) { T.toolarm++; any++; log.push('toolarm', [+P_.toFixed(3), j, cat, ec.j]); s2 = 9; break; } } } }
+      for (let j2 = j + 1; j2 < ARMS; j2++) for (let m = 0; m < efCapN[j2]; m++) { const b2 = j2 * EFCAP + m; if (efCapR[b2] <= 0) continue;
+        closestOnSeg(_fw, efCapA[b2], a, bb); closestOnSeg(_fv, _fw, efCapA[b2], efCapB[b2]); closestOnSeg(_fw, _fv, a, bb);
+        if (_fv.distanceTo(_fw) < R + efCapR[b2]) { T.tooltool++; any++; log.push('tooltool', [+P_.toFixed(3), j, j2]); } }
     }
   }
   return any;
@@ -2708,7 +3209,7 @@ function update(P, t) {
   // so pieces in flight at the same time never meet. Corners are rounded so the motion stays fluid.
   P_ = P;
   const A = anchors(wp);
-  for (let j = 0; j < ARMS; j++) { const tp = armTips[j]; tp.grip = tp.work = tp.has = false; tp.lift = 0; tp.own = -1; }
+  for (let j = 0; j < ARMS; j++) { const tp = armTips[j]; tp.grip = tp.work = tp.has = tp.blink = false; tp.lift = tp.w = tp.dIn = tp.R = tp.unlock = 0; tp.own = -1; tp.mode = ''; tp.side.set(0, 0, 0); }
   inFlight.length = 0;
   updatePipeline(P, t, A);
   for (const bt of BEATS) {
@@ -2721,7 +3222,7 @@ function update(P, t) {
     // so the path starts level in its lane and two pieces in flight never share a height.
     // A tile starts at its atlas cell and moves to its lane height first; other pieces start below the arm's root.
     let top;
-    if (bt.cell != null) { _P0.copy(_cellP[bt.cell]).addScaledVector(SN_N, 0.16); top = H; }   // a level tile clears the 35-degree sheet
+    if (bt.cell != null) { _P0.copy(_cellP[bt.cell]).addScaledVector(SN_N, 0.16); top = H; }   // a level tile, and the gripper over it, clear the 35-degree sheet
     else { _P0.copy(A[lead]); _P0.y -= 0.2; _P0.z = Math.min(A[lead].z - 0.25, H); top = Math.max(_P0.z, H); }
     _P1.set(_P0.x, _P0.y, top); _P2.set(bt.seat.x, bt.seat.y, top); _P3.copy(bt.seat);
     let sc = 1, grip = true, lift = 0;
@@ -2740,20 +3241,39 @@ function update(P, t) {
     // The lid turns upright as it comes down onto its hinge.
     const sf = two ? easeIO(clamp((u - ph.tr) / (ph.dr - ph.tr))) : 0;
     if (two) { _lq.copy(o.quaternion).slerp(qLidStand, sf); o.quaternion.copy(_lq); }
+    // A held tile swings under the gripper: it tilts against the lag of the drawn tool (last frame's tip),
+    // then settles level for the drop. Its position stays on the planned path.
+    if (bt.cell != null && grip && armS[bt.arm].init) {
+      const fw = ss(0.3, 0.4, u) * (1 - ss(ph.an, ph.dr, u));   // in the level travel only
+      _lag.copy(armS[bt.arm].tip).sub(_pos); _lag.z -= bt.top + TIP_HOVER;
+      const L = _lag.length(); if (L > 0.05) _lag.multiplyScalar(0.05 / L);
+      if (fw > 0) { _f.set(-_lag.y, _lag.x, 0); const fl = _f.length();
+        if (fl > 1e-6) { _q.setFromAxisAngle(_f.multiplyScalar(1 / fl), -Math.min(0.06, fl * 0.9) * fw); o.quaternion.premultiply(_q); } }
+    }
     if (u < ph.dr) inFlight.push(bt);
     if (!bt.seatedAt && u >= ph.dr) bt.seatedAt = t; if (u < ph.dr) bt.seatedAt = 0;
     const nA = two ? LID_ARMS.length : 1;
     for (let n = 0; n < nA; n++) {
       const j = two ? LID_ARMS[n] : bt.arm, tp = armTips[j];
-      // Lid grips: on the short edges; as the lid stands, the claws move just outside its side edges.
-      if (two) tp.tip.copy(_pos).add(_e.copy(LID_GRIPS[n]).multiplyScalar(1 + 0.3 * sf).applyQuaternion(o.quaternion)); else tp.tip.copy(_pos);
-      tp.tip.z += ((two ? bt.top : bt.top * sc) + TIP_HOVER) * (1 - sf);   // the claw reaches down to just above the part
+      // Lid grips: each gripper clamps a lifting lug on the border of a short edge, from the face side.
+      if (two) { const sg = n ? 1 : -1; _e.set(0, 0, 1).applyQuaternion(o.quaternion);
+        tp.con.set(sg * LUG_X, 0, LUG_TOP).applyQuaternion(o.quaternion).add(_pos); tp.nrm.copy(_e);
+        tp.side.set(1, 0, 0).applyQuaternion(o.quaternion); tp.w = LUG_T / 2; tp.dIn = 0.02; tp.mode = 'edge';
+        tp.tip.copy(tp.con).addScaledVector(tp.nrm, TIP_HOVER); }
+      else {
+        tp.tip.copy(_pos); tp.tip.z += bt.top * sc + TIP_HOVER;   // the tool reaches down from just above the part
+        _e.set(0, 0, 1).applyQuaternion(o.quaternion); tp.nrm.copy(_e);
+        if (o === deck) { tp.mode = 'flat'; tp.con.copy(_pos).addScaledVector(_e, bt.top); tp.side.set(0, 1, 0); }
+        else { _e.set(0, 0, 1).applyQuaternion(o.quaternion); tp.nrm.copy(_e); tp.mode = 'edge'; tp.con.copy(o.position).addScaledVector(_e, 0.015); tp.side.set(1, 0, 0).applyQuaternion(o.quaternion); tp.w = 0.129; tp.dIn = 0.005; }   // the short edges, parallel to the sheet
+      }
       tp.has = true; tp.grip = grip && u > 0.04; tp.work = grip; tp.lift = lift;
-      tp.own = two ? ID_LID : bt.cell != null ? ID_TILE + tiles.findIndex(tl => tl.obj === o) : -1;
-      if (!grip && u < ph.grow) { tp.tip.copy(_P0); tp.tip.z += bt.top + TIP_HOVER; tp.grip = tp.work = false; continue; }   // wait at the hand-over
+      tp.own = two ? ID_LID : bt.cell != null ? ID_TILE + tiles.findIndex(tl => tl.obj === o) : o === deck ? ID_DECK : -1;
+      if (!grip && u < ph.grow) { tp.tip.copy(_P0); tp.tip.z += bt.top + TIP_HOVER; if (two) { _e.set(1, 0, 0).applyQuaternion(o.quaternion); tp.tip.copy(_P0).addScaledVector(_e, (n ? 1 : -1) * LUG_X); tp.tip.z += 0.6; tp.mode = 'guide'; tp.nrm.set(0, 0, 1); } tp.grip = tp.work = false; continue; }   // the lid edges: wait above and out   // wait at the hand-over
       if (!grip) { const r = easeIO((u - ph.rel) / (1 - ph.rel)); idleTip(j, A[j], _e); tp.tip.lerp(_e, r); tp.tip.z += 0.08 * Math.sin(Math.PI * r); }  // recoil, then relax
     }
   }
+
+  efSwap(P);   // tool changes have the arm while they run
 
   // 5. The swarm: only moving parts write their matrix. Branch arms hover over driving screws.
   const subT = [null, null, null];
@@ -2798,8 +3318,13 @@ function update(P, t) {
     _a.lerpVectors(a, _a, easeOut(ext));
     if (!st.init || dt <= 0) { st.tip.copy(_a); st.tipV.set(0, 0, 0); st.init = true; }
     _f.copy(st.tip);
-    damp(st.tip, st.tipV, _a, tp.has ? 0.07 : 0.16, dt);
-    if (dt > 0) { _f.subVectors(st.tip, _f); const dl = _f.length(); if (dl > TIP_STEP) st.tip.sub(_f).addScaledVector(_f, TIP_STEP / dl); }
+    const hold = tp.grip && tp.mode !== 'guide' && tp.mode !== '';   // a gripper holds a part: the tip follows it closely
+    // Holding, the spring leads by the target's velocity times its smooth time, so the tool keeps up with the part.
+    if (dt > 0 && st.init) { st.ff.copy(_a).sub(st.pT).multiplyScalar(0.035 / dt); const fl = st.ff.length(); if (fl > 0.4) st.ff.multiplyScalar(0.4 / fl); } else st.ff.set(0, 0, 0);
+    st.pT.copy(_a);
+    if (hold || (tp.has && (tp.mode === 'edge' || tp.mode === 'flat'))) _a.add(st.ff.clampLength(0, 0.15));
+    damp(st.tip, st.tipV, _a, hold ? 0.035 : tp.has ? 0.07 : 0.16, dt);
+    if (dt > 0) { _f.subVectors(st.tip, _f); const dl = _f.length(), step = hold ? TIP_STEP * 2 : TIP_STEP; if (dl > step) st.tip.sub(_f).addScaledVector(_f, step / dl); }
     // Pay out only what the arm needs: the straight distance plus a little slack.
     const need = a.distanceTo(st.tip);
     payOut(c, ext * Math.min(c.n * c.L, tp.has ? need * 1.04 + 0.03 : need * 1.12 + 0.05));   // taut while carrying: less sag   // a little slack for a living curve; more would loop
@@ -2809,16 +3334,10 @@ function update(P, t) {
     trail(c, dt);
     const show = ext > 0.004, tools = ext > 0.35;   // the tools appear once the arm has paid out, not at the hub
     const wave = (0.006 + 0.03 * Math.sin(Math.PI * clamp(extD)) * (extD < 0.999 ? 1 : 0) + (tp.has ? 0 : 0.01)) * (s.reduceMotion ? 0 : 1);
+    efArm(j, c, tp, dt, ss(0.2, 0.45, ext), tm, true);   // the wrist and grip state, and the tool capsules for avoid
     if (show) avoid(c, j, false, wave);              // no joint of the drawn arm inside any component
     drawChain(c, j * (SEGS + SUBS * SUBSEG), 0.05, 0.028, wave, tm * 3.2 + j * 2.1, show);
-    // Claw: two fingers along the last segment; open on approach, closed on the grip, eased.
-    _c.copy(c.q[c.n]).sub(c.q[c.n - 1]); if (_c.lengthSq() < 1e-9) _c.set(0, 0, -1); _c.normalize();
-    _q.setFromUnitVectors(ZUP, _e.copy(_c).negate());
-    const openT = tp.grip ? 0.021 : (tp.has ? 0.05 : 0.036);
-    st.open += (openT - st.open) * (dt <= 0 ? 1 : 1 - Math.exp(-dt * 14));
-    _d.set(1, 0, 0).applyQuaternion(_q);
-    setInst(fingers, j * 2, _e.copy(c.q[c.n]).addScaledVector(_d, st.open), _q, tools ? 1 : 0);
-    setInst(fingers, j * 2 + 1, _e.copy(c.q[c.n]).addScaledVector(_d, -st.open), _q, tools ? 1 : 0);
+    efArm(j, c, tp, dt, ss(0.2, 0.45, ext), tm, false);   // the wrist frame from the final chain, and the arm-side parts
     // Sub-arms: rooted 8 joints back from the tip; the socket goes to the screw that is driving now.
     const rj = Math.max(1, c.n - 8);
     for (let k2 = 0; k2 < SUBS; k2++) {
@@ -2848,6 +3367,7 @@ function update(P, t) {
       setInst(nerves, j * NERVE + m, chainAt(_d, c, f), qI, live ? 0.6 + 0.6 * Math.sin(Math.PI * f) : 0);
     }
   }
+  efTools(s.reduceMotion ? 0 : t);
   if (COLLIDE) collisionCheck();
 
   // Lights: the key warms as the build completes and drifts slowly.
