@@ -264,8 +264,22 @@
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   // One screen = 100svh, measured, so the URL bar on mobile Safari does not move P.
   var probe = null, u = 0;
-  function unit() { if (!u) { probe = probe || document.querySelector('.vh-probe'); u = (probe && probe.offsetHeight) || window.innerHeight; } return u; }
+  function unit() {
+    if (!u) {
+      probe = probe || document.querySelector('.vh-probe'); u = probe ? probe.offsetHeight : 0;
+      // A notification banner or a tab switch on iOS can report a near-zero probe for a moment, which
+      // read as a scroll far down the page. Fall back to the window height when the probe is implausible.
+      if (!u || u < window.innerHeight * 0.5) u = window.innerHeight;
+    }
+    return u;
+  }
   window.addEventListener('resize', function () { u = 0; }, { passive: true });
+  // Back from a notification, the app switcher, or the bfcache: measure again, and let the scene snap
+  // to the real scroll position, not spring from where it was.
+  function back() { u = 0; if (window.SCRAP && window.SCRAP.snap) window.SCRAP.snap(); }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) back(); });
+  window.addEventListener('pageshow', back);
+  window.addEventListener('focus', back);
   window.SCRAP = {
     fixed: fixed,
     target: function () { return fixed != null ? fixed : Math.min(4, window.scrollY / unit()); }
@@ -318,14 +332,18 @@
       if (!es[0].isIntersecting || done) return;
       done = true; ob.disconnect();
       var i = 0, c = 0;
-      (function tick() {
+      // The 3D comes first: a panel types only after the scene has faded in (body.warm), or after 3 s.
+      var go = function () { tick(); }, waited = 0;
+      function whenScene() { if (document.body.classList.contains('warm') || waited > 3000) go(); else { waited += 100; setTimeout(whenScene, 100); } }
+      function tick() {
         if (i >= lines.length) return;
         var l = lines[i], full = l.dataset.full;
         c++;
         l.textContent = full.slice(0, c);
         if (i === lines.length - 1) l.appendChild(cur);
         if (c >= full.length) { i++; c = 0; setTimeout(tick, 180); } else setTimeout(tick, 22);
-      })();
+      }
+      whenScene();
     }, { threshold: 0.6 }).observe(p);
   });
   document.querySelectorAll('.rise').forEach(function (el) {
@@ -1394,6 +1412,7 @@ function update(P, t) {
 /* ---------- loop: scroll sets a target, a critically damped spring follows ---------- */
 const KS = 120, KD = 2 * Math.sqrt(KS);
 let P = window.SCRAP.target(), vel = 0, lastDraw = -1, bootAt = -1;
+window.SCRAP.snap = () => { P = window.SCRAP.target(); vel = 0; };
 function screenTick(t, still) {
   const on = P > SCREEN_ON;
   if (on && bootAt < 0) bootAt = t;
@@ -1426,7 +1445,9 @@ function frame(t, dt) {
  * a new part entered. warm() compiles every program in parallel with all objects visible, then
  * renders once at each stage (post passes, screen, sparks) before the canvas fades in.
  */
-const WARM_AT = Array.from({ length: 41 }, (_, i) => i / 10);   // every 0.1 of the scroll
+// A few stages are enough: the compile covers every program; these renders catch the post passes
+// and the screen. (41 positions cost seconds on phones, and the hero waited on them.)
+const WARM_AT = [0.2, 1.4, 2.5, 3.2];
 // Pick the resolution before the canvas shows, so a normal visit never reallocates on screen.
 // Time a few forced renders of the heaviest stage, then take the highest DPR whose predicted cost
 // (scaled by pixel count) fits 75% of the refresh interval. gl.finish() returns at once under
@@ -1458,11 +1479,11 @@ function startScene() {
   }
   document.body.classList.add('warm');
 }
-// Safety: start after 4.5 s even if warm-up has not finished (a slow GPU or a stalled compile),
+// Safety: start after 2.5 s even if warm-up has not finished (a slow GPU or a stalled compile),
 // so no visitor waits on a blank canvas. A late warm-up then skips the probe.
 Promise.race([
-  measureRefresh().then(() => s.warm(WARM_AT.map(wp => () => { update(wp, 2); runSweeps(99); drawScreen(wp > SCREEN_ON, 3); }))).then(probeDpr),
-  new Promise(r => setTimeout(r, 4500))
+  Promise.all([measureRefresh(), s.warm(WARM_AT.map(wp => () => { update(wp, 2); runSweeps(99); drawScreen(wp > SCREEN_ON, 3); }))]).then(probeDpr),
+  new Promise(r => setTimeout(r, 2500))
 ]).then(startScene);
 document.body.classList.add('live'); document.body.classList.remove('no-webgl');
 </script>
