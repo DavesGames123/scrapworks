@@ -1121,9 +1121,10 @@ function posterMode() {
   canvas.style.display = 'none';                                 // the stage stops its loop when the canvas leaves the view
 }
 
-/* Hero bolts: plain silver hex bolts orbiting the wrench on tilted, slightly elliptical orbits, so they
-   pass in front of and behind it. Each bolt points along its path and spins about its own axis. Scroll
-   speed feeds the orbit speed. As the build starts, the orbits spiral outward and the bolts shrink away. */
+/* Hero bolts: plain silver hex bolts floating gently around the wrench. Each one sits at a spot on a
+   tilted ring around the wrench, drifts slowly along it, bobs, and turns slowly about its own tumble
+   axis, so the group reads as weightless, not as an orbit. As the build starts, they drift outward
+   and shrink away. */
 const heroBolts = (() => {
   const N = SMALL ? 6 : 9;
   const parts = [k.soft.hexNut(0.1, 0.068, 0).translate(0, 0, 0.034), zAxis(k.soft.cylinder(0.042, 0.3, 0.008, 20)).translate(0, 0, -0.15)];
@@ -1135,12 +1136,13 @@ const heroBolts = (() => {
     // Each orbit: radius (x wrench size), ellipse ratio, plane tilt, start angle, speed, spin.
     const plane = new THREE.Quaternion().setFromEuler(new THREE.Euler((rnd() - 0.5) * 1.9, (rnd() - 0.5) * 1.2, rnd() * 6.283));
     B.push({ r: 0.62 + (i % 3) * 0.17 + rnd() * 0.08, ell: 0.72 + rnd() * 0.2, plane, th: i / N * 6.283 + rnd() * 0.4,
-      w: (0.42 + rnd() * 0.36) * (i % 4 === 3 ? -1 : 1), spin: 2.2 + rnd() * 2.6, ph: rnd() * 6.283, sc: 0.85 + rnd() * 0.35 });
+      w: (0.03 + rnd() * 0.03) * (i % 2 ? -1 : 1), spin: 0.12 + rnd() * 0.18, ph: rnd() * 6.283, sc: 0.85 + rnd() * 0.35,
+      axis: new THREE.Vector3(rnd() - 0.5, rnd() - 0.5, rnd() - 0.5).normalize(), base: new THREE.Quaternion().setFromEuler(new THREE.Euler(rnd() * 6.283, rnd() * 6.283, 0)) });
   }
   return { m, B };
 })();
-const bv = new THREE.Vector3(), bq = new THREE.Quaternion(), bt2 = new THREE.Vector3(), boltBox = new THREE.Box3();
-const boltC = new THREE.Vector3(), boltSz = new THREE.Vector3(), Zp = new THREE.Vector3(0, 0, 1);
+const bv = new THREE.Vector3(), bq = new THREE.Quaternion(), boltBox = new THREE.Box3();
+const boltC = new THREE.Vector3(), boltSz = new THREE.Vector3();
 let boltLastT = -1;
 function updateHeroBolts(P, t) {
   const { m, B } = heroBolts, e = ss(0.4, 0.62, P), on = P < 0.66;
@@ -1149,18 +1151,15 @@ function updateHeroBolts(P, t) {
   // Orbit center and size follow the wrench, so the orbits stay with it on every layout.
   boltBox.setFromObject(inner); boltBox.getCenter(boltC); boltBox.getSize(boltSz);
   const R = Math.max(boltSz.x, boltSz.y) * 0.62;
-  const boost = 1 + Math.min(Math.abs(vel) * 2.5, 3);              // scroll speed spins the orbits up
+  const tm = s.reduceMotion ? 0 : t;
   B.forEach((b, i) => {
-    if (!s.reduceMotion) b.th += b.w * boost * dt;
-    const rr = R * b.r * (1 + 0.05 * Math.sin(t * 1.3 + b.ph)) * (1 + 1.8 * e);   // breathing, then spiral out
-    const th = b.th + e * 2.2 * Math.sign(b.w);
-    bv.set(Math.cos(th) * rr, Math.sin(th) * rr * b.ell, 0).applyQuaternion(b.plane);
-    // Tangent: the bolt axis points along its path.
-    bt2.set(-Math.sin(th) * rr, Math.cos(th) * rr * b.ell, 0).applyQuaternion(b.plane).normalize().multiplyScalar(Math.sign(b.w));
-    bq.setFromUnitVectors(Zp, bt2);
-    const spin = new THREE.Quaternion().setFromAxisAngle(Zp, (s.reduceMotion ? 0 : t) * b.spin + b.ph);
+    if (!s.reduceMotion) b.th += b.w * dt;                         // a slow drift along the ring
+    const rr = R * b.r * (1 + 0.04 * Math.sin(tm * 0.5 + b.ph)) * (1 + 1.6 * e);   // breathing, then drift out
+    bv.set(Math.cos(b.th) * rr, Math.sin(b.th) * rr * b.ell, 0).applyQuaternion(b.plane);
+    bv.y += Math.sin(tm * 0.7 + b.ph) * R * 0.045;                 // a gentle bob
+    bq.setFromAxisAngle(b.axis, tm * b.spin + b.ph).multiply(b.base);   // a slow tumble
     dummy.position.copy(boltC).add(bv);
-    dummy.quaternion.copy(bq).multiply(spin);
+    dummy.quaternion.copy(bq);
     dummy.scale.setScalar(b.sc * (1 - e));
     dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix);
   });
