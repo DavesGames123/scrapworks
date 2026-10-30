@@ -2448,8 +2448,8 @@ function updatePipeline(P, t, A) {
  *   gatherProxies()   avoid(chain, arm, isSub, wave)   tentacleCheck() (?collide: counts in CSTAT.t)
  */
 const CARD_HOVER = 0.3, GUIDE_U = 0.8;   // the arm meets its card halfway up the face, clear of the ports   // over a sliding card the claw stays higher: the next cards come in under it
-// EFS: the end-effector scale (phones: larger). CLAW_L, CLAW_R: the wrist and coupling envelope along the tool axis.
-const EFS = SMALL ? 1.3 : 1;
+// EFS: the end-effector scale (1.3: the mechanisms read at the wide camera). CLAW_L, CLAW_R: the wrist and coupling envelope along the tool axis.
+const EFS = 1.3;
 const PX_MARGIN = 0.025, NSPH = 300, NOBB = 80, TIP_HOVER = 0.22, CLAW_L = 0.11 * EFS, CLAW_R = 0.03 * EFS, SOCKET_R = 0.035;
 const sphC = Array.from({ length: NSPH }, () => new THREE.Vector3()), sphR = new Float32Array(NSPH), sphK = new Uint8Array(NSPH), sphId = new Int16Array(NSPH);
 const obbC = Array.from({ length: NOBB }, () => new THREE.Vector3()), obbX = Array.from({ length: NOBB }, () => new THREE.Vector3());
@@ -2728,7 +2728,7 @@ function tentacleCheck() {
  *   P  parallel pinch gripper: two jaws on a lead screw that turns as they move, two rails, rubber pads
  *   M  magnetic cradle: three prongs with coil windings that splay to the sphere, field beads
  * Tool frame: origin at the arm tip, local -Z along the tool axis (toward the part), local Y across the
- * grip. Geometry is in tool units; EFS scales the whole tool (phones: larger, so the mechanism reads).
+ * grip. Geometry is in tool units; EFS scales the whole tool, so the mechanism reads at the wide camera.
  * The job sets tp.mode ('flat', 'edge', 'sphere', 'guide', 'dock'), tp.con (contact point), tp.nrm
  * (surface normal, out of the part), tp.side (grip direction), tp.w (half width across the grip),
  * tp.dIn (grip depth past the contact plane) and tp.R (sphere radius). efArm() turns the wrist to the
@@ -2738,9 +2738,9 @@ function tentacleCheck() {
  *   EFS  TOOLS  RACKS  SWAPS  efArm()  efTools()  efSwap()  efProxies()  efCheck() (?collide)
  */
 const EF_LO = Q === 'low';
-const toolSteel = M.steel({ anisotropy: 0, roughness: SMALL ? 0.18 : 0.24 });   // moving parts: bright steel
+const toolSteel = M.steel({ anisotropy: 0, roughness: 0.18 });   // moving parts: bright steel
 const rubber = new THREE.MeshStandardMaterial({ color: 0x161618, roughness: 0.85, metalness: 0 });
-const ledAMat = M.glow(0xffa030, 2.4), ledGMat = M.glow(0x3dff7a, 2.4), fieldMat = M.glow(0x7fd8ff, 1.3);
+const ledAMat = M.glow(0xffa030, 2.4), ledGMat = M.glow(0x3dff7a, 2.4), fieldMat = M.glow(0x7fd8ff, 2.2);
 const mergeP = gs => BufferGeometryUtils.mergeGeometries(gs.map(g => { const n = g.index ? g.toNonIndexed() : g;
   for (const a of Object.keys(n.attributes)) if (a !== 'position' && a !== 'normal') n.deleteAttribute(a); return n; }));
 const EFM = [];   // every end-effector mesh: a mesh with no instance on shows no draw call
@@ -2766,7 +2766,7 @@ const STAR_HOLD = [1.975, 2.043];
 // Arms 1 and 2 stop guiding cards in time for their first swap; the links go before arm 0 crosses them.
 const GUIDE_END = [9, 1.885, 1.825], LINKS_END = 1.988;
 
-const PB_L = SMALL ? 0.27 : 0.3;   // pinch body: on phones the tool is larger, the tiles are not
+const PB_L = 0.27;   // pinch body: shorter than the tool scale implies, because the tool is scaled and the tiles are not
 const EG = {
   housing: cylZ(0.026, 0.04, 0.006, 20).translate(0, 0, -0.02),
   pitch: k.soft.gear(14, 0.03, 0.008, 0.5), roll: k.soft.gear(18, 0.031, 0.007, 0.62),
@@ -2791,7 +2791,7 @@ const EG = {
   rails: mergeP([k.soft.cylinder(0.0028, PB_L - 0.01, 0.001, 8).translate(0.012, 0, 0), k.soft.cylinder(0.0028, PB_L - 0.01, 0.001, 8).translate(-0.012, 0, 0)]),
   jaw: k.soft.box(0.03, 0.009, 0.07, 0.003).translate(0, 0, -0.035), ppad: k.soft.box(0.026, 0.004, 0.034, 0.0015),
   hub: cylZ(0.021, 0.016, 0.004, 20), prong: k.soft.box(0.008, 0.008, 0.08, 0.0025).translate(0, 0, -0.04),
-  coil: ringZ(0.0078, 0.0044, 0.007, 0.0015), bead: new THREE.SphereGeometry(0.0042, 6, 4),
+  coil: ringZ(0.0078, 0.0044, 0.007, 0.0015), bead: new THREE.SphereGeometry(0.0062, 6, 4),
   beam: RACKS.map(r => mergeP([k.soft.box(0.05, r.len, 0.04, 0.008),
     k.soft.box(0.17, 0.03, 0.03, 0.006).translate(-0.085, r.len / 2 - 0.06, 0), k.soft.box(0.17, 0.03, 0.03, 0.006).translate(-0.085, -r.len / 2 + 0.06, 0)])),
   cradle: mergeP([ringZ(0.036, 0.027, 0.012, 0.003), k.soft.box(0.06, 0.016, 0.01, 0.003).translate(-0.058, 0, 0)]),
