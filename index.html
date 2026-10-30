@@ -370,24 +370,31 @@ import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js'
  *   0-0.5     the logo wrench assembles itself: head, handle, nut; at 0.42 the
  *             halves swap for the solid mesh (no seam)
  *   0.5-0.95  the wrench rises above the back wall; the enclosure tray arrives
- *   0.93-1.03 the wrench head transforms: tines swing out on hinges, cheek plates
- *             split, the jaw back opens, the nut hub rises; three segmented arms
+ *   0.93-1.03 the wrench head transforms: six machined pieces (tines, cheeks, jaw back,
+ *             handle) open on straight seams, the nut hub rises; three segmented arms
  *             pay out of the hub, each with two branch arms (hex socket, driver)
- *   1.05-2.4  the arms carry each module out of the wrench and place it: board,
- *             LOGIC, RENDER (+ heatsink), MEMORY, AUDIO, POWER, PHYSICS, INPUT,
- *             NET, SAVE; cables grow; the fastener and SMD swarm seats in waves
- *             around them; branch arms hover over screws as they drive in
- *   2.05-2.48 a clear deck goes in over the board, and the arms install ten
- *             Stella Nova station sprites on it, spine first, then the modules
- *   2.48-2.72 arms 0 and 2 carry the lid by opposite edges, lower it, hold it while
+ *   1.0-1.24  SOURCE: three generic tool windows (Photoshop, Aseprite, Blender) rise
+ *   1.12-1.3  arm 2 sets a clear deck on four posts in the open box
+ *   1.4-1.96  the asset cards stream around the sheet sides into the atlas sheet;
+ *             arms 1 and 2 guide them up the face into their cells
+ *   1.42-1.98 MIDDLE: code modules (real barnes-hut types) leave the box in a tangle;
+ *             arm 0 sorts them into the rack (objects/, render/, player/, gui/);
+ *             links glow from the atlas cells to their modules
+ *   1.96-2.5  OUTPUT: the star (photosphere, corona), six planets and the asteroid
+ *             belt leave their cells and orbit; HUD panels (real Stella Nova UI and a
+ *             Warp Hierarchy card) dock around them; the arms set ten station tiles
+ *             on the deck from their cells
+ *   2.5-2.55  the live system, the sheet, the rack and the panels fold away
+ *   2.58-2.8  arms 0 and 2 carry the lid by opposite edges, lower it, hold it while
  *             the lid screws seat, and release; the arms reel into the hub
  *   2.85-2.97 the head folds shut (the exact reverse of the transform)
  *   2.99-3.1  the display boots and plays the Stella Nova trailer
  *   3.15-4    the device rises; the wrench flies to the C of the wordmark in the
  *             final section, folds its handle into the head, and hands over to
  *             the SVG letter
+ * No arm touches any component: see the avoidance module (?collide verifies it).
  * Device frame: the tray floor top is z = 0, the open side faces +z.
- * Only the display, the LEDs, and the trace pulses bloom.
+ * Only the display, the star, and the true emissives bloom.
  */
 const k = ScrapBrand.three(THREE, { RoomEnvironment, EffectComposer, RenderPass, UnrealBloomPass, OutputPass, RoundedBoxGeometry, BufferGeometryUtils });
 const M = k.materials;
@@ -479,19 +486,9 @@ const brass = M.brass();
 const brassD = M.brassDark();
 const steel = M.steel({ anisotropy: 0, roughness: 0.3 });
 const gunmetal = new THREE.MeshStandardMaterial({ color: 0x3a3e45, metalness: 1, roughness: 0.46 });   // Standard: the enclosure covers much of the frame
-const alu = new THREE.MeshStandardMaterial({ color: 0xbfc4ca, metalness: 1, roughness: 0.38 });
 const armMat = new THREE.MeshStandardMaterial({ color: 0x2f3237, metalness: 1, roughness: 0.4 });
 const plastic = new THREE.MeshStandardMaterial({ color: 0x17181a, roughness: 0.72 });
-const rubber = new THREE.MeshStandardMaterial({ color: 0x0f0f10, roughness: 0.9 });
-const paper = new THREE.MeshStandardMaterial({ color: 0x232326, roughness: 0.85, side: THREE.DoubleSide });
-const capMat = new THREE.MeshStandardMaterial({ color: 0x1b2433, roughness: 0.42, metalness: 0.35 });
-const smdMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, metalness: 0.1 });
 const slotMat = new THREE.MeshStandardMaterial({ color: 0x050506, roughness: 0.9 });
-const goldPin = new THREE.MeshStandardMaterial({ color: 0xd7b25a, roughness: 0.34, metalness: 1 });
-const wireRed = new THREE.MeshStandardMaterial({ color: 0x8a1f1a, roughness: 0.55 });
-const wireBlk = new THREE.MeshStandardMaterial({ color: 0x121212, roughness: 0.55 });
-const cableMat = new THREE.MeshStandardMaterial({ color: 0x8e9196, roughness: 0.62 });
-const blueMat = new THREE.MeshStandardMaterial({ color: 0x1d3d66, roughness: 0.55 });
 
 /* ---------- geometry helpers ---------- */
 const rr = (w, h, r) => [[-w / 2, -h / 2, r], [w / 2, -h / 2, r], [w / 2, h / 2, r], [-w / 2, h / 2, r]];
@@ -506,42 +503,6 @@ function setInst(m, i, pos, quat, sc) {
   if (typeof sc === 'number') dummy.scale.setScalar(sc); else if (sc) dummy.scale.copy(sc); else dummy.scale.setScalar(1);
   dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); m.instanceMatrix.needsUpdate = true;
 }
-function lathe(pts, mat, seg) {
-  const g = new THREE.LatheGeometry(pts.map(p => new THREE.Vector2(p[0], p[1])), seg || 56);
-  return new THREE.Mesh(zAxis(g), mat);
-}
-// Label texture: crisp text on a transparent canvas, for silkscreen-like floor labels.
-function labelMat(text, w, h) {
-  const PPU = 900, c = document.createElement('canvas'); c.width = Math.round(w * PPU); c.height = Math.round(h * PPU);
-  const g = c.getContext('2d'); g.fillStyle = 'rgba(232,230,220,0.82)';
-  g.font = `600 ${Math.round(h * PPU * 0.62)}px "Share Tech Mono", ui-monospace, monospace`; g.textBaseline = 'middle';
-  g.fillText(text, 2, c.height / 2);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
-  return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false }));
-}
-// Chip with a printed top: soft extruded body, a canvas map in geometry units.
-function chip(w, h, d, lines, o) {
-  o = o || {};
-  const PPU = SMALL ? 600 : 1000, cw = Math.round(w * PPU), ch = Math.round(h * PPU);
-  const c = document.createElement('canvas'); c.width = cw; c.height = ch; const g = c.getContext('2d');
-  const gr = g.createLinearGradient(0, 0, cw, ch); gr.addColorStop(0, o.col || '#1b1c1f'); gr.addColorStop(1, o.col2 || '#121315');
-  g.fillStyle = gr; g.fillRect(0, 0, cw, ch);
-  if (o.pins) {                                   // pin grid around the edge
-    g.fillStyle = '#b8954a';
-    const n = o.pins, m = 0.018 * PPU, ps = 0.008 * PPU;
-    for (let i = 0; i < n; i++) { const f = (i + 0.5) / n;
-      [[f * cw, m], [f * cw, ch - m], [m, f * ch], [cw - m, f * ch]].forEach(q => g.fillRect(q[0] - ps / 2, q[1] - ps / 2, ps, ps)); }
-  }
-  g.fillStyle = 'rgba(210,210,205,0.55)'; g.beginPath(); g.arc(0.03 * PPU + (o.pins ? 0.02 * PPU : 0), 0.03 * PPU + (o.pins ? 0.02 * PPU : 0), 0.008 * PPU, 0, 7); g.fill();
-  g.fillStyle = 'rgba(214,212,204,0.78)'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  const fs = (o.fs || 0.034) * PPU;
-  lines.forEach((l, i) => { g.font = `${i ? 400 : 700} ${Math.round(i ? fs * 0.72 : fs)}px "Share Tech Mono", ui-monospace, monospace`;
-    g.fillText(l, cw / 2, ch / 2 + (i - (lines.length - 1) / 2) * fs * 1.15); });
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.repeat.set(1 / w, 1 / h); t.offset.set(0.5, 0.5);
-  const mat = new THREE.MeshStandardMaterial({ map: t, roughness: 0.7, metalness: 0.05 });
-  return new THREE.Mesh(k.soft.extrude(rr(w, h, Math.min(w, h) * 0.06), { depth: d, radius: Math.min(0.004, d * 0.2) }).translate(0, 0, d / 2), mat);
-}
-
 /* ---------- the enclosure tray ---------- */
 const TW = 2.6, THt = 1.8, TWALL = 0.07, TB = 0.07, HW = 0.42;
 const IW = TW - 2 * TWALL, IH = THt - 2 * TWALL;
@@ -555,183 +516,24 @@ for (let i = 0; i < 8; i++) setInst(vents, i, V(TW / 2 + 0.0015, -0.42 + i * 0.1
 const BOSS = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, y]) => V(x * (IW / 2 - 0.085), y * (IH / 2 - 0.085), 0));
 const bosses = inst(zAxis(k.soft.cylinder(0.075, HW - 0.03, 0.012, 40)).translate(0, 0, (HW - 0.03) / 2), gunmetal, 4);
 
-/* ---------- main board ---------- */
-// Board local (u, v): u in [-PW/2, PW/2], v in [-PHb/2, PHb/2]. Device = (PC.x + u, PC.y + v).
-const PW = 1.55, PHb = 1.5, PT = 0.03, SH1 = 0.1, PC = V(0.43, 0, 0), ZT = SH1 + PT;
-const mainAt = (u, v, z) => V(PC.x + u, PC.y + v, z);
-const MHOLES = [[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, 0], [1, 0]].map(([x, y]) => [x * (PW / 2 - 0.07), y * (PHb / 2 - 0.07)]);
-// Module plan, board local [u, v, w, h].
-const Z = {
-  LOGIC: [-0.4, 0.4, 0.3, 0.3], RENDER: [0.33, 0.4, 0.36, 0.36], MEMORY: [-0.38, 0.0, 0.62, 0.2],
-  INPUT: [0.35, -0.22, 0.46, 0.3], PHYSICS: [-0.58, -0.45, 0.18, 0.18], POWER: [-0.18, -0.48, 0.34, 0.2], SAVE: [0.5, -0.63, 0.2, 0.18]
-};
-const LEDS = [[-0.02, -0.66], [0.06, -0.66], [0.14, -0.66], [0.22, -0.66]];
-function smdSites(n) {
-  const out = [], ko = Object.values(Z).map(q => [q[0], q[1], q[2] + 0.08, q[3] + 0.08]).concat(LEDS.map(l => [l[0], l[1], 0.06, 0.06]));
-  for (let u = -PW / 2 + 0.07; u <= PW / 2 - 0.07; u += 0.052) for (let v = -PHb / 2 + 0.07; v <= PHb / 2 - 0.07; v += 0.052) {
-    if (ko.some(q => Math.abs(u - q[0]) < q[2] / 2 && Math.abs(v - q[1]) < q[3] / 2)) continue;
-    if (MHOLES.some(hp => Math.hypot(u - hp[0], v - hp[1]) < 0.11)) continue;
-    if (rnd() < 0.12) continue;
-    out.push([u + (rnd() - 0.5) * 0.006, v + (rnd() - 0.5) * 0.006, rnd() < 0.5 ? 0 : Math.PI / 2, rnd() < 0.55 ? 0 : 1]);
-  }
-  for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
-  return out.slice(0, n);
-}
-const smdMain = smdSites(SMALL ? 90 : 260);
-function route(a, b) { const dx = b[0] - a[0], dy = b[1] - a[1], k45 = Math.min(Math.abs(dx), Math.abs(dy)); return [a, [b[0] - Math.sign(dx) * k45, a[1]], b]; }
-const traces = [];
-smdMain.forEach(a => {
-  if (traces.length >= (SMALL ? 34 : 70)) return;
-  let t = null, best = 1e9;
-  Object.values(Z).forEach(q => { const d = Math.hypot(a[0] - q[0], a[1] - q[1]) - Math.max(q[2], q[3]) / 2; if (d < best) { best = d; t = q; } });
-  if (best > 0.28) return;
-  const b = [t[0] + (rnd() - 0.5) * t[2] * 0.7, t[1] + Math.sign(a[1] - t[1]) * t[3] / 2];
-  traces.push({ pts: route([a[0], a[1]], b), w: 0.0035 + rnd() * 0.002 });
-});
-const mainMat = (function boardTexture() {
-  const w = PW, h = PHb, PPU = SMALL ? 560 : 950, cw = Math.round(w * PPU), ch = Math.round(h * PPU);
-  const col = document.createElement('canvas'); col.width = cw; col.height = ch; const c = col.getContext('2d');
-  const msk = document.createElement('canvas'); msk.width = cw; msk.height = ch; const m = msk.getContext('2d');
-  const X = u => (u + w / 2) * PPU, Y = v => (h / 2 - v) * PPU;
-  c.fillStyle = '#0d3a2a'; c.fillRect(0, 0, cw, ch);
-  m.fillStyle = 'rgb(0,195,0)'; m.fillRect(0, 0, cw, ch);                 // G = roughness, B = metalness
-  const GOLD = '#c8a24f', MG = 'rgb(0,95,255)';
-  const both = fn => { c.fillStyle = c.strokeStyle = GOLD; m.fillStyle = m.strokeStyle = MG; fn(c); fn(m); };
-  // A faint ground pour hatch under the mask.
-  c.strokeStyle = 'rgba(30,90,64,0.55)'; c.lineWidth = 1;
-  for (let x = -ch; x < cw; x += Math.round(0.02 * PPU)) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x + ch, ch); c.stroke(); }
-  traces.forEach(tr => both(g => { g.lineWidth = tr.w * PPU; g.lineJoin = 'round'; g.lineCap = 'round'; g.beginPath();
-    tr.pts.forEach((p, i) => i ? g.lineTo(X(p[0]), Y(p[1])) : g.moveTo(X(p[0]), Y(p[1]))); g.stroke(); }));
-  smdMain.forEach(p => { const cs = Math.cos(p[2]), sn = Math.sin(p[2]);
-    [-1, 1].forEach(sg => both(g => { const pw = cs ? 0.011 : 0.018, ph = cs ? 0.018 : 0.011; g.fillRect(X(p[0] + sg * 0.013 * cs - pw / 2), Y(p[1] + sg * 0.013 * sn + ph / 2), pw * PPU, ph * PPU); })); });
-  LEDS.forEach(l => [-1, 1].forEach(sg => both(g => g.fillRect(X(l[0] + sg * 0.012 - 0.007), Y(l[1] + 0.011), 0.014 * PPU, 0.022 * PPU))));
-  // Module pads: a ring of fine pads around each footprint.
-  Object.values(Z).forEach(q => both(g => { const n = Math.round(q[2] / 0.03);
-    for (let i = 0; i < n; i++) { const u = q[0] - q[2] / 2 + (i + 0.5) * q[2] / n; g.fillRect(X(u - 0.005), Y(q[1] + q[3] / 2 + 0.02), 0.01 * PPU, 0.012 * PPU); g.fillRect(X(u - 0.005), Y(q[1] - q[3] / 2 - 0.008), 0.01 * PPU, 0.012 * PPU); } }));
-  MHOLES.forEach(hp => { both(g => { g.beginPath(); g.arc(X(hp[0]), Y(hp[1]), 0.062 * PPU, 0, 7); g.fill(); });
-    c.fillStyle = '#050505'; m.fillStyle = 'rgb(0,220,0)'; [c, m].forEach(g => { g.beginPath(); g.arc(X(hp[0]), Y(hp[1]), 0.03 * PPU, 0, 7); g.fill(); }); });
-  // Silkscreen: outlines and the module names.
-  c.strokeStyle = 'rgba(232,230,220,0.85)'; m.strokeStyle = 'rgb(0,210,0)'; c.lineWidth = m.lineWidth = Math.max(1, 0.0028 * PPU);
-  c.fillStyle = 'rgba(232,230,220,0.88)'; c.textBaseline = 'alphabetic';
-  Object.entries(Z).forEach(([name, q]) => {
-    [c, m].forEach(g => g.strokeRect(X(q[0] - q[2] / 2 - 0.035), Y(q[1] + q[3] / 2 + 0.035), (q[2] + 0.07) * PPU, (q[3] + 0.07) * PPU));
-    c.font = `600 ${Math.round(0.036 * PPU)}px "Share Tech Mono", ui-monospace, monospace`;
-    c.fillText(name, X(q[0] - q[2] / 2 - 0.035), Y(q[1] + q[3] / 2 + 0.05));
-  });
-  c.font = `${Math.round(0.03 * PPU)}px "Share Tech Mono", ui-monospace, monospace`;
-  c.fillText('SCRAP CORE  REV C  2026', X(-0.7), Y(-0.71));
-  const map = new THREE.CanvasTexture(col), rough = new THREE.CanvasTexture(msk);
-  map.colorSpace = THREE.SRGBColorSpace;
-  [map, rough].forEach(t => { t.anisotropy = 8; t.repeat.set(1 / w, 1 / h); t.offset.set(0.5, 0.5); });
-  return new THREE.MeshStandardMaterial({ map, roughnessMap: rough, metalnessMap: rough, roughness: 1, metalness: 1 });
-})();
-const mainSw = sweepable(mainMat, V(1, 0, 0), PW / 2);
-const board = new THREE.Group();
-board.add(new THREE.Mesh(k.soft.extrude(rr(PW, PHb, 0.04), { depth: PT, radius: 0.006, holes: MHOLES.map(h => [h[0], h[1], 0.03]) }).translate(0, 0, PT / 2), mainSw.mat));
-asm.add(board);
-const standoffs = inst(k.soft.hexNut(0.042, SH1, 0).translate(0, 0, SH1 / 2), brassD, MHOLES.length);
-
-/* ---------- modules: each is a group carried by an arm ---------- */
+/* ---------- the engine stage ----------
+ * No electronics: the tray is Warp's stage, and Stella Nova is built on a plinth deck inside it.
+ * Positions on the stage use mainAt(u, v, z) (device frame, the floor at z = 0).
+ */
+const ZT = 0;
+const mainAt = (u, v, z) => V(u, v, z);
 function module(name) { const g = new THREE.Group(); g.name = name; g.visible = false; asm.add(g); return g; }
-// LOGIC: CPU with a pin grid.
-const mLogic = module('LOGIC');
-mLogic.add(chip(0.3, 0.3, 0.035, ['SCRAP', 'SX-1 LOGIC', '2641 A2'], { pins: 14 }));
-// RENDER: GPU with a finned heatsink.
-const mRender = module('RENDER');
-{ const gpu = chip(0.3, 0.3, 0.03, ['SX-G', 'RENDER'], { fs: 0.03 }); mRender.add(gpu);
-  const fins = []; for (let i = 0; i < 11; i++) fins.push(k.soft.box(0.014, 0.34, 0.13, 0.005).translate(-0.15 + i * 0.03, 0, 0.1));
-  const hs = new THREE.Mesh(merge([k.soft.box(0.36, 0.36, 0.035, 0.008).translate(0, 0, 0.0475)].concat(fins)), alu); mRender.add(hs); }
-// MEMORY: two RAM sticks standing in sockets.
-const mMem = module('MEMORY');
-{ const ramMat = (function () {
-    const w = 0.6, h = 0.13, PPU = SMALL ? 600 : 1000, c = document.createElement('canvas'); c.width = w * PPU; c.height = h * PPU; const g = c.getContext('2d');
-    g.fillStyle = '#0d3a2a'; g.fillRect(0, 0, c.width, c.height);
-    g.fillStyle = '#c8a24f'; for (let i = 0; i < 40; i++) g.fillRect((0.02 + i * 0.014) * PPU, (h - 0.012) * PPU, 0.009 * PPU, 0.012 * PPU);
-    for (let i = 0; i < 4; i++) { g.fillStyle = '#141416'; g.fillRect((0.04 + i * 0.14) * PPU, 0.02 * PPU, 0.11 * PPU, 0.07 * PPU);
-      g.fillStyle = 'rgba(214,212,204,0.7)'; g.font = `${Math.round(0.016 * PPU)}px "Share Tech Mono", monospace`; g.fillText('SX-RAM 8G', (0.05 + i * 0.14) * PPU, 0.06 * PPU); }
-    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.repeat.set(1 / w, 1 / h); t.offset.set(0.5, 0.5);
-    return new THREE.MeshStandardMaterial({ map: t, roughness: 0.65, metalness: 0.1 }); })();
-  const stickGeo = k.soft.extrude(rr(0.6, 0.13, 0.008), { depth: 0.012, radius: 0.003 }).rotateX(Math.PI / 2).translate(0, 0, 0.065 + 0.02);
-  const sockGeo = k.soft.box(0.64, 0.035, 0.03, 0.006).translate(0, 0, 0.015);
-  [-0.05, 0.05].forEach(dy => { const st = new THREE.Mesh(stickGeo, ramMat); st.position.y = dy; mMem.add(st); const so = new THREE.Mesh(sockGeo, plastic); so.position.y = dy; mMem.add(so); }); }
-// INPUT: daughterboard with four tactile buttons and a mini joystick.
-const mInput = module('INPUT');
-{ const ib = chip(0.46, 0.3, 0.02, ['INPUT'], { col: '#0e3a2b', col2: '#0b3023', fs: 0.03 }); ib.position.z = 0.08; mInput.add(ib);
-  const bb = inst(k.soft.box(0.05, 0.05, 0.022, 0.006), plastic, 4, mInput), bc = inst(zAxis(k.soft.cylinder(0.016, 0.016, 0.005, 24)), brass, 4, mInput);
-  [[0.08, 0.06], [0.14, 0], [0.08, -0.06], [0.02, 0]].forEach((p, i) => { setInst(bb, i, V(p[0], p[1], 0.111)); setInst(bc, i, V(p[0], p[1], 0.128)); });
-  const js = new THREE.Mesh(merge([k.soft.box(0.1, 0.1, 0.03, 0.01).translate(-0.12, 0, 0.115), zAxis(k.soft.cylinder(0.009, 0.06, 0.003, 16)).translate(-0.12, 0, 0.16), zAxis(k.soft.cylinder(0.03, 0.022, 0.008, 28)).translate(-0.12, 0, 0.195)]), plastic);
-  mInput.add(js);
-  const ist = inst(zAxis(k.soft.cylinder(0.02, 0.08, 0.004, 16)).translate(0, 0, 0.04), brassD, 4, mInput);
-  [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([x, y], i) => setInst(ist, i, V(x * 0.19, y * 0.11, 0))); }
-// PHYSICS: IMU module.
-const mPhys = module('PHYSICS');
-{ const b = chip(0.18, 0.18, 0.016, [], { col: '#1d3d66', col2: '#16304f' }); mPhys.add(b); const c = chip(0.07, 0.07, 0.012, ['IMU'], { fs: 0.016 }); c.position.z = 0.016; mPhys.add(c); }
-// POWER: two inductors and three capacitors.
-const mPower = module('POWER');
-{ const ind = chip(0.09, 0.09, 0.06, ['4R7'], { col: '#5a5d63', col2: '#45484d', fs: 0.022 }); ind.position.set(-0.11, 0.02, 0); mPower.add(ind);
-  const ind2 = ind.clone(); ind2.position.set(0, 0.02, 0); mPower.add(ind2);
-  const cp = inst(zAxis(k.soft.cylinder(0.035, 0.1, 0.01, 28)).translate(0, 0, 0.05), capMat, 3, mPower);
-  [[0.1, 0.05], [0.1, -0.04], [-0.05, -0.07]].forEach((p, i) => setInst(cp, i, V(p[0], p[1], 0))); }
-// SAVE: SD slot and card.
-const mSave = module('SAVE');
-{ mSave.add(new THREE.Mesh(k.soft.box(0.17, 0.16, 0.026, 0.004).translate(0, 0, 0.013), steel)); }
-const sdCard = new THREE.Mesh(k.soft.box(0.13, 0.15, 0.007, 0.004), blueMat); sdCard.visible = false; asm.add(sdCard);
-// AUDIO: a speaker driver on the floor, left of the board: magnet, brass basket, cone, surround, dust cap.
-const mAudio = module('AUDIO');
-{ const z0 = 0.0;
-  mAudio.add(new THREE.Mesh(zAxis(k.soft.cylinder(0.12, 0.075, 0.012, 40)).translate(0, 0, z0 + 0.0375), gunmetal));
-  mAudio.add(lathe([[0.1, 0.07], [0.12, 0.075], [0.25, 0.235], [0.285, 0.24], [0.29, 0.25], [0.255, 0.252]], brass));
-  mAudio.add(lathe([[0.075, 0.15], [0.16, 0.2], [0.235, 0.24]], paper));
-  const sur = []; for (let i = 0; i <= 12; i++) { const a = Math.PI - i * Math.PI / 12; sur.push([0.25 + Math.cos(a) * 0.017, 0.242 + Math.sin(a) * 0.017]); }
-  mAudio.add(lathe(sur, rubber));
-  mAudio.add(lathe([[0.0, 0.19], [0.03, 0.186], [0.055, 0.174], [0.078, 0.152]], rubber)); }
-// NET: antenna module on the floor, upper left, with a coax pigtail to a brass bulkhead in the back wall.
-const mNet = module('NET');
-{ const b = chip(0.32, 0.16, 0.018, [], { col: '#101113', col2: '#0c0d0f' }); b.position.z = 0.02; mNet.add(b);
-  const can = new THREE.Mesh(k.soft.box(0.12, 0.1, 0.02, 0.005).translate(-0.06, 0, 0.048), steel); mNet.add(can);
-  const ant = chip(0.1, 0.12, 0.004, ['NET'], { col: '#c8a24f', col2: '#a8873e', fs: 0.022 }); ant.position.set(0.09, 0, 0.038); mNet.add(ant);
-  const so = inst(zAxis(k.soft.cylinder(0.018, 0.02, 0.004, 16)).translate(0, 0, 0.01), brassD, 4, mNet);
-  [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([x, y], i) => setInst(so, i, V(x * 0.13, y * 0.055, 0))); }
-const NET_SEAT = V(-0.82, 0.42, 0), AUDIO_SEAT = V(-0.82, -0.36, 0);
-const bulk = new THREE.Mesh(zAxis(k.soft.cylinder(0.04, 0.16, 0.008, 24)).rotateX(Math.PI / 2), brass);
-bulk.position.set(-0.55, IH / 2 + 0.035, 0.22); bulk.visible = false; asm.add(bulk);
-// Floor labels for the modules that are not on the board.
-const lblAudio = labelMat('AUDIO', 0.34, 0.06); lblAudio.position.set(AUDIO_SEAT.x - 0.1, AUDIO_SEAT.y - 0.36, 0.002); asm.add(lblAudio);
-const lblNet = labelMat('NET', 0.2, 0.06); lblNet.position.set(NET_SEAT.x - 0.06, NET_SEAT.y - 0.14, 0.002); asm.add(lblNet);
-// Cables: a coax pigtail, speaker wires, and a ribbon from INPUT to LOGIC. Each grows along its length.
-function cable(points, r, mat) {
-  const curve = new THREE.CatmullRomCurve3(points), geo = new THREE.TubeGeometry(curve, 64, r, 10, false);
-  const m = new THREE.Mesh(geo, mat); m.visible = false; asm.add(m); return { m, n: geo.index.count };
-}
-const coax = cable([V(NET_SEAT.x - 0.1, NET_SEAT.y + 0.02, 0.07), V(-0.75, 0.62, 0.2), V(-0.6, IH / 2 - 0.02, 0.22), V(-0.55, IH / 2 + 0.01, 0.22)], 0.012, wireBlk);
-const wR = cable([V(AUDIO_SEAT.x + 0.1, AUDIO_SEAT.y - 0.12, 0.1), V(-0.45, -0.55, 0.22), mainAt(-0.35, -0.52, ZT + 0.12), mainAt(-0.3, -0.5, ZT + 0.03)], 0.01, wireRed);
-const wB = cable([V(AUDIO_SEAT.x + 0.12, AUDIO_SEAT.y - 0.1, 0.1), V(-0.44, -0.52, 0.24), mainAt(-0.33, -0.48, ZT + 0.12), mainAt(-0.27, -0.46, ZT + 0.03)], 0.01, wireBlk);
-const ribbon = cable([mainAt(0.12, -0.2, ZT + 0.1), mainAt(0.0, -0.05, ZT + 0.25), mainAt(-0.25, 0.22, ZT + 0.2), mainAt(-0.35, 0.28, ZT + 0.04)], 0.014, cableMat);
-// Status LEDs and trace pulses.
-const ledMat = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
-const leds = inst(k.soft.box(0.03, 0.018, 0.012, 0.004), ledMat, LEDS.length);
-const LED_ON = [new THREE.Color(2.4, 1.4, 0.3), new THREE.Color(2.4, 1.4, 0.3), new THREE.Color(0.6, 2.2, 0.7), new THREE.Color(2.4, 1.4, 0.3)];
-const LED_OFF = new THREE.Color(0.05, 0.035, 0.02);
-LEDS.forEach((l, i) => { leds.setColorAt(i, LED_OFF); setInst(leds, i, mainAt(l[0], l[1], ZT + 0.006), qI, 0); });
-const NPULSE = SMALL ? 5 : 9;
-const pulses = inst(zAxis(k.soft.cylinder(0.009, 0.004, 0.0015, 16)), M.glow(0xffb000, 2.0), NPULSE);
-const pulsePaths = traces.slice(0, NPULSE).map(tr => {
-  const p = tr.pts.map(q => mainAt(q[0], q[1], ZT + 0.004)), L = [0];
-  for (let i = 1; i < p.length; i++) L.push(L[i - 1] + p[i].distanceTo(p[i - 1]));
-  return { p, L, tot: L[L.length - 1], ph: rnd() };
-});
 
 /* ---------- the Stella Nova station: sprite tiles on a clear deck ----------
- * A smoked deck plate on four brass posts sits over the right half of the board, clear of the ribbon cable
- * and under the lid. The arms install ten Stella Nova station sprites on it (the game's own module art):
- * the wall spine first, then the modules, the way the game builds a station. Each tile is a thin dark steel
+ * A smoked deck plate on four brass posts sits at the center of the stage, under the lid. The arms install ten Stella Nova station sprites on it (the game's own module art):
+ * carried out of their atlas cells, the way the game builds a station. Each tile is a thin dark steel
  * slab with the sprite on top. The sprite is a lit relief: albedo, normal, roughness/metalness, and the
  * molten-core emission maps from the game, cut out by its alpha (alphaTest + alpha to coverage under MSAA).
  * All four maps are one atlas each (media/sprites, 232 KB), loaded before warm-up so they upload there.
  */
-const DECK = { u: 0.38, v: 0.05, w: 0.66, h: 1.2, z: 0.36 };          // board-local center and size; z = deck top
+const DECK = { u: 0, v: 0, w: 1.16, h: 1.46, z: 0.16 };              // stage center and size; z = deck top
 const DECK_C = mainAt(DECK.u, DECK.v, 0);
-const deck = module('DECK');                                         // origin at the board top, under the deck center
+const deck = module('DECK');                                         // origin on the stage floor, under the deck center
 const deckMat = new THREE.MeshStandardMaterial({ color: 0x1e242c, transparent: true, opacity: 0.42, roughness: 0.32, metalness: 0.25, depthWrite: false });
 const DECK_PT = 0.012, DECK_H = DECK.z - ZT;
 deck.add(new THREE.Mesh(k.soft.extrude(rr(DECK.w, DECK.h, 0.035), { depth: DECK_PT, radius: 0.003 }).translate(0, 0, DECK_H - DECK_PT / 2), deckMat));
@@ -755,7 +557,7 @@ const spritesReady = Promise.all([loadTex('station-albedo.webp', true), loadTex(
     Object.assign(spriteMat, { map: a, normalMap: n, roughnessMap: o, metalnessMap: o, emissiveMap: e }); spriteMat.needsUpdate = true;
     [a, n, o, e].forEach(tx => { try { s.renderer.initTexture(tx); } catch (er) {} });
   });
-const TILE = 0.2, tileSlabMat = armMat;
+const TILE = 0.3, tileSlabMat = armMat;
 function spriteTile(name) {
   const [cx, cy] = ATLAS.cell[name], g = new THREE.Group(); g.name = 'tile:' + name; g.visible = false; asm.add(g);
   const pg = new THREE.PlaneGeometry(TILE * 0.98, TILE * 0.98), uv = pg.attributes.uv;
@@ -765,10 +567,15 @@ function spriteTile(name) {
   return g;
 }
 // The station: [sprite, column, row, turn]. Columns -1..1 and rows 0..3 on a 0.2 grid, centered on the deck.
-const STATION = [['wall_x', 0, 1, 0], ['wall_x', 0, 2, 0], ['wall_t', 0, 0, Math.PI], ['wall_t', 0, 3, 0],
-  ['foundry', -1, 0, 0], ['assembler', -1, 1, 0], ['componentlab', -1, 2, 0], ['living_quarters', -1, 3, 0],
-  ['fuel_processor', 1, 1, 0], ['thruster_block', 1, 2, 0]];
+// Build order: tile i goes to arm i % 3 (left, middle, right), so one arm never holds two tiles at once, and
+// only neighbours in the order are in flight together (T_TILE_STEP = half a beat). The order was searched so
+// that for each such pair the left arm's source cell and seat are left of (or level with) the other arm's: no
+// two arms cross, at the sheet or at the deck.
+const STATION = [['foundry', -1, 0, 0], ['wall_t', 0, 0, Math.PI], ['wall_t', 0, 3, 0], ['componentlab', -1, 2, 0], ['wall_x', 0, 1, 0],
+  ['wall_x', 0, 2, 0], ['living_quarters', -1, 3, 0], ['assembler', -1, 1, 0], ['thruster_block', 1, 2, 0], ['fuel_processor', 1, 1, 0]];
 const tiles = STATION.map(([n, c, r, rot]) => ({ obj: spriteTile(n), seat: mainAt(DECK.u + c * TILE, DECK.v + (1.5 - r) * TILE, DECK.z), rot }));
+// Each tile leaves the atlas cell of its module (the pipeline atlas, see CELLS); the walls leave their normal-map cells.
+const TILE_SRC = { foundry: 6, assembler: 7, componentlab: 13, living_quarters: 14, thruster_block: 15, fuel_processor: 25, wall_x: 30, wall_t: 31 };
 
 /* ---------- lid: smoked acrylic with the display ---------- */
 const lid = new THREE.Group(); lid.visible = false; asm.add(lid);
@@ -827,21 +634,13 @@ function drawScreen(on, tb) {
 drawScreen(false, 0);
 const LIDZ = HW;
 
-/* ---------- fasteners and SMD parts: the swarm ---------- */
+/* ---------- fasteners: the lid screws ---------- */
 // Scale: 1 unit = 50 mm (the tray is 130 x 90 mm). M3 pan head = 5.5 mm, so head radius 0.055.
 const screwGeo = merge([zAxis(k.soft.cylinder(0.055, 0.034, 0.012, 32)).translate(0, 0, 0.017), zAxis(k.soft.cylinder(0.022, 0.09, 0.004, 20)).translate(0, 0, -0.045)]);
 const recessGeo = k.soft.extrude([[-0.03, -0.007], [0.03, -0.007], [0.03, 0.007], [-0.03, 0.007]], { depth: 0.004, radius: 0.0012, corner: 0.003 });
 const nutGeo = k.soft.hexNut(0.063, 0.048, 0.5).translate(0, 0, 0.024);
-const smdGeo = k.soft.box(0.034, 0.017, 0.012, 0.0035).translate(0, 0, 0.006);
 const SEATS = { screw: [], nut: [] };
 const addSeat = (type, pos, a, sc, grp) => SEATS[type].push({ pos, a, sc: sc || 1, grp });
-MHOLES.forEach((h, i) => addSeat('screw', mainAt(h[0], h[1], ZT), 1.16 + i * 0.022, 1, 'board'));
-[[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([x, y], i) => addSeat('screw', mainAt(Z.RENDER[0] + x * 0.155, Z.RENDER[1] + y * 0.155, ZT + 0.065), 1.42 + i * 0.022, 0.75, 'render'));
-[0, 1, 2, 3].forEach(i => { const a = Math.PI / 4 + i * Math.PI / 2; addSeat('screw', V(AUDIO_SEAT.x + Math.cos(a) * 0.27, AUDIO_SEAT.y + Math.sin(a) * 0.27, 0.252), 1.62 + i * 0.022, 0.7, 'audio'); });
-[[-1, 1], [1, -1]].forEach(([x, y], i) => addSeat('screw', mainAt(Z.PHYSICS[0] + x * 0.07, Z.PHYSICS[1] + y * 0.07, ZT + 0.016), 1.86 + i * 0.025, 0.55, 'physics'));
-[[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([x, y], i) => addSeat('nut', mainAt(Z.INPUT[0] + x * 0.19, Z.INPUT[1] + y * 0.11, ZT + 0.1), 1.94 + i * 0.022, 0.55, 'input'));
-[[-1, 0], [1, 0]].forEach(([x], i) => addSeat('screw', V(NET_SEAT.x + x * 0.13, NET_SEAT.y - 0.055, 0.038), 2.02 + i * 0.025, 0.55, 'net'));
-addSeat('nut', V(bulk.position.x, IH / 2 + 0.07, 0.22), 2.06, 0.8, 'net');
 // Lid screws: four in the bosses and sixteen along the rim.
 const LIDP = [];
 BOSS.forEach(b => LIDP.push([b.x, b.y]));
@@ -856,8 +655,6 @@ const [scA, scB] = split(SEATS.screw), [ntA, ntB] = split(SEATS.nut);
 const screwS = pool(screwGeo, steel, scA.length), screwG = pool(screwGeo, brass, scB.length);
 const recess = inst(recessGeo, slotMat, SEATS.screw.length);
 const nutS = pool(nutGeo, steel, ntA.length), nutG = pool(nutGeo, brass, ntB.length);
-const smd = pool(smdGeo, smdMat, smdMain.length);
-const SMD_COL = [new THREE.Color(0x151515), new THREE.Color(0x8a6e4a)];
 const STREAMS = [V(2.7, 2.2, 2.5), V(-2.8, 1.9, 2.3)], MSTREAMS = [V(0.5, 3.4, 2.0), V(-0.5, 3.2, 2.2)];
 function addPart(mesh, seat, q, a, dur, spin, sc, grp) {
   const j = parts.length % 2, jit = V((rnd() - 0.5) * 0.9, (rnd() - 0.5) * 0.9, rnd() * 0.6), perpR = (rnd() - 0.5) * 1.1;
@@ -868,7 +665,6 @@ scB.forEach(s0 => addPart(screwG, s0.pos, qZ(rnd() * 3), s0.a, 0.12, Math.PI * 4
 ntA.forEach(s0 => addPart(nutS, s0.pos, qZ(rnd() * 3), s0.a, 0.12, Math.PI * 2, s0.sc, s0.grp));
 ntB.forEach(s0 => addPart(nutG, s0.pos, qZ(rnd() * 3), s0.a, 0.12, Math.PI * 2, s0.sc, s0.grp));
 const screwParts = parts.filter(p => p.mesh === screwS || p.mesh === screwG);
-smdMain.slice().sort((a, b) => a[0] - b[0]).forEach((p, r, arr) => { smd.setColorAt(smd.userData.n, SMD_COL[p[3]]); addPart(smd, mainAt(p[0], p[1], ZT), qZ(p[2]), 1.24 + r / arr.length * 0.85, 0.15, 0, 1, 'smd'); });
 
 /* ---------- contact shadow (baked radial gradient) behind the tray ---------- */
 let shadowMat;
@@ -914,40 +710,66 @@ const C0 = new THREE.Box3().setFromObject(unified).getCenter(V(0, 0, 0)); C0.z =
 const W_MATS = [wMat.mat, wNutMat];
 
 /* ---------- the transform: the head splits into plates; the arms come out of the nut hub ----------
- * The head outline (x >= HCUT) is cut into five rigid plates along straight seams through the head
- * center: two jaw tines, two cheek plates, and the jaw back. The rest of the outline is the body (the
- * handle). Cut vertices get a corner radius larger than the bevel, and the dense outline points next to a
- * cut are dropped, so the bevel never folds a cut corner into a spike. Closed, the plates line up exactly
- * and swap for the solid wrench mesh, so no seam shows.
+ * Six machined pieces, each built from its own control polygon with set corner radii (not clipped from the
+ * dense head outline): two jaw tines, two cheek plates, the jaw back (with the neck), and the handle body.
+ * The seams are straight cuts with a 0.6 gap (0.3 off the cut line on each side):
+ *   SEAM1  tine | cheek    the radial line at +-72 deg
+ *   SEAM2  cheek | back    from the jaw V corner to the end of the head arc (125 deg), where the neck chord starts
+ *   SEAM3  back | body     x = HCUT, across the straight handle, past the neck fillet
+ * Convex seam corners have r = 3.6 (1.5 x the 2.4 bevel), the jaw tips 3.8, the V vertex 4 (concave). Arc
+ * points stay one corner run (d) away from each seam corner, so roundPoly never shrinks a radius below the
+ * bevel. Closed, the pieces match the solid wrench to a fraction of a unit; at rest the solid mesh replaces
+ * them, so no seam shows.
  */
-const HCUT = -46;
-function clipHalf(poly, nx, ny, c) {            // keep nx*x + ny*y >= c (Sutherland-Hodgman, one half-plane)
-  const out = [], f = q => nx * q[0] + ny * q[1] - c;
-  for (let i = 0; i < poly.length; i++) {
-    const a = poly[i], b = poly[(i + 1) % poly.length], fa = f(a), fb = f(b);
-    if (fa >= 0) out.push([a[0], a[1], a[2] || 0, a[3] || 0]);
-    if ((fa >= 0) !== (fb >= 0)) { const t = fa / (fa - fb); out.push([a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1]), 3.2, 1]); }
-  }
-  return out;
-}
-function thinCuts(poly) {                        // drop outline points within 3.8 of a cut vertex
-  const cuts = poly.filter(q => q[3]);
-  return poly.filter(q => q[3] || !cuts.some(c => Math.hypot(c[0] - q[0], c[1] - q[1]) < 3.8)).map(q => [q[0], q[1], q[2]]);
-}
-function wedge(poly, a0, a1) {                   // the part of poly between rays a0 and a1 (deg, a1 - a0 < 180)
-  const r0 = a0 * Math.PI / 180, r1 = a1 * Math.PI / 180;
-  return clipHalf(clipHalf(poly, -Math.sin(r0), Math.cos(r0), 0), Math.sin(r1), -Math.cos(r1), 0);
-}
-const headOnly = clipHalf(outline, 1, 0, HCUT), bodyOnly = clipHalf(outline, -1, 0, -HCUT);
-const PLATES = [['tineU', 18, 80], ['cheekU', 80, 140], ['back', 140, 220], ['cheekL', 220, 280], ['tineL', 280, 342]].map(([name, a0, a1]) => {
-  const m = new THREE.Mesh(k.soft.extrude(thinCuts(wedge(headOnly, a0, a1)), EXT), wMat.mat);
+const HCUT = -66, SEAM_G = 0.3, R_SEAM = 3.6, R_TIP = 3.8;
+const D2R = Math.PI / 180, HR = 50, JH = L.h, JB = -(L.h * Math.tan(Math.PI / 6)) - L.depth - 6, JV = JB + L.h * Math.tan(Math.PI / 6);
+const TIP_A = Math.atan2(JH, Math.sqrt(HR * HR - JH * JH)) / D2R;                      // 33.4 deg
+const ARC_END = TIP_A + (360 - 2 * TIP_A) * 30 / 96;                                   // last head arc point before the neck chord (headPoly)
+const NECK = [-Math.sqrt(HR * HR - HD.w0 * HD.w0), HD.w0], HEND = [-HD.L, HD.w1];
+const circ = a => [HR * Math.cos(a * D2R), HR * Math.sin(a * D2R)];
+// Line p + t*d against line q + u*e: the point.
+function xLine(p, d, q, e) { const den = d[0] * e[1] - d[1] * e[0], t = ((q[0] - p[0]) * e[1] - (q[1] - p[1]) * e[0]) / den; return [p[0] + d[0] * t, p[1] + d[1] * t]; }
+// Line p + t*d against the head circle: the far point.
+function xCirc(p, d) { const b = p[0] * d[0] + p[1] * d[1], c = p[0] * p[0] + p[1] * p[1] - HR * HR, t = -b + Math.sqrt(b * b - c); return [p[0] + d[0] * t, p[1] + d[1] * t]; }
+const shift = (p, n, k) => [p[0] + n[0] * k, p[1] + n[1] * k];
+const arcPts = (a0, s1t, step) => { const n = Math.max(1, Math.ceil(Math.abs(s1t - a0) / step)), out = [];
+  for (let i = 0; i <= n; i++) out.push([...circ(a0 + (s1t - a0) * i / n), 0]); return out; };
+const angOf = p => Math.atan2(p[1], p[0]) / D2R;
+// Seam lines in the upper half (y >= 0): a point, a direction, and the normal toward the larger angle.
+const SEAM1 = { p: [0, 0], d: [Math.cos(72 * D2R), Math.sin(72 * D2R)] }; SEAM1.n = [-SEAM1.d[1], SEAM1.d[0]];
+const VC = [JV, JH], C125 = circ(ARC_END);
+const SEAM2 = { p: VC, d: [C125[0] - VC[0], C125[1] - VC[1]] }; { const l = Math.hypot(...SEAM2.d); SEAM2.d = [SEAM2.d[0] / l, SEAM2.d[1] / l]; } SEAM2.n = [SEAM2.d[1], -SEAM2.d[0]];   // toward the cheek
+const FLAT = { p: [0, JH], d: [1, 0] }, VEDGE = { p: VC, d: [JB - JV, -JH] }, CHORD = { p: C125, d: [NECK[0] - C125[0], NECK[1] - C125[1]] }, HEDGE = { p: NECK, d: [HEND[0] - NECK[0], HEND[1] - NECK[1]] };
+// The neck fillet: the same arc headPoly makes (r = HD.neck), taken from roundPoly on chord, neck, handle.
+const FILLET = ScrapBrand.roundPoly([[...C125, 0], [...NECK, HD.neck], [...HEND, 0]], 10).slice(1, -1).map(q => [q[0], q[1], 0]);
+const mirror = poly => poly.map(q => [q[0], -q[1], q[2]]).reverse();
+const s1t = shift(SEAM1.p, SEAM1.n, -SEAM_G), s1c = shift(SEAM1.p, SEAM1.n, SEAM_G);            // SEAM1, tine side and cheek side
+const s2c = shift(SEAM2.p, SEAM2.n, SEAM_G), s2b = shift(SEAM2.p, SEAM2.n, -SEAM_G);            // SEAM2, cheek side and back side
+// Upper tine: tip, rim arc, SEAM1 outer, SEAM1 inner, along the jaw flat back to the tip (counterclockwise).
+const tO = xCirc(s1t, SEAM1.d), tI = xLine(s1t, SEAM1.d, FLAT.p, FLAT.d);
+const tineU = [[Math.sqrt(HR * HR - JH * JH), JH, R_TIP], ...arcPts(TIP_A + 16.5, angOf(tO) - 9, 4), [...tO, R_SEAM], [...tI, R_SEAM]];
+// Upper cheek: SEAM1 outer, rim arc, SEAM2 outer (on the rim), SEAM2 inner (on the flat), along the flat to SEAM1 inner.
+const cO1 = xCirc(s1c, SEAM1.d), cI1 = xLine(s1c, SEAM1.d, FLAT.p, FLAT.d), cO2 = xCirc(s2c, SEAM2.d), cI2 = xLine(s2c, SEAM2.d, FLAT.p, FLAT.d);
+const cheekU = [[...cO1, R_SEAM], ...arcPts(angOf(cO1) + 9, angOf(cO2) - 9, 4), [...cO2, R_SEAM], [...cI2, R_SEAM], [...cI1, R_SEAM]];
+// The jaw back with the neck: SEAM2 on the V edge, SEAM2 on the chord, the fillet, S3 on the handle edge; the lower
+// half mirrored; then the V vertex (concave).
+const kO = xLine(s2b, SEAM2.d, CHORD.p, CHORD.d), kI = xLine(s2b, SEAM2.d, VEDGE.p, VEDGE.d), kS = xLine([HCUT + SEAM_G, 0], [0, 1], HEDGE.p, HEDGE.d);
+const backU = [[...kI, R_SEAM], [...kO, R_SEAM], ...FILLET, [...kS, R_SEAM]];
+const backPoly = [...backU, ...mirror(backU), [JB, 0, 4]];
+// The handle body: S3 to the round end and back.
+const bS = xLine([HCUT - SEAM_G, 0], [0, 1], HEDGE.p, HEDGE.d), END = [];
+for (let k2 = 1; k2 < 16; k2++) { const b = Math.PI / 2 + k2 * Math.PI / 16; END.push([-HD.L + Math.cos(b) * HD.w1, Math.sin(b) * HD.w1, 0]); }
+const bodyPoly = [[...bS, R_SEAM], [...HEND, 0], ...END, [HEND[0], -HEND[1], 0], [bS[0], -bS[1], R_SEAM]];
+const PLATE_POLYS = { tineU, cheekU, back: backPoly, cheekL: mirror(cheekU), tineL: mirror(tineU) };
+const PLATES = ['tineU', 'cheekU', 'back', 'cheekL', 'tineL'].map(name => {
+  const m = new THREE.Mesh(k.soft.extrude(PLATE_POLYS[name], EXT), wMat.mat);
   m.name = name; m.visible = false; inner.add(m); return m;
 });
-const wBody = new THREE.Mesh(k.soft.extrude(thinCuts(bodyOnly), Object.assign({}, EXT, { holes: [[-HD.L, 0, HD.w1 * HD.hole]] })), wMat.mat);
+const wBody = new THREE.Mesh(k.soft.extrude(bodyPoly, Object.assign({}, EXT, { holes: [[-HD.L, 0, HD.w1 * HD.hole]] })), wMat.mat);
 wBody.visible = false; inner.add(wBody);
-// Hinges (logo units): the tines swing about their root on the outer rim; the jaw back tips up about x = HCUT.
-const HINGE_U = V(50 * Math.cos(80 * Math.PI / 180), 50 * Math.sin(80 * Math.PI / 180), 0), HINGE_L = V(HINGE_U.x, -HINGE_U.y, 0);
-const PINS = [HINGE_U, HINGE_L, V(HCUT, 20, 0), V(HCUT, -20, 0)];
+// Hinges (logo units): the tines swing about their outer seam corner on the rim; the jaw back tips up about x = HCUT.
+const HINGE_U = V(...circ(72), 0), HINGE_L = V(HINGE_U.x, -HINGE_U.y, 0);
+const PINS = [HINGE_U, HINGE_L, V(HCUT, 9, 0), V(HCUT, -9, 0)];
 const wPins = new THREE.InstancedMesh(zAxis(k.soft.cylinder(3.4, DEPTH * 1.4, 0.9, 16)), M.brassDark(), PINS.length);
 wPins.instanceMatrix.setUsage(THREE.DynamicDrawUsage); wPins.frustumCulled = false; inner.add(wPins);
 const easeBack = x => { const c = 0.9; return x <= 0 ? 0 : x >= 1 ? 1 : 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
@@ -965,7 +787,7 @@ function updateTransform(P, t, xf) {
   const eT = e('tine'), eC = e('cheek'), eB = e('back'), eH = e('hub');
   hinge(PLATES[0], HINGE_U, _hq.setFromAxisAngle(ZUP, 0.95 * eT), 7 * eT);
   hinge(PLATES[4], HINGE_L, _hq.setFromAxisAngle(ZUP, -0.95 * eT), 7 * eT);
-  const cu = 110 * Math.PI / 180, cl = 250 * Math.PI / 180;
+  const cu = 100 * Math.PI / 180, cl = 260 * Math.PI / 180;   // out along the cheek middle
   PLATES[1].position.set(Math.cos(cu) * 16 * eC, Math.sin(cu) * 16 * eC, 4 * eC); PLATES[1].quaternion.identity();
   PLATES[3].position.set(Math.cos(cl) * 16 * eC, Math.sin(cl) * 16 * eC, 4 * eC); PLATES[3].quaternion.identity();
   hinge(PLATES[2], _hw.set(HCUT, 0, 0), _hq.setFromAxisAngle(YAX, -0.8 * eB), 0);
@@ -1158,7 +980,7 @@ function pathAt(out, P0, P1, P2, P3, s) {
 }
 function pathL(P0, P1, P2, P3) { pathSetup(P0, P1, P2, P3); return PS[5]; }
 function pathHL(P0, P1, P2, P3) { pathSetup(P0, P1, P2, P3); return PS[5] - PS[4]; }   // up to the straight drop
-const armTips = [0, 1, 2].map(() => ({ tip: new THREE.Vector3(), has: false, grip: false, work: false, lift: 0 }));
+const armTips = [0, 1, 2].map(() => ({ tip: new THREE.Vector3(), has: false, grip: false, work: false, lift: 0, own: -1 }));
 const inFlight = [];
 let armT = -1, armP = -99;
 // Frame time for the arm springs; 0 after a jump in P (warm-up, ?p, a fast scroll), which snaps them.
@@ -1202,7 +1024,7 @@ const WALL_BOXES = [
   new THREE.Box3(V(-TW / 2, -THt / 2, 0), V(-IW / 2, THt / 2, HW)), new THREE.Box3(V(IW / 2, -THt / 2, 0), V(TW / 2, THt / 2, HW)),
   new THREE.Box3(V(-TW / 2, -THt / 2, 0), V(TW / 2, -IH / 2, HW)), new THREE.Box3(V(-TW / 2, IH / 2, 0), V(TW / 2, THt / 2, HW)),
   new THREE.Box3(V(-IW / 2, -IH / 2, -TB), V(IW / 2, IH / 2, 0))];
-const EPS = 0.012;   // touching (a module on the board, the lid on the walls) is not a collision
+const EPS = 0.012;   // touching (a tile on the deck, the lid on the walls) is not a collision
 function hit(a, b) { return a.max.x - EPS > b.min.x && a.min.x + EPS < b.max.x && a.max.y - EPS > b.min.y && a.min.y + EPS < b.max.y && a.max.z - EPS > b.min.z && a.min.z + EPS < b.max.z; }
 function collisionCheck() {
   CSTAT.frames++; let any = 0;
@@ -1212,7 +1034,7 @@ function collisionCheck() {
     for (const w of WALL_BOXES) if (hitAny(_bxs, na, [w], 1)) { CSTAT.pieceWall++; any++; }
     for (const bt of BEATS) {
       if (P_ < bt.b || bt === inFlight[i]) continue;
-      if (inFlight[i].obj !== lid && bt.obj === board) continue;   // modules sit on the board by design
+      if (inFlight[i].obj !== lid && bt.obj === deck) continue;    // tiles sit on the deck by design
       const nb = deviceBoxes(bt.obj, _bys);
       if (hitAny(_bxs, na, _bys, nb)) { CSTAT.pieceSeated++; any++; if ((CSTAT.seatAt = CSTAT.seatAt || []).length < 8) CSTAT.seatAt.push([+P_.toFixed(3), inFlight[i].obj.name, bt.obj.name]); }
     }
@@ -1228,6 +1050,7 @@ function collisionCheck() {
       fromTip += c.len[i - 1];
     }
   }
+  if (tentacleCheck()) any++;
   if (any) CSTAT.hitFrames++;
 }
 let P_ = 0;
@@ -1249,10 +1072,21 @@ function mixPose(a, b, t, lift) {
   return { pos: bez(a.pos, c, b.pos, t), phi: mix(a.phi, b.phi, t), s: mix(a.s, b.s, t), gap: mix(a.gap, b.gap, t) };
 }
 const OPEN = [0.99, 1.09], XB0 = 2.71;   // arms pay out after the hub rises; they reel in from XB0, last arm first
+// Feed pose (the flow and live stages): above the front of the box, on the face side of the atlas sheet,
+// so the arms reach down to every cell with nothing between them and it. Head toward the sheet (-y).
+// Over the sheet's face side (not level with its top edge), so no arm has to wrap the edge to reach a cell.
+const feedPose = () => ({ pos: V(0.3, narrow ? -0.75 : -0.85, 1.5), phi: -Math.PI / 2 - ICON_A, s: S2, gap: 0 });
+const FEED = [1.32, 1.42, 2.52, 2.58];
 function wrenchPose(P, t) {
   const hero = heroPose(t), build = buildPose(), rest = restPose();
   if (P < 0.5) return hero;
   if (P < 0.95) return mixPose(hero, build, easeIO(clamp((P - 0.5) / 0.45)), V(0, 0.15, 0.2));
+  if (P >= FEED[0] && P < FEED[3]) {
+    const feed = feedPose();
+    if (P < FEED[1]) return mixPose(build, feed, easeIO((P - FEED[0]) / (FEED[1] - FEED[0])), V(0, 0, 0.25));
+    if (P >= FEED[2]) return mixPose(feed, build, easeIO((P - FEED[2]) / (FEED[3] - FEED[2])), V(0, 0, 0.25));
+    return Object.assign(feed, { pos: feed.pos.clone().add(V(0, Math.sin(t * 0.8) * 0.01, 0)) });
+  }
   if (P < XF_IN[1]) return Object.assign(build, { pos: build.pos.clone().add(V(0, Math.sin(t * 0.8) * 0.01, 0)) });
   return mixPose(build, rest, easeIO(clamp((P - XF_IN[1]) / 0.18)), V(0, 0.1, 0.2));
 }
@@ -1262,26 +1096,21 @@ function anchors(wp) {
   const a = wp.phi + ICON_A, k01 = 0.01 * wp.s;
   const hub = wp.pos.clone().add(rotZ(V(NUT_HOME.x * k01, NUT_HOME.y * k01, (hubRise + DEPTH * 0.6) * k01), a));
   const perp = rotZ(V(0, 1, 0), a), jaw = rotZ(V(1, 0, 0), a);
-  return [0, 1, 2].map(j => hub.clone().addScaledVector(perp, (j - 1) * 0.055).addScaledVector(jaw, 0.02));
+  // 0.13 apart: wider than two root vertebrae (2 x 0.05) plus a margin, so the arms never touch at the hub.
+  return [0, 1, 2].map(j => hub.clone().addScaledVector(perp, (j - 1) * 0.13).addScaledVector(jaw, 0.02));
 }
 
 /* ---------- carried modules: one beat each, assigned to an arm ---------- */
 // [object, seat (device), arm, start, end, top height of the part (claw grip)]
+// The deck goes in during Stage 1; the station tiles in the live stage, each from its atlas cell; then the lid.
+const T_DECK = [1.12, 1.3], T_TILE0 = 2.0, T_TILE_STEP = 0.05, T_TILE_DUR = 0.1;
+// Tiles leave the sheet in front of the box, so they travel above its top edge (z ~1.03), one lane per arm.
+const TILE_LANES = [1.14, 1.28, 1.42];
 const BEATS = [
-  [board, mainAt(0, 0, SH1), 0, 1.05, 1.22, PT],
-  [mLogic, mainAt(Z.LOGIC[0], Z.LOGIC[1], ZT), 1, 1.18, 1.34, 0.035],
-  [mRender, mainAt(Z.RENDER[0], Z.RENDER[1], ZT), 2, 1.26, 1.44, 0.18],
-  [mMem, mainAt(Z.MEMORY[0], Z.MEMORY[1], ZT), 0, 1.36, 1.52, 0.15],
-  [mAudio, AUDIO_SEAT, 1, 1.46, 1.64, 0.26],
-  [mPower, mainAt(Z.POWER[0], Z.POWER[1], ZT), 2, 1.56, 1.72, 0.1],
-  [mPhys, mainAt(Z.PHYSICS[0], Z.PHYSICS[1], ZT), 0, 1.66, 1.82, 0.03],
-  [mInput, mainAt(Z.INPUT[0], Z.INPUT[1], ZT), 1, 1.76, 1.94, 0.2],
-  [mNet, NET_SEAT, 2, 1.86, 2.02, 0.06],
-  [mSave, mainAt(Z.SAVE[0], Z.SAVE[1], ZT), 0, 1.96, 2.1, 0.026],
-  [deck, mainAt(DECK.u, DECK.v, ZT), 2, 2.05, 2.15, DECK_H],
-  ...tiles.map((tl, i) => [tl.obj, tl.seat, i % 3, 2.12 + i * 0.03, 2.205 + i * 0.03, 0.012, tl.rot]),
-  [lid, V(0, 0, LIDZ), -2, 2.48, 2.72, 0.06]
-].map(b => ({ obj: b[0], seat: b[1], arm: b[2], a: b[3], b: b[4], top: b[5], rot: b[6] || 0 }));
+  [deck, mainAt(DECK.u, DECK.v, 0), 2, T_DECK[0], T_DECK[1], DECK_H],
+  ...tiles.map((tl, i) => [tl.obj, tl.seat, i % 3, T_TILE0 + i * T_TILE_STEP, T_TILE0 + i * T_TILE_STEP + T_TILE_DUR, 0.012, tl.rot, TILE_SRC[STATION[i][0]]]),
+  [lid, V(0, 0, LIDZ), -2, 2.58, 2.8, 0.06]
+].map(b => ({ obj: b[0], seat: b[1], arm: b[2], a: b[3], b: b[4], top: b[5], rot: b[6] || 0, cell: b[7] }));
 // Phases of a carry (fractions of the beat): grow at staging, travel, anticipation, drop, release.
 const PH_DEF = { grow: 0.12, tr: 0.66, an: 0.71, dr: 0.84, rel: 0.84 };
 // The lid: a long, slow, eased final drop, then a hold while the lid screws seat, then release.
@@ -1324,39 +1153,34 @@ function setWrenchOpacity(o) {
  */
 const SHOT_T = {
   hero: () => V(0, 0, 0), box: () => V(0, 0, 0.12),
-  logic: () => mainAt(Z.LOGIC[0], Z.LOGIC[1], ZT + 0.03), render: () => mainAt(Z.RENDER[0], Z.RENDER[1], ZT + 0.09),
-  audio: () => V(AUDIO_SEAT.x, AUDIO_SEAT.y, 0.18), lidc: () => V(-0.95, -0.62, LIDZ + 0.03),
+  xform: () => V(0.2, 0.55, 0.8),                                  // the head transform and the whole box
+  scene: () => V(0, 0.5, 0.9),                                     // the tools, the streams, and the stage
+  atlas: () => SHEET_POS[narrow ? 1 : 0].clone().add(V(0, 0.2, 0)),
+  live: () => LIVE_C[narrow ? 1 : 0].clone().add(V(0, 0.1, -0.25)),
   disp: () => V(DISP.x, DISP.y, LIDZ + 0.06), fin: () => V(0, 0, 0.2),
-  whead: () => buildPose().pos.clone().add(V(0, -0.1, 0.02)), deck: () => V(DECK_C.x, DECK_C.y, DECK.z), lidw: () => V(0, 0.1, 0.55)
+  whead: () => buildPose().pos.clone().add(V(0, -0.1, 0.02)), lidw: () => V(0, 0.1, 0.55)
 };
+// Wide and steady: the whole scene stays in frame. One gentle push-in for the atlas, one for the live system.
 const SHOTS = [
-  [0.0, 'hero', 30, 5, 9.2, 30],    // open: low 3/4 hero angle
-  [0.46, 'hero', 22, 8, 8.1, 28],   // slow push-in while the wrench assembles
-  [0.88, 'box', 18, 38, 6.9, 30],   // wide: the tray arrives
-  [0.95, 'whead', 26, 32, 3.7, 26], // close: the head transforms
-  [1.04, 'whead', 32, 36, 3.5, 26],
-  [1.12, 'box', 16, 40, 6.8, 30],
-  [1.2, 'box', 14, 40, 6.7, 30],
-  [1.27, 'logic', 6, 56, 3.1, 22],  // close: CPU seats
-  [1.32, 'logic', 4, 57, 3.0, 22],
-  [1.37, 'render', 32, 46, 3.1, 22],// close: GPU heatsink seats
-  [1.44, 'render', 36, 46, 2.95, 22],
-  [1.5, 'box', 12, 40, 6.7, 30],    // pull back
-  [1.56, 'audio', -28, 47, 3.3, 23],// close: speaker seats
-  [1.65, 'audio', -32, 47, 3.15, 23],
-  [1.74, 'box', 10, 38, 6.7, 30],
-  [2.04, 'box', 14, 40, 6.6, 30],
-  [2.13, 'deck', 6, 60, 3.7, 24],   // close: the Stella Nova station goes in
-  [2.42, 'deck', -14, 58, 3.5, 24],
-  [2.5, 'lidw', -18, 50, 6.6, 28],  // wide and high: the lid carry reads as one move
-  [2.64, 'lidw', -8, 58, 6.2, 28],
-  [2.69, 'lidc', -30, 44, 3.5, 22], // close: the lid screw wave
-  [2.78, 'lidc', -22, 46, 3.3, 22],
-  [2.85, 'whead', -22, 36, 3.8, 26],// close: the head folds shut
-  [2.96, 'whead', -28, 38, 3.6, 26],
-  [3.0, 'disp', 0, 80, 4.8, 28],    // straight-on push-in on the display
+  [0.0, 'hero', 30, 5, 9.2, 30],     // open: low 3/4 hero angle
+  [0.46, 'hero', 22, 8, 8.1, 28],    // slow push-in while the wrench assembles
+  [0.88, 'box', 18, 36, 7.6, 30],    // the stage arrives
+  [0.98, 'xform', 22, 32, 6.4, 28],  // the head transforms, with the stage in frame
+  [1.1, 'xform', 18, 30, 6.6, 28],
+  [1.26, 'scene', 12, 28, 11.2, 30], // wide: the tools around the engine
+  [1.52, 'scene', 6, 29, 11.0, 30],
+  [1.8, 'atlas', 2, 30, 9.4, 30],    // gentle push-in: the atlas fills
+  [1.96, 'atlas', -2, 30, 9.2, 30],
+  [2.08, 'live', -6, 30, 11.2, 30],  // the live system, its docked panels, and the station
+  [2.34, 'live', -12, 32, 10.4, 30], // gentle push-in on the living objects
+  [2.54, 'lidw', -14, 44, 7.6, 28],  // the lid carry
+  [2.68, 'lidw', -8, 52, 7.2, 28],
+  [2.8, 'lidw', -4, 48, 7.2, 28],
+  [2.88, 'xform', -16, 34, 6.2, 28], // the head folds shut
+  [2.97, 'xform', -20, 34, 6.0, 28],
+  [3.0, 'disp', 0, 80, 4.8, 28],     // straight-on push-in on the display
   [3.14, 'disp', 0, 82, 4.4, 26],
-  [3.35, 'fin', 0, 34, 7.4, 30],    // settle front-on for the logo
+  [3.35, 'fin', 0, 34, 7.4, 30],     // settle front-on for the logo
   [4.0, 'fin', 0, 32, 7.8, 30]
 ];
 const camTarget = new THREE.Vector3();
@@ -1419,18 +1243,18 @@ window.SCRAP.sceneStats = () => {
 window.SCRAP.benchExtra = () => ({ programs: s.renderer.info.programs.length, calls: s.renderer.info.render.calls,
   tris: s.renderer.info.render.triangles, geos: s.renderer.info.memory.geometries, tex: s.renderer.info.memory.textures });
 
-// Practical lights: two LED clusters and the display. One spark light. Counts are fixed, so shaders do not recompile.
-// Low tier: no practical lights at all (each one costs every lit fragment); the LEDs and the screen stay emissive.
-const ledLight = new THREE.PointLight(0xffb040, 0, 0.9, 2); ledLight.position.copy(mainAt(0.1, -0.62, ZT + 0.06));
+// Practical lights: the live-stage star and the display. One spark light. Counts are fixed, so shaders do not recompile.
+// Low tier: no practical lights at all (each one costs every lit fragment); the star and the screen stay emissive.
+const starLight = new THREE.PointLight(0xffc27a, 0, 3.2, 0.8);   // at the live-stage star (updatePipeline)
 const screenLight = new THREE.PointLight(0xffa020, 0, 1.6, 2); screenLight.position.set(DISP.x, DISP.y, LIDZ + 0.35);
 const sparkLight = new THREE.PointLight(0xffc070, 0, 0.8, 2);
-if (Q !== 'low') asm.add(ledLight, screenLight, sparkLight);
+if (Q !== 'low') asm.add(starLight, screenLight, sparkLight);
 // Low tier: DPR 1.5 at most.
 
 /*
  * Welding. A weld point is a tiny, very hot white-blue core with an irregular flicker, and the spark light
  * flickers with it. Sparks are velocity-aligned streak quads (length follows speed, a motion-blur look),
- * burst in a cone, fall under gravity, bounce once or twice off the deck, the board, or the floor with
+ * burst in a cone, fall under gravity, bounce once or twice off the deck or the floor with
  * energy loss, and some split in two on the first impact. Each spark cools along a blackbody ramp (white,
  * yellow, orange, deep red, dark) and its HDR intensity falls with it, so only the hot part blooms. The
  * spot keeps a small orange-red heat mark that cools over 1.5 s, and a faint smoke wisp rises. Bursts come
@@ -1486,11 +1310,10 @@ function heatMark(x, y, z) { const i = heatNext; heatNext = (heatNext + 1) % NHE
 function smokePuff(x, y, z) { if (!NSMOKE) return; const sm = smokes[smokeNext]; smokeNext = (smokeNext + 1) % NSMOKE; sm.p.set(x, y, z); sm.t = lastT; }
 function weldBurst(x, y, z, n) { if (s.reduceMotion) return; emitSparks(x, y, z, Q === 'low' ? Math.ceil(n * 0.4) : n, 1); heatMark(x, y, z); smokePuff(x, y, z + 0.02); flashT = lastT; flashP.set(x, y, z); }
 let flashT = -9; const flashP = new THREE.Vector3();
-// The surface under a spark: the deck, the board, the tray floor, or (outside the tray) the table.
+// The surface under a spark: the deck, the tray floor, or (outside the tray) the table.
 function groundZ(x, y, z) {
   const dx = x - DECK_C.x, dy = y - DECK_C.y;
-  if (P_ > 2.15 && Math.abs(dx) < DECK.w / 2 && Math.abs(dy) < DECK.h / 2 && z > DECK.z - 0.03) return DECK.z;
-  if (P_ > 1.2 && Math.abs(x - PC.x) < PW / 2 && Math.abs(y - PC.y) < PHb / 2 && z > ZT - 0.03) return ZT;
+  if (P_ > T_DECK[1] && Math.abs(dx) < DECK.w / 2 && Math.abs(dy) < DECK.h / 2 && z > DECK.z - 0.03) return DECK.z;
   if (Math.abs(x) < IW / 2 && Math.abs(y) < IH / 2) return 0;
   return -TB;
 }
@@ -1716,7 +1539,6 @@ function updateHeroBolts(P, t) {
 function cinemaUpdate(P, t) {
   const dt = clamp(t - lastT, 0, 0.05); lastT = t;
   // Practical lights follow their sources.
-  ledLight.intensity = 0.9 * ss(T_LED, T_LED + 0.2, P);
   screenLight.intensity = 1.6 * ss(SCREEN_ON + 0.05, SCREEN_ON + 0.3, P) * (0.92 + 0.08 * Math.sin(t * 11));
   // Welding at the working driver tip (pulses), spot welds at seat locks, then the spark physics.
   let work = null; workTips.forEach(w => { if (w && !work) work = w; });
@@ -1737,9 +1559,902 @@ function cinemaUpdate(P, t) {
   // Lens: focus follows the shot target; post time.
 }
 
+/* ================= pipeline: tools -> exported images -> Warp atlas -> live engine objects =================
+ * The middle of the scroll shows how art reaches Warp. Three generic tool windows (plain labels, no logos)
+ * work on Stella Nova assets: a planet painted, a module sprite placed pixel by pixel, an asteroid rendered.
+ * The assets leave the windows as exported image cards (albedo, and normal maps for some) and flow along
+ * three conduits into the engine. The wrench's arms guide each card into an atlas sheet that fills cell by
+ * cell, like the editor's Atlas panel. Then the atlas comes alive as lit engine objects: planets orbit a
+ * star, asteroids drift lit by their normal maps, and the station tiles seat on the deck. Warp imports none
+ * of these tools' files directly; the scene shows exported images, which is how the pipeline works.
+ *   PIPE_T      stage ranges (P)
+ *   CELLS       the atlas layout        updatePipeline()   per-frame driver, called from update()
+ */
+const PIPE_T = { winIn: [1.0, 1.24], sheetIn: [1.3, 1.42], flow: [1.4, 1.96], winOut: [1.94, 2.04], live: [1.96, 2.3], out: [2.5, 2.545] };
+
+// Atlas layout: media/sprites/pipeline-atlas.webp, 8 x 4 cells of 256 px (see the pack script).
+// kind: p planet (equirect band), m module albedo, a asteroid albedo, n normal map. src: tool window 0 paint, 1 pixel, 2 3D.
+const CELLS = [
+  ['p', 0], ['p', 0], ['p', 0], ['p', 0], ['p', 0], ['p', 0], ['m', 1], ['m', 1],
+  ['a', 2], ['a', 2], ['a', 2], ['a', 2], ['a', 2], ['m', 1], ['m', 1], ['m', 1],
+  ['n', 2], ['n', 2], ['n', 2], ['n', 2], ['n', 2], ['n', 2], ['n', 2], ['n', 2],
+  ['m', 1], ['m', 1], ['n', 2], ['n', 2], ['n', 2], ['n', 2], ['n', 2], ['n', 2]];
+const NCELL = CELLS.length, CELL_W = 0.25, AT_COLS = 8, AT_ROWS = 4;
+const cellUV = k => [(k % AT_COLS) / AT_COLS, (AT_ROWS - 1 - Math.floor(k / AT_COLS)) / AT_ROWS];   // flipY: row 0 is the top
+
+const pipeTex = { atlas: null, planets: [] };
+const pipeReady = Promise.all([loadTex('pipeline-atlas.webp', true)].concat([0, 1, 2, 3, 4, 5].map(i => loadTex('planet-' + i + '.webp', true))))
+  .then(([a, ...pl]) => {
+    pipeTex.atlas = a; pipeTex.planets = pl;
+    cardMat.uniforms.uAtlas.value = a;
+    Object.assign(astMat, { map: a, normalMap: a }); astMat.needsUpdate = true;
+    planets.forEach((p, i) => { p.material.map = pl[i]; p.material.needsUpdate = true; });
+    [a, ...pl].forEach(tx => { try { s.renderer.initTexture(tx); } catch (er) {} });
+    drawSheet(0);
+  });
+
+/* ---- tool windows: a dark panel with a canvas screen. Generic chrome, plain labels. ---- */
+const WIN = [{ label: 'Photoshop', file: 'planet_earth.png' }, { label: 'Aseprite', file: 'module_foundry.png' }, { label: 'Blender', file: 'asteroid_007.blend' }];
+const WCW = 512, WCH = 352, WIN_W = 1.5, WIN_H = WIN_W * WCH / WCW;
+const winBackMat = new THREE.MeshStandardMaterial({ color: 0x16181d, metalness: 0.6, roughness: 0.48 });
+const windows = WIN.map((w, i) => {
+  const c = document.createElement('canvas'); c.width = WCW; c.height = WCH;
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const g = new THREE.Group(); g.visible = false; asm.add(g);
+  g.add(new THREE.Mesh(k.soft.box(WIN_W + 0.07, WIN_H + 0.07, 0.035, 0.02), winBackMat));
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(WIN_W, WIN_H), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, color: new THREE.Color(0.95, 0.95, 0.95) }));
+  scr.position.z = 0.019; g.add(scr);
+  return Object.assign(w, { c, g: c.getContext('2d'), tex, obj: g, last: -1 });
+});
+// Positions (device frame: x right, y back, z up). Desktop: an arc left, back, right of the box. Phone: closer, above.
+const WIN_POS = [[V(-2.6, -0.25, 1.0), V(0, 2.9, 2.0), V(2.6, -0.25, 1.0)], [V(-0.96, 0.15, 2.12), V(0, 2.2, 2.75), V(0.96, 0.15, 2.12)]];
+const WIN_SC = [1, 0.62];
+let pixSrc = null;                                                    // the module sprite at 32 px, for the pixel window
+function atlasImg() { return pipeTex.atlas && pipeTex.atlas.image; }
+function chrome(w, g, prog, exporting) {
+  g.fillStyle = '#0f1115'; g.fillRect(0, 0, WCW, WCH);
+  g.fillStyle = '#1b1e24'; g.fillRect(0, 0, WCW, 30);
+  ['#3a3d44', '#3a3d44', '#3a3d44'].forEach((col, i) => { g.fillStyle = col; g.beginPath(); g.arc(16 + i * 16, 15, 4.5, 0, 7); g.fill(); });
+  g.font = '600 15px "IBM Plex Sans", system-ui, sans-serif'; g.fillStyle = '#d8d6d0'; g.textBaseline = 'middle'; g.fillText(w.label, 66, 16);
+  g.font = '13px "Share Tech Mono", ui-monospace, monospace'; g.fillStyle = '#7d7f85'; g.textAlign = 'right'; g.fillText(w.file, WCW - 12, 16); g.textAlign = 'left';
+  g.fillStyle = '#15171b'; g.fillRect(0, WCH - 26, WCW, 26);
+  g.fillStyle = exporting ? '#ffb000' : '#6f7177'; g.font = '13px "Share Tech Mono", ui-monospace, monospace';
+  g.fillText(exporting ? 'Export > PNG  albedo  normal  -> warp/assets' : 'working', 12, WCH - 13);
+  if (exporting) { g.fillStyle = 'rgba(255,176,0,0.85)'; g.fillRect(WCW - 132, WCH - 17, 120 * clamp(prog), 8); g.strokeStyle = 'rgba(255,176,0,0.4)'; g.strokeRect(WCW - 132.5, WCH - 17.5, 121, 9); }
+}
+function drawWindow(i, P, t) {
+  const w = windows[i], g = w.g, img = atlasImg(), pr = clamp((P - PIPE_T.winIn[0]) / 0.42), ex = clamp((P - PIPE_T.flow[0]) / (PIPE_T.flow[1] - PIPE_T.flow[0]));
+  chrome(w, g, ex, P > PIPE_T.flow[0] && P < PIPE_T.flow[1] + 0.02);
+  if (!img) { w.tex.needsUpdate = true; return; }
+  if (i === 0) {                                                     // painting: the planet surface revealed by a brush
+    const X = 14, Y = 70, Wd = 352, Hd = 176, rev = Math.min(1, pr * 1.15) * Wd;
+    g.fillStyle = '#07080a'; g.fillRect(X, Y, Wd, Hd);
+    g.save(); g.beginPath(); g.moveTo(X, Y);
+    for (let y = 0; y <= Hd; y += 8) g.lineTo(X + rev + 14 * Math.sin(y * 0.09 + t * 2), Y + y);
+    g.lineTo(X, Y + Hd); g.closePath(); g.clip();
+    g.drawImage(img, 0, 64, 256, 128, X, Y, Wd, Hd); g.restore();
+    if (pr < 1) { const by = Y + Hd / 2 + Math.sin(t * 3.1) * Hd * 0.38; g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 1.5; g.beginPath(); g.arc(X + rev, by, 11, 0, 7); g.stroke(); }
+    g.fillStyle = '#16181d'; g.fillRect(380, 40, 120, 250);
+    g.fillStyle = '#9a9ca2'; g.font = '13px "IBM Plex Sans", system-ui, sans-serif'; g.fillText('Layers', 392, 56);
+    ['Clouds', 'Surface', 'Base'].forEach((n, r) => { const y = 74 + r * 40, on = r === 1;
+      g.fillStyle = on ? 'rgba(255,176,0,0.16)' : '#1c1f25'; g.fillRect(386, y, 108, 32);
+      g.drawImage(img, 0, 64, 256, 128, 391, y + 6, 34, 20);
+      g.fillStyle = on ? '#ffc84a' : '#c8c6c0'; g.fillText(n, 432, y + 17); });
+  } else if (i === 1) {                                              // pixel art: the module placed pixel by pixel
+    if (!pixSrc) { pixSrc = document.createElement('canvas'); pixSrc.width = pixSrc.height = 32; const pg = pixSrc.getContext('2d'); pg.imageSmoothingEnabled = true; pg.drawImage(img, 6 * 256, 0, 256, 256, 0, 0, 32, 32); }
+    const X = 22, Y = 42, Z = 8, n = Math.floor(Math.min(1, pr * 1.1) * 1024);
+    g.fillStyle = '#0b0c0f'; g.fillRect(X, Y, 256, 256);
+    g.imageSmoothingEnabled = false;
+    const rows = Math.floor(n / 32), cols = n % 32;
+    if (rows) g.drawImage(pixSrc, 0, 0, 32, rows, X, Y, 256, rows * Z);
+    if (cols && rows < 32) g.drawImage(pixSrc, 0, rows, cols, 1, X, Y + rows * Z, cols * Z, Z);
+    g.imageSmoothingEnabled = true;
+    g.strokeStyle = 'rgba(255,255,255,0.05)'; g.lineWidth = 1;
+    for (let q = 0; q <= 32; q += 4) { g.beginPath(); g.moveTo(X + q * Z + 0.5, Y); g.lineTo(X + q * Z + 0.5, Y + 256); g.moveTo(X, Y + q * Z + 0.5); g.lineTo(X + 256, Y + q * Z + 0.5); g.stroke(); }
+    if (n < 1024) { g.strokeStyle = '#ffb000'; g.lineWidth = 2; g.strokeRect(X + cols * Z, Y + rows * Z, Z, Z); }
+    ['#2d2f35', '#5b4a2e', '#9a7b3f', '#d6b260', '#ff8a2a', '#c8cdd4', '#6a7380', '#141518'].forEach((col, q) => { g.fillStyle = col; g.fillRect(300 + (q % 2) * 30, 48 + Math.floor(q / 2) * 30, 24, 24); });
+    [6, 7, 13, 14].forEach((cell, q) => { const fx = 300 + q * 50, fy = 192; g.fillStyle = '#16181d'; g.fillRect(fx - 4, fy - 4, 44, 44);
+      g.drawImage(img, (cell % 8) * 256, Math.floor(cell / 8) * 256, 256, 256, fx, fy, 36, 36);
+      if (q === 0) { g.strokeStyle = '#ffb000'; g.strokeRect(fx - 4.5, fy - 4.5, 45, 45); } });
+    g.fillStyle = '#7d7f85'; g.font = '12px "Share Tech Mono", ui-monospace, monospace'; g.fillText('frames', 300, 182);
+  } else {                                                           // 3D: the asteroid turns in a viewport, then renders
+    const X = 12, Y = 38, Wd = 360, Hd = 280, cx = X + Wd / 2, cy = Y + Hd * 0.48;
+    g.fillStyle = '#121418'; g.fillRect(X, Y, Wd, Hd);
+    g.strokeStyle = 'rgba(255,255,255,0.06)'; g.lineWidth = 1;
+    for (let q = -6; q <= 6; q++) { g.beginPath(); g.moveTo(cx + q * 18, cy + 70); g.lineTo(cx + q * 52, Y + Hd); g.stroke(); }
+    for (let q = 0; q < 5; q++) { const yy = cy + 70 + q * q * 7; g.beginPath(); g.moveTo(X, yy); g.lineTo(X + Wd, yy); g.stroke(); }
+    g.save(); g.translate(cx, cy); g.rotate(t * 0.5); g.drawImage(img, 1 * 256 + 256 * 0, 256, 256, 256, -84, -84, 168, 168); g.restore();
+    const gx = X + 34, gy = Y + Hd - 30; [['#d0675c', 24, 6, 'X'], ['#7fb36a', -6, -24, 'Y'], ['#6d8fd6', -16, 12, 'Z']].forEach(([col, dx, dy, lab]) => {
+      g.strokeStyle = col; g.lineWidth = 2.5; g.beginPath(); g.moveTo(gx, gy); g.lineTo(gx + dx, gy + dy); g.stroke(); g.fillStyle = col; g.font = '11px "IBM Plex Sans", sans-serif'; g.fillText(lab, gx + dx * 1.25 - 3, gy + dy * 1.25); });
+    g.fillStyle = '#16181d'; g.fillRect(382, 40, 118, 250);
+    g.fillStyle = '#9a9ca2'; g.font = '13px "IBM Plex Sans", system-ui, sans-serif'; g.fillText('Render', 394, 56);
+    g.fillStyle = 'rgba(255,176,0,0.85)'; g.fillRect(394, 70, 94 * Math.min(1, pr * 1.2), 6); g.strokeStyle = 'rgba(255,176,0,0.35)'; g.strokeRect(393.5, 69.5, 95, 7);
+    ['Albedo', 'Normal', 'Depth', 'Alpha'].forEach((n, r) => { const done = pr * 1.2 > (r + 1) / 4;
+      g.fillStyle = done ? '#ffc84a' : '#6f7177'; g.fillText((done ? '+ ' : '  ') + n, 394, 100 + r * 26); });
+  }
+  w.tex.needsUpdate = true;
+}
+
+/* ---- the atlas sheet: a panel above the box, tilted to the lens; the cards fill its cells ---- */
+const sheet = new THREE.Group(); sheet.visible = false; asm.add(sheet);
+const SH_W = AT_COLS * CELL_W, SH_H = AT_ROWS * CELL_W;
+const shc = document.createElement('canvas'); shc.width = 1024; shc.height = 580; const shg = shc.getContext('2d');
+const shTex = new THREE.CanvasTexture(shc); shTex.colorSpace = THREE.SRGBColorSpace; shTex.anisotropy = 4;
+const sheetPlate = new THREE.Mesh(new THREE.PlaneGeometry(SH_W + 0.16, SH_H + 0.25), new THREE.MeshBasicMaterial({ map: shTex, toneMapped: false, transparent: true }));
+sheetPlate.position.set(0, 0.045, 0); sheet.add(sheetPlate);
+sheet.add(new THREE.Mesh(k.soft.box(SH_W + 0.2, SH_H + 0.29, 0.03, 0.02).translate(0, 0.045, -0.02), winBackMat));
+let sheetCount = -1;
+function drawSheet(n) {
+  if (n === sheetCount) return; sheetCount = n;
+  const W = 1024, H = 580, padX = 41, top = 92, cs = (W - 2 * padX) / AT_COLS;
+  shg.clearRect(0, 0, W, H); shg.fillStyle = 'rgba(10,11,14,0.92)'; shg.fillRect(0, 0, W, H);
+  shg.strokeStyle = 'rgba(255,176,0,0.55)'; shg.lineWidth = 3; shg.strokeRect(1.5, 1.5, W - 3, H - 3);
+  shg.font = '600 30px "Share Tech Mono", ui-monospace, monospace'; shg.textBaseline = 'middle'; shg.fillStyle = '#ffb000';
+  shg.fillText('[[atlas]]  stella  2048 x 1024', padX, 46);
+  shg.textAlign = 'right'; shg.fillStyle = '#c9a24a'; shg.fillText(n + ' / ' + NCELL, W - padX, 46); shg.textAlign = 'left';
+  shg.strokeStyle = 'rgba(255,176,0,0.22)'; shg.lineWidth = 2;
+  for (let c = 0; c <= AT_COLS; c++) { shg.beginPath(); shg.moveTo(padX + c * cs, top); shg.lineTo(padX + c * cs, top + AT_ROWS * cs); shg.stroke(); }
+  for (let r = 0; r <= AT_ROWS; r++) { shg.beginPath(); shg.moveTo(padX, top + r * cs); shg.lineTo(W - padX, top + r * cs); shg.stroke(); }
+  shTex.needsUpdate = true;
+}
+// In front of the box, tilted face-up (35 degrees), so the arms reach every cell from its face side.
+// The sheet keeps a clear gap to the front wall, so an arm can pass over its top edge.
+const SHEET_POS = [V(0, -1.45, 0.66), V(0, -1.4, 0.62)], SHEET_TILT = 0.61;
+
+/* ---- cards: one InstancedMesh. Per instance: atlas cell offset and the P it lands; the shader draws the
+   card face (image over a dark card, amber edge) and a short glow when it slots in. ---- */
+const cardGeo = new THREE.PlaneGeometry(1, 1);
+const aCell = new Float32Array(NCELL * 2), aLand = new Float32Array(NCELL);
+const FLIGHT = 0.15, flowSpan = PIPE_T.flow[1] - PIPE_T.flow[0] - FLIGHT;
+// Emission order: interleave the three windows so all three streams run at once.
+const ORDER = [0, 1, 2].flatMap(src => CELLS.map((c, k) => [c[1], k]).filter(c => c[0] === src).map(c => c[1]));
+// Top row first: a card slides up its column from the bottom edge, so it must never pass a filled cell.
+// Top row first. Inside a row the columns interleave (left, middle, right arm in turn), so two arms never guide
+// neighbouring columns at the same time.
+const COL_ORDER = [0, 4, 1, 5, 2, 6, 3, 7];
+const colArm = col => col < AT_COLS / 2 ? 1 : 2;   // arm 0 sorts the code modules
+const ORDER_I = CELLS.map((c, k) => k).sort((a, b) => Math.floor(a / AT_COLS) - Math.floor(b / AT_COLS) || COL_ORDER.indexOf(a % AT_COLS) - COL_ORDER.indexOf(b % AT_COLS));
+const cardT0 = new Float32Array(NCELL);
+ORDER_I.forEach((k, n) => { cardT0[k] = PIPE_T.flow[0] + n / NCELL * flowSpan; });
+for (let k2 = 0; k2 < NCELL; k2++) { const [u, v] = cellUV(k2); aCell[k2 * 2] = u; aCell[k2 * 2 + 1] = v; aLand[k2] = cardT0[k2] + FLIGHT; }
+cardGeo.setAttribute('aCell', new THREE.InstancedBufferAttribute(aCell, 2));
+cardGeo.setAttribute('aLand', new THREE.InstancedBufferAttribute(aLand, 1));
+const cardMat = new THREE.ShaderMaterial({
+  uniforms: { uAtlas: { value: null }, uP: { value: 0 }, uDim: { value: 1 } },
+  vertexShader: `attribute vec2 aCell; attribute float aLand; varying vec2 vUv; varying vec2 vAt; varying float vLand;
+    void main() { vUv = uv; vAt = aCell + uv * vec2(0.125, 0.25); vLand = aLand;
+      gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `uniform sampler2D uAtlas; uniform float uP, uDim; varying vec2 vUv; varying vec2 vAt; varying float vLand;
+    void main() {
+      vec4 tx = texture2D(uAtlas, vAt);
+      vec3 c = mix(vec3(0.03, 0.034, 0.042), tx.rgb, tx.a);
+      float e = min(min(vUv.x, 1.0 - vUv.x), min(vUv.y, 1.0 - vUv.y));
+      float edge = 1.0 - smoothstep(0.0, 0.035, e);
+      float slot = uP > vLand ? exp(-(uP - vLand) * 60.0) : 0.0;
+      c = mix(c, vec3(1.0, 0.62, 0.05), edge * (0.55 + 0.45 * slot));
+      c *= uDim; c += vec3(1.0, 0.7, 0.25) * slot * 0.9;
+      gl_FragColor = vec4(c, 1.0);
+      #include <colorspace_fragment>
+    }`,
+  side: THREE.DoubleSide, toneMapped: false });
+const cards = new THREE.InstancedMesh(cardGeo, cardMat, NCELL); cards.instanceMatrix.setUsage(THREE.DynamicDrawUsage); cards.frustumCulled = false; cards.visible = false; asm.add(cards);
+
+/* ---- conduits: one thin tube per window to the sheet, a dash texture runs along it ---- */
+const dashTex = (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 4; const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 64, 0); gr.addColorStop(0, 'rgba(255,176,0,0)'); gr.addColorStop(0.7, 'rgba(255,176,0,0.9)'); gr.addColorStop(1, 'rgba(255,220,140,1)');
+  g.fillStyle = 'rgba(255,176,0,0.14)'; g.fillRect(0, 0, 64, 4); g.fillStyle = gr; g.fillRect(40, 0, 24, 4);
+  const t = new THREE.CanvasTexture(c); t.wrapS = THREE.RepeatWrapping; t.repeat.set(9, 1); return t; })();
+const conduitMat = new THREE.MeshBasicMaterial({ map: dashTex, transparent: true, depthWrite: false, toneMapped: false, color: new THREE.Color(1.0, 0.85, 0.6), blending: THREE.AdditiveBlending });
+const conduits = [0, 1, 2].map(() => { const m = new THREE.Mesh(new THREE.BufferGeometry(), conduitMat); m.visible = false; m.frustumCulled = false; asm.add(m); return m; });
+let conduitLayout = -1;
+
+/* ---- live engine objects: a star, six planets, an asteroid belt ---- */
+// The live system orbits above every arm lane (lanes top out near 1.5), so orbits never cross the arms.
+const LIVE_C = [V(0, 0.1, 2.15), V(0, 0.1, 2.15)];
+// The star: the look of the Stella Nova star (warp_core circle_shader.wgsl render_star: voronoi cells with dark
+// lanes, gold palette, limb darkening, an intense corona rim), plus faculae and spots, on a lit-less sphere.
+// The core goes past 1 so the bloom (threshold 1.05) takes it. A camera-facing additive card carries the corona:
+// rays, streamers and two prominence loops. The star lights the planets through starLight (no new light).
+const STAR_R = 0.1, CORONA_K = narrow ? 2.6 : 3.4;               // the corona card half-size, in star radii
+const NOISE_GLSL = `
+float h3(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float vn(vec3 x) { vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(h3(i), h3(i + vec3(1,0,0)), f.x), mix(h3(i + vec3(0,1,0)), h3(i + vec3(1,1,0)), f.x), f.y),
+             mix(mix(h3(i + vec3(0,0,1)), h3(i + vec3(1,0,1)), f.x), mix(h3(i + vec3(0,1,1)), h3(i + vec3(1,1,1)), f.x), f.y), f.z); }
+float fbm(vec3 p) { return 0.55 * vn(p) + 0.3 * vn(p * 2.1) + 0.15 * vn(p * 4.3); }`;
+const starMat = new THREE.ShaderMaterial({
+  uniforms: { uT: { value: 0 } }, toneMapped: false,
+  vertexShader: `varying vec3 vP; varying vec3 vN; varying vec3 vV;
+    void main() { vP = position; vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz);
+      gl_Position = projectionMatrix * mv; }`,
+  fragmentShader: `uniform float uT; varying vec3 vP; varying vec3 vN; varying vec3 vV;` + NOISE_GLSL + `
+    // Cellular granulation: distance to the nearest and second-nearest feature point.
+    vec2 cell(vec3 x) { vec3 i = floor(x), f = fract(x); float d1 = 9.0, d2 = 9.0;
+      for (int z = -1; z <= 1; z++) for (int y = -1; y <= 1; y++) for (int k = -1; k <= 1; k++) {
+        vec3 g = vec3(float(k), float(y), float(z)), o = vec3(h3(i + g), h3(i + g + 7.1), h3(i + g + 13.7));
+        o = 0.5 + 0.45 * sin(uT * 0.6 + 6.2831 * o);
+        float d = length(g + o - f); if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d; }
+      return vec2(d1, d2); }
+    void main() {
+      vec3 p = normalize(vP);
+      float perlin = fbm(p * 5.0 + vec3(0.0, 0.0, uT * 0.05));
+      vec2 c = cell(p * 9.0 + perlin * 0.6);
+      float edge = c.y - c.x, laneW = 0.1 + 0.06 * perlin;
+      float lane = smoothstep(0.0, laneW, edge), bright = clamp((1.0 - c.x * 1.6) * (0.6 + 0.4 * perlin), 0.0, 1.0);
+      vec3 whiteHot = vec3(1.0, 1.0, 0.92), gold = vec3(1.0, 0.88, 0.55), deep = vec3(0.95, 0.7, 0.25);
+      vec3 laneC = mix(vec3(0.2, 0.06, 0.01), vec3(0.55, 0.22, 0.05), perlin * 0.5 + 0.3);
+      vec3 cellC = mix(deep, gold, bright); cellC = mix(cellC, whiteHot, bright * bright * 0.4);
+      vec3 col = mix(laneC, cellC, lane);
+      col = mix(col, whiteHot, smoothstep(0.65, 0.85, perlin + bright * 0.3) * lane * 0.5);
+      // Sunspots (umbra and penumbra) and faculae (bright near the limb).
+      float sp = fbm(p * 2.2 + 11.0);
+      col *= 1.0 - 0.75 * smoothstep(0.66, 0.72, sp) - 0.2 * smoothstep(0.6, 0.66, sp);
+      float mu = clamp(dot(normalize(vN), normalize(vV)), 0.0, 1.0), limb = 1.0 - mu;
+      col += vec3(1.0, 0.8, 0.45) * smoothstep(0.55, 0.75, fbm(p * 7.0 - uT * 0.03)) * limb * 0.8;
+      col *= (1.0 - limb * 0.4) * mix(vec3(1.0), vec3(1.0, 0.65, 0.35), limb * 0.4);
+      col += vec3(1.0, 0.6, 0.2) * pow(limb, 1.5) * 1.5 + vec3(1.0, 0.8, 0.4) * pow(limb, 4.0) * 2.0;
+      col *= vec3(1.0, 0.86, 0.62) * (0.95 + bright * 0.15 + 0.25 * mu * mu);        // the HDR core: past the bloom threshold
+      gl_FragColor = vec4(col, 1.0);
+    }`,
+});
+const star = new THREE.Mesh(new THREE.SphereGeometry(STAR_R, 48, 24), starMat);
+const coronaMat = new THREE.ShaderMaterial({
+  uniforms: { uT: { value: 0 }, uK: { value: CORONA_K }, uA: { value: 1 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
+  vertexShader: `varying vec2 vU; void main() { vU = uv * 2.0 - 1.0; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `uniform float uT, uK, uA; varying vec2 vU;` + NOISE_GLSL + `
+    void main() {
+      float r = length(vU) * uK, a = atan(vU.y, vU.x);           // r in star radii
+      if (r < 0.98) discard;
+      float h = r - 1.0;
+      vec3 orange = vec3(0.95, 0.55, 0.25);                    // KIND_CORONA orange (view.wgsl)
+      float inner = exp(-h * 5.0) * 1.6 + exp(-h * 1.6) * 0.35;
+      // Streamers and rays: angular noise stretched along the radius, drifting slowly.
+      float ray = fbm(vec3(cos(a) * 3.0, sin(a) * 3.0, h * 0.7 - uT * 0.08));
+      float streak = pow(fbm(vec3(cos(a) * 9.0, sin(a) * 9.0, uT * 0.05)), 3.0);
+      float body = inner * (0.65 + 0.7 * ray) + streak * exp(-h * 0.9) * 2.2;
+      // Prominences: two arcs that rise from the limb and fall back.
+      float prom = 0.0;
+      for (int i = 0; i < 2; i++) {
+        float fi = float(i), a0 = 0.9 + fi * 3.4 + 0.15 * sin(uT * 0.2 + fi);
+        vec2 c = vec2(cos(a0), sin(a0)) * (1.0 / uK) * 1.02;
+        float rr = (0.32 + 0.06 * sin(uT * 0.4 + fi * 2.0)) / uK;
+        float d = abs(length(vU - c) - rr) * uK, outside = step(1.0, r);
+        prom += exp(-d * d * 260.0) * outside * (0.7 + 0.3 * vn(vec3(a * 12.0, uT * 0.5, fi)));
+      }
+      vec3 col = orange * body + vec3(1.0, 0.45, 0.2) * prom * 1.6;
+      col *= smoothstep(uK, uK * 0.55, r) * uA;                 // fade out before the card edge
+      gl_FragColor = vec4(col, 1.0);
+    }`,
+});
+const corona = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), coronaMat);
+corona.scale.setScalar(STAR_R * CORONA_K); corona.renderOrder = 2;
+star.add(corona); star.visible = false; asm.add(star);
+const PLANETS = [   // radius, orbit, speed, atlas cell
+  [0.06, 0.26, 1.1, 1], [0.075, 0.4, 0.82, 0], [0.055, 0.52, 0.66, 2], [0.13, 0.86, 0.4, 3], [0.095, 1.06, 0.3, 4], [0.11, 1.24, 0.24, 5]];
+const planets = PLANETS.map(() => { const m = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 24), new THREE.MeshStandardMaterial({ roughness: 0.82, metalness: 0 }));
+  m.visible = false; asm.add(m); return m; });
+const NAST = Q === 'low' ? 14 : 30;
+const astGeo = new THREE.PlaneGeometry(1, 1);
+const aUV = new Float32Array(NAST * 4), astD = [];
+for (let i = 0; i < NAST; i++) { const a = i % 5, [u, v] = cellUV(8 + a), [un, vn] = cellUV(16 + a); aUV.set([u, v, un, vn], i * 4);
+  astD.push({ r: 0.64 + (Math.random() - 0.5) * 0.12, th: Math.random() * 6.283, w: 0.5 + Math.random() * 0.25, z: (Math.random() - 0.5) * 0.06, sz: 0.045 + Math.random() * 0.04, sp: (Math.random() - 0.5) * 1.4, cell: 8 + a }); }
+astGeo.setAttribute('aUV', new THREE.InstancedBufferAttribute(aUV, 4));
+const astMat = new THREE.MeshStandardMaterial({ roughness: 0.9, metalness: 0, alphaTest: 0.5, alphaToCoverage: true, side: THREE.DoubleSide });
+astMat.onBeforeCompile = sh => {
+  sh.vertexShader = 'attribute vec4 aUV;\n' + sh.vertexShader.replace('#include <uv_vertex>', `#include <uv_vertex>
+    vMapUv = aUV.xy + uv * vec2(0.125, 0.25);
+    vNormalMapUv = aUV.zw + uv * vec2(0.125, 0.25);`);
+};
+astMat.customProgramCacheKey = () => 'scrap-asteroid-atlas';
+const asteroids = new THREE.InstancedMesh(astGeo, astMat, NAST); asteroids.instanceMatrix.setUsage(THREE.DynamicDrawUsage); asteroids.frustumCulled = false; asteroids.visible = false; asm.add(asteroids);
+
+/* ---- HUD panels: real Stella Nova UI (cropped from the game's screenshots, media/sprites/gui-panels.webp) on
+   thin steel cards, plus a Warp Hierarchy card drawn here. They come out of the box in the live
+   stage and dock around the system, clear of every orbit. ---- */
+const GUI_PX = [1536, 1024];
+// name, pixel rect in gui-panels.webp, height, dock (dx, dz from the system center) desktop, phone (null: hidden)
+const HUD = [
+  ['design', [0, 0, 700, 514], 0.44, [-2.05, 0.38], null],
+  ['comms', [0, 520, 700, 304], 0.3, [-2.06, -0.14], [-0.62, 0.62]],
+  ['crew', [706, 0, 300, 807], 0.74, [-1.58, 0.14], null],
+  ['quest', [1012, 0, 480, 403], 0.42, [2.32, 0.36], [0.62, 1.1]],
+  ['planet', [1012, 409, 480, 254], 0.3, [2.34, -0.14], [0.62, 0.62]],
+  ['hierarchy', null, 0.62, [1.7, 0.16], [-0.62, 1.1]]];
+const hudTex = { img: null };
+const hc = document.createElement('canvas'); hc.width = 384; hc.height = 480; const hg = hc.getContext('2d');
+const hTex = new THREE.CanvasTexture(hc); hTex.colorSpace = THREE.SRGBColorSpace; hTex.anisotropy = 4;
+// The Warp editor's Hierarchy for the live system, with the Inspector of the selected body (real field names).
+function drawHierarchy() {
+  const g = hg, W = 384, H = 480;
+  g.fillStyle = '#0d0f13'; g.fillRect(0, 0, W, H); g.strokeStyle = 'rgba(255,176,0,0.5)'; g.lineWidth = 2; g.strokeRect(1, 1, W - 2, H - 2);
+  g.fillStyle = '#16181d'; g.fillRect(2, 2, W - 4, 30);
+  g.font = '15px "Share Tech Mono", ui-monospace, monospace'; g.textBaseline = 'middle'; g.fillStyle = '#ffb000'; g.fillText('Hierarchy', 14, 18);
+  g.fillStyle = '#7d7f85'; g.textAlign = 'right'; g.fillText('warp', W - 14, 18); g.textAlign = 'left';
+  const rows = [[0, 'stella_system'], [1, 'star'], [1, 'planet x6'], [1, 'asteroid x' + NAST], [1, 'station'], [2, 'foundry'], [2, 'assembler'], [2, 'living_quarters'], [2, 'thruster_block']];
+  rows.forEach(([d, n], r) => { const y = 50 + r * 22; if (r === 2) { g.fillStyle = 'rgba(255,176,0,0.16)'; g.fillRect(4, y - 10, W - 8, 20); }
+    g.fillStyle = r === 2 ? '#ffc84a' : '#b9bbc1'; g.fillText((d ? '  '.repeat(d - 1) + (d ? '- ' : '') : '') + n, 14 + d * 8, y); });
+  g.fillStyle = '#16181d'; g.fillRect(2, 258, W - 4, 28); g.fillStyle = '#ffb000'; g.fillText('Inspector', 14, 272);
+  [['Body', '#ffc84a'], ['  pos', '#b9bbc1', 'Vec2'], ['  vel', '#b9bbc1', 'Vec2'], ['  mass', '#b9bbc1', 'f32'], ['  radius', '#b9bbc1', 'f32'], ['  kind', '#b9bbc1', 'i32'], ['LayerInfo', '#ffc84a'], ['  class', '#b9bbc1', 'PlanetClass']]
+    .forEach(([n, c, ty], r) => { const y = 300 + r * 22; g.fillStyle = c; g.fillText(n, 14, y); if (ty) { g.fillStyle = '#7d7f85'; g.textAlign = 'right'; g.fillText(ty, W - 14, y); g.textAlign = 'left'; } });
+  hTex.needsUpdate = true;
+}
+const hud = HUD.map(([name, px, h], i) => {
+  const asp = px ? px[2] / px[3] : 384 / 480, w = h * asp;
+  const g = new THREE.Group(); g.visible = false; asm.add(g);
+  g.add(new THREE.Mesh(k.soft.box(w + 0.05, h + 0.05, 0.024, 0.012), winBackMat));
+  const geo = new THREE.PlaneGeometry(w, h);
+  const mat = new THREE.MeshBasicMaterial({ map: px ? null : hTex, toneMapped: false, color: new THREE.Color(0.92, 0.92, 0.92) });
+  const scr = new THREE.Mesh(geo, mat); scr.position.z = 0.013; g.add(scr);
+  return { name, px, w, h, obj: g, mat, geo };
+});
+const hudReady = loadTex('gui-panels.webp', true).then(tx => {
+  hud.forEach(p => { if (!p.px) return;
+    const t = tx.clone(); t.needsUpdate = true; t.repeat.set(p.px[2] / GUI_PX[0], p.px[3] / GUI_PX[1]);
+    t.offset.set(p.px[0] / GUI_PX[0], 1 - (p.px[1] + p.px[3]) / GUI_PX[1]); p.mat.map = t; p.mat.needsUpdate = true; });
+  try { s.renderer.initTexture(tx); } catch (er) {}
+});
+drawHierarchy();
+
+/* ---- the middle zone: code modules. Each kind of asset has the real Rust type that runs it in the game
+   (barnes-hut/src). The modules come out of the box in a tangle; arm 0 sorts them into a labeled rack
+   (objects/, render/, player/, gui/); glowing links tie the atlas cells to their module. ---- */
+const CODE = [   // folder, file, lines, linked atlas kinds
+  ['objects/', 'body.rs', ['pub struct Body {', '  pub pos: Vec2,', '  pub vel: Vec2,', '  pub mass: f32,', '  pub radius: f32,', '  pub kind: i32, ..'], 'an'],
+  ['objects/', 'blueprint.rs', ['pub struct Blueprint {', '  pub body: Body,', '  pub constructable_id: i32,', '  pub progress: f32, ..'], 'm'],
+  ['objects/', 'resource.rs', ['pub struct Resource {', '  pub body: Body,', '  pub resource_kind: i32,', '  pub quantity: u32, ..'], ''],
+  ['render/', 'planet/pools.rs', ['pub enum PlanetClass {', '  Rocky,', '  Gas,', '  Moon,'], 'p'],
+  ['render/', 'planet/pools.rs', ['pub struct LayerInfo {', '  pub class: PlanetClass, ..'], 'p'],
+  ['player/', 'player/types.rs', ['pub struct Player {', '  pub player_id: i32,', '  pub body: Body, ..'], ''],
+  ['gui/', 'cardgame/types.rs', ['pub struct Card {', '  pub uid: Uid,', '  pub def: CardId, ..'], '']];
+const RACK_ROWS = ['objects/', 'render/', 'player/', 'gui/'], NCODE = CODE.length;
+const CODE_W = 0.36, CODE_H = 0.17, RACK_W = 1.12, RACK_H = 0.98;
+// Slot of module i: its folder row, left to right.
+const CODE_SLOT = CODE.map((c, i) => [RACK_ROWS.indexOf(c[0]), CODE.slice(0, i).filter(d => d[0] === c[0]).length]);
+const codeCan = document.createElement('canvas'); codeCan.width = 512; codeCan.height = 256 * 4; const cg = codeCan.getContext('2d');
+const codeTex = new THREE.CanvasTexture(codeCan); codeTex.colorSpace = THREE.SRGBColorSpace; codeTex.anisotropy = 4;
+// One 512 x 128 tile per module (two columns of tiles: 8 tiles in 512 x 1024).
+function drawCode() {
+  cg.fillStyle = '#000'; cg.fillRect(0, 0, 512, 1024);
+  CODE.forEach(([dir, file, lines], i) => {
+    const X = (i % 2) * 256, Y = Math.floor(i / 2) * 256, W = 256, H = 122;
+    cg.save(); cg.translate(X, Y); cg.scale(1, 2);                    // 256 x 128 drawn as 256 x 256 (card aspect 2:1)
+    cg.fillStyle = '#0c0e12'; cg.fillRect(0, 0, W, H + 6); cg.strokeStyle = 'rgba(255,176,0,0.7)'; cg.lineWidth = 2; cg.strokeRect(1, 1, W - 2, H + 4);
+    cg.font = '11px "Share Tech Mono", ui-monospace, monospace'; cg.textBaseline = 'top'; cg.fillStyle = '#7d7f85'; cg.fillText(dir + file, 8, 6);
+    cg.font = '12.5px "Share Tech Mono", ui-monospace, monospace';
+    lines.forEach((ln, r) => { const kw = ln.match(/^(\s*)(pub struct|pub enum|pub)\b/);
+      let x = 8; const y = 24 + r * 16;
+      if (kw) { cg.fillStyle = '#ff9a3c'; cg.fillText(kw[1] + kw[2], x, y); x += cg.measureText(kw[1] + kw[2]).width; ln = ln.slice(kw[0].length); }
+      cg.fillStyle = r === 0 ? '#ffc84a' : '#c9cbd1'; cg.fillText(ln, x, y); });
+    cg.restore();
+  });
+  codeTex.needsUpdate = true;
+}
+const codeGeo = new THREE.PlaneGeometry(CODE_W, CODE_H);
+const codeCards = CODE.map((c, i) => {
+  const t = codeTex.clone(); t.repeat.set(0.5, 0.25); t.offset.set((i % 2) * 0.5, 0.75 - Math.floor(i / 2) * 0.25); t.needsUpdate = true;
+  const g = new THREE.Group(); g.visible = false; asm.add(g);
+  g.add(new THREE.Mesh(k.soft.box(CODE_W + 0.02, CODE_H + 0.02, 0.012, 0.006).translate(0, 0, -0.008), winBackMat));
+  g.add(new THREE.Mesh(codeGeo, new THREE.MeshBasicMaterial({ map: t, toneMapped: false })));
+  return g;
+});
+// The rack: a steel frame with a CanvasTexture face (folder labels and slot outlines).
+const rackCan = document.createElement('canvas'); rackCan.width = 512; rackCan.height = 448; const rg = rackCan.getContext('2d');
+const rackTex = new THREE.CanvasTexture(rackCan); rackTex.colorSpace = THREE.SRGBColorSpace;
+const RACK_LBL = 0.26;            // label column width (rack units); slots start after it
+{
+  const W = 512, H = 448, u = W / RACK_W;
+  rg.fillStyle = '#0d0f13'; rg.fillRect(0, 0, W, H); rg.strokeStyle = 'rgba(255,176,0,0.5)'; rg.lineWidth = 2; rg.strokeRect(1, 1, W - 2, H - 2);
+  rg.font = '17px "Share Tech Mono", ui-monospace, monospace'; rg.textBaseline = 'middle';
+  RACK_ROWS.forEach((r, i) => { const yc = (0.12 + i * 0.22) * u + 0.11 * u;
+    rg.fillStyle = '#ffb000'; rg.fillText(r, 12, yc);
+    for (let c = 0; c < 2; c++) { rg.strokeStyle = 'rgba(255,176,0,0.25)'; rg.setLineDash([6, 5]);
+      rg.strokeRect((RACK_LBL + c * (CODE_W + 0.04)) * u, yc - CODE_H / 2 * u, CODE_W * u, CODE_H * u); rg.setLineDash([]); } });
+  rg.fillStyle = '#7d7f85'; rg.fillText('src/  sorted by Warp', 12, 0.06 * u);
+  rackTex.needsUpdate = true;
+}
+const rack = new THREE.Group(); rack.visible = false; asm.add(rack);
+rack.add(new THREE.Mesh(k.soft.box(RACK_W + 0.06, RACK_H + 0.06, 0.03, 0.015).translate(0, 0, -0.02), winBackMat));
+rack.add(new THREE.Mesh(new THREE.PlaneGeometry(RACK_W, RACK_H), new THREE.MeshBasicMaterial({ map: rackTex, toneMapped: false, color: new THREE.Color(0.9, 0.9, 0.9) })));
+// Rack: desktop in front of the box, left of the sheet; phone below the sheet. It faces the lens.
+const RACK_POS = [V(-1.75, -2.25, 0.45), V(0, -2.45, 0.15)];
+const slotLocal = i => V(-RACK_W / 2 + RACK_LBL + CODE_SLOT[i][1] * (CODE_W + 0.04) + CODE_W / 2, RACK_H / 2 - (0.12 + CODE_SLOT[i][0] * 0.22 + 0.11), 0.012);
+// The tangle: where the modules wait after they leave the box, turning slowly (asm frame).
+const KNOT = [V(-1.6, -2.2, 1.2), V(-0.55, -2.0, 1.15)], KNOT_OUT = V(0.45, 0.1, 0.89).normalize(), KNOT_WAIT = 0.75, ZUP_D = V(0, 0, 1);   // from the tangle toward arm 0; the claw waits KNOT_WAIT out
+const T_CODE_IN = 1.42, T_CODE0 = 1.56, T_CODE_STEP = 0.058, T_CODE_DUR = 0.07;
+const codeD = CODE.map((c, i) => ({ ph: i * 2.3, r: 0.16 + (i % 3) * 0.07, w: 0.6 + (i % 4) * 0.15, tilt: (i % 2 ? 1 : -1) * (0.4 + i * 0.1) }));
+// Links: one glowing line per (module, linked cell), from the cell to the seated module; drawn after the sort.
+const LINKS = []; CODE.forEach((c, i) => CELLS.map(([kd], k) => [kd, k]).filter(([kd]) => c[3].includes(kd)).slice(0, 3).forEach(([, k]) => LINKS.push([i, k])));   // three per module
+// Each link is two segments: along the sheet face (under every claw) to its left edge, then across to the rack.
+const linkGeo = new THREE.BufferGeometry(); linkGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(LINKS.length * 12), 3));
+linkGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(LINKS.length * 12), 3));
+const links = new THREE.LineSegments(linkGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+links.frustumCulled = false; links.visible = false; asm.add(links);
+drawCode();
+
+/* ---- per-frame driver (allocation-free) ---- */
+const _pw = new THREE.Vector3(), _pc = new THREE.Vector3(), _pa = new THREE.Vector3(), _pb = new THREE.Vector3(), _pd = new THREE.Vector3();
+const _pq = new THREE.Quaternion(), _pq2 = new THREE.Quaternion(), _asmQi = new THREE.Quaternion(), _camQ = new THREE.Quaternion(), _sheetQ = new THREE.Quaternion();
+const _winQ = [new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion()], _winC = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+const _psc = new THREE.Vector3(), _cellP = Array.from({ length: NCELL }, () => new THREE.Vector3());
+const cubic = (out, a, b, c, d, t) => { const u = 1 - t;
+  return out.set(u * u * u * a.x + 3 * u * u * t * b.x + 3 * u * t * t * c.x + t * t * t * d.x, u * u * u * a.y + 3 * u * u * t * b.y + 3 * u * t * t * c.y + t * t * t * d.y,
+    u * u * u * a.z + 3 * u * u * t * b.z + 3 * u * t * t * c.z + t * t * t * d.z); };
+const SN_N = new THREE.Vector3();
+const _rackN = new THREE.Vector3(), _eu = new THREE.Euler();
+const hudOn = HUD.map(() => false), codeOn = new Uint8Array(NCODE), codePos = CODE.map(() => new THREE.Vector3()), codeQ = CODE.map(() => new THREE.Quaternion()), codeSc = new Float32Array(NCODE);
+// The side lanes of the card streams sit 0.45 (world) out from the sheet edges; the sheet is scaled 0.62 on phones.
+const SIDE_GAP = narrow ? 0.73 : 0.45;
+const _way = Array.from({ length: 5 }, () => new THREE.Vector3()), winOver = [false, false, false], winSide = [-1, -1, 1], winLoc = [0, 1, 2].map(() => new THREE.Vector3()), _sheetInv = new THREE.Matrix4();
+// A card stream from window w to the port of column x = cx (sheet units): down the side edge on the window's
+// own side (a stream never crosses over the arms), then in under the bottom edge to the column.
+// jit: the start offset at the window. e in 0..1. Allocation-free.
+function streamAt(out, w, cx, e, jit) {
+  const sx = winSide[w] * (SH_W / 2 + SIDE_GAP), cyp = -SH_H / 2 - 0.14;
+  _way[0].copy(_winC[w]); if (jit) _way[0].add(jit);
+  _way[2].set(sx, cyp - 0.25, 0.12).applyMatrix4(sheet.matrix);
+  if (winOver[w]) _way[1].set(sx, winLoc[w].y, winLoc[w].z).applyMatrix4(sheet.matrix); else _way[1].lerpVectors(_way[0], _way[2], 0.5);   // out sideways at the window height, above the arms
+  _way[3].set(cx, cyp - 0.45, 0.02).applyMatrix4(sheet.matrix);
+  _way[4].set(cx, cyp, 0.012).applyMatrix4(sheet.matrix);
+  return crPath(out, _way, e);
+}
+// Uniform Catmull-Rom through the points (ends held), t in 0..1. Allocation-free.
+function crPath(out, pts, t) {
+  const n = pts.length - 1, f = Math.min(t * n, n - 1e-6), i = Math.floor(f), u = f - i;
+  const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(n, i + 2)], u2 = u * u, u3 = u2 * u;
+  const c = (a, b, c2, d) => 0.5 * (2 * b + (-a + c2) * u + (2 * a - 5 * b + 4 * c2 - d) * u2 + (-a + 3 * b - 3 * c2 + d) * u3);
+  return out.set(c(p0.x, p1.x, p2.x, p3.x), c(p0.y, p1.y, p2.y, p3.y), c(p0.z, p1.z, p2.z, p3.z));
+}
+function updatePipeline(P, t, A) {
+  const L = narrow ? 1 : 0, tm = s.reduceMotion ? 0 : t;
+  asm.getWorldQuaternion(_asmQi).invert();
+  _camQ.copy(_asmQi).multiply(cam.quaternion);                     // camera orientation in the device frame
+  // Windows: rise in staggered, face the lens, leave before the live stage ends.
+  windows.forEach((w, i) => {
+    const e = easeOut(clamp((P - PIPE_T.winIn[0] - i * 0.05) / 0.16)) * (1 - easeIO(clamp((P - PIPE_T.winOut[0] - i * 0.03) / 0.1)));
+    w.obj.visible = e > 0.002;
+    if (!w.obj.visible) return;
+    w.obj.position.copy(WIN_POS[L][i]); w.obj.position.z -= 0.6 * (1 - e);
+    w.obj.scale.setScalar(WIN_SC[L] * (0.6 + 0.4 * e));
+    w.obj.lookAt(cam.position);                                       // world coordinates
+    _winQ[i].copy(w.obj.quaternion); _winC[i].copy(w.obj.position);
+    if (tm - w.last > 1 / 15 || s.reduceMotion || w.last < 0) { w.last = tm; drawWindow(i, P, tm); }
+  });
+  // Sheet: unfolds before the flow, sits behind the live system, sinks into the box at the end.
+  const se = easeOut(clamp((P - PIPE_T.sheetIn[0]) / (PIPE_T.sheetIn[1] - PIPE_T.sheetIn[0]))), sout = easeIO(clamp((P - PIPE_T.out[0]) / (PIPE_T.out[1] - PIPE_T.out[0])));
+  const back = ss(PIPE_T.live[0] - 0.02, PIPE_T.live[0] + 0.08, P);   // dims while the system lives
+  sheet.visible = se > 0.002 && sout < 0.999;
+  sheet.position.copy(SHEET_POS[L]);
+  sheet.rotation.set(SHEET_TILT, 0, 0);
+  const shs = (narrow ? 0.62 : 1) * Math.max(0.001, 1 - sout);
+  sheet.scale.set(shs, shs * Math.max(0.02, se), shs);
+  sheet.updateMatrix(); sheet.matrixWorldNeedsUpdate = true; sheet.updateMatrixWorld(true);
+  _sheetQ.copy(sheet.quaternion); SN_N.set(0, 0, 1).applyQuaternion(_sheetQ);
+  for (let k2 = 0; k2 < NCELL; k2++) _cellP[k2].set(((k2 % AT_COLS) - 3.5) * CELL_W, (1.5 - Math.floor(k2 / AT_COLS)) * CELL_W, 0.012).applyMatrix4(sheet.matrix);
+  // A window over the sheet (past its top edge, inside the side lanes) sends its stream up and around the side.
+  _sheetInv.copy(sheet.matrix).invert();
+  for (let w = 0; w < 3; w++) { const p = winLoc[w].copy(_winC[w]).applyMatrix4(_sheetInv); winOver[w] = Math.abs(p.x) < SH_W / 2 + SIDE_GAP && p.y > -SH_H / 2; winSide[w] = p.x > 0.3 ? 1 : -1; }
+  // Conduits: rebuilt only when the layout changes.
+  if (conduitLayout !== L && P > PIPE_T.flow[0] - 0.04 && windows[2].obj.visible && sheet.visible) {   // after the windows settle
+    conduitLayout = L;
+    // Each conduit follows the card stream: around a side edge of the sheet (never over its face) to the port
+    // under the bottom edge, where the cards fan out to their columns.
+    conduits.forEach((m, w) => { const sx = winSide[w] * (SH_W / 2 + SIDE_GAP + (w === 1 ? 0.1 : 0)), cyp = -SH_H / 2 - 0.14;
+      const w2 = V(sx, cyp - 0.25, 0.12).applyMatrix4(sheet.matrix), w1 = winOver[w] ? V(sx, winLoc[w].y, winLoc[w].z).applyMatrix4(sheet.matrix) : _winC[w].clone().lerp(w2, 0.5);
+      conduitCurve[w] = new THREE.CatmullRomCurve3([_winC[w].clone(), w1, w2,
+        V(0, cyp - 0.45, 0.02).applyMatrix4(sheet.matrix), V(0, cyp - 0.06, 0.02).applyMatrix4(sheet.matrix)], false, 'centripetal');
+      m.geometry.dispose(); m.geometry = new THREE.TubeGeometry(conduitCurve[w], 96, 0.007, 6, false); });
+  }
+  const flowOn = clamp((P - PIPE_T.flow[0] + 0.03) / 0.05) * (1 - clamp((P - PIPE_T.flow[1]) / 0.06));
+  conduits.forEach(m => { m.visible = flowOn > 0.01 && conduitLayout === L; });
+  conduitMat.opacity = 0.75 * flowOn; dashTex.offset.x = -tm * 1.6;
+  // Cards: window -> conduit -> the arm guides the last stretch -> the cell. Then they stay in the sheet.
+  cards.visible = sheet.visible && P > PIPE_T.flow[0];
+  cardMat.uniforms.uP.value = P; cardMat.uniforms.uDim.value = mix(1, 0.45, back);
+  let filled = 0;
+  const guide = [-1, -1, -1], guideU = [0, 0, 0];
+  for (let k2 = 0; k2 < NCELL; k2++) {
+    const w = CELLS[k2][1], u = clamp((P - cardT0[k2]) / FLIGHT);
+    cardRad[k2] = 0;
+    if (P <= cardT0[k2] || !cards.visible) { dummy.position.set(0, 0, -9); dummy.scale.setScalar(0); dummy.quaternion.identity(); dummy.updateMatrix(); cards.setMatrixAt(k2, dummy.matrix); continue; }
+    if (u >= 1) filled++;
+    // Out of the window, around the side edge of the sheet (above the top edge, then down the side), in under
+    // the bottom edge to the port of its column, then up the face (0.012 off it) to the cell. The stream never
+    // passes over the face, where the claws hover; a sliding card passes under every claw.
+    const cx = ((k2 % AT_COLS) - 3.5) * CELL_W, cyc = (1.5 - Math.floor(k2 / AT_COLS)) * CELL_W, cyp = -SH_H / 2 - 0.14;
+    _pw.set(cx, cyp, 0.012).applyMatrix4(sheet.matrix);                         // the column port
+    if (u < 0.6) {
+      streamAt(dummy.position, w, cx, easeIO(u / 0.6), _psc.set(((k2 * 37) % 7 - 3) * 0.08, 0, ((k2 * 53) % 5 - 2) * 0.05));
+    } else {
+      const e = easeIO((u - 0.6) / 0.4);
+      dummy.position.set(cx, mix(cyp, cyc, e), 0.012).applyMatrix4(sheet.matrix);
+    }
+    dummy.quaternion.copy(_winQ[w]).slerp(_sheetQ, ss(0.05, 0.4, u));   // flat to the face before it nears the claws
+    const sc = mix(0.36 * WIN_SC[L], CELL_W * 0.94 * shs, ss(0.2, 0.45, u));
+    dummy.scale.set(sc, sc, sc); dummy.updateMatrix(); cards.setMatrixAt(k2, dummy.matrix);
+    if (u < 1) { cardPos[k2].copy(dummy.position); cardQ[k2].copy(dummy.quaternion); cardRad[k2] = sc; }   // in flight: a thin box; slotted cards are part of the sheet's box
+    // The arm that owns this card (cell % 3) meets it for the last stretch.
+    const j = colArm(k2 % AT_COLS);   // left and right halves: the arms keep apart
+    if (u > GUIDE_U && u < 1 && u > guideU[j]) { guide[j] = k2; guideU[j] = u; armTips[j].tip.copy(dummy.position).addScaledVector(SN_N, CARD_HOVER); }
+  }
+  cards.instanceMatrix.needsUpdate = true;
+  for (let j = 0; j < 3; j++) if (guide[j] >= 0) { const tp = armTips[j]; tp.has = true; tp.grip = true; tp.work = true; tp.lift = 0; tp.own = ID_CARD + guide[j]; }
+  // Between cards an arm waits high over its next card's path, so it never sweeps across the sheet
+  // (and through the cards coming in) to catch up.
+  if (cards.visible && P < PIPE_T.flow[1] + FLIGHT) for (let j = 1; j < 3; j++) {
+    if (guide[j] >= 0) continue;
+    let nk = -1;
+    for (const k2 of ORDER_I) { if (colArm(k2 % AT_COLS) === j && P < cardT0[k2] + FLIGHT * GUIDE_U) { nk = k2; break; } }
+    if (nk < 0) continue;
+    // Where that card will be when the guide starts, so the hand-over is a short move, not a jump.
+    const e0 = easeIO((GUIDE_U - 0.6) / 0.4), cx = ((nk % AT_COLS) - 3.5) * CELL_W, cyc = (1.5 - Math.floor(nk / AT_COLS)) * CELL_W;
+    const tp = armTips[j]; tp.tip.set(cx, mix(-SH_H / 2 - 0.14, cyc, e0), 0.012).applyMatrix4(sheet.matrix).addScaledVector(SN_N, CARD_HOVER);
+    tp.has = true; tp.grip = false; tp.work = false; tp.lift = 0;
+  }
+  if (sheet.visible) drawSheet(filled);
+  // Live stage: the star and planets leave their cells and orbit; asteroids drift in a belt; tiles go to the deck.
+  const le = easeOut(clamp((P - PIPE_T.live[0]) / 0.14)), lout = sout;
+  const LC = LIVE_C[L], ls = (narrow ? 0.75 : 1) * (1 - lout);
+  star.visible = le > 0.002 && lout < 0.999;
+  star.position.copy(LC); star.scale.setScalar(Math.max(0.001, le * ls));
+  if (star.visible) {
+    starMat.uniforms.uT.value = coronaMat.uniforms.uT.value = tm;
+    corona.quaternion.copy(_camQ);                                  // the corona card faces the lens (star has no rotation)
+  }
+  // The star lights the planets (starLight: the scene's light count stays the same).
+  starLight.position.copy(LC); starLight.intensity = star.visible ? 1.3 * le * (1 - lout) : 0;
+  PLANETS.forEach(([r, orb, spd, cell], i) => {
+    const m = planets[i], pe = easeIO(clamp((P - PIPE_T.live[0] - i * 0.018) / 0.12));
+    m.visible = pe > 0.002 && lout < 0.999 && !!m.material.map;
+    if (!m.visible) return;
+    const th = i * 1.7 + tm * spd * 0.35 + P * spd * 2.2;
+    _pb.set(LC.x + Math.cos(th) * orb * ls, LC.y + Math.sin(th) * orb * ls, LC.z + Math.sin(th + i) * 0.03);
+    _pc.copy(_cellP[cell]).addScaledVector(SN_N, 1.2); _pc.z += 0.5;        // arc out in front of the wrench and arms
+    m.position.copy(bez(_cellP[cell], _pc, _pb, pe));
+    m.scale.setScalar(Math.max(0.001, r * ls * mix(0.4, 1, pe)));
+    m.rotation.set(Math.PI / 2, tm * 0.25 + i, 0);
+  });
+  asteroids.visible = le > 0.002 && lout < 0.999 && !!astMat.map;
+  if (asteroids.visible) {
+    for (let i = 0; i < NAST; i++) {
+      const d = astD[i], ae = easeIO(clamp((P - PIPE_T.live[0] - 0.04 - (i % 10) * 0.008) / 0.12));
+      const th = d.th + tm * d.w * 0.18 + P * d.w * 1.6;
+      _pb.set(LC.x + Math.cos(th) * d.r * ls, LC.y + Math.sin(th) * d.r * ls, LC.z + d.z);
+      _pc.copy(_cellP[d.cell]).addScaledVector(SN_N, 1.2); _pc.z += 0.5;
+      dummy.position.copy(bez(_cellP[d.cell], _pc, _pb, ae));
+      dummy.quaternion.copy(_camQ).multiply(_pq2.setFromAxisAngle(_pc.set(0, 0, 1), d.sp * tm + i));
+      dummy.scale.setScalar(Math.max(0.001, d.sz * ls * mix(0.5, 1, ae)));
+      dummy.updateMatrix(); asteroids.setMatrixAt(i, dummy.matrix);
+    }
+    asteroids.instanceMatrix.needsUpdate = true;
+  }
+  // HUD panels: up out of the back of the box, then docked around the system, facing the lens.
+  hud.forEach((p, i) => {
+    const dock = HUD[i][L ? 4 : 3], pe = easeIO(clamp((P - PIPE_T.live[0] - 0.05 - i * 0.02) / 0.12));
+    p.obj.visible = !!dock && pe > 0.002 && lout < 0.999 && (!p.px || !!p.mat.map);
+    hudOn[i] = p.obj.visible;
+    if (!p.obj.visible) return;
+    const sc = (L ? 0.62 : 1) * (1 - lout);
+    _pb.set(LC.x + dock[0] * (L ? 1 : 1), LC.y, LC.z + dock[1]);
+    _pa.set(dock[0] * 0.2, 0.9, 0.8); _pc.set(dock[0] * 0.6, 0.9, _pb.z + 0.5);   // up out of the back of the box, away from the arms, then out to the dock
+    p.obj.position.copy(bez(_pa, _pc, _pb, pe));
+    p.obj.scale.setScalar(Math.max(0.001, sc * mix(0.3, 1, pe)));
+    p.obj.lookAt(cam.position);
+  });
+  // Code modules: up out of the box into the tangle, then arm 0 carries each one to its rack slot.
+  const re = easeOut(clamp((P - T_CODE_IN + 0.04) / 0.1)), rout = sout;
+  rack.visible = re > 0.002 && rout < 0.999;
+  rack.position.copy(RACK_POS[L]); rack.lookAt(cam.position); rack.scale.setScalar(Math.max(0.001, re * (L ? 0.7 : 1) * (1 - rout)));
+  rack.updateMatrix();
+  let seated = 0;
+  codeCards.forEach((g, i) => {
+    const t0 = T_CODE_IN + i * 0.016, a = T_CODE0 + i * T_CODE_STEP, b = a + T_CODE_DUR, d = codeD[i];
+    g.visible = P > t0 && rout < 0.999 && rack.visible;
+    codeOn[i] = 0;
+    if (!g.visible) return;
+    // Tangle position at time P (turning slowly about the knot).
+    const th = d.ph + tm * d.w * 0.6 + P * 3;
+    _pd.copy(KNOT[L]).add(_psc.set(Math.cos(th) * d.r, Math.sin(th * 0.7) * d.r * 0.6, Math.sin(th) * d.r * 0.7));
+    const rise = easeOut(clamp((P - t0) / 0.08));
+    const sl = slotLocal(i).applyMatrix4(rack.matrix);
+    _rackN.set(0, 0, 1).applyQuaternion(rack.quaternion);
+    let u = clamp((P - a) / (b - a));
+    if (P < a) {                                                       // out of the box, into the tangle
+      _pa.set(-0.7, -0.35 + i * 0.05, 0.8); _pc.set(-1.9, -0.9, 1.3); g.position.copy(bez(_pa, _pc, _pd, rise));   // out over the left wall, wide of the sheet
+      g.quaternion.setFromEuler(_eu.set(d.tilt + tm * 0.3, d.ph + tm * 0.4, d.tilt * 0.5));
+    } else if (u < 1) {                                                // carried: a level arc to in front of the slot, then in
+      _pa.copy(sl).addScaledVector(_rackN, 0.32);
+      // The module comes out of the tangle to the waiting claw (the claw does not reach in), then rides to the slot.
+      _pw.copy(KNOT[L]).addScaledVector(KNOT_OUT, KNOT_WAIT - CARD_HOVER);
+      if (u < 0.25) g.position.lerpVectors(_pd, _pw, easeIO(u / 0.25));
+      else if (u < 0.72) { const e = easeIO((u - 0.25) / 0.47); _pc.copy(_pw).addScaledVector(KNOT_OUT, 0.2); g.position.copy(bez(_pw, _pc, _pa, e)); }
+      else g.position.lerpVectors(_pa, sl, easeOut((u - 0.72) / 0.28));
+      _pq.setFromEuler(_eu.set(d.tilt, d.ph, d.tilt * 0.5)); _pq2.setFromUnitVectors(ZUP_D, KNOT_OUT);
+      if (u < 0.25) g.quaternion.copy(_pq).slerp(_pq2, easeIO(u / 0.25)); else g.quaternion.copy(_pq2).slerp(rack.quaternion, ss(0.25, 0.65, u));
+    } else { g.position.copy(sl); g.quaternion.copy(rack.quaternion); seated++; }
+    g.scale.setScalar(Math.max(0.001, (L ? 0.7 : 1) * (1 - rout) * mix(0.3, 1, rise)));
+    if (u < 1) { codeOn[i] = 1; codePos[i].copy(g.position); codeQ[i].copy(g.quaternion); codeSc[i] = g.scale.x; }
+    if (P >= a && u < 1) {                                             // arm 0 holds it from the face side
+      // The claw stays on the arm's side of the tangle, then turns to the rack face for the slot.
+      _pv.copy(KNOT_OUT).lerp(_rackN, ss(0.3, 0.75, u)).normalize();
+      armTips[0].tip.copy(g.position).addScaledVector(_pv, CARD_HOVER); const tp = armTips[0];
+      tp.has = true; tp.grip = u > 0.04; tp.work = true; tp.lift = 0; tp.own = ID_CODE + i;
+    } else if (P > T_CODE0 - 0.05 && P < T_CODE0 + NCODE * T_CODE_STEP && armTips[0].own < 0) {   // between modules: wait over the tangle
+      const tp = armTips[0]; tp.tip.copy(KNOT[L]).addScaledVector(KNOT_OUT, KNOT_WAIT); tp.has = true;
+    }
+  });
+  // Links: from every linked atlas cell to its module once the module sits in the rack.
+  links.visible = sheet.visible && seated > 0 && P < T_TILE0 - 0.02;   // gone before the tiles leave their cells
+  if (links.visible) {
+    const pos = linkGeo.attributes.position.array, col = linkGeo.attributes.color.array;
+    const pulse = 0.55 + 0.45 * Math.sin(tm * 2.4);
+    LINKS.forEach(([i, kc], n) => {
+      const on = P > T_CODE0 + i * T_CODE_STEP + T_CODE_DUR ? clamp((P - (T_CODE0 + i * T_CODE_STEP + T_CODE_DUR)) / 0.05) : 0;
+      const sl = slotLocal(i).applyMatrix4(rack.matrix), o = n * 12;
+      _pa.set(((kc % AT_COLS) - 3.5) * CELL_W, (1.5 - Math.floor(kc / AT_COLS)) * CELL_W, 0.01).applyMatrix4(sheet.matrix);
+      _pb.set(-SH_W / 2 - 0.04, (1.5 - Math.floor(kc / AT_COLS)) * CELL_W, 0.01).applyMatrix4(sheet.matrix);
+      pos[o] = _pa.x; pos[o + 1] = _pa.y; pos[o + 2] = _pa.z; pos[o + 3] = _pb.x; pos[o + 4] = _pb.y; pos[o + 5] = _pb.z;
+      pos[o + 6] = _pb.x; pos[o + 7] = _pb.y; pos[o + 8] = _pb.z; pos[o + 9] = sl.x; pos[o + 10] = sl.y; pos[o + 11] = sl.z;
+      const k2 = on * pulse * (1 - back * 0.5);
+      for (let q = 0; q < 4; q++) { const f = q < 2 ? 0.75 : 1; col[o + q * 3] = 1.0 * k2 * f; col[o + q * 3 + 1] = (q === 3 ? 0.8 : 0.62) * k2 * f; col[o + q * 3 + 2] = (q === 3 ? 0.4 : 0.18) * k2 * f; }
+    });
+    linkGeo.attributes.position.needsUpdate = true; linkGeo.attributes.color.needsUpdate = true;
+  }
+}
+
+/* ---------- tentacle avoidance: no arm touches any component ----------
+ * Every component has a proxy, rebuilt each frame from its animated pose (device frame): spheres for the
+ * planets, the star, asteroids, cards in flight, and samples along the conduits; oriented boxes for the
+ * tool windows, the atlas sheet (with its slotted cards), the station tiles, the deck plate, and the lid.
+ * After each chain is solved and trailed, every drawn joint is pushed out of every proxy by its vertebra
+ * radius plus a margin, then the segment lengths are restored from the root; three rounds, and a final
+ * push. Joints are at most 0.1 apart and every proxy is inflated by at least 0.053, so no segment can
+ * cross a proxy between two cleared joints. Each arm also clears the arms drawn before it this frame. The
+ * one allowed contact: a tool tip on the part it is placing (its own card, tile, or the lid). The claw
+ * reaches 0.11 past the tip, so tips hold 0.22 off the part and the fingers stop 0.11 above it.
+ *   gatherProxies()   avoid(chain, arm, isSub, wave)   tentacleCheck() (?collide: counts in CSTAT.t)
+ */
+const CARD_HOVER = 0.3, GUIDE_U = 0.8;   // the arm meets its card halfway up the face, clear of the ports   // over a sliding card the claw stays higher: the next cards come in under it
+const PX_MARGIN = 0.025, NSPH = 300, NOBB = 64, TIP_HOVER = 0.22, CLAW_L = 0.11, CLAW_R = 0.03, SOCKET_R = 0.035;
+const sphC = Array.from({ length: NSPH }, () => new THREE.Vector3()), sphR = new Float32Array(NSPH), sphK = new Uint8Array(NSPH), sphId = new Int16Array(NSPH);
+const obbC = Array.from({ length: NOBB }, () => new THREE.Vector3()), obbX = Array.from({ length: NOBB }, () => new THREE.Vector3());
+const obbY = Array.from({ length: NOBB }, () => new THREE.Vector3()), obbZ = Array.from({ length: NOBB }, () => new THREE.Vector3());
+const obbH = Array.from({ length: NOBB }, () => new THREE.Vector3()), obbK = new Uint8Array(NOBB), obbId = new Int16Array(NOBB);
+let nSph = 0, nObb = 0;
+const PXK = ['', 'planet', 'asteroid', 'card', 'conduit', 'window', 'sheet', 'tile', 'deck', 'lid', 'arm', 'panel', 'code', 'rack', 'link'];
+const ID_CARD = 100, ID_TILE = 200, ID_LID = 300, ID_DECK = 400, ID_WIN = 500, ID_SHEET = 600, ID_HUD = 700, ID_CODE = 800, ID_RACK = 900;
+const _pv = new THREE.Vector3(), _pv2 = new THREE.Vector3(), _pv3 = new THREE.Vector3();
+function addSph(p, r, k, id) { if (nSph >= NSPH || r <= 0) return; sphC[nSph].copy(p); sphR[nSph] = r; sphK[nSph] = k; sphId[nSph] = id; nSph++; }
+// An oriented box: center offset and half extents in the object's local frame (before its scale). obj is a child of asm.
+function addObb(obj, cx, cy, cz, hx, hy, hz, k, id) {
+  if (nObb >= NOBB) return; const i = nObb++;
+  obj.updateMatrix();
+  obbC[i].set(cx, cy, cz).applyMatrix4(obj.matrix);
+  obbX[i].set(1, 0, 0).applyQuaternion(obj.quaternion); obbY[i].set(0, 1, 0).applyQuaternion(obj.quaternion); obbZ[i].set(0, 0, 1).applyQuaternion(obj.quaternion);
+  obbH[i].set(hx * obj.scale.x, hy * obj.scale.y, hz * obj.scale.z); obbK[i] = k; obbId[i] = id;
+}
+// Cards in flight and the conduit curves, written by updatePipeline().
+const cardPos = Array.from({ length: NCELL }, () => new THREE.Vector3()), cardRad = new Float32Array(NCELL), cardQ = Array.from({ length: NCELL }, () => new THREE.Quaternion());
+const cardObj = new THREE.Object3D();          // a stand-in so addObb can read a card's pose
+const conduitCurve = [null, null, null];
+function gatherProxies() {
+  nSph = nObb = 0;
+  if (star.visible) addSph(star.position, STAR_R * 1.6 * star.scale.x, 1, 1);   // the bright corona, not just the disc
+  planets.forEach((m, i) => { if (m.visible) addSph(m.position, m.scale.x, 1, 2 + i); });
+  if (asteroids.visible) for (let i = 0; i < NAST; i++) { asteroids.getMatrixAt(i, dummy.matrix); dummy.matrix.decompose(_pv, _q, _sc); addSph(_pv, _sc.x * 0.55, 2, 20 + i); }
+  if (cards.visible) for (let k2 = 0; k2 < NCELL; k2++) if (cardRad[k2] > 0) {
+    cardObj.position.copy(cardPos[k2]); cardObj.quaternion.copy(cardQ[k2]); cardObj.scale.set(1, 1, 1);
+    addObb(cardObj, 0, 0, 0, cardRad[k2] / 2, cardRad[k2] / 2, 0.006, 3, ID_CARD + k2); }
+  // The card streams as tubes (window to under the bottom edge, both sides): a card in flight can jump past a
+  // thin proxy between frames, so the arms keep out of the whole lane, not just the card.
+  if (cards.visible && P_ < PIPE_T.flow[1] + FLIGHT) {
+    const rS = CELL_W * 0.94 * sheet.scale.x * 0.75 + 0.03;
+    for (let w = 0; w < 3; w++) for (let n = 1; n <= 10; n++) addSph(streamAt(_pv, w, winSide[w] * SH_W / 4, n / 10 * 0.8), rS, 4, 95 + w);
+  }
+  conduits.forEach((m, w) => { if (!m.visible || !conduitCurve[w]) return;
+    for (let n = 0; n <= 16; n++) addSph(conduitCurve[w].getPoint(n / 16, _pv), 0.012, 4, 90 + w); });
+  windows.forEach((w, i) => { if (w.obj.visible) addObb(w.obj, 0, 0, 0, WIN_W / 2 + 0.035, WIN_H / 2 + 0.035, 0.025, 5, ID_WIN + i); });
+  if (sheet.visible) addObb(sheet, 0, 0.045, 0, SH_W / 2 + 0.1, SH_H / 2 + 0.145, 0.035, 6, ID_SHEET);
+  tiles.forEach((tl, i) => { if (tl.obj.visible) addObb(tl.obj, 0, 0, 0.006, TILE * 0.49, TILE * 0.49, 0.012, 7, ID_TILE + i); });
+  if (deck.visible) addObb(deck, 0, 0, DECK_H - DECK_PT / 2, DECK.w / 2, DECK.h / 2, DECK_PT / 2, 8, ID_DECK);
+  hud.forEach((p, i) => { if (hudOn[i]) addObb(p.obj, 0, 0, 0, p.w / 2 + 0.025, p.h / 2 + 0.025, 0.02, 11, ID_HUD + i); });
+  for (let i = 0; i < NCODE; i++) if (codeOn[i]) { cardObj.position.copy(codePos[i]); cardObj.quaternion.copy(codeQ[i]); cardObj.scale.setScalar(codeSc[i]);
+    addObb(cardObj, 0, 0, 0, CODE_W / 2 + 0.01, CODE_H / 2 + 0.01, 0.012, 12, ID_CODE + i); }
+  if (rack.visible) addObb(rack, 0, 0, -0.005, RACK_W / 2 + 0.03, RACK_H / 2 + 0.03, 0.03, 13, ID_RACK);   // seated modules are part of the rack
+  if (links.visible) { const pa = linkGeo.attributes.position.array, col = linkGeo.attributes.color.array;
+    for (let n = 0; n < LINKS.length; n++) { const o = n * 12 + 6; if (col[o] <= 0.01) continue;   // the leg off the sheet (the face leg lies under the sheet's own clearance)
+      for (let q = 1; q < 6; q++) { const f = q / 6; _pv.set(mix(pa[o], pa[o + 3], f), mix(pa[o + 1], pa[o + 4], f), mix(pa[o + 2], pa[o + 5], f)); addSph(_pv, 0.01, 14, 960 + n); } } }
+  if (lid.visible) { addObb(lid, 0, 0, 0.015, TW / 2, THt / 2, 0.015, 9, ID_LID); addObb(lid, DISP.x, DISP.y, 0.045, DISP.w / 2 + 0.03, DISP.h / 2 + 0.03, 0.016, 9, ID_LID); }
+}
+// Push point p out of every proxy except `own`, to clearance R. Returns nothing; p is moved in place.
+// Broad phase: avoid() lists the proxies near the chain it clears (locS, locO); pushPoint reads only those.
+const locS = new Int16Array(NSPH), locO = new Int16Array(NOBB); let nLocS = 0, nLocO = 0;
+function localProxies(c) {
+  let x0 = 1e9, y0 = 1e9, z0 = 1e9, x1 = -1e9, y1 = -1e9, z1 = -1e9;
+  for (let i = 0; i <= c.n; i++) { const q = c.q[i]; if (q.x < x0) x0 = q.x; if (q.x > x1) x1 = q.x; if (q.y < y0) y0 = q.y; if (q.y > y1) y1 = q.y; if (q.z < z0) z0 = q.z; if (q.z > z1) z1 = q.z; }
+  const m = LOCAL_PAD; x0 -= m; y0 -= m; z0 -= m; x1 += m; y1 += m; z1 += m;
+  nLocS = nLocO = 0;
+  for (let i = 0; i < nSph; i++) { const cc = sphC[i], r = sphR[i];
+    if (cc.x + r > x0 && cc.x - r < x1 && cc.y + r > y0 && cc.y - r < y1 && cc.z + r > z0 && cc.z - r < z1) locS[nLocS++] = i; }
+  for (let b = 0; b < nObb; b++) { const cc = obbC[b], h = obbH[b], X = obbX[b], Y = obbY[b], Z = obbZ[b];
+    const ex = Math.abs(X.x) * h.x + Math.abs(Y.x) * h.y + Math.abs(Z.x) * h.z, ey = Math.abs(X.y) * h.x + Math.abs(Y.y) * h.y + Math.abs(Z.y) * h.z, ez = Math.abs(X.z) * h.x + Math.abs(Y.z) * h.y + Math.abs(Z.z) * h.z;
+    if (cc.x + ex > x0 && cc.x - ex < x1 && cc.y + ey > y0 && cc.y - ey < y1 && cc.z + ez > z0 && cc.z - ez < z1) locO[nLocO++] = b; }
+}
+const LOCAL_PAD = 0.45;   // > the claw reach (CLAW_L) + the largest clearance + a push step
+function pushPoint(p, R, own) {
+  for (let n = 0; n < nLocS; n++) {
+    const i = locS[n];
+    if (sphId[i] === own) continue;
+    const rr = sphR[i] + R; _pv.copy(p).sub(sphC[i]); const d2 = _pv.lengthSq();
+    if (d2 < rr * rr) { const d = Math.sqrt(d2); if (d < 1e-6) _pv.set(0, 0, 1); else _pv.multiplyScalar(1 / d); p.copy(sphC[i]).addScaledVector(_pv, rr); }
+  }
+  for (let n = 0; n < nLocO; n++) {
+    const b = locO[n];
+    if (obbId[b] === own) continue;
+    _pv.copy(p).sub(obbC[b]);
+    const lx = _pv.dot(obbX[b]), ly = _pv.dot(obbY[b]), lz = _pv.dot(obbZ[b]), ex = obbH[b].x + R, ey = obbH[b].y + R, ez = obbH[b].z + R;
+    if (Math.abs(lx) < ex && Math.abs(ly) < ey && Math.abs(lz) < ez) {
+      const px = ex - Math.abs(lx), py = ey - Math.abs(ly), pz = ez - Math.abs(lz);
+      // The sheet, the tiles and the deck have one working face (+z) and the arms always come from that side:
+      // over the face, push out through it, never through the back where the arm can not follow.
+      // Past an edge, the way out is through the face or over the edge, never through the back.
+      const face = (obbK[b] >= 6 && obbK[b] <= 8) || obbK[b] === 13, pzF = face ? ez - lz : pz;
+      if (face && Math.abs(lx) < obbH[b].x && Math.abs(ly) < obbH[b].y) p.addScaledVector(obbZ[b], ez - lz);
+      else if (face && pzF <= px && pzF <= py) p.addScaledVector(obbZ[b], pzF);
+      else if (!face && pz <= px && pz <= py) p.addScaledVector(obbZ[b], (lz >= 0 ? 1 : -1) * pz);
+      else if (px <= py) p.addScaledVector(obbX[b], (lx >= 0 ? 1 : -1) * px);
+      else p.addScaledVector(obbY[b], (ly >= 0 ? 1 : -1) * py);
+    }
+  }
+}
+// Closest point on segment ab to p (written to out).
+function closestOnSeg(out, p, a, b) {
+  _pv2.copy(b).sub(a); const l2 = _pv2.lengthSq();
+  const t = l2 > 1e-12 ? clamp(_pv3.copy(p).sub(a).dot(_pv2) / l2) : 0;
+  return out.copy(a).addScaledVector(_pv2, t);
+}
+const rMain = (c, i) => mix(0.05, 0.028, i / c.n), rSub = (c, i) => mix(0.026, 0.016, i / c.n);
+const drawnChains = [];                       // chains already drawn this frame: { c, j, isSub, wave }
+let prevChains = [];                          // last frame's chains: the arms not drawn yet this frame are still there
+// Push p out of the capsules of the other arms: this frame's for the arms drawn before j, last frame's for the
+// arms after j. Without the second set, an earlier arm can put its tip on the root of a later arm, which can not move.
+function pushArms(p, R, j) {
+  for (const dc of drawnChains) pushCaps(p, R, j, dc);
+  for (const dc of prevChains) if (dc.j > j) pushCaps(p, R, j, dc);
+}
+function pushCaps(p, R, j, dc) {
+  if (dc.j === j) return;
+  const bb = dc.bb, m = R + 0.06 + dc.wave;                      // the chain's box: most points are far from it
+  if (p.x < bb[0] - m || p.x > bb[3] + m || p.y < bb[1] - m || p.y > bb[4] + m || p.z < bb[2] - m || p.z > bb[5] + m) return;
+  const c = dc.c;
+  for (let i = 0; i < c.n; i++) {
+    if (c.len[i] <= 1e-4) continue;
+    closestOnSeg(_pv3, p, c.q[i], c.q[i + 1]);
+    const rr = R + (dc.isSub ? rSub(c, i + 0.5) : rMain(c, i + 0.5)) + dc.wave;
+    _pv.copy(p).sub(_pv3); const d2 = _pv.lengthSq();
+    if (d2 < rr * rr) { const d = Math.sqrt(d2); if (d < 1e-6) _pv.set(0, 0, 1); else _pv.multiplyScalar(1 / d); p.copy(_pv3).addScaledVector(_pv, rr); }
+  }
+}
+// Clear the claw (CLAW_L past the tip): its far end, then its quarter points, since a thin card or tile edge fits
+// between the tip and the far end. Each shift moves the tip joint with it.
+function clawOut(c, i, own, j) {
+  _pv.copy(c.q[i]).sub(c.q[i - 1]); const d = _pv.length(); if (d <= 1e-6) return;
+  _pv.multiplyScalar(CLAW_L / d);
+  for (const f of CLAW_F) {
+    _e.copy(c.q[i]).addScaledVector(_pv, f); const ox = _e.x, oy = _e.y, oz = _e.z;
+    for (let r = 0; r < 2; r++) { pushPoint(_e, CLAW_R + PX_MARGIN, own); pushArms(_e, CLAW_R + PX_MARGIN, j); }
+    c.q[i].x += _e.x - ox; c.q[i].y += _e.y - oy; c.q[i].z += _e.z - oz;
+  }
+}
+const CLAW_F = [1, 0.5, 0.25, 0.75, 1];
+// The constraint pass for one drawn chain (c.q), after trail(). wave: the vertebra wave amplitude.
+function avoid(c, j, isSub, wave) {
+  const own = isSub ? -1 : armTips[j].own, rad = isSub ? rSub : rMain;
+  localProxies(c);
+  const pass = restore => {
+    for (let i = 1; i <= c.n; i++) {
+      if (c.len[i - 1] <= 1e-4) continue;
+      const tip = i === c.n;
+      const R = (tip ? (isSub ? SOCKET_R : CLAW_R) : rad(c, i)) + PX_MARGIN + wave;
+      if (tip && !isSub) clawOut(c, i, own, j);   // the claw reaches CLAW_L past the tip: clear its far end first
+      for (let r = 0; r < 2; r++) { pushPoint(c.q[i], R, tip ? own : -1); pushArms(c.q[i], R, j); }
+      wallOut(c.q[i], 0.035);
+    }
+    // Segment midpoints: two cleared joints can still cut a box corner between them, so clear the middle too
+    // (both ends move with it).
+    // The settle passes also clear the quarter points: a thin card edge fits between a joint and the midpoint.
+    for (let i = 0; i < c.n; i++) {
+      if (c.len[i] <= 1e-4) continue;
+      const last = i === c.n - 1, R = rad(c, i + 0.5) + PX_MARGIN + wave;
+      for (let f = restore ? 0.5 : 0.25; f < 0.9; f += 0.25) {
+        _a.copy(c.q[i]).lerp(c.q[i + 1], f); _b.copy(_a);
+        for (let r = 0; r < 2; r++) { pushPoint(_a, R, last ? own : -1); pushArms(_a, R, j); }
+        _a.sub(_b); if (_a.lengthSq() < 1e-12) continue;
+        c.q[i + 1].add(_a); if (i > 0) c.q[i].add(_a);
+      }
+    }
+    if (!restore) return;
+    for (let i = 0; i < c.n; i++) {
+      const l = c.len[i]; if (l <= 1e-4) { c.q[i + 1].copy(c.q[i]); continue; }
+      _pv.copy(c.q[i + 1]).sub(c.q[i]); const d = _pv.length(); if (d < 1e-6) continue;
+      c.q[i + 1].copy(c.q[i]).addScaledVector(_pv, l / d);
+    }
+  };
+  pass(true); pass(true); pass(true); pass(false); pass(false); pass(false);
+  // The point shifts move joints that were already clear: clear the joints, the quarter points, and the joints
+  // again, with no wall or length step after them.
+  const joints = () => {
+    for (let i = 1; i <= c.n; i++) {
+      if (c.len[i - 1] <= 1e-4) continue;
+      const tip = i === c.n, R = (tip ? (isSub ? SOCKET_R : CLAW_R) : rad(c, i)) + PX_MARGIN + wave;
+      for (let r = 0; r < 2; r++) { pushPoint(c.q[i], R, tip ? own : -1); pushArms(c.q[i], R, j); if (tip && !isSub) clawOut(c, i, own, j); }   // the claw has the last word
+    }
+  };
+  joints();
+  for (let i = 0; i < c.n; i++) {
+    if (c.len[i] <= 1e-4) continue;
+    const last = i === c.n - 1, R = rad(c, i + 0.5) + PX_MARGIN + wave;
+    for (let f = 0.25; f < 0.9; f += 0.25) {
+      _a.copy(c.q[i]).lerp(c.q[i + 1], f); _b.copy(_a);
+      pushPoint(_a, R, last ? own : -1); pushArms(_a, R, j);
+      _a.sub(_b); if (_a.lengthSq() < 1e-12) continue;
+      c.q[i + 1].add(_a); if (i > 0) c.q[i].add(_a);
+    }
+  }
+  joints();
+  const bb = [1e9, 1e9, 1e9, -1e9, -1e9, -1e9];
+  for (let i = 0; i <= c.n; i++) { const q = c.q[i]; bb[0] = Math.min(bb[0], q.x); bb[1] = Math.min(bb[1], q.y); bb[2] = Math.min(bb[2], q.z); bb[3] = Math.max(bb[3], q.x); bb[4] = Math.max(bb[4], q.y); bb[5] = Math.max(bb[5], q.z); }
+  drawnChains.push({ c, j, isSub, wave, bb });
+}
+// ?collide: verify the drawn tentacles against every proxy and against each other (true radii, no margin).
+let DBGHIT = null;
+function tentacleCheck() {
+  const T = CSTAT.t = CSTAT.t || { planet: 0, asteroid: 0, card: 0, conduit: 0, window: 0, sheet: 0, tile: 0, deck: 0, lid: 0, panel: 0, code: 0, rack: 0, link: 0, arm: 0, tool: 0, carried: 0 };
+  let any = 0;
+  const hitSeg = (a, b, R, own) => {          // capsule ab, radius R, vs every proxy except own; returns kind or 0
+    for (let i = 0; i < nSph; i++) { if (sphId[i] === own) continue; closestOnSeg(_pv3, sphC[i], a, b); if (_pv3.distanceTo(sphC[i]) < sphR[i] + R) return sphK[i]; }
+    for (let bx = 0; bx < nObb; bx++) { if (obbId[bx] === own) continue;
+      for (let s2 = 0; s2 <= 4; s2++) { _pv.copy(a).lerp(b, s2 / 4).sub(obbC[bx]);
+        if (Math.abs(_pv.dot(obbX[bx])) < obbH[bx].x + R && Math.abs(_pv.dot(obbY[bx])) < obbH[bx].y + R && Math.abs(_pv.dot(obbZ[bx])) < obbH[bx].z + R) { DBGHIT = [bx, s2, +_pv.dot(obbX[bx]).toFixed(3), +_pv.dot(obbY[bx]).toFixed(3), +_pv.dot(obbZ[bx]).toFixed(3), +obbH[bx].z.toFixed(3), +R.toFixed(3), obbId[bx]]; return obbK[bx]; } } }
+    return 0;
+  };
+  drawnChains.forEach((dc, n) => {
+    const c = dc.c, rad = dc.isSub ? rSub : rMain, own = dc.isSub ? -1 : armTips[dc.j].own;
+    for (let i = 0; i < c.n; i++) {
+      if (c.len[i] <= 1e-4) continue;
+      const last = i === c.n - 1, R = rad(c, i + 0.5) + dc.wave;
+      const k = hitSeg(c.q[i], c.q[i + 1], R, last ? own : -1);
+      if (k) { T[PXK[k]]++; any++; const L2 = (CSTAT.tAt = CSTAT.tAt || {})[PXK[k]] = CSTAT.tAt[PXK[k]] || []; if (L2.length < 4) L2.push([+P_.toFixed(3), dc.j, dc.isSub ? 's' : 'm', i, own, armTips[dc.j].has, DBGHIT, _pv3.copy(c.q[i]).applyMatrix4(_sheetInv).toArray().map(v => +v.toFixed(2)), DBGHIT && DBGHIT[7] >= ID_CARD && DBGHIT[7] < ID_CARD + 100 ? +((P_ - cardT0[DBGHIT[7] - ID_CARD]) / FLIGHT).toFixed(2) : -1]); }
+      for (let m = n + 1; m < drawnChains.length; m++) { const ec = drawnChains[m]; if (ec.j === dc.j) continue;
+        for (let e = 0; e < ec.c.n; e++) { if (ec.c.len[e] <= 1e-4) continue;
+          const R2 = (ec.isSub ? rSub : rMain)(ec.c, e + 0.5) + ec.wave;
+          for (let s2 = 0; s2 <= 4; s2++) { _pv.copy(c.q[i]).lerp(c.q[i + 1], s2 / 4); closestOnSeg(_pv3, _pv, ec.c.q[e], ec.c.q[e + 1]);
+            if (_pv.distanceTo(_pv3) < R + R2) { T.arm++; any++; const L2 = (CSTAT.tAt = CSTAT.tAt || {}).arm = CSTAT.tAt.arm || []; if (L2.length < 6) L2.push([+P_.toFixed(3), dc.j, dc.isSub ? 's' : 'm', i, ec.j, ec.isSub ? 's' : 'm', e]); s2 = 9; e = ec.c.n; } } } }
+    }
+    // Tools: the claw (main tip, CLAW_L past it) and the socket (sub tip).
+    const tq = c.q[c.n], pq = c.q[c.n - 1];
+    if (c.len[c.n - 1] > 1e-4) {
+      if (dc.isSub) { const k = hitSeg(tq, tq, SOCKET_R, -1); if (k) { T.tool++; any++; } }
+      else { _pv.copy(tq).sub(pq).normalize(); _e.copy(tq).addScaledVector(_pv, CLAW_L); const k = hitSeg(tq, _e, CLAW_R, own); if (k) { T.tool++; any++; const L2 = (CSTAT.tAt = CSTAT.tAt || {}).tool = CSTAT.tAt.tool || []; if (L2.length < 4) L2.push([+P_.toFixed(3), dc.j, 'claw', PXK[k], own, DBGHIT, +_pv3.copy(tq).sub(sheet.position).dot(SN_N).toFixed(3), +_pv3.copy(armTips[dc.j].tip).sub(sheet.position).dot(SN_N).toFixed(3), +tq.distanceTo(armTips[dc.j].tip).toFixed(3)]); } }
+    }
+  });
+  // Carried tiles in flight vs every other proxy (their own seat on the deck is the allowed contact).
+  for (const bt of inFlight) {
+    if (!(bt.cell != null)) continue;
+    const id = ID_TILE + tiles.findIndex(tl => tl.obj === bt.obj);
+    bt.obj.updateMatrix();
+    for (let cx = -1; cx <= 1; cx += 2) for (let cy = -1; cy <= 1; cy += 2) {
+      _e.set(cx * TILE * 0.49, cy * TILE * 0.49, 0.006).applyMatrix4(bt.obj.matrix);
+      for (let i = 0; i < nSph; i++) if (_e.distanceTo(sphC[i]) < sphR[i]) { T.carried++; any++; const L2 = (CSTAT.tAt = CSTAT.tAt || {}).carried = CSTAT.tAt.carried || []; if (L2.length < 4) L2.push([+P_.toFixed(3), PXK[sphK[i]]]); }
+      for (let bx = 0; bx < nObb; bx++) { if (obbId[bx] === id || obbId[bx] === ID_DECK) continue; _pv.copy(_e).sub(obbC[bx]);
+        if (Math.abs(_pv.dot(obbX[bx])) < obbH[bx].x && Math.abs(_pv.dot(obbY[bx])) < obbH[bx].y && Math.abs(_pv.dot(obbZ[bx])) < obbH[bx].z) { T.carried++; any++; const L2 = (CSTAT.tAt = CSTAT.tAt || {}).carried = CSTAT.tAt.carried || []; if (L2.length < 4) L2.push([+P_.toFixed(3), PXK[obbK[bx]], obbId[bx]]); } }
+    }
+  }
+  return any;
+}
+
 /* ---------- update ---------- */
 const HEAD_T = [0.04, 0.3], HANDLE_T = [0.16, 0.42], NUT_T = [0.3, 0.5], JOIN = 0.42;
-const SCREEN_ON = 2.99, T_LED = 3.01, T_PULSE = 3.07;
+const SCREEN_ON = 2.99;
 const T_FLOOR = [0.55, 0.8], T_WALLS = [0.64, 0.9], T_BOSS = [0.84, 1.0], T_ST = [0.98, 1.1];
 let lastP = -99;
 const wq = new THREE.Quaternion(), wsv = new THREE.Vector3();
@@ -1813,13 +2528,8 @@ function update(P, t) {
   fly(walls, V(0, 0, 0), mob ? V(0, -1.6, 0.8) : V(0, -1.4, 1.0), V(0, 0.1, 0.12), V(0, 0, 0.05), qZ(0.2), aw);
   lock(shell.st, aw.done, t);
   shadowMat.opacity = 0.75 * ss(...T_FLOOR, P);
-  lblAudio.visible = P > 1.62; lblNet.visible = P > 2.0;        // floor labels appear with their modules
   BOSS.forEach((b, i) => { const ar = arrive(T_BOSS[0] + i * 0.03, T_BOSS[1] + i * 0.03, P), g = ar.started ? Math.max(0.001, ar.seat * 0.9 + ar.k * 0.1) : 0;
     setInst(bosses, i, V(b.x, b.y, 0), qI, ar.started ? V(1, 1, g) : 0); });   // scale 0, not a flat disc, before it starts
-  MHOLES.forEach((h, i) => { const ar = arrive(T_ST[0] + i * 0.015, T_ST[1] + i * 0.015, P);
-    dummy.visible = true; fly(dummy, mainAt(h[0], h[1], 0), V(0, 0, 0.7), V(0, 0.1, 0.1), V(0, 0, 0.04), qZ(0.4), ar);
-    dummy.scale.setScalar(ar.started ? 1 : 0); dummy.updateMatrix(); standoffs.setMatrixAt(i, dummy.matrix); });
-  standoffs.instanceMatrix.needsUpdate = true;
 
   // 4. Arms carry modules out of the wrench and place them, one piece per arm at a time, on a planned
   // path: lift vertically to the arm's travel height (above the walls and every seated part), travel
@@ -1827,18 +2537,21 @@ function update(P, t) {
   // so pieces in flight at the same time never meet. Corners are rounded so the motion stays fluid.
   P_ = P;
   const A = anchors(wp);
-  for (let j = 0; j < ARMS; j++) { const tp = armTips[j]; tp.grip = tp.work = tp.has = false; tp.lift = 0; }
+  for (let j = 0; j < ARMS; j++) { const tp = armTips[j]; tp.grip = tp.work = tp.has = false; tp.lift = 0; tp.own = -1; }
   inFlight.length = 0;
+  updatePipeline(P, t, A);
   for (const bt of BEATS) {
     const u = clamp((P - bt.a) / (bt.b - bt.a)), o = bt.obj;
     o.visible = P > bt.a;
     if (!o.visible) continue;
     if (P >= bt.b) { o.position.copy(bt.seat); o.quaternion.setFromAxisAngle(ZUP, bt.rot); o.scale.setScalar(1); continue; }
-    const two = bt.arm === -2, lead = two ? 1 : bt.arm, H = two ? LID_LANE : LANES[bt.arm], ph = bt.ph;
+    const two = bt.arm === -2, lead = two ? 1 : bt.arm, H = two ? LID_LANE : bt.cell != null ? TILE_LANES[bt.arm] : LANES[bt.arm], ph = bt.ph;
     // Staging: below the arm's root, behind the back wall, at the arm's own lane height (never above it),
     // so the path starts level in its lane and two pieces in flight never share a height.
-    _P0.copy(A[lead]); _P0.y -= 0.2; _P0.z = Math.min(A[lead].z - 0.25, H);
-    const top = Math.max(_P0.z, H);
+    // A tile starts at its atlas cell and moves to its lane height first; other pieces start below the arm's root.
+    let top;
+    if (bt.cell != null) { _P0.copy(_cellP[bt.cell]).addScaledVector(SN_N, 0.16); top = H; }   // a level tile clears the 35-degree sheet
+    else { _P0.copy(A[lead]); _P0.y -= 0.2; _P0.z = Math.min(A[lead].z - 0.25, H); top = Math.max(_P0.z, H); }
     _P1.set(_P0.x, _P0.y, top); _P2.set(bt.seat.x, bt.seat.y, top); _P3.copy(bt.seat);
     let sc = 1, grip = true, lift = 0;
     const hl = pathHL(_P0, _P1, _P2, _P3), L = PS[5];
@@ -1857,17 +2570,12 @@ function update(P, t) {
     for (let n = 0; n < nA; n++) {
       const j = two ? LID_ARMS[n] : bt.arm, tp = armTips[j];
       if (two) tp.tip.copy(_pos).add(_e.copy(LID_GRIPS[n]).applyQuaternion(o.quaternion)); else tp.tip.copy(_pos);
-      tp.tip.z += two ? bt.top : bt.top * sc + 0.02;
+      tp.tip.z += (two ? bt.top : bt.top * sc) + TIP_HOVER;          // the claw reaches down to just above the part
       tp.has = true; tp.grip = grip && u > 0.04; tp.work = grip; tp.lift = lift;
+      tp.own = two ? ID_LID : bt.cell != null ? ID_TILE + tiles.findIndex(tl => tl.obj === o) : -1;
       if (!grip) { const r = easeIO((u - ph.rel) / (1 - ph.rel)); idleTip(j, A[j], _e); tp.tip.lerp(_e, r); tp.tip.z += 0.08 * Math.sin(Math.PI * r); }  // recoil, then relax
     }
   }
-  if (P > 2.12 && P < 2.3) { sdCard.visible = true; const e = easeIO(clamp((P - 2.12) / 0.14)); sdCard.position.copy(mainAt(Z.SAVE[0], Z.SAVE[1] - 0.3 * (1 - e), ZT + 0.016)); }
-  else sdCard.visible = P >= 2.3; if (P >= 2.3) sdCard.position.copy(mainAt(Z.SAVE[0], Z.SAVE[1], ZT + 0.016));
-  // Cables grow.
-  [[coax, 2.04, 2.16], [wR, 2.12, 2.26], [wB, 2.14, 2.28], [ribbon, 2.08, 2.22]].forEach(([c, a, b]) => {
-    const e = easeIO(clamp((P - a) / (b - a))); c.m.visible = e > 0; c.m.geometry.setDrawRange(0, Math.floor(e * c.n / 3) * 3); });
-  bulk.visible = P > 2.0;
 
   // 5. The swarm: only moving parts write their matrix. Branch arms hover over driving screws.
   const subT = [null, null, null];
@@ -1885,11 +2593,10 @@ function update(P, t) {
     if (pt.spin) q.multiply(qZ(pt.spin * (1 - ar.seat)));
     setInst(pt.mesh, pt.i, pos, q, V(pt.sc, pt.sc, pt.sc * (1 - ar.comp * 2)));
   });
-  smd.instanceColor && (smd.instanceColor.needsUpdate = true);
   // Screw-head recesses follow the screws; branch arms track the screw that is driving now.
   screwParts.forEach((pt, n) => {
     const u = clamp((P - pt.a) / (pt.b - pt.a));
-    if (u > 0.55 && u < 1 && pt.grp !== 'smd') { const j = n % 3; if (!subT[j]) subT[j] = pt.seat.clone().add(V(0, 0, 0.035 * pt.sc + 0.02)); }
+    if (u > 0.55 && u < 1) { const j = n % 3; if (!subT[j]) subT[j] = pt.seat.clone().add(V(0, 0, 0.035 * pt.sc + 0.02)); }
     pt.mesh.getMatrixAt(pt.i, dummy.matrix); dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
     dummy.position.add(V(0, 0, 0.0345 * dummy.scale.z)); dummy.updateMatrix(); recess.setMatrixAt(n, dummy.matrix);
   });
@@ -1899,9 +2606,12 @@ function update(P, t) {
   // Draw the arms: deploy staggered (arm 0 first), retract in reverse order. Each arm is a FABRIK chain
   // from its root at the neck to a sprung tip; the sub-arms root near the tip and react a little later.
   const dt = armDt(t, P);
+  gatherProxies(); prevChains = drawnChains.slice(); drawnChains.length = 0;
   for (let j = 0; j < ARMS; j++) {
     const a = A[j], st = armS[j], tp = armTips[j], c = mains[j];
-    const ext = ss(OPEN[0] - 0.02 + j * 0.05, OPEN[0] + 0.1 + j * 0.05, P) * (1 - ss(XB0 + (2 - j) * 0.03, XB0 + 0.08 + (2 - j) * 0.03, P));
+    const extD = ss(OPEN[0] - 0.02 + j * 0.05, OPEN[0] + 0.1 + j * 0.05, P) * (1 - ss(XB0 + (2 - j) * 0.03, XB0 + 0.08 + (2 - j) * 0.03, P));
+    const ext = extD
+      * (1 - 0.75 * Math.max(Math.sin(Math.PI * clamp((P - FEED[0]) / (FEED[1] - FEED[0]))), Math.sin(Math.PI * clamp((P - FEED[2]) / (FEED[3] - FEED[2])))));   // drawn in while the wrench moves
     if (!tp.has) idleTip(j, a, tp.tip);
     // Idle breathing sway on the tip target.
     const tm = s.reduceMotion ? 0 : t;
@@ -1912,13 +2622,14 @@ function update(P, t) {
     damp(st.tip, st.tipV, _a, tp.has ? 0.07 : 0.16, dt);
     // Pay out only what the arm needs: the straight distance plus a little slack.
     const need = a.distanceTo(st.tip);
-    payOut(c, ext * Math.min(c.n * c.L, need * 1.12 + 0.05));   // a little slack for a living curve; more would loop
+    payOut(c, ext * Math.min(c.n * c.L, tp.has ? need * 1.04 + 0.03 : need * 1.12 + 0.05));   // taut while carrying: less sag   // a little slack for a living curve; more would loop
     if (dt <= 0) c.init = false;
     _b.set(0, -0.35, -0.94).normalize();                       // out of the neck: forward and down
     fabrik(c, a, st.tip, dt <= 0 ? 24 : 12, 0.5, _b);
     trail(c, dt);
     const show = ext > 0.004, tools = ext > 0.35;   // the tools appear once the arm has paid out, not at the hub
-    const wave = (0.006 + 0.03 * Math.sin(Math.PI * clamp(ext)) * (ext < 0.999 ? 1 : 0) + (tp.has ? 0 : 0.01)) * (s.reduceMotion ? 0 : 1);
+    const wave = (0.006 + 0.03 * Math.sin(Math.PI * clamp(extD)) * (extD < 0.999 ? 1 : 0) + (tp.has ? 0 : 0.01)) * (s.reduceMotion ? 0 : 1);
+    if (show) avoid(c, j, false, wave);              // no joint of the drawn arm inside any component
     drawChain(c, j * (SEGS + SUBS * SUBSEG), 0.05, 0.028, wave, tm * 3.2 + j * 2.1, show);
     // Claw: two fingers along the last segment; open on approach, closed on the grip, eased.
     _c.copy(c.q[c.n]).sub(c.q[c.n - 1]); if (_c.lengthSq() < 1e-9) _c.set(0, 0, -1); _c.normalize();
@@ -1936,10 +2647,13 @@ function update(P, t) {
       else _a.copy(c.q[c.n]).add(_e.set((k2 ? 1 : -1) * 0.15, 0.08, 0.14));
       if (dt <= 0) { st.sub[k2].copy(_a); st.subV[k2].set(0, 0, 0); sc2.init = false; }
       damp(st.sub[k2], st.subV[k2], _a, drive ? 0.1 : 0.2, dt);   // later than the main tip
-      payOut(sc2, ext * Math.min(sc2.n * sc2.L, c.q[rj].distanceTo(st.sub[k2]) * 1.2 + 0.08));
+      // Sub-arms come out only to drive a screw; otherwise they stay folded at the main arm.
+      st.subE = st.subE || [0, 0]; st.subE[k2] += ((drive ? 1 : 0) - st.subE[k2]) * (dt <= 0 ? 1 : 1 - Math.exp(-dt * 6));
+      payOut(sc2, ext * st.subE[k2] * Math.min(sc2.n * sc2.L, c.q[rj].distanceTo(st.sub[k2]) * 1.2 + 0.08));
       _b.copy(c.q[rj]).sub(c.q[rj - 1]).normalize();
       fabrik(sc2, c.q[rj], st.sub[k2], dt <= 0 ? 16 : 6, 1e9, _b);
       trail(sc2, dt);
+      if (show) avoid(sc2, j, true, wave * 0.5);
       drawChain(sc2, j * (SEGS + SUBS * SUBSEG) + SEGS + k2 * SUBSEG, 0.026, 0.016, wave * 0.5, tm * 3.6 + k2, show);
       _c.copy(sc2.q[sc2.n]).sub(sc2.q[sc2.n - 1]); if (_c.lengthSq() < 1e-9) _c.set(0, 0, -1); _c.normalize();
       // Tool orientation: along the sub-arm, turning to the bolt axis (straight down) as it reaches the screw.
@@ -1956,22 +2670,11 @@ function update(P, t) {
   }
   if (COLLIDE) collisionCheck();
 
-  // 6. Display, LEDs, pulses.
-  LEDS.forEach((l, i) => { const e = ss(T_LED + i * 0.05, T_LED + i * 0.05 + 0.05, P);
-    leds.setColorAt(i, LED_OFF.clone().lerp(LED_ON[i], e)); setInst(leds, i, mainAt(l[0], l[1], ZT + 0.006), qI, P > 1.3 ? 1 : 0); });
-  leds.instanceColor.needsUpdate = true;
-  const pe = ss(T_PULSE, T_PULSE + 0.15, P);
-  pulsePaths.forEach((pp, i) => {
-    if (pe <= 0) { setInst(pulses, i, pp.p[0], qI, 0); return; }
-    const d = ((s.reduceMotion ? 0.5 : t * 0.35 + pp.ph) % 1) * pp.tot;
-    let j = 1; while (j < pp.L.length - 1 && pp.L[j] < d) j++;
-    const fr = (d - pp.L[j - 1]) / Math.max(1e-6, pp.L[j] - pp.L[j - 1]);
-    setInst(pulses, i, pp.p[j - 1].clone().lerp(pp.p[j], fr), qI, pe);
-  });
-
   // Lights: the key warms as the build completes and drifts slowly.
   key.color.copy(KEY_COOL).lerp(KEY_WARM, ss(1.0, 2.9, P));
-  key.position.set(-4 + Math.sin(t * 0.13) * 0.5, 5, 4);
+  // In the live stage the key swings across and back, so the normal-map lighting visibly moves.
+  const ka = -0.9 + 2.0 * Math.sin(Math.PI * ss(PIPE_T.live[0], PIPE_T.out[0], P));
+  key.position.set(Math.sin(ka) * 5.6 + Math.sin(t * 0.13) * 0.5, 5, Math.cos(ka) * 5.6);
   cinemaUpdate(P, t);
   updateHeroBolts(P, t);
   primed = true;
@@ -2015,7 +2718,7 @@ function frame(t, dt) {
  */
 // A few stages are enough: the compile covers every program; these renders catch the post passes
 // and the screen. (41 positions cost seconds on phones, and the hero waited on them.)
-const WARM_AT = [0.2, 1.0, 1.4, 2.5, 3.2];
+const WARM_AT = [0.2, 1.0, 1.2, 1.7, 2.15, 2.5, 3.2];
 // Pick the resolution before the canvas shows, so a normal visit never reallocates on screen.
 // Time a few forced renders of the heaviest stage, then take the highest DPR whose predicted cost
 // (scaled by pixel count) fits 75% of the refresh interval. gl.finish() returns at once under
@@ -2050,7 +2753,7 @@ function startScene() {
 // Safety: start after 2.5 s even if warm-up has not finished (a slow GPU or a stalled compile),
 // so no visitor waits on a blank canvas. A late warm-up then skips the probe.
 Promise.race([
-  Promise.all([measureRefresh(), spritesReady.then(() => s.warm(WARM_AT.map(wp => () => { update(wp, 2); runSweeps(99); drawScreen(wp > SCREEN_ON, 3); })))]).then(probeDpr),
+  Promise.all([measureRefresh(), Promise.all([spritesReady, pipeReady, hudReady]).then(() => s.warm(WARM_AT.map(wp => () => { update(wp, 2); runSweeps(99); drawScreen(wp > SCREEN_ON, 3); })))]).then(probeDpr),
   new Promise(r => setTimeout(r, 2500))
 ]).then(startScene);
 document.body.classList.add('live'); document.body.classList.remove('no-webgl');
