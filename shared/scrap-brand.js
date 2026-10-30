@@ -353,12 +353,21 @@
           color: 0xe8a90c, metalness: 1, roughness: 0.42, anisotropy: 0.5
         }, o || {}));
       },
+      // With anisotropy: 0, steel and darkSteel return the cheaper MeshStandardMaterial.
       steel: function (o) {
+        if (o && o.anisotropy === 0 && !o.clearcoat) {
+          var so = Object.assign({}, o); delete so.anisotropy;
+          return new THREE.MeshStandardMaterial(Object.assign({ color: 0xa9adb3, metalness: 1, roughness: 0.45 }, so));
+        }
         return new THREE.MeshPhysicalMaterial(Object.assign({
           color: 0xa9adb3, metalness: 1, roughness: 0.45, anisotropy: 0.6
         }, o || {}));
       },
       darkSteel: function (o) {
+        if (o && o.anisotropy === 0 && !o.clearcoat) {
+          var so = Object.assign({}, o); delete so.anisotropy;
+          return new THREE.MeshStandardMaterial(Object.assign({ color: 0x2c3036, metalness: 1, roughness: 0.52 }, so));
+        }
         return new THREE.MeshPhysicalMaterial(Object.assign({
           color: 0x2c3036, metalness: 1, roughness: 0.52, anisotropy: 0.4
         }, o || {}));
@@ -372,9 +381,8 @@
       brass: function (o) {
         o = Object.assign({}, o || {});
         delete o.repeat;
-        return new THREE.MeshPhysicalMaterial(Object.assign({
-          color: 0xc9a75a, metalness: 1, roughness: 0.32, clearcoat: 0.25, clearcoatRoughness: 0.35
-        }, o));
+        // Standard, not Physical: no clearcoat or anisotropy here, and the physical shader costs more per pixel.
+        return new THREE.MeshStandardMaterial(Object.assign({ color: 0xc9a75a, metalness: 1, roughness: 0.32 }, o));
       },
       // Older, darker brass for secondary parts.
       brassDark: function (o) { return materials.brass(Object.assign({ color: new THREE.Color(0x9c7f3e), roughness: 0.38 }, o || {})); },
@@ -687,12 +695,15 @@
       }
       new ResizeObserver(resize).observe(canvas);
 
-      var hooks = [], clock = new THREE.Clock(), visible = true, running = false;
-      function render() {
+      // held: no frames render. A page holds the stage while it builds the scene and
+      // precompiles its shaders, so no draw call compiles a program on the main thread.
+      var hooks = [], clock = new THREE.Clock(), visible = true, running = false, held = !!opts.hold;
+      function render(force) {
+        if (held && !force) return;
         if (composer) composer.render(); else renderer.render(scene, camera);
       }
       function frame() {
-        if (!visible || reduceMotion) { running = false; return; }
+        if (!visible || reduceMotion || held) { running = false; return; }
         var dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
         pointer.sx += (pointer.x - pointer.sx) * 0.06;
         pointer.sy += (pointer.y - pointer.sy) * 0.06;
@@ -716,7 +727,30 @@
         scene: scene, camera: camera, renderer: renderer, composer: composer, pointer: pointer,
         reduceMotion: reduceMotion,
         onFrame: function (fn) { hooks.push(fn); start(); },
-        render: render
+        render: render,
+        // hold(true) stops rendering; hold(false) resumes the loop.
+        hold: function (on) { held = !!on; if (!held && visible && !reduceMotion) start(); },
+        /*
+         * warm(updates): precompile every program the scene can use, then render once per
+         * update callback (with force) so the post passes and state variants compile too.
+         * All objects are visible during compileAsync, so lazy compiles never happen later.
+         */
+        warm: function (updates) {
+          var shown = [];
+          scene.traverse(function (o) { if (!o.visible) { shown.push(o); o.visible = true; } });
+          var p = renderer.compileAsync ? renderer.compileAsync(scene, camera) : Promise.resolve(renderer.compile(scene, camera));
+          return p.catch(function () {}).then(function () {
+            shown.forEach(function (o) { o.visible = false; });
+            var chain = Promise.resolve();
+            (updates || []).forEach(function (fn) {
+              chain = chain.then(function () {
+                fn(); render(true);
+                return new Promise(function (r) { requestAnimationFrame(function () { r(); }); });
+              });
+            });
+            return chain;
+          });
+        }
       };
     }
 
