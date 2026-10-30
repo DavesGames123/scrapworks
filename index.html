@@ -110,7 +110,7 @@
   .btn.ghost:hover { background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 1px var(--y); }
   /* Stella Nova media: a neutral 16:9 frame until the trailer or screenshot is set in data-src. */
   .sn { position: relative; z-index: 2; background: var(--bg); min-height: 0; justify-content: center; padding: 64px var(--gut) 96px; }
-  .sn-media { width: min(1100px, 100%); aspect-ratio: 16 / 9; border-radius: 14px; background:
+  .sn-media { display: block; object-fit: cover; width: min(1100px, 100%); aspect-ratio: 16 / 9; border-radius: 14px; background:
       linear-gradient(135deg, rgba(255,255,255,.035), rgba(255,255,255,0) 60%), #111215;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 30px 80px rgba(0,0,0,.5); }
   footer { position: relative; z-index: 2; padding: 22px var(--gut); color: var(--mute); font-size: 13px;
@@ -237,7 +237,9 @@
   </section>
 
   <section class="sn" id="stella-nova" aria-label="Stella Nova">
-    <div class="sn-media" data-src=""></div>
+    <video class="sn-media" controls playsinline preload="none" poster="media/stella-nova-poster.jpg" aria-label="Stella Nova trailer">
+      <source src="media/stella-nova-trailer-720.mp4" type="video/mp4">
+    </video>
   </section>
 </main>
 <footer>&copy; 2026 ScrapWorks</footer>
@@ -702,34 +704,51 @@ const lid = new THREE.Group(); lid.visible = false; asm.add(lid);
 // Satin smoked acrylic: a glossy lid caught the rim light and bloomed white, so its specular stays low.
 const acrylic = new THREE.MeshStandardMaterial({ color: 0x1b1f25, transparent: true, opacity: 0.3, roughness: 0.42, metalness: 0, envMapIntensity: 0.4, depthWrite: false });
 lid.add(new THREE.Mesh(k.soft.extrude(rr(TW, THt, 0.16), { depth: 0.03, radius: 0.008 }).translate(0, 0, 0.015), acrylic));
-const DISP = { x: -0.82, y: 0.32, w: 0.72, h: 0.6 };
+// The display covers the lid, inside the ring of lid screws, and plays the Stella Nova trailer.
+const DISP = { x: 0, y: 0, w: TW - 0.28, h: THt - 0.28 };
 lid.add(new THREE.Mesh(k.soft.box(DISP.w + 0.06, DISP.h + 0.06, 0.03, 0.012).translate(DISP.x, DISP.y, 0.045), plastic));
 const SCW = SMALL ? 480 : 720, SCH = Math.round(SCW * DISP.h / DISP.w);
 const scv = document.createElement('canvas'); scv.width = SCW; scv.height = SCH; const sg = scv.getContext('2d');
 const stex = new THREE.CanvasTexture(scv); stex.colorSpace = THREE.SRGBColorSpace; stex.anisotropy = 4;
 const screenMat = new THREE.MeshBasicMaterial({ map: stex, toneMapped: false, color: new THREE.Color(1.12, 1.12, 1.12) });
+/*
+ * Trailer on the display. The video loads only when the build nears power-on, plays muted and looped
+ * while the display is on and in view, and fills the screen (center crop, like CSS object-fit: cover).
+ * The material keeps the same map slot, so swapping canvas and video needs no shader recompile.
+ * The video stays at color 1.0: a value over 1 would push bright frames past the bloom threshold.
+ */
+const vid = document.createElement('video');
+vid.muted = true; vid.loop = true; vid.playsInline = true; vid.setAttribute('playsinline', ''); vid.preload = 'none';
+const VID_SRC = SMALL ? 'media/stella-nova-loop-480.mp4' : 'media/stella-nova-trailer-720.mp4';
+const vtex = new THREE.VideoTexture(vid); vtex.colorSpace = THREE.SRGBColorSpace;
+let vidLoading = false;
+function fitVideo() {   // center crop to the display aspect
+  const va = (vid.videoWidth || 16) / (vid.videoHeight || 9), da = DISP.w / DISP.h;
+  if (va > da) { vtex.repeat.set(da / va, 1); vtex.offset.set((1 - da / va) / 2, 0); }
+  else { vtex.repeat.set(1, va / da); vtex.offset.set(0, (1 - va / da) / 2); }
+}
+vid.addEventListener('loadedmetadata', fitVideo);
+function preloadVideo() { if (!vidLoading) { vidLoading = true; vid.src = VID_SRC; vid.load(); } }
+function videoState(want) {
+  if (want) preloadVideo();
+  if (want && vid.paused && vid.readyState >= 2) vid.play().catch(() => {});
+  if (!want && !vid.paused) vid.pause();
+  const show = want && vid.readyState >= 2 && !vid.paused;
+  const map = show ? vtex : stex;
+  if (screenMat.map !== map) { screenMat.map = map; screenMat.color.setScalar(show ? 1.0 : 1.12); }
+}
 const screen = new THREE.Mesh(new THREE.PlaneGeometry(DISP.w, DISP.h), screenMat); screen.position.set(DISP.x, DISP.y, 0.0605); lid.add(screen);
-// The display shows what Scrap does: the game's objects as a live node graph.
-const NODES = [['Scene', 0.5, 0.16], ['Player', 0.2, 0.42], ['Physics', 0.5, 0.42], ['Renderer', 0.8, 0.42], ['Input', 0.2, 0.7], ['Audio', 0.5, 0.7], ['Assets', 0.8, 0.7], ['Save', 0.35, 0.9], ['Net', 0.65, 0.9]];
-const EDGES = [[0, 1], [0, 2], [0, 3], [1, 2], [1, 4], [1, 5], [3, 6], [2, 5], [5, 6], [1, 7], [0, 8], [6, 7]];
 function drawScreen(on, tb) {
   const W = SCW, H = SCH, F = W / 720;
   sg.fillStyle = '#060402'; sg.fillRect(0, 0, W, H);
   if (on) {
-    const amber = a => `rgba(255,176,0,${a})`;
-    const vis = i => clamp((tb - 0.25 - i * 0.12) / 0.2);
-    sg.lineWidth = 2 * F;
-    EDGES.forEach(([a, b], i) => { const e = Math.min(vis(a), vis(b)); if (e <= 0) return;
-      const A = NODES[a], B = NODES[b]; sg.strokeStyle = amber(0.35 * e); sg.beginPath(); sg.moveTo(A[1] * W, A[2] * H); sg.lineTo(B[1] * W, B[2] * H); sg.stroke();
-      const f = ((tb * 0.5 + i * 0.37) % 1); sg.fillStyle = amber(0.9 * e); sg.beginPath(); sg.arc(mix(A[1], B[1], f) * W, mix(A[2], B[2], f) * H, 3 * F, 0, 7); sg.fill(); });
-    sg.font = `${Math.round(19 * F)}px "Share Tech Mono", ui-monospace, monospace`; sg.textAlign = 'center'; sg.textBaseline = 'middle';
-    NODES.forEach((n, i) => { const e = vis(i); if (e <= 0) return;
-      const bw = 112 * F, bh = 36 * F, x = n[1] * W - bw / 2, y = n[2] * H - bh / 2;
-      sg.fillStyle = `rgba(40,24,2,${0.9 * e})`; sg.fillRect(x, y, bw, bh);
-      sg.strokeStyle = amber(0.85 * e); sg.lineWidth = 1.5 * F; sg.strokeRect(x, y, bw, bh);
-      sg.fillStyle = amber(e); sg.fillText(n[0], n[1] * W, n[2] * H + 1); });
-    sg.textAlign = 'left'; sg.font = `${Math.round(14 * F)}px "Share Tech Mono", ui-monospace, monospace`; sg.fillStyle = amber(0.7 * clamp(tb / 0.3));
-    sg.fillText('SCRAP // OBJECTS  9  LINKS 12', 16 * F, 20 * F);
+    // Boot: one run line, shown until the trailer has frames. Then the video replaces the canvas.
+    const amber = a => `rgba(255,176,0,${a})`, F2 = W / 720;
+    sg.font = `${Math.round(22 * F2)}px "Share Tech Mono", ui-monospace, monospace`; sg.textAlign = 'left'; sg.textBaseline = 'middle';
+    sg.fillStyle = amber(0.9 * clamp(tb / 0.2));
+    sg.fillText('> scrap run stella_nova', 28 * F2, H / 2 - 16 * F2);
+    sg.fillStyle = amber(0.6 * clamp((tb - 0.3) / 0.2));
+    sg.fillText('> loading' + '.'.repeat(1 + Math.floor(tb * 3) % 3), 28 * F2, H / 2 + 18 * F2);
   }
   sg.fillStyle = 'rgba(0,0,0,0.25)'; for (let y = 0; y < H; y += 3) sg.fillRect(0, y, W, 1);
   stex.needsUpdate = true;
@@ -1380,6 +1399,9 @@ function screenTick(t, still) {
   if (on && bootAt < 0) bootAt = t;
   if (!on) bootAt = -1;
   if (still || t - lastDraw > 1 / 20) { lastDraw = t; drawScreen(on, still ? 3 : t - bootAt); }
+  // Start loading the trailer a little before power-on, play it while the display is on.
+  if (P > SCREEN_ON - 0.4) preloadVideo();
+  videoState(on && !document.hidden);
 }
 function frame(t, dt) {
   if (poster) return;
