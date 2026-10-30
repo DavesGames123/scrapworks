@@ -21,9 +21,19 @@
   body { font: 400 17px/1.6 var(--body); overflow-x: hidden; }
   a { color: inherit; }
 
+  /* Film: vignette and grain as a compositor layer. They were a WebGL pass that cost ~2.5 ms a frame at 2x. */
+  .film { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden;
+    background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 55%, rgba(0,0,0,.32) 100%); }
+  .film::after { content: ""; position: absolute; inset: -50%; opacity: .07; will-change: transform;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1.4 -.2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation: grain 0.5s steps(4) infinite; }
+  @keyframes grain { 0% { transform: translate(0, 0); } 25% { transform: translate(-7%, 4%); } 50% { transform: translate(5%, -6%); } 75% { transform: translate(-3%, -8%); } 100% { transform: translate(0, 0); } }
+  @media (prefers-reduced-motion: reduce) { .film::after { animation: none; } }
   /* Scene: fixed behind the page. The shade keeps the text column readable. */
   /* Fixed canvas on its own compositing layer, so page scroll stays smooth on mobile. lvh: the URL bar never resizes it. */
-  #scene { position: fixed; left: 0; top: 0; width: 100%; height: 100vh; height: 100lvh; display: block; z-index: 0; transform: translateZ(0); will-change: transform; }
+  #scene { position: fixed; left: 0; top: 0; width: 100%; height: 100vh; height: 100lvh; display: block; z-index: 0; transform: translateZ(0); will-change: transform;
+    opacity: 0; transition: opacity .7s ease; }
+  body.warm #scene { opacity: 1; }
   .vh-probe { position: absolute; top: 0; left: 0; width: 1px; height: 100vh; height: 100svh; pointer-events: none; visibility: hidden; }
   .shade { position: fixed; inset: 0; z-index: 1; pointer-events: none;
     background: linear-gradient(90deg, rgba(10,10,11,.92) 0, rgba(10,10,11,.6) 30%, rgba(10,10,11,0) 52%); }
@@ -167,6 +177,7 @@
 </head>
 <body>
 <canvas id="scene" aria-hidden="true"></canvas>
+<div class="film" aria-hidden="true"></div>
 <div class="vh-probe" aria-hidden="true"></div>
 <div class="shade"></div>
 <div class="fallback" data-scrap-glyph="icon"></div>
@@ -257,6 +268,34 @@
     fixed: fixed,
     target: function () { return fixed != null ? fixed : Math.min(4, window.scrollY / unit()); }
   };
+  // ?bench=SECONDS: sweep the scroll target 0 -> 4 over SECONDS (after a 1 s settle), record every
+  // frame interval, and log one "SCRAP_BENCH {json}" line. Measurement only; a normal visit skips it.
+  if (q.has('bench')) {
+    window.SCRAP.benchOn = true;
+    var dur = parseFloat(q.get('bench')) || 12, t0 = 0, dts = [], seg = {}, last = 0;
+    window.SCRAP.target = function () { return t0 ? Math.min(4, Math.max(0, (performance.now() - t0) / 1000 / dur * 4)) : 0; };
+    var tick = function (now) {
+      if (last && t0) {
+        var dt = now - last, pp = window.SCRAP.target(), k = (Math.floor(pp * 2) / 2).toFixed(1);
+        dts.push(dt); (seg[k] = seg[k] || []).push(dt);
+        if (window.SCRAP.benchExtra && dt > 50) { (window.SCRAP.slow = window.SCRAP.slow || []).push([+pp.toFixed(2), Math.round(dt), window.SCRAP.benchExtra().programs]); }
+      }
+      last = now;
+      if (t0 && now - t0 > dur * 1000 + 500) {
+        var srt = dts.slice().sort(function (a, b) { return a - b; }), pc = function (x) { return +srt[Math.floor(srt.length * x)].toFixed(2); };
+        var out = { frames: dts.length, avg: +(dts.reduce(function (a, b) { return a + b; }, 0) / dts.length).toFixed(2),
+          p50: pc(0.5), p95: pc(0.95), p99: pc(0.99), max: +srt[srt.length - 1].toFixed(2),
+          over8: dts.filter(function (d) { return d > 8.4; }).length, over16: dts.filter(function (d) { return d > 16.7; }).length,
+          over33: dts.filter(function (d) { return d > 33.4; }).length, dpr: window.devicePixelRatio,
+          size: innerWidth + 'x' + innerHeight, seg: {} };
+        Object.keys(seg).sort().forEach(function (k) { var a = seg[k]; out.seg[k] = +(a.reduce(function (x, y) { return x + y; }, 0) / a.length).toFixed(2); });
+        console.log('SCRAP_BENCH ' + JSON.stringify(Object.assign(out, window.SCRAP.benchInfo || {}, window.SCRAP.benchExtra ? window.SCRAP.benchExtra() : {}, window.SCRAP.benchDyn ? window.SCRAP.benchDyn() : {}, { scene: null, slow: (window.SCRAP.slow || []).slice(0, 20), js: window.SCRAP.bt ? { upd: +(window.SCRAP.bt.upd / window.SCRAP.bt.n).toFixed(2), misc: +(window.SCRAP.bt.misc / window.SCRAP.bt.n).toFixed(2), screen: +(window.SCRAP.bt.screen / window.SCRAP.bt.n).toFixed(2) } : null })));
+        return;
+      }
+      requestAnimationFrame(tick);
+    };
+    window.addEventListener('load', function () { setTimeout(function () { t0 = performance.now(); requestAnimationFrame(tick); }, 1000); });
+  }
   if (fixed != null) {
     // Headless screenshots break on scrolled pages with fixed layers, so show only section N.
     window.addEventListener('DOMContentLoaded', function () {
@@ -305,9 +344,6 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
-import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
-import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
 /*
  * Scroll story (P = scroll position in screens, spring-smoothed):
@@ -333,7 +369,8 @@ const k = ScrapBrand.three(THREE, { RoomEnvironment, EffectComposer, RenderPass,
 const M = k.materials;
 const canvas = document.getElementById('scene');
 const SMALL = Math.min(window.innerWidth, window.innerHeight) < 760;
-const s = k.stage(canvas, { bloom: { strength: 0.28, radius: 0.35, threshold: 1.05 }, fov: 30, z: 10, exposure: 1.0, envIntensity: 0.75 });
+// hold: true: nothing renders until every shader is precompiled (see warm() at the end).
+const s = k.stage(canvas, { bloom: { strength: 0.28, radius: 0.35, threshold: 1.05 }, fov: 30, z: 10, exposure: 1.0, envIntensity: 0.75, hold: true });
 s.scene.background = new THREE.Color(0x0a0a0b);
 // The stage exists, so the static fallback must not show, even if building the scene takes longer than its timer.
 document.body.classList.add('live'); document.body.classList.remove('no-webgl');
@@ -417,7 +454,7 @@ const asm = new THREE.Group(); rig.add(asm);            // the device frame
 const brass = M.brass();
 const brassD = M.brassDark();
 const steel = M.steel({ anisotropy: 0, roughness: 0.3 });
-const gunmetal = new THREE.MeshPhysicalMaterial({ color: 0x3a3e45, metalness: 1, roughness: 0.46, clearcoat: 0.15, clearcoatRoughness: 0.5 });
+const gunmetal = new THREE.MeshStandardMaterial({ color: 0x3a3e45, metalness: 1, roughness: 0.46 });   // Standard: the enclosure covers much of the frame
 const alu = new THREE.MeshStandardMaterial({ color: 0xbfc4ca, metalness: 1, roughness: 0.38 });
 const armMat = new THREE.MeshStandardMaterial({ color: 0x2f3237, metalness: 1, roughness: 0.4 });
 const plastic = new THREE.MeshStandardMaterial({ color: 0x17181a, roughness: 0.72 });
@@ -663,7 +700,7 @@ const pulsePaths = traces.slice(0, NPULSE).map(tr => {
 /* ---------- lid: smoked acrylic with the display ---------- */
 const lid = new THREE.Group(); lid.visible = false; asm.add(lid);
 // Satin smoked acrylic: a glossy lid caught the rim light and bloomed white, so its specular stays low.
-const acrylic = new THREE.MeshPhysicalMaterial({ color: 0x1b1f25, transparent: true, opacity: 0.3, roughness: 0.42, metalness: 0, specularIntensity: 0.25, envMapIntensity: 0.4, depthWrite: false });
+const acrylic = new THREE.MeshStandardMaterial({ color: 0x1b1f25, transparent: true, opacity: 0.3, roughness: 0.42, metalness: 0, envMapIntensity: 0.4, depthWrite: false });
 lid.add(new THREE.Mesh(k.soft.extrude(rr(TW, THt, 0.16), { depth: 0.03, radius: 0.008 }).translate(0, 0, 0.015), acrylic));
 const DISP = { x: -0.82, y: 0.32, w: 0.72, h: 0.6 };
 lid.add(new THREE.Mesh(k.soft.box(DISP.w + 0.06, DISP.h + 0.06, 0.03, 0.012).translate(DISP.x, DISP.y, 0.045), plastic));
@@ -788,7 +825,7 @@ const W_MATS = [wMat.mat, wNutMat];
 
 /* ---------- arms: segmented, branching, with tool tips ---------- */
 const ARMS = 3, SEGS = 30, SUBS = 2, SUBSEG = 12;
-const vertGeo = k.soft.cylinder(0.045, 0.05, 0.012, 20);              // axis Y
+const vertGeo = k.soft.cylinder(0.045, 0.05, 0.012, 12);              // axis Y; 12 sides: 162 instances, so each triangle counts
 const jointGeo = k.soft.ring(0.05, 0.03, 0.016, 0.005);                // axis Y
 const verts = inst(vertGeo, armMat, ARMS * (SEGS + SUBS * SUBSEG));
 const joints = inst(jointGeo, brassD, ARMS * (SEGS + SUBS * SUBSEG));
@@ -973,6 +1010,19 @@ const Q = (() => {
   if (/Apple/i.test(r) && !/Pro|Max|Ultra/i.test(r)) return 'mid';
   return 'high';
 })();
+window.SCRAP.benchInfo = { tier: Q }; window.SCRAP.benchDyn = () => ({ dprEnd: window.SCRAP.dpr, refreshHz: window.SCRAP.refreshHz, probe: window.SCRAP.probe });
+window.SCRAP.sceneStats = () => {
+  const rows = [];
+  s.scene.traverse(o => {
+    if (!o.isMesh && !o.isPoints) return;
+    const g = o.geometry, tri = (g.index ? g.index.count : g.attributes.position.count) / 3, n = o.isInstancedMesh ? o.count : 1;
+    rows.push([o.name || (o.material && o.material.type) || '?', Math.round(tri), n, Math.round(tri * n), o.material && o.material.transmission ? 'TRANSMISSION' : '']);
+  });
+  rows.sort((a, b) => b[3] - a[3]);
+  return { total: rows.reduce((a, r) => a + r[3], 0), top: rows.slice(0, 14) };
+};
+window.SCRAP.benchExtra = () => ({ programs: s.renderer.info.programs.length, calls: s.renderer.info.render.calls,
+  tris: s.renderer.info.render.triangles, geos: s.renderer.info.memory.geometries, tex: s.renderer.info.memory.textures });
 
 // Practical lights: two LED clusters and the display. One spark light. Counts are fixed, so shaders do not recompile.
 // Low tier: no practical lights at all (each one costs every lit fragment); the LEDs and the screen stay emissive.
@@ -981,7 +1031,6 @@ const screenLight = new THREE.PointLight(0xffa020, 0, 1.6, 2); screenLight.posit
 const sparkLight = new THREE.PointLight(0xffc070, 0, 0.8, 2);
 if (Q !== 'low') asm.add(ledLight, screenLight, sparkLight);
 // Low tier: DPR 1.5 at most.
-if (Q === 'low') { const pr = Math.min(window.devicePixelRatio || 1, 1.5); s.renderer.setPixelRatio(pr); if (s.composer) s.composer.setPixelRatio(pr); }
 
 // Sparks: a small pool of short-lived emissive points at a working driver tip.
 const NSPARK = Q === 'low' ? 24 : 64;
@@ -1003,49 +1052,56 @@ const shafts = [];
 [-0.18, 0.3].forEach((y, i) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 1.3), shaftMat);
   m.position.set(TW / 2 - 0.55, y, 0.26); m.rotation.set(0, Math.PI / 2 - 0.5, -1.05 - i * 0.06); asm.add(m); shafts.push(m); });
 
-// Post stack: render -> (GTAO) -> bloom (kit) -> (Bokeh) -> output -> grade (vignette, grain, edge CA).
-let gtao = null, bokeh = null, grade = null;
-if (s.composer) {
-  const cw = canvas.clientWidth || 1280, ch = canvas.clientHeight || 720;
-  if (Q === 'high') {
-    gtao = new GTAOPass(s.scene, cam, cw, ch);
-    gtao.updateGtaoMaterial({ radius: 0.22, distanceExponent: 1.4, thickness: 1, scale: 1, samples: 12 });
-    gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 8 });
-    gtao.blendIntensity = 0.8;
-    s.composer.insertPass(gtao, 1);
-  }
-  if (Q !== 'low') {
-    bokeh = new BokehPass(s.scene, cam, { focus: 7, aperture: 0.0018, maxblur: 0.0055 });
-    s.composer.insertPass(bokeh, s.composer.passes.length - 1);
-  }
-  grade = new ShaderPass({
-    uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uGrain: { value: Q === 'low' ? 0.018 : 0.03 }, uVig: { value: 0.3 }, uCA: { value: Q === 'low' ? 0 : 0.003 } },
-    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-    fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime, uGrain, uVig, uCA; varying vec2 vUv;
-      float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
-      void main(){
-        vec2 d = vUv - 0.5; float r2 = dot(d, d);
-        float rr = length(d) / 0.5;                          // 0 center, 1 at the edge midpoints
-        vec2 off = normalize(d + 1e-6) * uCA * smoothstep(0.7, 1.0, rr);   // zero inside the central 70%
-        vec3 c = vec3(texture2D(tDiffuse, vUv - off).r, texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv + off).b);
-        c *= 1.0 - uVig * smoothstep(0.12, 0.62, r2 * 2.0);
-        c += (hash(vUv * vec2(1931.0, 1213.0) + fract(uTime * 7.31)) - 0.5) * uGrain;
-        gl_FragColor = vec4(c, 1.0);
-      }`
-  });
-  s.composer.addPass(grade);
+// Post stack: render -> bloom (kit, MSAA) -> output. Measured on an M4 Pro at 2x (vsync off): GTAO cost
+// about 315 ms a frame, Bokeh about 9 ms, the grade pass about 2.5 ms. All three are gone. The vignette
+// and grain are a CSS overlay (.film), which the compositor draws at near-zero cost.
+/*
+ * Adaptive resolution. Fill rate is the cost that remains (the scene costs 8.5 ms a frame at DPR 2 and
+ * 3 ms at DPR 1 on that machine). The governor compares the frame interval with the display refresh
+ * interval (measured on idle frames before warm-up) and moves the pixel ratio in 0.25 steps. Each
+ * machine settles at the highest resolution that holds its refresh rate: 60, 120, or 144 Hz.
+ */
+const DPR_MAX = Math.min(window.devicePixelRatio || 1, Q === 'low' ? 1.5 : 2);
+const DPR_MIN = Q === 'low' ? 0.75 : 1;
+const DPR_FIXED = new URLSearchParams(location.search).get('dpr');   // bench only
+let dpr = 0, refreshDt = 1 / 60;
+function setDpr(v) {
+  v = Math.max(DPR_MIN, Math.min(DPR_MAX, Math.round(v * 4) / 4));
+  if (v === dpr) return;
+  dpr = v; s.renderer.setPixelRatio(v); if (s.composer) s.composer.setPixelRatio(v);
+  window.SCRAP.dpr = v;
 }
-// Governor: if frames run long for two seconds, drop AO, then DoF.
-let govT = 0, govN = 0, govSum = 0;
+setDpr(DPR_FIXED ? parseFloat(DPR_FIXED) : Math.min(DPR_MAX, Q === 'low' ? 1.25 : 1.5));
+// Display refresh: the median interval of idle frames, measured before any heavy frame runs.
+function measureRefresh() {
+  return new Promise(res => {
+    const ts = []; let last = 0;
+    const tick = now => { if (last) ts.push(now - last); last = now; if (ts.length < 24) requestAnimationFrame(tick); else {
+      ts.sort((a, b) => a - b); refreshDt = Math.min(1 / 50, Math.max(1 / 240, ts[ts.length >> 1] / 1000)); window.SCRAP.refreshHz = Math.round(1 / refreshDt); res(); } };
+    requestAnimationFrame(tick);
+  });
+}
+/*
+ * A DPR change reallocates the MSAA render targets and stalls a frame (about 0.5 s measured at 2x),
+ * so the governor changes resolution rarely: the start-up probe picks the resolution, and the governor only
+ * steps down, after three bad half-second windows in a row, at most three times per visit.
+ */
+let gN = 0, gSum = 0, gT = 0, gLife = 0, calm = 0, bad = 0, changes = 0;
 function governor(dt) {
-  if (window.SCRAP.fixed != null) return;
-  govT += dt; govN++; govSum += dt;
-  if (govT < 2) return;
-  const avg = govSum / govN; govT = govN = govSum = 0;
-  if (avg > 1 / 45) {
-    if (gtao && gtao.enabled) gtao.enabled = false;
-    else if (bokeh && bokeh.enabled) bokeh.enabled = false;
-    else if (Q === 'low' && avg > 1 / 28) posterMode();
+  if (window.SCRAP.fixed != null || DPR_FIXED || dt <= 0) return;
+  gN++; gSum += dt; gT += dt; gLife += dt;
+  if (gT < 0.5) return;
+  const avg = gSum / gN; gN = gSum = gT = 0;
+  if (avg > refreshDt * 1.25) {
+    calm = 0;
+    if (++bad >= 3) {
+      bad = 0;
+      if (dpr > DPR_MIN && changes < 3) { setDpr(dpr - 0.25); changes++; }
+      else if (Q === 'low' && avg > 1 / 28) posterMode();
+    }
+  } else {
+    bad = 0;
+    // No upgrades: the start-up probe already chose the highest resolution that fits.
   }
 }
 
@@ -1134,8 +1190,6 @@ function cinemaUpdate(P, t) {
   // Shafts: only in the reveal orbit, nearly subliminal.
   shaftMat.opacity = 0.07 * ss(2.2, 2.32, P) * (1 - ss(2.5, 2.6, P));
   // Lens: focus follows the shot target; post time.
-  if (bokeh) bokeh.uniforms.focus.value = focusDist;
-  if (grade) grade.uniforms.uTime.value = t;
 }
 
 /* ---------- update ---------- */
@@ -1333,19 +1387,62 @@ function frame(t, dt) {
   const target = window.SCRAP.target();
   if (window.SCRAP.fixed != null) { P = target; vel = 0; }
   else { const st = Math.min(dt, 1 / 30); vel += (KS * (target - P) - KD * vel) * st; P += vel * st; }
+  const bench = window.SCRAP.benchOn, b0 = bench ? performance.now() : 0;
   update(P, t);
+  const b1 = bench ? performance.now() : 0;
   runSweeps(t);
   governor(dt);
+  const b2 = bench ? performance.now() : 0;
   screenTick(t, window.SCRAP.fixed != null && P > SCREEN_ON && t > 1.5);
+  if (bench) {   // ?bench only: split the frame into update, sweeps + governor, and screen time
+    const b3 = performance.now(), bt = window.SCRAP.bt = window.SCRAP.bt || { n: 0, upd: 0, misc: 0, screen: 0 };
+    bt.n++; bt.upd += b1 - b0; bt.misc += b2 - b1; bt.screen += b3 - b2;
+  }
 }
-if (s.reduceMotion) {
-  const still = () => { P = window.SCRAP.target(); update(P, 1.5); runSweeps(99); drawScreen(P > SCREEN_ON, 3); s.render(); };
-  window.addEventListener('scroll', still, { passive: true });
-  window.addEventListener('resize', still);
-  still();
-} else {
-  s.onFrame(frame);
+/*
+ * Warm-up. three.js compiles a shader program the first time an object draws. On Metal (through
+ * ANGLE) each of the ~37 programs costs hundreds of ms, which froze the page for seconds whenever
+ * a new part entered. warm() compiles every program in parallel with all objects visible, then
+ * renders once at each stage (post passes, screen, sparks) before the canvas fades in.
+ */
+const WARM_AT = Array.from({ length: 41 }, (_, i) => i / 10);   // every 0.1 of the scroll
+// Pick the resolution before the canvas shows, so a normal visit never reallocates on screen.
+// Time a few forced renders of the heaviest stage, then take the highest DPR whose predicted cost
+// (scaled by pixel count) fits 75% of the refresh interval. gl.finish() returns at once under
+// ANGLE/Metal, so a 1-pixel readPixels forces the GPU wait. That sync reads about 1.5 ms high,
+// which the 75% allows for.
+let started = false;
+function probeDpr() {
+  if (started || DPR_FIXED) return;
+  const gl = s.renderer.getContext(), px = new Uint8Array(4);
+  const timed = () => { const t0 = performance.now(); update(2.5, 2); s.render(true); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); return performance.now() - t0; };
+  timed();
+  const ts = [timed(), timed(), timed(), timed(), timed()].sort((a, b) => a - b), c = ts[2], d0 = dpr, budget = refreshDt * 1000 * 0.75;
+  let best = DPR_MIN;
+  for (let d = DPR_MAX; d >= DPR_MIN; d -= 0.25) { if (c * (d * d) / (d0 * d0) <= budget) { best = d; break; } }
+  setDpr(best);
+  window.SCRAP.probe = { ms: +c.toFixed(2), at: d0, chose: dpr };
 }
+function startScene() {
+  if (started) return; started = true;
+  P = window.SCRAP.target(); vel = 0;
+  if (s.reduceMotion) {
+    const still = () => { P = window.SCRAP.target(); update(P, 1.5); runSweeps(99); drawScreen(P > SCREEN_ON, 3); s.render(true); };
+    window.addEventListener('scroll', still, { passive: true });
+    window.addEventListener('resize', still);
+    still();
+  } else {
+    s.hold(false);
+    s.onFrame(frame);
+  }
+  document.body.classList.add('warm');
+}
+// Safety: start after 4.5 s even if warm-up has not finished (a slow GPU or a stalled compile),
+// so no visitor waits on a blank canvas. A late warm-up then skips the probe.
+Promise.race([
+  measureRefresh().then(() => s.warm(WARM_AT.map(wp => () => { update(wp, 2); runSweeps(99); drawScreen(wp > SCREEN_ON, 3); }))).then(probeDpr),
+  new Promise(r => setTimeout(r, 4500))
+]).then(startScene);
 document.body.classList.add('live'); document.body.classList.remove('no-webgl');
 </script>
 </body>
