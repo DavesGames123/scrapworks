@@ -88,6 +88,16 @@
   .final h2 { margin: 0 0 12px; font: 700 clamp(36px, 4vw, 56px)/1 var(--display); text-transform: uppercase; }
   .final p { margin: 0 0 28px; color: #c9c8c2; }
   .final .cta, .final .plat { justify-content: center; }
+  /* The wordmark the 3D wrench lands in. Its C starts hidden; the scene fades it in as the wrench hands over. */
+  .final-mark { font-size: clamp(56px, 8vw, 112px); color: var(--y); margin-bottom: 18px; line-height: 1; }
+  .final-mark .scrap-glyph { opacity: 0; }
+  .btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px rgba(236,235,230,.35); }
+  .btn.ghost:hover { background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 1px var(--y); }
+  /* Stella Nova media: a neutral 16:9 frame until the trailer or screenshot is set in data-src. */
+  .sn { position: relative; z-index: 2; background: var(--bg); min-height: 0; justify-content: center; padding: 64px var(--gut) 96px; }
+  .sn-media { width: min(1100px, 100%); aspect-ratio: 16 / 9; border-radius: 14px; background:
+      linear-gradient(135deg, rgba(255,255,255,.035), rgba(255,255,255,0) 60%), #111215;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 30px 80px rgba(0,0,0,.5); }
   footer { position: relative; z-index: 2; padding: 22px var(--gut); color: var(--mute); font-size: 13px;
     border-top: 1px solid var(--line); background: var(--bg); }
 
@@ -115,6 +125,8 @@
     .term { width: 100%; }
     .tx { font-size: 15px; }
     .final { padding-bottom: 32px; }
+    .sn { padding: 40px 16px 64px; min-height: 0; align-items: center; }
+    .final .cta { flex-direction: column; gap: 12px; }
     .fallback { right: 50%; top: 24svh; transform: translateX(50%); font-size: 160px; }
   }
   @media (orientation: portrait) and (min-width: 600px) and (max-width: 1100px) {
@@ -173,11 +185,16 @@
 
   <section class="final" data-stage="4" id="download">
     <div class="col rise">
+      <div class="final-mark"><span data-scrap-wordmark></span></div>
       <h2>Make your game.</h2>
       <p>One click builds for Windows, macOS, and Linux.</p>
-      <div class="cta"><a class="btn" href="#download">Download Scrap &mdash; free</a></div>
+      <div class="cta"><a class="btn" href="#download">Download Scrap &mdash; free</a><a class="btn ghost" href="#steam-url-pending" data-pending="steam-url">Try Stella Nova on Steam</a></div>
       <div class="plat" data-plat></div>
     </div>
+  </section>
+
+  <section class="sn" id="stella-nova" aria-label="Stella Nova">
+    <div class="sn-media" data-src=""></div>
   </section>
 </main>
 <footer>&copy; 2026 ScrapWorks</footer>
@@ -256,33 +273,46 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
 /*
  * Scroll story (P = scroll position in screens, spring-smoothed):
- *   0-0.8    the logo wrench assembles: head, handle, nut on clean arcs;
- *            at 0.8 the pieces swap for one solid wrench (no seam)
- *   1.05-1.4 the wrench moves to its rest spot; the camera frames the box
- *   1.42-2.1 six box panels arrive with 30% overlap and lock
- *   2.0-2.3  four hex bolts (logo nut size) fly in, proud of the face
- *   2.3-2.78 the wrench ratchets each bolt: engage, 60 deg pull, hold,
- *            lift off, return, re-engage, pull; the bolt threads in
- *   2.78-2.92 the wrench slides out; 2.92 the CRT powers on (Stella Nova)
- *   3.15-4   the box faces the camera above the final CTA
- * Meshes: head, handle, joined wrench, nut, 6 panels, screen, bolts and
- * counterbores (instanced), contact shadow = 14. Only the CRT blooms.
+ *   0-0.5     the logo wrench assembles itself: head, handle, nut; at 0.42 the
+ *             halves swap for the solid mesh (no seam)
+ *   0.5-0.95  the wrench rises above the back wall; the enclosure tray arrives
+ *   0.95-1.05 the wrench opens at the neck; three segmented arms unfold, each
+ *             with two branch arms (hex socket, driver)
+ *   1.05-2.4  the arms carry each module out of the wrench and place it: board,
+ *             LOGIC, RENDER (+ heatsink), MEMORY, AUDIO, POWER, PHYSICS, INPUT,
+ *             NET, SAVE; cables grow; the fastener and SMD swarm seats in waves
+ *             around them; branch arms hover over screws as they drive in
+ *   2.2-2.6   all three arms set the smoked lid with its display; 20 lid screws
+ *   2.5-2.7   the arms retract; the wrench closes back into one piece
+ *   2.72-3.1  the display boots: a node graph of the game's objects
+ *   3.15-4    the device rises; the wrench flies to the C of the wordmark in the
+ *             final section, folds its handle into the head, and hands over to
+ *             the SVG letter
+ * Device frame: the tray floor top is z = 0, the open side faces +z.
+ * Only the display, the LEDs, and the trace pulses bloom.
  */
 const k = ScrapBrand.three(THREE, { RoomEnvironment, EffectComposer, RenderPass, UnrealBloomPass, OutputPass, RoundedBoxGeometry, BufferGeometryUtils });
 const M = k.materials;
 const canvas = document.getElementById('scene');
 const SMALL = Math.min(window.innerWidth, window.innerHeight) < 760;
-const s = k.stage(canvas, { bloom: { strength: 0.32, radius: 0.35, threshold: 1.05 }, fov: 30, z: 10, exposure: 1.0, envIntensity: 0.6 });
+const s = k.stage(canvas, { bloom: { strength: 0.28, radius: 0.35, threshold: 1.05 }, fov: 30, z: 10, exposure: 1.0, envIntensity: 0.75 });
 s.scene.background = new THREE.Color(0x0a0a0b);
+// The stage exists, so the static fallback must not show, even if building the scene takes longer than its timer.
+document.body.classList.add('live'); document.body.classList.remove('no-webgl');
 const cam = s.camera;
 const Z_DESK = 8.6;   // desktop camera distance; smaller = larger in frame
 
-const key = new THREE.DirectionalLight(0xffffff, 1.15); key.position.set(-3, 4, 5);
-const rim = new THREE.DirectionalLight(0xffe2b0, 0.35); rim.position.set(2, 4, -5);
-s.scene.add(key, rim);
+// Three-point rig. World frame: the device lies on a table, open side up (+y), back wall away (-z).
+const key = new THREE.DirectionalLight(0xfff0dc, 1.35); key.position.set(-4, 5, 4);     // warm key, front left, high
+const fill = new THREE.DirectionalLight(0xbcd0ff, 0.32); fill.position.set(5, 1.5, 4);  // cool fill, front right, low
+const rim = new THREE.DirectionalLight(0xfff2e0, 1.7); rim.position.set(0.5, 3.5, -6);  // strong rim from behind: separates brass from black
+s.scene.add(key, fill, rim);
 const KEY_COOL = new THREE.Color(0xeef3ff), KEY_WARM = new THREE.Color(0xfff0d6);
 
 /* ---------- motion helpers ---------- */
@@ -291,23 +321,22 @@ const ss = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 
 const mix = (a, b, t) => a + (b - a) * t;
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const easeIO = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const easeOut = x => 1 - Math.pow(1 - x, 3);
 const seg = (u, r) => easeIO(clamp((u - r[0]) / (r[1] - r[0])));
 const bez = (a, c, b, t) => a.clone().multiplyScalar((1 - t) * (1 - t)).addScaledVector(c, 2 * (1 - t) * t).addScaledVector(b, t * t);
 const rotZ = (v, a) => { const c = Math.cos(a), n = Math.sin(a); return V(v.x * c - v.y * n, v.x * n + v.y * c, v.z); };
-/*
- * arrive(): one part, one window [a, b].
- *   travel (0-78%): ease-in-out along a bezier to a hover point just above the
- *   seat, so it arrives there at near-zero speed (anticipation);
- *   seat (78-100%): a short ease-out onto the seat;
- *   comp: a 1.5% squash at contact that recovers by the end of the window.
- */
+const qE = (x, y, z) => new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z));
+const qZ = a => qE(0, 0, a);
+const qI = new THREE.Quaternion();
+const YUP = V(0, 1, 0);
+let seed = 20261029;
+const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+// arrive(): travel to a hover point (78%), then seat with an ease-out; comp = 1.5% squash at contact.
 function arrive(a, b, P) {
   const u = clamp((P - a) / (b - a));
   return { u, k: easeIO(clamp(u / 0.78)), seat: 1 - Math.pow(1 - clamp((u - 0.78) / 0.22), 3),
     comp: Math.sin(Math.PI * clamp((u - 0.9) / 0.1)) * 0.015, done: u >= 1, started: P > a };
 }
-// Place an object on start -> ctrl -> hover -> seat, turning from qFrom to identity.
-const qI = new THREE.Quaternion();
 function fly(obj, seatPos, from, ctrlOff, hoverOff, qFrom, ar, baseQuat) {
   const start = seatPos.clone().add(from), hover = seatPos.clone().add(hoverOff);
   const ctrl = start.clone().lerp(hover, 0.5).add(ctrlOff);
@@ -316,7 +345,6 @@ function fly(obj, seatPos, from, ctrlOff, hoverOff, qFrom, ar, baseQuat) {
   if (baseQuat) q.premultiply(baseQuat);
   obj.quaternion.copy(q);
 }
-const qE = (x, y, z) => new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z));
 
 /* ---------- lock feedback: a specular sweep and a soft contact flash ---------- */
 const sweeps = [];
@@ -330,7 +358,8 @@ function sweepable(mat, dir, ext) {
         float swd = dot(vSwP, uDir) / uExt - uSweep;
         totalEmissiveRadiance += vec3(1.0, 0.95, 0.86) * (uAmp * exp(-swd * swd * 36.0) + uFlash);`);
   };
-  mat.customProgramCacheKey = () => 'scrap-sweep';
+  const id = sweeps.length;
+  mat.customProgramCacheKey = () => 'scrap-sweep-' + id;
   const st = { u, locked: false, at: -9 };
   sweeps.push(st);
   return { mat, st };
@@ -344,20 +373,358 @@ function runSweeps(t) {
   sweeps.forEach(st => {
     const a = t - st.at;
     st.u.uSweep.value = -1.4 + a / 0.55 * 2.8;
-    st.u.uAmp.value = a < 0.6 ? 0.3 : 0;
-    st.u.uFlash.value = a < 1 ? 0.12 * Math.exp(-a * 9) : 0;
+    st.u.uAmp.value = a < 0.6 ? 0.18 : 0;
+    st.u.uFlash.value = a < 1 ? 0.06 * Math.exp(-a * 9) : 0;
   });
 }
 
 const rig = new THREE.Group(); s.scene.add(rig);
-const asm = new THREE.Group(); rig.add(asm);            // everything that floats together
+const asm = new THREE.Group(); rig.add(asm);            // the device frame
+
+/* ---------- materials (shared) ---------- */
+const brass = M.brass();
+const brassD = M.brassDark();
+const steel = M.steel({ anisotropy: 0, roughness: 0.3 });
+const gunmetal = new THREE.MeshPhysicalMaterial({ color: 0x3a3e45, metalness: 1, roughness: 0.46, clearcoat: 0.15, clearcoatRoughness: 0.5 });
+const alu = new THREE.MeshStandardMaterial({ color: 0xbfc4ca, metalness: 1, roughness: 0.38 });
+const armMat = new THREE.MeshStandardMaterial({ color: 0x2f3237, metalness: 1, roughness: 0.4 });
+const plastic = new THREE.MeshStandardMaterial({ color: 0x17181a, roughness: 0.72 });
+const rubber = new THREE.MeshStandardMaterial({ color: 0x0f0f10, roughness: 0.9 });
+const paper = new THREE.MeshStandardMaterial({ color: 0x232326, roughness: 0.85, side: THREE.DoubleSide });
+const capMat = new THREE.MeshStandardMaterial({ color: 0x1b2433, roughness: 0.42, metalness: 0.35 });
+const smdMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6, metalness: 0.1 });
+const slotMat = new THREE.MeshStandardMaterial({ color: 0x050506, roughness: 0.9 });
+const goldPin = new THREE.MeshStandardMaterial({ color: 0xd7b25a, roughness: 0.34, metalness: 1 });
+const wireRed = new THREE.MeshStandardMaterial({ color: 0x8a1f1a, roughness: 0.55 });
+const wireBlk = new THREE.MeshStandardMaterial({ color: 0x121212, roughness: 0.55 });
+const cableMat = new THREE.MeshStandardMaterial({ color: 0x8e9196, roughness: 0.62 });
+const blueMat = new THREE.MeshStandardMaterial({ color: 0x1d3d66, roughness: 0.55 });
+
+/* ---------- geometry helpers ---------- */
+const rr = (w, h, r) => [[-w / 2, -h / 2, r], [w / 2, -h / 2, r], [w / 2, h / 2, r], [-w / 2, h / 2, r]];
+function pathOf(pts) { const p = new THREE.Path(); pts.forEach((q, i) => i ? p.lineTo(q[0], q[1]) : p.moveTo(q[0], q[1])); p.closePath(); return p; }
+const zAxis = g => g.rotateX(Math.PI / 2);
+const nonIdx = g => { const n = g.index ? g.toNonIndexed() : g; ['uv1', 'uv2'].forEach(a => n.deleteAttribute(a)); return n; };
+const merge = gs => BufferGeometryUtils.mergeGeometries(gs.map(nonIdx));
+function inst(geo, mat, n, parent) { const m = new THREE.InstancedMesh(geo, mat, Math.max(1, n)); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.count = n; m.frustumCulled = false; (parent || asm).add(m); return m; }
+const dummy = new THREE.Object3D();
+function setInst(m, i, pos, quat, sc) {
+  dummy.position.copy(pos); dummy.quaternion.copy(quat || qI);
+  if (typeof sc === 'number') dummy.scale.setScalar(sc); else if (sc) dummy.scale.copy(sc); else dummy.scale.setScalar(1);
+  dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); m.instanceMatrix.needsUpdate = true;
+}
+function lathe(pts, mat, seg) {
+  const g = new THREE.LatheGeometry(pts.map(p => new THREE.Vector2(p[0], p[1])), seg || 56);
+  return new THREE.Mesh(zAxis(g), mat);
+}
+// Label texture: crisp text on a transparent canvas, for silkscreen-like floor labels.
+function labelMat(text, w, h) {
+  const PPU = 900, c = document.createElement('canvas'); c.width = Math.round(w * PPU); c.height = Math.round(h * PPU);
+  const g = c.getContext('2d'); g.fillStyle = 'rgba(232,230,220,0.82)';
+  g.font = `600 ${Math.round(h * PPU * 0.62)}px "Share Tech Mono", ui-monospace, monospace`; g.textBaseline = 'middle';
+  g.fillText(text, 2, c.height / 2);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false }));
+}
+// Chip with a printed top: soft extruded body, a canvas map in geometry units.
+function chip(w, h, d, lines, o) {
+  o = o || {};
+  const PPU = SMALL ? 600 : 1000, cw = Math.round(w * PPU), ch = Math.round(h * PPU);
+  const c = document.createElement('canvas'); c.width = cw; c.height = ch; const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, cw, ch); gr.addColorStop(0, o.col || '#1b1c1f'); gr.addColorStop(1, o.col2 || '#121315');
+  g.fillStyle = gr; g.fillRect(0, 0, cw, ch);
+  if (o.pins) {                                   // pin grid around the edge
+    g.fillStyle = '#b8954a';
+    const n = o.pins, m = 0.018 * PPU, ps = 0.008 * PPU;
+    for (let i = 0; i < n; i++) { const f = (i + 0.5) / n;
+      [[f * cw, m], [f * cw, ch - m], [m, f * ch], [cw - m, f * ch]].forEach(q => g.fillRect(q[0] - ps / 2, q[1] - ps / 2, ps, ps)); }
+  }
+  g.fillStyle = 'rgba(210,210,205,0.55)'; g.beginPath(); g.arc(0.03 * PPU + (o.pins ? 0.02 * PPU : 0), 0.03 * PPU + (o.pins ? 0.02 * PPU : 0), 0.008 * PPU, 0, 7); g.fill();
+  g.fillStyle = 'rgba(214,212,204,0.78)'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const fs = (o.fs || 0.034) * PPU;
+  lines.forEach((l, i) => { g.font = `${i ? 400 : 700} ${Math.round(i ? fs * 0.72 : fs)}px "Share Tech Mono", ui-monospace, monospace`;
+    g.fillText(l, cw / 2, ch / 2 + (i - (lines.length - 1) / 2) * fs * 1.15); });
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.repeat.set(1 / w, 1 / h); t.offset.set(0.5, 0.5);
+  const mat = new THREE.MeshStandardMaterial({ map: t, roughness: 0.7, metalness: 0.05 });
+  return new THREE.Mesh(k.soft.extrude(rr(w, h, Math.min(w, h) * 0.06), { depth: d, radius: Math.min(0.004, d * 0.2) }).translate(0, 0, d / 2), mat);
+}
+
+/* ---------- the enclosure tray ---------- */
+const TW = 2.6, THt = 1.8, TWALL = 0.07, TB = 0.07, HW = 0.42;
+const IW = TW - 2 * TWALL, IH = THt - 2 * TWALL;
+const shell = sweepable(gunmetal.clone(), V(1, 0, 0), TW / 2);
+const wallsGeo = k.soft.extrude(rr(TW, THt, 0.16), { depth: HW + TB, radius: 0.018, holes: [pathOf(ScrapBrand.roundPoly(rr(IW, IH, 0.09), 10))] })
+  .translate(0, 0, (HW - TB) / 2);
+const walls = new THREE.Mesh(wallsGeo, shell.mat); asm.add(walls);
+const floor = new THREE.Mesh(k.soft.extrude(rr(IW + 0.01, IH + 0.01, 0.095), { depth: TB, radius: 0.012 }).translate(0, 0, -TB / 2), shell.mat); asm.add(floor);
+const vents = inst(k.soft.box(0.008, 0.04, 0.24, 0.0035), slotMat, 8, walls);
+for (let i = 0; i < 8; i++) setInst(vents, i, V(TW / 2 + 0.0015, -0.42 + i * 0.12, HW * 0.48));
+const BOSS = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([x, y]) => V(x * (IW / 2 - 0.085), y * (IH / 2 - 0.085), 0));
+const bosses = inst(zAxis(k.soft.cylinder(0.075, HW - 0.03, 0.012, 40)).translate(0, 0, (HW - 0.03) / 2), gunmetal, 4);
+
+/* ---------- main board ---------- */
+// Board local (u, v): u in [-PW/2, PW/2], v in [-PHb/2, PHb/2]. Device = (PC.x + u, PC.y + v).
+const PW = 1.55, PHb = 1.5, PT = 0.03, SH1 = 0.1, PC = V(0.43, 0, 0), ZT = SH1 + PT;
+const mainAt = (u, v, z) => V(PC.x + u, PC.y + v, z);
+const MHOLES = [[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, 0], [1, 0]].map(([x, y]) => [x * (PW / 2 - 0.07), y * (PHb / 2 - 0.07)]);
+// Module plan, board local [u, v, w, h].
+const Z = {
+  LOGIC: [-0.4, 0.4, 0.3, 0.3], RENDER: [0.33, 0.4, 0.36, 0.36], MEMORY: [-0.38, 0.0, 0.62, 0.2],
+  INPUT: [0.35, -0.22, 0.46, 0.3], PHYSICS: [-0.58, -0.45, 0.18, 0.18], POWER: [-0.18, -0.48, 0.34, 0.2], SAVE: [0.5, -0.63, 0.2, 0.18]
+};
+const LEDS = [[-0.02, -0.66], [0.06, -0.66], [0.14, -0.66], [0.22, -0.66]];
+function smdSites(n) {
+  const out = [], ko = Object.values(Z).map(q => [q[0], q[1], q[2] + 0.08, q[3] + 0.08]).concat(LEDS.map(l => [l[0], l[1], 0.06, 0.06]));
+  for (let u = -PW / 2 + 0.07; u <= PW / 2 - 0.07; u += 0.052) for (let v = -PHb / 2 + 0.07; v <= PHb / 2 - 0.07; v += 0.052) {
+    if (ko.some(q => Math.abs(u - q[0]) < q[2] / 2 && Math.abs(v - q[1]) < q[3] / 2)) continue;
+    if (MHOLES.some(hp => Math.hypot(u - hp[0], v - hp[1]) < 0.11)) continue;
+    if (rnd() < 0.12) continue;
+    out.push([u + (rnd() - 0.5) * 0.006, v + (rnd() - 0.5) * 0.006, rnd() < 0.5 ? 0 : Math.PI / 2, rnd() < 0.55 ? 0 : 1]);
+  }
+  for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
+  return out.slice(0, n);
+}
+const smdMain = smdSites(SMALL ? 90 : 260);
+function route(a, b) { const dx = b[0] - a[0], dy = b[1] - a[1], k45 = Math.min(Math.abs(dx), Math.abs(dy)); return [a, [b[0] - Math.sign(dx) * k45, a[1]], b]; }
+const traces = [];
+smdMain.forEach(a => {
+  if (traces.length >= (SMALL ? 34 : 70)) return;
+  let t = null, best = 1e9;
+  Object.values(Z).forEach(q => { const d = Math.hypot(a[0] - q[0], a[1] - q[1]) - Math.max(q[2], q[3]) / 2; if (d < best) { best = d; t = q; } });
+  if (best > 0.28) return;
+  const b = [t[0] + (rnd() - 0.5) * t[2] * 0.7, t[1] + Math.sign(a[1] - t[1]) * t[3] / 2];
+  traces.push({ pts: route([a[0], a[1]], b), w: 0.0035 + rnd() * 0.002 });
+});
+const mainMat = (function boardTexture() {
+  const w = PW, h = PHb, PPU = SMALL ? 560 : 950, cw = Math.round(w * PPU), ch = Math.round(h * PPU);
+  const col = document.createElement('canvas'); col.width = cw; col.height = ch; const c = col.getContext('2d');
+  const msk = document.createElement('canvas'); msk.width = cw; msk.height = ch; const m = msk.getContext('2d');
+  const X = u => (u + w / 2) * PPU, Y = v => (h / 2 - v) * PPU;
+  c.fillStyle = '#0d3a2a'; c.fillRect(0, 0, cw, ch);
+  m.fillStyle = 'rgb(0,195,0)'; m.fillRect(0, 0, cw, ch);                 // G = roughness, B = metalness
+  const GOLD = '#c8a24f', MG = 'rgb(0,95,255)';
+  const both = fn => { c.fillStyle = c.strokeStyle = GOLD; m.fillStyle = m.strokeStyle = MG; fn(c); fn(m); };
+  // A faint ground pour hatch under the mask.
+  c.strokeStyle = 'rgba(30,90,64,0.55)'; c.lineWidth = 1;
+  for (let x = -ch; x < cw; x += Math.round(0.02 * PPU)) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x + ch, ch); c.stroke(); }
+  traces.forEach(tr => both(g => { g.lineWidth = tr.w * PPU; g.lineJoin = 'round'; g.lineCap = 'round'; g.beginPath();
+    tr.pts.forEach((p, i) => i ? g.lineTo(X(p[0]), Y(p[1])) : g.moveTo(X(p[0]), Y(p[1]))); g.stroke(); }));
+  smdMain.forEach(p => { const cs = Math.cos(p[2]), sn = Math.sin(p[2]);
+    [-1, 1].forEach(sg => both(g => { const pw = cs ? 0.011 : 0.018, ph = cs ? 0.018 : 0.011; g.fillRect(X(p[0] + sg * 0.013 * cs - pw / 2), Y(p[1] + sg * 0.013 * sn + ph / 2), pw * PPU, ph * PPU); })); });
+  LEDS.forEach(l => [-1, 1].forEach(sg => both(g => g.fillRect(X(l[0] + sg * 0.012 - 0.007), Y(l[1] + 0.011), 0.014 * PPU, 0.022 * PPU))));
+  // Module pads: a ring of fine pads around each footprint.
+  Object.values(Z).forEach(q => both(g => { const n = Math.round(q[2] / 0.03);
+    for (let i = 0; i < n; i++) { const u = q[0] - q[2] / 2 + (i + 0.5) * q[2] / n; g.fillRect(X(u - 0.005), Y(q[1] + q[3] / 2 + 0.02), 0.01 * PPU, 0.012 * PPU); g.fillRect(X(u - 0.005), Y(q[1] - q[3] / 2 - 0.008), 0.01 * PPU, 0.012 * PPU); } }));
+  MHOLES.forEach(hp => { both(g => { g.beginPath(); g.arc(X(hp[0]), Y(hp[1]), 0.062 * PPU, 0, 7); g.fill(); });
+    c.fillStyle = '#050505'; m.fillStyle = 'rgb(0,220,0)'; [c, m].forEach(g => { g.beginPath(); g.arc(X(hp[0]), Y(hp[1]), 0.03 * PPU, 0, 7); g.fill(); }); });
+  // Silkscreen: outlines and the module names.
+  c.strokeStyle = 'rgba(232,230,220,0.85)'; m.strokeStyle = 'rgb(0,210,0)'; c.lineWidth = m.lineWidth = Math.max(1, 0.0028 * PPU);
+  c.fillStyle = 'rgba(232,230,220,0.88)'; c.textBaseline = 'alphabetic';
+  Object.entries(Z).forEach(([name, q]) => {
+    [c, m].forEach(g => g.strokeRect(X(q[0] - q[2] / 2 - 0.035), Y(q[1] + q[3] / 2 + 0.035), (q[2] + 0.07) * PPU, (q[3] + 0.07) * PPU));
+    c.font = `600 ${Math.round(0.036 * PPU)}px "Share Tech Mono", ui-monospace, monospace`;
+    c.fillText(name, X(q[0] - q[2] / 2 - 0.035), Y(q[1] + q[3] / 2 + 0.05));
+  });
+  c.font = `${Math.round(0.03 * PPU)}px "Share Tech Mono", ui-monospace, monospace`;
+  c.fillText('SCRAP CORE  REV C  2026', X(-0.7), Y(-0.71));
+  const map = new THREE.CanvasTexture(col), rough = new THREE.CanvasTexture(msk);
+  map.colorSpace = THREE.SRGBColorSpace;
+  [map, rough].forEach(t => { t.anisotropy = 8; t.repeat.set(1 / w, 1 / h); t.offset.set(0.5, 0.5); });
+  return new THREE.MeshStandardMaterial({ map, roughnessMap: rough, metalnessMap: rough, roughness: 1, metalness: 1 });
+})();
+const mainSw = sweepable(mainMat, V(1, 0, 0), PW / 2);
+const board = new THREE.Group();
+board.add(new THREE.Mesh(k.soft.extrude(rr(PW, PHb, 0.04), { depth: PT, radius: 0.006, holes: MHOLES.map(h => [h[0], h[1], 0.03]) }).translate(0, 0, PT / 2), mainSw.mat));
+asm.add(board);
+const standoffs = inst(k.soft.hexNut(0.042, SH1, 0).translate(0, 0, SH1 / 2), brassD, MHOLES.length);
+
+/* ---------- modules: each is a group carried by an arm ---------- */
+function module(name) { const g = new THREE.Group(); g.name = name; g.visible = false; asm.add(g); return g; }
+// LOGIC: CPU with a pin grid.
+const mLogic = module('LOGIC');
+mLogic.add(chip(0.3, 0.3, 0.035, ['SCRAP', 'SX-1 LOGIC', '2641 A2'], { pins: 14 }));
+// RENDER: GPU with a finned heatsink.
+const mRender = module('RENDER');
+{ const gpu = chip(0.3, 0.3, 0.03, ['SX-G', 'RENDER'], { fs: 0.03 }); mRender.add(gpu);
+  const fins = []; for (let i = 0; i < 11; i++) fins.push(k.soft.box(0.014, 0.34, 0.13, 0.005).translate(-0.15 + i * 0.03, 0, 0.1));
+  const hs = new THREE.Mesh(merge([k.soft.box(0.36, 0.36, 0.035, 0.008).translate(0, 0, 0.0475)].concat(fins)), alu); mRender.add(hs); }
+// MEMORY: two RAM sticks standing in sockets.
+const mMem = module('MEMORY');
+{ const ramMat = (function () {
+    const w = 0.6, h = 0.13, PPU = SMALL ? 600 : 1000, c = document.createElement('canvas'); c.width = w * PPU; c.height = h * PPU; const g = c.getContext('2d');
+    g.fillStyle = '#0d3a2a'; g.fillRect(0, 0, c.width, c.height);
+    g.fillStyle = '#c8a24f'; for (let i = 0; i < 40; i++) g.fillRect((0.02 + i * 0.014) * PPU, (h - 0.012) * PPU, 0.009 * PPU, 0.012 * PPU);
+    for (let i = 0; i < 4; i++) { g.fillStyle = '#141416'; g.fillRect((0.04 + i * 0.14) * PPU, 0.02 * PPU, 0.11 * PPU, 0.07 * PPU);
+      g.fillStyle = 'rgba(214,212,204,0.7)'; g.font = `${Math.round(0.016 * PPU)}px "Share Tech Mono", monospace`; g.fillText('SX-RAM 8G', (0.05 + i * 0.14) * PPU, 0.06 * PPU); }
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.repeat.set(1 / w, 1 / h); t.offset.set(0.5, 0.5);
+    return new THREE.MeshStandardMaterial({ map: t, roughness: 0.65, metalness: 0.1 }); })();
+  const stickGeo = k.soft.extrude(rr(0.6, 0.13, 0.008), { depth: 0.012, radius: 0.003 }).rotateX(Math.PI / 2).translate(0, 0, 0.065 + 0.02);
+  const sockGeo = k.soft.box(0.64, 0.035, 0.03, 0.006).translate(0, 0, 0.015);
+  [-0.05, 0.05].forEach(dy => { const st = new THREE.Mesh(stickGeo, ramMat); st.position.y = dy; mMem.add(st); const so = new THREE.Mesh(sockGeo, plastic); so.position.y = dy; mMem.add(so); }); }
+// INPUT: daughterboard with four tactile buttons and a mini joystick.
+const mInput = module('INPUT');
+{ const ib = chip(0.46, 0.3, 0.02, ['INPUT'], { col: '#0e3a2b', col2: '#0b3023', fs: 0.03 }); ib.position.z = 0.08; mInput.add(ib);
+  const bb = inst(k.soft.box(0.05, 0.05, 0.022, 0.006), plastic, 4, mInput), bc = inst(zAxis(k.soft.cylinder(0.016, 0.016, 0.005, 24)), brass, 4, mInput);
+  [[0.08, 0.06], [0.14, 0], [0.08, -0.06], [0.02, 0]].forEach((p, i) => { setInst(bb, i, V(p[0], p[1], 0.111)); setInst(bc, i, V(p[0], p[1], 0.128)); });
+  const js = new THREE.Mesh(merge([k.soft.box(0.1, 0.1, 0.03, 0.01).translate(-0.12, 0, 0.115), zAxis(k.soft.cylinder(0.009, 0.06, 0.003, 16)).translate(-0.12, 0, 0.16), zAxis(k.soft.cylinder(0.03, 0.022, 0.008, 28)).translate(-0.12, 0, 0.195)]), plastic);
+  mInput.add(js);
+  const ist = inst(zAxis(k.soft.cylinder(0.02, 0.08, 0.004, 16)).translate(0, 0, 0.04), brassD, 4, mInput);
+  [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([x, y], i) => setInst(ist, i, V(x * 0.19, y * 0.11, 0))); }
+// PHYSICS: IMU module.
+const mPhys = module('PHYSICS');
+{ const b = chip(0.18, 0.18, 0.016, [], { col: '#1d3d66', col2: '#16304f' }); mPhys.add(b); const c = chip(0.07, 0.07, 0.012, ['IMU'], { fs: 0.016 }); c.position.z = 0.016; mPhys.add(c); }
+// POWER: two inductors and three capacitors.
+const mPower = module('POWER');
+{ const ind = chip(0.09, 0.09, 0.06, ['4R7'], { col: '#5a5d63', col2: '#45484d', fs: 0.022 }); ind.position.set(-0.11, 0.02, 0); mPower.add(ind);
+  const ind2 = ind.clone(); ind2.position.set(0, 0.02, 0); mPower.add(ind2);
+  const cp = inst(zAxis(k.soft.cylinder(0.035, 0.1, 0.01, 28)).translate(0, 0, 0.05), capMat, 3, mPower);
+  [[0.1, 0.05], [0.1, -0.04], [-0.05, -0.07]].forEach((p, i) => setInst(cp, i, V(p[0], p[1], 0))); }
+// SAVE: SD slot and card.
+const mSave = module('SAVE');
+{ mSave.add(new THREE.Mesh(k.soft.box(0.17, 0.16, 0.026, 0.004).translate(0, 0, 0.013), steel)); }
+const sdCard = new THREE.Mesh(k.soft.box(0.13, 0.15, 0.007, 0.004), blueMat); sdCard.visible = false; asm.add(sdCard);
+// AUDIO: a speaker driver on the floor, left of the board: magnet, brass basket, cone, surround, dust cap.
+const mAudio = module('AUDIO');
+{ const z0 = 0.0;
+  mAudio.add(new THREE.Mesh(zAxis(k.soft.cylinder(0.12, 0.075, 0.012, 40)).translate(0, 0, z0 + 0.0375), gunmetal));
+  mAudio.add(lathe([[0.1, 0.07], [0.12, 0.075], [0.25, 0.235], [0.285, 0.24], [0.29, 0.25], [0.255, 0.252]], brass));
+  mAudio.add(lathe([[0.075, 0.15], [0.16, 0.2], [0.235, 0.24]], paper));
+  const sur = []; for (let i = 0; i <= 12; i++) { const a = Math.PI - i * Math.PI / 12; sur.push([0.25 + Math.cos(a) * 0.017, 0.242 + Math.sin(a) * 0.017]); }
+  mAudio.add(lathe(sur, rubber));
+  mAudio.add(lathe([[0.0, 0.19], [0.03, 0.186], [0.055, 0.174], [0.078, 0.152]], rubber)); }
+// NET: antenna module on the floor, upper left, with a coax pigtail to a brass bulkhead in the back wall.
+const mNet = module('NET');
+{ const b = chip(0.32, 0.16, 0.018, [], { col: '#101113', col2: '#0c0d0f' }); b.position.z = 0.02; mNet.add(b);
+  const can = new THREE.Mesh(k.soft.box(0.12, 0.1, 0.02, 0.005).translate(-0.06, 0, 0.048), steel); mNet.add(can);
+  const ant = chip(0.1, 0.12, 0.004, ['NET'], { col: '#c8a24f', col2: '#a8873e', fs: 0.022 }); ant.position.set(0.09, 0, 0.038); mNet.add(ant);
+  const so = inst(zAxis(k.soft.cylinder(0.018, 0.02, 0.004, 16)).translate(0, 0, 0.01), brassD, 4, mNet);
+  [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([x, y], i) => setInst(so, i, V(x * 0.13, y * 0.055, 0))); }
+const NET_SEAT = V(-0.82, 0.42, 0), AUDIO_SEAT = V(-0.82, -0.36, 0);
+const bulk = new THREE.Mesh(zAxis(k.soft.cylinder(0.04, 0.16, 0.008, 24)).rotateX(Math.PI / 2), brass);
+bulk.position.set(-0.55, IH / 2 + 0.035, 0.22); bulk.visible = false; asm.add(bulk);
+// Floor labels for the modules that are not on the board.
+const lblAudio = labelMat('AUDIO', 0.34, 0.06); lblAudio.position.set(AUDIO_SEAT.x - 0.1, AUDIO_SEAT.y - 0.36, 0.002); asm.add(lblAudio);
+const lblNet = labelMat('NET', 0.2, 0.06); lblNet.position.set(NET_SEAT.x - 0.06, NET_SEAT.y - 0.14, 0.002); asm.add(lblNet);
+// Cables: a coax pigtail, speaker wires, and a ribbon from INPUT to LOGIC. Each grows along its length.
+function cable(points, r, mat) {
+  const curve = new THREE.CatmullRomCurve3(points), geo = new THREE.TubeGeometry(curve, 64, r, 10, false);
+  const m = new THREE.Mesh(geo, mat); m.visible = false; asm.add(m); return { m, n: geo.index.count };
+}
+const coax = cable([V(NET_SEAT.x - 0.1, NET_SEAT.y + 0.02, 0.07), V(-0.75, 0.62, 0.2), V(-0.6, IH / 2 - 0.02, 0.22), V(-0.55, IH / 2 + 0.01, 0.22)], 0.012, wireBlk);
+const wR = cable([V(AUDIO_SEAT.x + 0.1, AUDIO_SEAT.y - 0.12, 0.1), V(-0.45, -0.55, 0.22), mainAt(-0.35, -0.52, ZT + 0.12), mainAt(-0.3, -0.5, ZT + 0.03)], 0.01, wireRed);
+const wB = cable([V(AUDIO_SEAT.x + 0.12, AUDIO_SEAT.y - 0.1, 0.1), V(-0.44, -0.52, 0.24), mainAt(-0.33, -0.48, ZT + 0.12), mainAt(-0.27, -0.46, ZT + 0.03)], 0.01, wireBlk);
+const ribbon = cable([mainAt(0.12, -0.2, ZT + 0.1), mainAt(0.0, -0.05, ZT + 0.25), mainAt(-0.25, 0.22, ZT + 0.2), mainAt(-0.35, 0.28, ZT + 0.04)], 0.014, cableMat);
+// Status LEDs and trace pulses.
+const ledMat = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
+const leds = inst(k.soft.box(0.03, 0.018, 0.012, 0.004), ledMat, LEDS.length);
+const LED_ON = [new THREE.Color(2.4, 1.4, 0.3), new THREE.Color(2.4, 1.4, 0.3), new THREE.Color(0.6, 2.2, 0.7), new THREE.Color(2.4, 1.4, 0.3)];
+const LED_OFF = new THREE.Color(0.05, 0.035, 0.02);
+LEDS.forEach((l, i) => { leds.setColorAt(i, LED_OFF); setInst(leds, i, mainAt(l[0], l[1], ZT + 0.006), qI, 0); });
+const NPULSE = SMALL ? 5 : 9;
+const pulses = inst(zAxis(k.soft.cylinder(0.009, 0.004, 0.0015, 16)), M.glow(0xffb000, 2.0), NPULSE);
+const pulsePaths = traces.slice(0, NPULSE).map(tr => {
+  const p = tr.pts.map(q => mainAt(q[0], q[1], ZT + 0.004)), L = [0];
+  for (let i = 1; i < p.length; i++) L.push(L[i - 1] + p[i].distanceTo(p[i - 1]));
+  return { p, L, tot: L[L.length - 1], ph: rnd() };
+});
+
+/* ---------- lid: smoked acrylic with the display ---------- */
+const lid = new THREE.Group(); lid.visible = false; asm.add(lid);
+// Satin smoked acrylic: a glossy lid caught the rim light and bloomed white, so its specular stays low.
+const acrylic = new THREE.MeshPhysicalMaterial({ color: 0x1b1f25, transparent: true, opacity: 0.3, roughness: 0.42, metalness: 0, specularIntensity: 0.25, envMapIntensity: 0.4, depthWrite: false });
+lid.add(new THREE.Mesh(k.soft.extrude(rr(TW, THt, 0.16), { depth: 0.03, radius: 0.008 }).translate(0, 0, 0.015), acrylic));
+const DISP = { x: -0.82, y: 0.32, w: 0.72, h: 0.6 };
+lid.add(new THREE.Mesh(k.soft.box(DISP.w + 0.06, DISP.h + 0.06, 0.03, 0.012).translate(DISP.x, DISP.y, 0.045), plastic));
+const SCW = SMALL ? 480 : 720, SCH = Math.round(SCW * DISP.h / DISP.w);
+const scv = document.createElement('canvas'); scv.width = SCW; scv.height = SCH; const sg = scv.getContext('2d');
+const stex = new THREE.CanvasTexture(scv); stex.colorSpace = THREE.SRGBColorSpace; stex.anisotropy = 4;
+const screenMat = new THREE.MeshBasicMaterial({ map: stex, toneMapped: false, color: new THREE.Color(1.12, 1.12, 1.12) });
+const screen = new THREE.Mesh(new THREE.PlaneGeometry(DISP.w, DISP.h), screenMat); screen.position.set(DISP.x, DISP.y, 0.0605); lid.add(screen);
+// The display shows what Scrap does: the game's objects as a live node graph.
+const NODES = [['Scene', 0.5, 0.16], ['Player', 0.2, 0.42], ['Physics', 0.5, 0.42], ['Renderer', 0.8, 0.42], ['Input', 0.2, 0.7], ['Audio', 0.5, 0.7], ['Assets', 0.8, 0.7], ['Save', 0.35, 0.9], ['Net', 0.65, 0.9]];
+const EDGES = [[0, 1], [0, 2], [0, 3], [1, 2], [1, 4], [1, 5], [3, 6], [2, 5], [5, 6], [1, 7], [0, 8], [6, 7]];
+function drawScreen(on, tb) {
+  const W = SCW, H = SCH, F = W / 720;
+  sg.fillStyle = '#060402'; sg.fillRect(0, 0, W, H);
+  if (on) {
+    const amber = a => `rgba(255,176,0,${a})`;
+    const vis = i => clamp((tb - 0.25 - i * 0.12) / 0.2);
+    sg.lineWidth = 2 * F;
+    EDGES.forEach(([a, b], i) => { const e = Math.min(vis(a), vis(b)); if (e <= 0) return;
+      const A = NODES[a], B = NODES[b]; sg.strokeStyle = amber(0.35 * e); sg.beginPath(); sg.moveTo(A[1] * W, A[2] * H); sg.lineTo(B[1] * W, B[2] * H); sg.stroke();
+      const f = ((tb * 0.5 + i * 0.37) % 1); sg.fillStyle = amber(0.9 * e); sg.beginPath(); sg.arc(mix(A[1], B[1], f) * W, mix(A[2], B[2], f) * H, 3 * F, 0, 7); sg.fill(); });
+    sg.font = `${Math.round(19 * F)}px "Share Tech Mono", ui-monospace, monospace`; sg.textAlign = 'center'; sg.textBaseline = 'middle';
+    NODES.forEach((n, i) => { const e = vis(i); if (e <= 0) return;
+      const bw = 112 * F, bh = 36 * F, x = n[1] * W - bw / 2, y = n[2] * H - bh / 2;
+      sg.fillStyle = `rgba(40,24,2,${0.9 * e})`; sg.fillRect(x, y, bw, bh);
+      sg.strokeStyle = amber(0.85 * e); sg.lineWidth = 1.5 * F; sg.strokeRect(x, y, bw, bh);
+      sg.fillStyle = amber(e); sg.fillText(n[0], n[1] * W, n[2] * H + 1); });
+    sg.textAlign = 'left'; sg.font = `${Math.round(14 * F)}px "Share Tech Mono", ui-monospace, monospace`; sg.fillStyle = amber(0.7 * clamp(tb / 0.3));
+    sg.fillText('SCRAP // OBJECTS  9  LINKS 12', 16 * F, 20 * F);
+  }
+  sg.fillStyle = 'rgba(0,0,0,0.25)'; for (let y = 0; y < H; y += 3) sg.fillRect(0, y, W, 1);
+  stex.needsUpdate = true;
+}
+drawScreen(false, 0);
+const LIDZ = HW;
+
+/* ---------- fasteners and SMD parts: the swarm ---------- */
+// Scale: 1 unit = 50 mm (the tray is 130 x 90 mm). M3 pan head = 5.5 mm, so head radius 0.055.
+const screwGeo = merge([zAxis(k.soft.cylinder(0.055, 0.034, 0.012, 32)).translate(0, 0, 0.017), zAxis(k.soft.cylinder(0.022, 0.09, 0.004, 20)).translate(0, 0, -0.045)]);
+const recessGeo = k.soft.extrude([[-0.03, -0.007], [0.03, -0.007], [0.03, 0.007], [-0.03, 0.007]], { depth: 0.004, radius: 0.0012, corner: 0.003 });
+const nutGeo = k.soft.hexNut(0.063, 0.048, 0.5).translate(0, 0, 0.024);
+const smdGeo = k.soft.box(0.034, 0.017, 0.012, 0.0035).translate(0, 0, 0.006);
+const SEATS = { screw: [], nut: [] };
+const addSeat = (type, pos, a, sc, grp) => SEATS[type].push({ pos, a, sc: sc || 1, grp });
+MHOLES.forEach((h, i) => addSeat('screw', mainAt(h[0], h[1], ZT), 1.16 + i * 0.022, 1, 'board'));
+[[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([x, y], i) => addSeat('screw', mainAt(Z.RENDER[0] + x * 0.155, Z.RENDER[1] + y * 0.155, ZT + 0.065), 1.42 + i * 0.022, 0.75, 'render'));
+[0, 1, 2, 3].forEach(i => { const a = Math.PI / 4 + i * Math.PI / 2; addSeat('screw', V(AUDIO_SEAT.x + Math.cos(a) * 0.27, AUDIO_SEAT.y + Math.sin(a) * 0.27, 0.252), 1.62 + i * 0.022, 0.7, 'audio'); });
+[[-1, 1], [1, -1]].forEach(([x, y], i) => addSeat('screw', mainAt(Z.PHYSICS[0] + x * 0.07, Z.PHYSICS[1] + y * 0.07, ZT + 0.016), 1.86 + i * 0.025, 0.55, 'physics'));
+[[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([x, y], i) => addSeat('nut', mainAt(Z.INPUT[0] + x * 0.19, Z.INPUT[1] + y * 0.11, ZT + 0.1), 1.94 + i * 0.022, 0.55, 'input'));
+[[-1, 0], [1, 0]].forEach(([x], i) => addSeat('screw', V(NET_SEAT.x + x * 0.13, NET_SEAT.y - 0.055, 0.038), 2.02 + i * 0.025, 0.55, 'net'));
+addSeat('nut', V(bulk.position.x, IH / 2 + 0.07, 0.22), 2.06, 0.8, 'net');
+// Lid screws: four in the bosses and sixteen along the rim.
+const LIDP = [];
+BOSS.forEach(b => LIDP.push([b.x, b.y]));
+for (let i = 1; i <= 4; i++) { const x = -IW / 2 + i * IW / 5; LIDP.push([x, -THt / 2 + 0.035], [x, THt / 2 - 0.035]); }
+for (let i = 1; i <= 4; i++) { const y = -IH / 2 + i * IH / 5; LIDP.push([-TW / 2 + 0.035, y], [TW / 2 - 0.035, y]); }
+LIDP.sort((a, b) => Math.atan2(a[1], a[0]) - Math.atan2(b[1], b[0])).forEach((p, i) => addSeat('screw', V(p[0], p[1], LIDZ + 0.03), 2.6 + i * 0.006, 0.6, 'lid'));
+const parts = [];
+function pool(geo, mat, n) { const m = inst(geo, mat, n); m.userData.n = 0; return m; }
+// Silver and gold: alternate the material per seat, one InstancedMesh each.
+const split = list => [list.filter((_, i) => i % 2 === 0), list.filter((_, i) => i % 2 === 1)];
+const [scA, scB] = split(SEATS.screw), [ntA, ntB] = split(SEATS.nut);
+const screwS = pool(screwGeo, steel, scA.length), screwG = pool(screwGeo, brass, scB.length);
+const recess = inst(recessGeo, slotMat, SEATS.screw.length);
+const nutS = pool(nutGeo, steel, ntA.length), nutG = pool(nutGeo, brass, ntB.length);
+const smd = pool(smdGeo, smdMat, smdMain.length);
+const SMD_COL = [new THREE.Color(0x151515), new THREE.Color(0x8a6e4a)];
+const STREAMS = [V(2.7, 2.2, 2.5), V(-2.8, 1.9, 2.3)], MSTREAMS = [V(0.5, 3.4, 2.0), V(-0.5, 3.2, 2.2)];
+function addPart(mesh, seat, q, a, dur, spin, sc, grp) {
+  const j = parts.length % 2, jit = V((rnd() - 0.5) * 0.9, (rnd() - 0.5) * 0.9, rnd() * 0.6), perpR = (rnd() - 0.5) * 1.1;
+  parts.push({ mesh, i: mesh.userData.n++, seat, q, a, b: a + dur, j, jit, perpR, qFrom: qZ((rnd() - 0.5) * 1.6), spin, sc: sc || 1, grp, last: -1 });
+}
+scA.forEach(s0 => addPart(screwS, s0.pos, qZ(rnd() * 3), s0.a, 0.12, Math.PI * 4, s0.sc, s0.grp));
+scB.forEach(s0 => addPart(screwG, s0.pos, qZ(rnd() * 3), s0.a, 0.12, Math.PI * 4, s0.sc, s0.grp));
+ntA.forEach(s0 => addPart(nutS, s0.pos, qZ(rnd() * 3), s0.a, 0.12, Math.PI * 2, s0.sc, s0.grp));
+ntB.forEach(s0 => addPart(nutG, s0.pos, qZ(rnd() * 3), s0.a, 0.12, Math.PI * 2, s0.sc, s0.grp));
+const screwParts = parts.filter(p => p.mesh === screwS || p.mesh === screwG);
+smdMain.slice().sort((a, b) => a[0] - b[0]).forEach((p, r, arr) => { smd.setColorAt(smd.userData.n, SMD_COL[p[3]]); addPart(smd, mainAt(p[0], p[1], ZT), qZ(p[2]), 1.24 + r / arr.length * 0.85, 0.15, 0, 1, 'smd'); });
+
+/* ---------- contact shadow (baked radial gradient) behind the tray ---------- */
+let shadowMat;
+{
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const g2 = c.getContext('2d'), gr = g2.createRadialGradient(128, 128, 10, 128, 128, 128);
+  gr.addColorStop(0, 'rgba(0,0,0,0.85)'); gr.addColorStop(0.55, 'rgba(0,0,0,0.45)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g2.fillStyle = gr; g2.fillRect(0, 0, 256, 256);
+  shadowMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, opacity: 0 });
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(TW * 1.55, THt * 1.7), shadowMat);
+  shadow.position.z = -TB - 0.02; asm.add(shadow);
+}
 
 /* ---------- the logo wrench: one outline, cut once across the handle ---------- */
 const L = ScrapBrand.LOGO, HD = L.handle, DEPTH = 16;
-const steel = M.steel({ anisotropy: 0, roughness: 0.42 });
-const body = M.steel({ color: 0x5d6168, roughness: 0.55, anisotropy: 0 });
-const dark = new THREE.MeshStandardMaterial({ color: 0x050506, metalness: 0.3, roughness: 0.8 });
-
 const CUT = -82;      // through the straight part of the handle, past the neck fillet
 function clipX(poly, keep) {
   const out = [], inside = q => keep * (q[0] - CUT) >= 0;
@@ -370,318 +737,507 @@ function clipX(poly, keep) {
   return out;
 }
 const outline = ScrapBrand.headPoly(L, true);
-const EXT = { depth: DEPTH, radius: Math.min(2.4, L.tipR * 0.7), corner: 0 };   // same bevel as kit.wrench()
-const paintW = M.paint();
-const head = new THREE.Mesh(k.soft.extrude(clipX(outline, 1), EXT), paintW);
-const handle = new THREE.Mesh(k.soft.extrude(clipX(outline, -1), Object.assign({}, EXT, { holes: [[-HD.L, 0, HD.w1 * HD.hole]] })), paintW);
-const W1 = sweepable(M.paint(), V(1, 0, 0), 120);
-const unified = new THREE.Mesh(k.wrench({ nut: false, depth: DEPTH }).userData.mesh.geometry, W1.mat);
+const EXT = { depth: DEPTH, radius: Math.min(2.4, L.tipR * 0.7), corner: 0 };
+const wMat = sweepable(M.brass(), V(1, 0, 0), 120);
+const head = new THREE.Mesh(k.soft.extrude(clipX(outline, 1), EXT), wMat.mat);
+const handle = new THREE.Mesh(k.soft.extrude(clipX(outline, -1), Object.assign({}, EXT, { holes: [[-HD.L, 0, HD.w1 * HD.hole]] })), wMat.mat);
+const unified = new THREE.Mesh(k.wrench({ nut: false, depth: DEPTH }).userData.mesh.geometry, wMat.mat);
 const NP = ScrapBrand.nutPoly(L);
-const nut = new THREE.Mesh(k.soft.hexNut(NP.r, DEPTH * 1.15, 0.42), steel);
+const wNutMat = M.brassDark();
+const wNut = new THREE.Mesh(k.soft.hexNut(NP.r, DEPTH * 1.15, 0.42), wNutMat);
 const NUT_HOME = V(NP.center[0], NP.center[1], 0), NUT_ROT = (L.spin + L.tilt) * Math.PI / 180;
-unified.visible = false;
-const inner = new THREE.Group();
-inner.add(head, handle, unified, nut);
+const inner = new THREE.Group(); inner.add(head, handle, unified, wNut);
 const ICON_A = L.iconAngle * Math.PI / 180;
-inner.rotation.z = ICON_A;
-const W = new THREE.Group(); W.add(inner); asm.add(W);
-inner.scale.setScalar(0.01); inner.updateMatrixWorld(true);
-unified.visible = true;
+const W = new THREE.Group(); W.add(inner); s.scene.add(W);      // world space: it leaves the device at the end
+inner.rotation.z = ICON_A; inner.scale.setScalar(0.01); inner.updateMatrixWorld(true);
+unified.visible = true; head.visible = handle.visible = false;
 const C0 = new THREE.Box3().setFromObject(unified).getCenter(V(0, 0, 0)); C0.z = 0;
-unified.visible = false;
+const W_MATS = [wMat.mat, wNutMat];
 
-/* ---------- the box ---------- */
-const BW = 2.4, BH = 1.9, BD = 1.5, T = 0.08, PB = 0.03;
-const panels = [];
-// fromD: desktop entry offset; fromM: mobile entry offset (vertical only).
-function panel(geo, base, sweepDir, ext, seat, fromD, fromM, qFrom) {
-  const sw = sweepable(base.clone(), sweepDir, ext);
-  const m = new THREE.Mesh(geo, sw.mat); m.position.copy(seat); m.visible = false; asm.add(m);
-  panels.push({ m, seat, fromD, fromM, qFrom, st: sw.st }); return m;
+/* ---------- arms: segmented, branching, with tool tips ---------- */
+const ARMS = 3, SEGS = 30, SUBS = 2, SUBSEG = 12;
+const vertGeo = k.soft.cylinder(0.045, 0.05, 0.012, 20);              // axis Y
+const jointGeo = k.soft.ring(0.05, 0.03, 0.016, 0.005);                // axis Y
+const verts = inst(vertGeo, armMat, ARMS * (SEGS + SUBS * SUBSEG));
+const joints = inst(jointGeo, brassD, ARMS * (SEGS + SUBS * SUBSEG));
+const fingerGeo = k.soft.box(0.022, 0.03, 0.11, 0.008).translate(0, 0, -0.055);
+const fingers = inst(fingerGeo, steel, ARMS * 2);
+const sockets = inst(k.soft.hexNut(0.032, 0.07, 0.58).translate(0, 0, -0.035), brass, ARMS);
+const driverMat = M.steel({ anisotropy: 0, roughness: 0.3, emissive: new THREE.Color(1.0, 0.55, 0.12), emissiveIntensity: 0 });
+const drivers = inst(zAxis(k.soft.cylinder(0.008, 0.11, 0.003, 12)).translate(0, 0, -0.055), driverMat, ARMS);
+const qTan = new THREE.Quaternion();
+function cubic(a, b, c, d, t) {
+  const u = 1 - t;
+  return a.clone().multiplyScalar(u * u * u).addScaledVector(b, 3 * u * u * t).addScaledVector(c, 3 * u * t * t).addScaledVector(d, t * t * t);
 }
-const Y = V(0, 1, 0), X = V(1, 0, 0);
-panel(k.soft.box(BW, T, BD - 2 * T, PB), body, X, BW / 2, V(0, -BH / 2 + T / 2, 0), V(0, -1.1, 0.3), V(0, -0.6, 0), qE(0.12, 0, 0));          // base
-panel(k.soft.box(BW, BH, T, PB), body, X, BW / 2, V(0, 0, -BD / 2 + T / 2), V(0, 0.2, -1.4), V(0, 0.6, -0.3), qE(-0.15, 0, 0));              // back
-panel(k.soft.box(T, BH - 2 * T, BD - 2 * T, PB), body, Y, BH / 2, V(-BW / 2 + T / 2, 0, 0), V(-1.1, 0.25, 0), V(0, 0.6, 0), qE(0, 0, 0.18));   // left
-panel(k.soft.box(T, BH - 2 * T, BD - 2 * T, PB), body, Y, BH / 2, V(BW / 2 - T / 2, 0, 0), V(1.1, 0.25, 0), V(0, 0.6, 0), qE(0, 0, -0.18));    // right
-panel(k.soft.box(BW, T, BD - 2 * T, PB), body, X, BW / 2, V(0, BH / 2 - T / 2, 0), V(0, 1.1, 0.2), V(0, 0.6, 0.2), qE(-0.12, 0, 0));          // lid
-const SW = 1.78, SH = 1.32, R0 = 0.14;
-const frameOuter = [[-BW / 2, -BH / 2, R0], [BW / 2, -BH / 2, R0], [BW / 2, BH / 2, R0], [-BW / 2, BH / 2, R0]];
-const holePts = ScrapBrand.roundPoly([[-SW / 2, -SH / 2, 0.1], [-SW / 2, SH / 2, 0.1], [SW / 2, SH / 2, 0.1], [SW / 2, -SH / 2, 0.1]], 8);
-const holePath = new THREE.Path(); holePts.forEach((q, i) => i ? holePath.lineTo(q[0], q[1]) : holePath.moveTo(q[0], q[1])); holePath.closePath();
-const front = panel(k.soft.extrude(frameOuter, { depth: T, radius: 0.025, holes: [holePath] }), M.paint(), X, BW / 2,
-  V(0, 0, BD / 2 - T / 2), V(0, 0.15, 1.3), V(0, 0.6, 0.3), qE(0.16, 0, 0));
-const PANEL_T = panels.map((p, i) => [1.42 + i * 0.105, 1.42 + i * 0.105 + 0.15]);   // 30% overlap
-
-/* ---------- contact shadow (baked radial gradient) ---------- */
-{
-  const c = document.createElement('canvas'); c.width = c.height = 256;
-  const g2 = c.getContext('2d'), gr = g2.createRadialGradient(128, 128, 10, 128, 128, 128);
-  gr.addColorStop(0, 'rgba(0,0,0,0.85)'); gr.addColorStop(0.55, 'rgba(0,0,0,0.45)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-  g2.fillStyle = gr; g2.fillRect(0, 0, 256, 256);
-  var shadowMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false, opacity: 0 });
-  var shadow = new THREE.Mesh(new THREE.PlaneGeometry(BW * 1.7, BD * 2.1), shadowMat);
-  shadow.rotation.x = -Math.PI / 2; shadow.position.y = -BH / 2 - 0.03; rig.add(shadow);
+function cubicTan(a, b, c, d, t) {
+  const u = 1 - t;
+  return b.clone().sub(a).multiplyScalar(3 * u * u).addScaledVector(c.clone().sub(b), 6 * u * t).addScaledVector(d.clone().sub(c), 3 * t * t).normalize();
 }
-
-/* ---------- the CRT screen: phosphor canvas -> output canvas ---------- */
-const CW = SMALL ? 480 : 640, CH = SMALL ? 360 : 480;
-const ph = document.createElement('canvas'); ph.width = CW; ph.height = CH;     // phosphor layer (persists)
-const pg = ph.getContext('2d');
-const cv = document.createElement('canvas'); cv.width = CW; cv.height = CH;      // output (scanlines on top)
-const g = cv.getContext('2d');
-const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
-const scrGeo = new THREE.PlaneGeometry(SW + 0.06, SH + 0.06, 24, 18);
-{ const p = scrGeo.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i) / (SW / 2), y = p.getY(i) / (SH / 2); p.setZ(i, 0.05 * (1 - 0.5 * x * x) * (1 - 0.5 * y * y)); } scrGeo.computeVertexNormals(); }
-const screenMat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, color: new THREE.Color(1.45, 1.45, 1.45) });
-const screen = new THREE.Mesh(scrGeo, screenMat);
-screen.position.set(0, 0, -T / 2 - 0.04);
-front.add(screen);
-const F = CW / 640;
-const STARS = Array.from({ length: SMALL ? 40 : 70 }, () => [Math.random() * CW, Math.random() * CH, 0.3 + Math.random() * 1.2]);
-const AMBER = '#ffb000';
-pg.fillStyle = '#070401'; pg.fillRect(0, 0, CW, CH);
-function drawScreen(on, t) {
-  if (!on) { pg.fillStyle = '#070401'; pg.fillRect(0, 0, CW, CH); }
-  else if (t < 0.55) {
-    // Turn-on: a bright line opens vertically, brightness overshoots, then settles.
-    const e = t / 0.55, h = Math.max(2, CH * Math.pow(e, 2.2)), b = Math.min(1, 0.55 + 1.6 * (1 - e));
-    pg.fillStyle = 'rgba(7,4,1,0.55)'; pg.fillRect(0, 0, CW, CH);
-    pg.fillStyle = `rgba(255,${Math.round(190 + 50 * b)},${Math.round(80 + 120 * b)},${b})`;
-    pg.fillRect(0, CH / 2 - h / 2, CW, h);
-  } else if (t < 1.9) {
-    pg.fillStyle = 'rgba(26,16,3,0.5)'; pg.fillRect(0, 0, CW, CH);
-    pg.fillStyle = AMBER; pg.font = `${Math.round(22 * F)}px "Share Tech Mono", monospace`;
-    ['SCRAP RUNTIME', '> load stella_nova/', '> sprites ok', '> sound ok', '> READY'].forEach((l, i) => {
-      if (t > 0.65 + i * 0.22) pg.fillText(l, 48 * F, (80 + i * 36) * F);
-    });
-  } else {
-    // Stella Nova. A partial clear leaves phosphor trails on the stars, shots, and ship.
-    const gt = t - 1.9;
-    pg.fillStyle = 'rgba(20,12,2,0.5)'; pg.fillRect(0, 0, CW, CH);
-    STARS.forEach(st => {
-      const y = (st[1] + gt * 40 * st[2] * F) % CH, sz = Math.max(2, Math.round((st[2] > 1 ? 3 : 2) * F));
-      pg.fillStyle = `rgba(255,176,0,${0.25 + st[2] * 0.4})`; pg.fillRect(Math.round(st[0]), Math.round(y), sz, sz);
-    });
-    const A = 170 * F, sx = CW / 2 + Math.sin(gt * 1.3) * A, sy = CH - 96 * F;
-    for (let i = 0; i < 6; i++) {
-      const age = (gt - i * 0.35) % 2.1;
-      if (age < 0 || gt < i * 0.35) continue;
-      const fx = CW / 2 + Math.sin((gt - age) * 1.3) * A, fy = sy - 24 * F - age * 300 * F;
-      if (fy > 120 * F) { pg.fillStyle = '#ffd36a'; pg.fillRect(Math.round(fx) - 2, Math.round(fy), 4, Math.round(14 * F)); }
-    }
-    pg.fillStyle = AMBER;
-    pg.beginPath(); pg.moveTo(sx, sy - 26 * F); pg.lineTo(sx + 22 * F, sy + 14 * F); pg.lineTo(sx + 8 * F, sy + 8 * F); pg.lineTo(sx, sy + 16 * F);
-    pg.lineTo(sx - 8 * F, sy + 8 * F); pg.lineTo(sx - 22 * F, sy + 14 * F); pg.closePath(); pg.fill();
+// Lay vertebrae and brass joints along a cubic. r0 -> r1 taper; ext 0 hides the arm.
+function chain(base, A, c1, c2, T, n, r0, r1, ext) {
+  const len = A.distanceTo(T), gap = len / Math.max(1, n - 1);
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1), p = cubic(A, c1, c2, T, t), tg = cubicTan(A, c1, c2, T, t);
+    qTan.setFromUnitVectors(YUP, tg);
+    const r = mix(r0, r1, t) / 0.045, h = clamp(gap / 0.05 * 0.9, 0.15, 1.6), on = ext > 0.001 && len > 0.02 ? 1 : 0;
+    setInst(verts, base + i, p, qTan, V(r * on, h * on, r * on));
+    setInst(joints, base + i, cubic(A, c1, c2, T, Math.min(1, t + 0.5 / (n - 1))), qTan, V(r * 0.72 * on, 0.7 * on, r * 0.72 * on));
   }
-  g.drawImage(ph, 0, 0);
-  if (on && t >= 1.9) {                 // the title is static, so it skips the phosphor layer and never ghosts
-    g.fillStyle = AMBER; g.textAlign = 'center';
-    g.font = `700 ${Math.round(46 * F)}px Orbitron, sans-serif`; g.fillText('STELLA NOVA', CW / 2, 92 * F);
-    g.textAlign = 'left';
-  }
-  // Scanlines, a slow rolling band, and the vignette sit on the output only.
-  g.fillStyle = 'rgba(0,0,0,0.28)';
-  for (let y = 0; y < CH; y += 3) g.fillRect(0, y, CW, 1);
-  if (on) { const ry = (t * 70) % (CH + 80) - 40; const rb = g.createLinearGradient(0, ry - 40, 0, ry + 40);
-    rb.addColorStop(0, 'rgba(255,190,90,0)'); rb.addColorStop(0.5, 'rgba(255,190,90,0.05)'); rb.addColorStop(1, 'rgba(255,190,90,0)');
-    g.fillStyle = rb; g.fillRect(0, ry - 40, CW, 80); }
-  const v = g.createRadialGradient(CW / 2, CH / 2, CH * 0.35, CW / 2, CH / 2, CH * 0.8);
-  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.6)');
-  g.fillStyle = v; g.fillRect(0, 0, CW, CH);
-  tex.needsUpdate = true;
 }
-drawScreen(false, 0);
 
-/* ---------- hex bolts: the logo nut size, so they fit the wrench jaw ---------- */
-const S2 = 0.5;                                          // wrench scale at the box (rig units per 100 logo units)
-const zFace = BD / 2;
-const BR = NP.r * 0.01 * S2;                             // bolt head vertex radius
-const AF = 2 * BR * Math.cos(Math.PI / 6);               // across flats
-const HH = AF * 0.55, WSH = 0.014, PROUD = 0.12;
-// Corner radius must exceed the bevel radius, or the hex corners fold into spikes.
-const BEV = HH * 0.14, CR = Math.max(BR * 0.18, BEV * 1.6);
-const hexPts = []; for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; hexPts.push([Math.cos(a) * BR, Math.sin(a) * BR, CR]); }
-const headG = k.soft.extrude(hexPts, { depth: HH, radius: BEV }).translate(0, 0, WSH + HH / 2);
-const washG = k.soft.cylinder(BR * 0.96, WSH, WSH * 0.4, 40).rotateX(Math.PI / 2).translate(0, 0, WSH / 2);
-const boltGeo = BufferGeometryUtils.mergeGeometries([headG, washG].map(gg => gg.index ? gg.toNonIndexed() : gg).map(gg => {
-  ['uv1', 'uv2'].forEach(n => gg.deleteAttribute && gg.deleteAttribute(n)); return gg; }));
-const bolts = new THREE.InstancedMesh(boltGeo, steel, 4);
-bolts.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-asm.add(bolts);
-const BOLTS = [[-1, 1], [1, 1], [1, -1], [-1, -1]].map(([x, y]) => V(x * (BW / 2 - 0.155), y * (BH / 2 - 0.145), 0));
-const TH = BOLTS.map(c => Math.atan2(-c.y, -c.x) + Math.PI / 6);   // jaw angle at engagement (jaw points inward)
-const boreGeo = k.soft.ring(BR * 1.16, BR * 1.0, 0.01, 0.003).rotateX(Math.PI / 2);
-const bores = new THREE.InstancedMesh(boreGeo, dark, 4);
-front.add(bores);
-const dummy = new THREE.Object3D();
-BOLTS.forEach((c, i) => { dummy.position.set(c.x, c.y, T / 2 + 0.003); dummy.quaternion.identity(); dummy.scale.setScalar(1); dummy.updateMatrix(); bores.setMatrixAt(i, dummy.matrix); });
-const BOLT_IN = BOLTS.map((c, i) => [2.0 + i * 0.07, 2.0 + i * 0.07 + 0.1]);
-const WB = BOLTS.map((c, i) => [2.3 + i * 0.12, 2.3 + i * 0.12 + 0.12]);
-const PH = { travel: [0, 0.16], engage: [0.16, 0.26], pull1: [0.26, 0.44], lift: [0.5, 0.58], ret: [0.58, 0.66], re: [0.66, 0.74], pull2: [0.74, 0.92], off: [0.92, 1] };
-const SIXTY = Math.PI / 3, SLIDE = 0.42;
-function boltTurn(i, P) { const u = clamp((P - WB[i][0]) / (WB[i][1] - WB[i][0])); return (seg(u, PH.pull1) + seg(u, PH.pull2)) * SIXTY; }
-function boltProud(i, P) { return PROUD * (1 - boltTurn(i, P) / (2 * SIXTY)); }
-const zMid = (i, P) => zFace + WSH + HH / 2 + boltProud(i, P);
-
-/* ---------- wrench poses: { pos, phi (W turn), s (scale) } ---------- */
-const NUTL = NUT_HOME.clone().multiplyScalar(0.01);
-function poseOnBolt(i, theta, slide, z) {
-  const B = BOLTS[i], n = rotZ(NUTL.clone().multiplyScalar(S2), theta), sl = rotZ(V(-slide, 0, 0), theta);
-  return { pos: V(B.x - n.x + sl.x, B.y - n.y + sl.y, z), phi: theta - ICON_A, s: S2 };
+/* ---------- wrench poses (device frame): { pos, phi, s, gap } ---------- */
+let narrow = false;
+const S2 = 0.5, HERO_H = 0.95;
+function heroPose(t) {
+  const sc = narrow ? 1.0 : 1.25, bob = s.reduceMotion ? 0 : t;
+  // Standing in the hero: device z is world up, so this centers the wrench at world (0, HERO_H, 0).
+  return { pos: V(-C0.x * sc, 0, HERO_H - C0.y * sc + Math.sin(bob * 0.7) * 0.025), phi: Math.sin(bob * 0.35) * 0.035, s: sc, gap: 0 };
 }
+// Build pose: hovering above the back wall, handle level, so the arms reach down into the tray.
+const buildPose = () => ({ pos: V(0.25, THt / 2 + (narrow ? 0.5 : 0.42), 0.82), phi: -ICON_A, s: S2, gap: 0 });
+const restPose = () => (narrow ? { pos: V(0.1, -THt / 2 - 0.95, 0.6), phi: -ICON_A, s: S2, gap: 0 } : { pos: V(TW / 2 + 0.62, 0.1, 0.6), phi: Math.PI / 2 - ICON_A, s: S2, gap: 0 });
 function mixPose(a, b, t, lift) {
   const c = a.pos.clone().lerp(b.pos, 0.5).add(lift || V(0, 0, 0));
-  return { pos: bez(a.pos, c, b.pos, t), phi: mix(a.phi, b.phi, t), s: mix(a.s, b.s, t) };
+  return { pos: bez(a.pos, c, b.pos, t), phi: mix(a.phi, b.phi, t), s: mix(a.s, b.s, t), gap: mix(a.gap, b.gap, t) };
 }
-let narrow = false;
-function heroPose() { const sc = narrow ? 1.3 : 1.2; return { pos: V(-C0.x * sc, -C0.y * sc, 0), phi: 0, s: sc }; }
-function restPose() {
-  return narrow
-    ? { pos: V(-0.45, -BH / 2 - 0.55, 0.25), phi: 0 - ICON_A, s: S2 }                 // under the box, jaw right
-    : { pos: V(BW / 2 + 0.48, 0.28, 0.25), phi: Math.PI / 2 - ICON_A, s: S2 };         // beside the box, jaw up
+const OPEN = [0.95, 1.06], CLOSE = [2.72, 2.84];
+function wrenchPose(P, t) {
+  const hero = heroPose(t), build = buildPose(), rest = restPose();
+  if (P < 0.5) return hero;
+  if (P < 0.95) return mixPose(hero, build, easeIO(clamp((P - 0.5) / 0.45)), V(0, 0.15, 0.2));
+  const g = ss(OPEN[0], OPEN[1], P) * (1 - ss(CLOSE[0], CLOSE[1], P));
+  if (P < 2.86) return Object.assign(build, { gap: g, pos: build.pos.clone().add(V(0, Math.sin(t * 0.8) * 0.01, 0)) });
+  return mixPose(build, rest, easeIO(clamp((P - 2.86) / 0.24)), V(0, 0.1, 0.2));
 }
-function wrenchPose(P) {
-  const hero = heroPose(), rest = restPose();
-  if (P < 1.05) return hero;
-  if (P < 1.4) return mixPose(hero, rest, easeIO(clamp((P - 1.05) / 0.35)), V(0, 0.25, 0.6));
-  if (P < WB[0][0]) return rest;
-  for (let i = 0; i < 4; i++) {
-    const [a, b] = WB[i];
-    if (P >= b) continue;
-    const u = clamp((P - a) / (b - a)), th = TH[i];
-    const slide = SLIDE * S2 * (1 - seg(u, PH.engage) + seg(u, PH.lift) - seg(u, PH.re) + seg(u, PH.off));
-    const theta = th - SIXTY * (seg(u, PH.pull1) - seg(u, PH.ret) + seg(u, PH.pull2));
-    const here = poseOnBolt(i, theta, slide, zMid(i, P));
-    if (u < PH.travel[1]) {
-      const prev = i === 0 ? rest : poseOnBolt(i - 1, TH[i - 1] - SIXTY, SLIDE * S2, zMid(i - 1, P));
-      return mixPose(prev, poseOnBolt(i, th, SLIDE * S2, zMid(i, P)), seg(u, PH.travel), V(0, 0, 0.45));
-    }
-    return here;
+// Arm anchors: the opening at the neck, in device coordinates.
+function anchors(wp) {
+  const neck = rotZ(V(-0.5 * wp.s, 0, 0), wp.phi + ICON_A);
+  const base = wp.pos.clone().add(neck);
+  return [0, 1, 2].map(j => base.clone().add(V(0, -0.03, (j - 1) * 0.06)));
+}
+
+/* ---------- carried modules: one beat each, assigned to an arm ---------- */
+// [object, seat (device), arm, start, end, top height of the part (claw grip)]
+const BEATS = [
+  [board, mainAt(0, 0, SH1), 0, 1.05, 1.22, PT],
+  [mLogic, mainAt(Z.LOGIC[0], Z.LOGIC[1], ZT), 1, 1.18, 1.34, 0.035],
+  [mRender, mainAt(Z.RENDER[0], Z.RENDER[1], ZT), 2, 1.26, 1.44, 0.18],
+  [mMem, mainAt(Z.MEMORY[0], Z.MEMORY[1], ZT), 0, 1.36, 1.52, 0.15],
+  [mAudio, AUDIO_SEAT, 1, 1.46, 1.64, 0.26],
+  [mPower, mainAt(Z.POWER[0], Z.POWER[1], ZT), 2, 1.56, 1.72, 0.1],
+  [mPhys, mainAt(Z.PHYSICS[0], Z.PHYSICS[1], ZT), 0, 1.66, 1.82, 0.03],
+  [mInput, mainAt(Z.INPUT[0], Z.INPUT[1], ZT), 1, 1.76, 1.94, 0.2],
+  [mNet, NET_SEAT, 2, 1.86, 2.02, 0.06],
+  [mSave, mainAt(Z.SAVE[0], Z.SAVE[1], ZT), 0, 1.96, 2.1, 0.026],
+  [lid, V(0, 0, LIDZ), -1, 2.42, 2.6, 0.06]
+].map(b => ({ obj: b[0], seat: b[1], arm: b[2], a: b[3], b: b[4], top: b[5] }));
+const LID_GRIPS = [V(-0.9, 0.55, 0), V(0.9, 0.55, 0), V(0, -0.6, 0)];
+function idleTip(j, A) { return A.clone().add(V((j - 1) * 0.28, -0.26 - (j === 1 ? 0.06 : 0), 0.12)); }
+
+/* ---------- the logo landing: project the wordmark C into the scene ---------- */
+const markC = () => document.querySelector('.final-mark .scrap-glyph');
+const ray = new THREE.Vector3();
+// The target sits on a plane LOGO_D in front of the lens, so the size and the depth stay stable while the camera moves.
+const LOGO_D = 4.2, camFwd = new THREE.Vector3();
+function logoTarget() {
+  const el = markC(); if (!el) return null;
+  const r = el.getBoundingClientRect(); if (!r.width) return null;
+  const cw = canvas.clientWidth, ch = canvas.clientHeight;
+  ray.set((r.left + r.width / 2) / cw * 2 - 1, -((r.top + r.height / 2) / ch * 2 - 1), 0.5).unproject(cam).sub(cam.position).normalize();
+  cam.getWorldDirection(camFwd);
+  const pos = cam.position.clone().addScaledVector(ray, LOGO_D / ray.dot(camFwd));
+  const visH = 2 * LOGO_D * Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) / (cam.zoom || 1);
+  const headH = r.height * 100 / 148;                // the glyph viewBox is the cap (100) plus 24 above and below
+  return { pos, s: headH / ch * visH, q: cam.quaternion.clone() };
+}
+// The kit redraws the wordmark when its font loads, so check the live element each time.
+function setMarkOpacity(o) {
+  const el = markC(), v = o.toFixed(3); if (el && el.style.opacity !== v) el.style.opacity = v;
+}
+function setWrenchOpacity(o) {
+  W_MATS.forEach(m => { const tr = o < 0.999; if (m.transparent !== tr) { m.transparent = tr; m.needsUpdate = true; } m.opacity = o; });
+}
+
+
+/* ================= cinematic layer: shots, practical light, sparks, shafts, post ================= */
+/*
+ * Shot list. Each key: [P, target, azimuth deg, elevation deg, distance, fov deg].
+ * Targets are device-frame points (converted to world each frame). Between keys
+ * the camera eases (cubic in-out); P itself is spring-smoothed, so moves carry inertia.
+ */
+const SHOT_T = {
+  hero: () => V(0, 0, 0), box: () => V(0, 0, 0.12),
+  logic: () => mainAt(Z.LOGIC[0], Z.LOGIC[1], ZT + 0.03), render: () => mainAt(Z.RENDER[0], Z.RENDER[1], ZT + 0.09),
+  audio: () => V(AUDIO_SEAT.x, AUDIO_SEAT.y, 0.18), lidc: () => V(-0.95, -0.62, LIDZ + 0.03),
+  disp: () => V(DISP.x, DISP.y, LIDZ + 0.06), fin: () => V(0, 0, 0.2)
+};
+const SHOTS = [
+  [0.0, 'hero', 30, 5, 7.6, 30],    // open: low 3/4 hero angle
+  [0.46, 'hero', 22, 8, 6.7, 28],   // slow push-in while the wrench assembles
+  [0.9, 'box', 18, 38, 6.9, 30],    // wide: the tray arrives
+  [1.2, 'box', 14, 40, 6.7, 30],
+  [1.27, 'logic', 6, 56, 3.1, 22],  // close: CPU seats
+  [1.32, 'logic', 4, 57, 3.0, 22],
+  [1.37, 'render', 32, 46, 3.1, 22],// close: GPU heatsink seats
+  [1.44, 'render', 36, 46, 2.95, 22],
+  [1.5, 'box', 12, 40, 6.7, 30],    // pull back
+  [1.56, 'audio', -28, 47, 3.3, 23],// close: speaker seats
+  [1.65, 'audio', -32, 47, 3.15, 23],
+  [1.74, 'box', 10, 38, 6.7, 30],
+  [2.28, 'box', 16, 34, 6.5, 30],
+  [2.46, 'box', -44, 29, 6.1, 28],  // orbit reveal: interior complete, light through the vents
+  [2.56, 'lidc', -30, 42, 3.5, 22], // close: the lid screw wave
+  [2.76, 'lidc', -22, 44, 3.3, 22],
+  [2.86, 'box', 0, 42, 6.5, 30],
+  [2.94, 'disp', 0, 80, 4.8, 28],   // straight-on push-in on the display
+  [3.12, 'disp', 0, 82, 4.4, 26],
+  [3.35, 'fin', 0, 34, 7.4, 30],    // settle front-on for the logo
+  [4.0, 'fin', 0, 32, 7.8, 30]
+];
+const camTarget = new THREE.Vector3();
+let focusDist = 7;
+function camShot(P, t, aspect, eFin) {
+  let k0 = 0; while (k0 < SHOTS.length - 2 && P >= SHOTS[k0 + 1][0]) k0++;
+  const A = SHOTS[k0], B = SHOTS[k0 + 1], e = easeIO(clamp((P - A[0]) / (B[0] - A[0])));
+  const tA = asm.localToWorld(SHOT_T[A[1]]()), tB = asm.localToWorld(SHOT_T[B[1]]());
+  if (A[1] === 'hero') tA.set(0, HERO_H, 0); if (B[1] === 'hero') tB.set(0, HERO_H, 0);
+  camTarget.copy(tA).lerp(tB, e);
+  const az = THREE.MathUtils.degToRad(mix(A[2], B[2], e)), el = THREE.MathUtils.degToRad(mix(A[3], B[3], e));
+  // Portrait screens are narrow: back off so the tray still fits the width.
+  let dist = mix(A[4], B[4], e) * (narrow ? clamp(0.72 / aspect, 1, 2.2) : 1);
+  cam.fov = mix(A[5], B[5], e);
+  cam.position.set(camTarget.x + dist * Math.sin(az) * Math.cos(el), camTarget.y + dist * Math.sin(el), camTarget.z + dist * Math.cos(az) * Math.cos(el));
+  cam.lookAt(camTarget);
+  // Handheld drift: about 0.3 degrees, never static.
+  if (!s.reduceMotion) {
+    const n1 = Math.sin(t * 0.61) * 0.6 + Math.sin(t * 1.37 + 1.3) * 0.3 + Math.sin(t * 2.9 + 0.4) * 0.1;
+    const n2 = Math.sin(t * 0.53 + 2.1) * 0.6 + Math.sin(t * 1.19 + 0.2) * 0.3 + Math.sin(t * 3.3 + 1.7) * 0.1;
+    cam.rotateX(n1 * 0.0052); cam.rotateY(n2 * 0.0052);
+    cam.position.x += n2 * 0.01; cam.position.y += n1 * 0.008;
   }
-  const end = poseOnBolt(3, TH[3] - SIXTY, SLIDE * S2, zMid(3, P));
-  const out = { pos: end.pos.clone().add(narrow ? V(-3.2, -0.2, 0.3) : V(-0.3, -4.2, 0.3)), phi: end.phi + 0.3, s: S2 };   // away from the box, never across its face
-  return mixPose(end, out, easeIO(clamp((P - 2.78) / 0.14)), V(0, 0, 0.3));
+  // Composition: desktop puts the subject in the right half (text on the left); portrait in the top half.
+  // The end centers it over the wordmark. setViewOffset moves the lens center, not the subject.
+  const cw = canvas.clientWidth, ch = canvas.clientHeight;
+  const ox = narrow ? 0 : mix(0.22, 0, eFin), oy = narrow ? mix(0.2, 0.26, eFin) : mix(0, 0.2, eFin);
+  cam.setViewOffset(cw, ch, -ox * cw, oy * ch, cw, ch);
+  cam.updateProjectionMatrix(); cam.updateMatrixWorld(true);
+  focusDist = cam.position.distanceTo(camTarget);
+}
+
+/* Quality tier: 'high' (discrete GPU: AO + DoF + full grain), 'mid' (laptop: DoF, no AO), 'low' (phone: neither).
+   ?q=high|mid|low overrides. A frame-time governor drops AO first, then DoF, before it drops smoothness. */
+const Q = (() => {
+  const qp = new URLSearchParams(location.search).get('q'); if (qp) return qp;
+  if (SMALL) return 'low';
+  let r = ''; try { const gl = s.renderer.getContext(), ex = gl.getExtension('WEBGL_debug_renderer_info'); r = ex ? gl.getParameter(ex.UNMASKED_RENDERER_WEBGL) : ''; } catch (e) {}
+  if (/Intel|UHD|Iris|Mali|Adreno|PowerVR/i.test(r)) return 'mid';
+  if (/Apple/i.test(r) && !/Pro|Max|Ultra/i.test(r)) return 'mid';
+  return 'high';
+})();
+
+// Practical lights: two LED clusters and the display. One spark light. Counts are fixed, so shaders do not recompile.
+const ledLight = new THREE.PointLight(0xffb040, 0, 0.9, 2); ledLight.position.copy(mainAt(0.1, -0.62, ZT + 0.06)); asm.add(ledLight);
+const screenLight = new THREE.PointLight(0xffa020, 0, 1.6, 2); screenLight.position.set(DISP.x, DISP.y, LIDZ + 0.35); asm.add(screenLight);
+const sparkLight = new THREE.PointLight(0xffc070, 0, 0.8, 2); asm.add(sparkLight);
+
+// Sparks: a small pool of short-lived emissive points at a working driver tip.
+const NSPARK = Q === 'low' ? 24 : 64;
+const spGeo = new THREE.BufferGeometry(), spPos = new Float32Array(NSPARK * 3), spLife = new Float32Array(NSPARK).fill(-1), spVel = [];
+for (let i = 0; i < NSPARK; i++) { spPos[i * 3 + 1] = -99; spVel.push(V(0, 0, 0)); }
+spGeo.setAttribute('position', new THREE.BufferAttribute(spPos, 3));
+const sparks = new THREE.Points(spGeo, new THREE.PointsMaterial({ color: new THREE.Color(3.2, 1.9, 0.7), size: 0.022, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+sparks.frustumCulled = false; asm.add(sparks);
+let spNext = 0, lastT = 0;
+
+// Light shafts through the vent slots: additive gradient planes, very faint, shown in the reveal orbit.
+const shaftTex = (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 256; const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, 256); gr.addColorStop(0, 'rgba(255,236,200,0.9)'); gr.addColorStop(1, 'rgba(255,236,200,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 256); const h = g.createLinearGradient(0, 0, 64, 0);
+  h.addColorStop(0, 'rgba(0,0,0,1)'); h.addColorStop(0.5, 'rgba(0,0,0,0)'); h.addColorStop(1, 'rgba(0,0,0,1)');
+  g.globalCompositeOperation = 'destination-out'; g.fillStyle = h; g.fillRect(0, 0, 64, 256); return new THREE.CanvasTexture(c); })();
+const shaftMat = new THREE.MeshBasicMaterial({ map: shaftTex, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+const shafts = [];
+[-0.18, 0.3].forEach((y, i) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 1.3), shaftMat);
+  m.position.set(TW / 2 - 0.55, y, 0.26); m.rotation.set(0, Math.PI / 2 - 0.5, -1.05 - i * 0.06); asm.add(m); shafts.push(m); });
+
+// Post stack: render -> (GTAO) -> bloom (kit) -> (Bokeh) -> output -> grade (vignette, grain, edge CA).
+let gtao = null, bokeh = null, grade = null;
+if (s.composer) {
+  const cw = canvas.clientWidth || 1280, ch = canvas.clientHeight || 720;
+  if (Q === 'high') {
+    gtao = new GTAOPass(s.scene, cam, cw, ch);
+    gtao.updateGtaoMaterial({ radius: 0.22, distanceExponent: 1.4, thickness: 1, scale: 1, samples: 12 });
+    gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 8 });
+    gtao.blendIntensity = 0.8;
+    s.composer.insertPass(gtao, 1);
+  }
+  if (Q !== 'low') {
+    bokeh = new BokehPass(s.scene, cam, { focus: 7, aperture: 0.0018, maxblur: 0.0055 });
+    s.composer.insertPass(bokeh, s.composer.passes.length - 1);
+  }
+  grade = new ShaderPass({
+    uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uGrain: { value: Q === 'low' ? 0.018 : 0.03 }, uVig: { value: 0.3 }, uCA: { value: Q === 'low' ? 0 : 0.006 } },
+    vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime, uGrain, uVig, uCA; varying vec2 vUv;
+      float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+      void main(){
+        vec2 d = vUv - 0.5; float r2 = dot(d, d);
+        vec2 off = d * uCA * r2 * 4.0;                       // aberration grows only toward the edges
+        vec3 c = vec3(texture2D(tDiffuse, vUv - off).r, texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv + off).b);
+        c *= 1.0 - uVig * smoothstep(0.12, 0.62, r2 * 2.0);
+        c += (hash(vUv * vec2(1931.0, 1213.0) + fract(uTime * 7.31)) - 0.5) * uGrain;
+        gl_FragColor = vec4(c, 1.0);
+      }`
+  });
+  s.composer.addPass(grade);
+}
+// Governor: if frames run long for two seconds, drop AO, then DoF.
+let govT = 0, govN = 0, govSum = 0;
+function governor(dt) {
+  if (window.SCRAP.fixed != null) return;
+  govT += dt; govN++; govSum += dt;
+  if (govT < 2) return;
+  const avg = govSum / govN; govT = govN = govSum = 0;
+  if (avg > 1 / 45) { if (gtao && gtao.enabled) gtao.enabled = false; else if (bokeh && bokeh.enabled) bokeh.enabled = false; }
+}
+
+let workTips = [null, null, null];
+function cinemaUpdate(P, t) {
+  const dt = clamp(t - lastT, 0, 0.05); lastT = t;
+  // Practical lights follow their sources.
+  ledLight.intensity = 0.9 * ss(T_LED, T_LED + 0.2, P);
+  screenLight.intensity = 1.6 * ss(SCREEN_ON + 0.05, SCREEN_ON + 0.3, P) * (0.92 + 0.08 * Math.sin(t * 11));
+  // Sparks and the light kick at working driver tips; the driver glows while it works.
+  let work = null; workTips.forEach(w => { if (w && !work) work = w; });
+  driverMat.emissiveIntensity = work ? 1.6 : 0;
+  if (work && !s.reduceMotion) for (let n = 0; n < 2; n++) {
+    const i = spNext; spNext = (spNext + 1) % NSPARK; spLife[i] = 0.28 + Math.random() * 0.12;
+    spPos[i * 3] = work.x; spPos[i * 3 + 1] = work.y; spPos[i * 3 + 2] = work.z;
+    spVel[i].set((Math.random() - 0.5) * 0.9, (Math.random() - 0.5) * 0.9, 0.3 + Math.random() * 0.6);
+  }
+  for (let i = 0; i < NSPARK; i++) {
+    if (spLife[i] <= 0) { spPos[i * 3 + 2] = -99; continue; }
+    spLife[i] -= dt; spVel[i].z -= 2.6 * dt;
+    spPos[i * 3] += spVel[i].x * dt; spPos[i * 3 + 1] += spVel[i].y * dt; spPos[i * 3 + 2] += spVel[i].z * dt;
+  }
+  spGeo.attributes.position.needsUpdate = true;
+  if (work) sparkLight.position.copy(work);
+  sparkLight.intensity = work ? 0.5 + Math.random() * 0.5 : sparkLight.intensity * 0.8;
+  // Shafts: only in the reveal orbit, nearly subliminal.
+  shaftMat.opacity = 0.07 * ss(2.2, 2.32, P) * (1 - ss(2.5, 2.6, P));
+  // Lens: focus follows the shot target; post time.
+  if (bokeh) bokeh.uniforms.focus.value = focusDist;
+  if (grade) grade.uniforms.uTime.value = t;
 }
 
 /* ---------- update ---------- */
-// The halves swap for the solid wrench the moment the handle seats, so no seam is ever on screen at rest.
-const HEAD_T = [0.04, 0.34], HANDLE_T = [0.25, 0.55], NUT_T = [0.46, 0.78], JOIN = 0.55, ON_AT = 2.92;
-let powerAt = -1;
+const HEAD_T = [0.04, 0.3], HANDLE_T = [0.16, 0.42], NUT_T = [0.3, 0.5], JOIN = 0.42;
+const SCREEN_ON = 2.9, T_LED = 2.92, T_PULSE = 3.0;
+const T_FLOOR = [0.55, 0.8], T_WALLS = [0.64, 0.9], T_BOSS = [0.84, 1.0], T_ST = [0.98, 1.1];
+let lastP = -99;
+const wq = new THREE.Quaternion(), wsv = new THREE.Vector3();
+
 function update(P, t) {
   narrow = canvas.clientWidth / canvas.clientHeight < 0.85;
-  const f = narrow ? 0.42 : 0.62;   // explode spread; tighter on desktop because the wrench is larger there
+  const force = Math.abs(P - lastP) > 1e-5; lastP = P;
+  const mob = narrow;
 
-  // Stage 1: three pieces arrive on arcs (logo units, inner frame), then join.
+  // 1. Rig (fixed: the device on a table), then the camera from the shot list.
+  const eBox = ss(0.55, 0.95, P), eFin = ss(3.15, 3.7, P);
+  const aspect = canvas.clientWidth / canvas.clientHeight;
+  rig.position.set(0, 0, 0);
+  rig.rotation.set(-Math.PI / 2, 0, 0);
+  rig.scale.setScalar(mix(1, 0.8, eFin));
+  const sh = Math.exp(-(t - shudderAt) * 16) * (t > shudderAt ? 1 : 0);
+  asm.position.z = s.reduceMotion ? 0 : Math.sin(t * 0.9) * 0.008;
+  asm.scale.set(1 + sh * 0.002, 1 + sh * 0.002, 1 - sh * 0.004);
+  rig.updateMatrixWorld(true);
+  camShot(P, t, aspect, eFin);
+  // 2. Wrench: device-frame pose -> world; at the end, blend to the wordmark C.
+  const wp = wrenchPose(P, t);
+  const posW = asm.localToWorld(wp.pos.clone());
+  // In the hero the wrench stands and faces the lens; from 0.5 it lies down above the tray.
+  asm.getWorldQuaternion(wq); const qW = wq.clone().multiply(qE(Math.PI / 2 * (1 - ss(0.5, 0.95, P)), 0, 0)).multiply(qZ(wp.phi));
+  asm.getWorldScale(wsv); let sW = wp.s * wsv.x;
+  let letter = 0, fold = 0, fade = 0;
+  const target = P > 3.0 ? logoTarget() : null;
+  if (target) {
+    const f = easeIO(clamp((P - 3.15) / 0.5));
+    const lift = posW.clone().lerp(target.pos, 0.5).add(V(0, 0.5, 0.3));
+    posW.copy(bez(posW, lift, target.pos, f));
+    qW.slerp(target.q, f);
+    sW = mix(sW, target.s, f);
+    letter = ss(3.5, 3.75, P); fold = ss(3.55, 3.8, P); fade = ss(3.86, 3.98, P);
+  }
+  W.position.copy(posW); W.quaternion.copy(qW); W.scale.setScalar(1);
+  inner.rotation.z = ICON_A * (1 - letter);
+  inner.scale.set(0.01 * sW * mix(1, L.sx, letter), 0.01 * sW, 0.01 * sW);
+  setWrenchOpacity(1 - fade);
+  setMarkOpacity(fade);
+  W.visible = fade < 0.999;
+
+  // Pieces: hero assembly, the open neck during the build, the folding handle at the end.
+  const f = narrow ? 0.42 : 0.62;
   const ah = arrive(HEAD_T[0], HEAD_T[1], P), al = arrive(HANDLE_T[0], HANDLE_T[1], P), an = arrive(NUT_T[0], NUT_T[1], P);
   fly(head, V(0, 0, 0), V(0, 70 * f, 0), V(0, 0, 30), V(0, 3, 0), qE(0, 0.55, 0), ah);
   head.scale.set(1, 1 - ah.comp, 1);
   fly(handle, V(0, 0, 0), V(-95 * f, -10 * f, 0), V(0, -22 * f, 25), V(-9, 0, 0), qE(0.6, 0, 0), al);
   handle.scale.set(1 - al.comp, 1, 1);
-  const jaw = rotZ(V(1, 0, 0), L.tilt * Math.PI / 180);
-  fly(nut, NUT_HOME, jaw.clone().multiplyScalar(110 * f).add(V(0, 20 * f, 0)), V(0, 28 * f, 20), jaw.clone().multiplyScalar(4), qE(0, 0, SIXTY), an, qE(0, 0, NUT_ROT));
-  const joined = P >= JOIN;
-  head.visible = handle.visible = !joined;
-  unified.visible = joined;
-  lock(W1.st, joined, t);
+  fly(wNut, NUT_HOME, V(110 * f, 20 * f, 0), V(0, 28 * f, 20), V(4, 0, 0), qZ(Math.PI / 3), an, qZ(NUT_ROT));
+  const gap = wp.gap;
+  if (P >= JOIN) { head.position.set(gap * 14, 0, 0); handle.position.set(-gap * 22, 0, 0); head.quaternion.identity(); handle.quaternion.identity(); head.scale.set(1, 1, 1); handle.scale.set(1, 1, 1); }
+  if (fold > 0) { handle.position.set(fold * 150, 0, 0); handle.scale.set(Math.max(0.001, 1 - fold), 1 - fold * 0.3, 1); }
+  const halves = P < JOIN || gap > 0.002 || fold > 0;
+  head.visible = handle.visible = halves; unified.visible = !halves;
+  handle.visible = handle.visible && fold < 0.999;
+  lock(wMat.st, P >= JOIN, t);
 
-  const wp = wrenchPose(P);
-  W.position.copy(wp.pos); W.rotation.set(0, 0, wp.phi); inner.scale.setScalar(0.01 * wp.s);
-  W.visible = P < 2.92;
+  // 3. Tray.
+  const af = arrive(...T_FLOOR, P), aw = arrive(...T_WALLS, P);
+  floor.visible = af.started; walls.visible = aw.started;
+  fly(floor, V(0, 0, 0), mob ? V(0, -1.4, 0.4) : V(0, -1.2, 0.6), V(0, 0.1, 0.12), V(0, 0, 0.05), qZ(0.2), af);
+  fly(walls, V(0, 0, 0), mob ? V(0, -1.6, 0.8) : V(0, -1.4, 1.0), V(0, 0.1, 0.12), V(0, 0, 0.05), qZ(0.2), aw);
+  lock(shell.st, aw.done, t);
+  shadowMat.opacity = 0.75 * ss(...T_FLOOR, P);
+  lblAudio.visible = P > 1.62; lblNet.visible = P > 2.0;        // floor labels appear with their modules
+  BOSS.forEach((b, i) => { const ar = arrive(T_BOSS[0] + i * 0.03, T_BOSS[1] + i * 0.03, P), g = ar.started ? Math.max(0.001, ar.seat * 0.9 + ar.k * 0.1) : 0;
+    setInst(bosses, i, V(b.x, b.y, 0), qI, ar.started ? V(1, 1, g) : 0); });   // scale 0, not a flat disc, before it starts
+  MHOLES.forEach((h, i) => { const ar = arrive(T_ST[0] + i * 0.015, T_ST[1] + i * 0.015, P);
+    dummy.visible = true; fly(dummy, mainAt(h[0], h[1], 0), V(0, 0, 0.7), V(0, 0.1, 0.1), V(0, 0, 0.04), qZ(0.4), ar);
+    dummy.scale.setScalar(ar.started ? 1 : 0); dummy.updateMatrix(); standoffs.setMatrixAt(i, dummy.matrix); });
+  standoffs.instanceMatrix.needsUpdate = true;
 
-  // Box panels: overlapping arrivals, each locks with a sweep and a shudder.
-  panels.forEach((p, i) => {
-    const ar = arrive(PANEL_T[i][0], PANEL_T[i][1], P);
-    p.m.visible = ar.started;
-    const from = narrow ? p.fromM : p.fromD, dir = from.clone().normalize();
-    fly(p.m, p.seat, from, dir.clone().cross(V(0, 0, 1)).multiplyScalar(0.12).add(V(0, 0, 0.15)), dir.clone().multiplyScalar(0.035), p.qFrom, ar);
-    p.m.scale.set(1 - Math.abs(dir.x) * ar.comp, 1 - Math.abs(dir.y) * ar.comp, 1 - Math.abs(dir.z) * ar.comp);
-    lock(p.st, ar.done, t);
+  // 4. Arms carry modules out of the wrench and place them.
+  const A = anchors(wp);
+  const armExt = ss(OPEN[0], OPEN[1], P) * (1 - ss(CLOSE[0] - 0.08, CLOSE[0] + 0.04, P));
+  const tips = A.map((a, j) => ({ tip: idleTip(j, a), grip: false, subs: null }));
+  BEATS.forEach(bt => {
+    const u = clamp((P - bt.a) / (bt.b - bt.a)), o = bt.obj;
+    o.visible = P > bt.a;
+    if (!o.visible) return;
+    const arms = bt.arm < 0 ? [0, 1, 2] : [bt.arm];
+    const src = A[arms[0]].clone().add(V(0, -0.2, -0.05)), hover = bt.seat.clone().add(V(0, 0, 0.35));
+    let pos, sc = 1, grip = true;
+    if (u < 0.14) { const e = easeOut(u / 0.14); pos = src.clone(); sc = mix(0.12, 1, e); }
+    else if (u < 0.66) { const e = easeIO((u - 0.14) / 0.52); pos = bez(src, src.clone().lerp(hover, 0.5).add(V(0, 0.1, 0.45)), hover, e); }
+    else if (u < 0.84) { const e = easeOut((u - 0.66) / 0.18); pos = hover.clone().lerp(bt.seat, e); }
+    else { pos = bt.seat.clone(); grip = false; }
+    const comp = Math.sin(Math.PI * clamp((u - 0.84) / 0.06)) * 0.015;
+    o.position.copy(pos); o.quaternion.copy(qZ(0.5 * (1 - easeIO(clamp(u / 0.66))))); o.scale.set(sc, sc, sc * (1 - comp));
+    if (bt.arm >= 0 && o.userData.sweep === undefined) o.userData.sweep = 0;
+    if (P >= bt.b) { o.position.copy(bt.seat); o.quaternion.identity(); o.scale.setScalar(1); }
+    if (u > 0 && u < 1) arms.forEach((j, n) => {
+      const grab = bt.arm < 0 ? pos.clone().add(LID_GRIPS[n]).add(V(0, 0, bt.top)) : pos.clone().add(V(0, 0, bt.top * sc + 0.02));
+      const back = idleTip(j, A[j]), r = grip ? 0 : easeIO((u - 0.84) / 0.16);
+      tips[j] = { tip: grab.lerp(back, r), grip: grip, subs: bt.seat };
+    });
   });
-  shadowMat.opacity = 0.8 * ss(PANEL_T[0][0], PANEL_T[0][1], P);
+  if (P > 2.12 && P < 2.3) { sdCard.visible = true; const e = easeIO(clamp((P - 2.12) / 0.14)); sdCard.position.copy(mainAt(Z.SAVE[0], Z.SAVE[1] - 0.3 * (1 - e), ZT + 0.016)); }
+  else sdCard.visible = P >= 2.3; if (P >= 2.3) sdCard.position.copy(mainAt(Z.SAVE[0], Z.SAVE[1], ZT + 0.016));
+  // Cables grow.
+  [[coax, 2.04, 2.16], [wR, 2.12, 2.26], [wB, 2.14, 2.28], [ribbon, 2.08, 2.22]].forEach(([c, a, b]) => {
+    const e = easeIO(clamp((P - a) / (b - a))); c.m.visible = e > 0; c.m.geometry.setDrawRange(0, Math.floor(e * c.n / 3) * 3); });
+  bulk.visible = P > 2.0;
 
-  // Bolts: fly in proud, then thread in as the wrench turns them.
-  for (let i = 0; i < 4; i++) {
-    const ar = arrive(BOLT_IN[i][0], BOLT_IN[i][1], P), c = BOLTS[i], turn = boltTurn(i, P);
-    const seat = V(c.x, c.y, zFace + boltProud(i, P));
-    fly(dummy, seat, V(0.15, 0.35, 1.1), V(0, 0.2, 0.2), V(0, 0, 0.05), qE(0, 0, SIXTY * 1.5), ar, qE(0, 0, TH[i] - turn));
-    const settle = turn >= 2 * SIXTY - 1e-4 ? Math.sin(Math.PI * clamp((P - WB[i][1] + 0.012) / 0.012)) * 0.012 : 0;
-    dummy.scale.set(ar.started ? 1 : 0, ar.started ? 1 : 0, ar.started ? 1 - ar.comp - settle : 0);
-    dummy.updateMatrix(); bolts.setMatrixAt(i, dummy.matrix);
+  // 5. The swarm: only moving parts write their matrix. Branch arms hover over driving screws.
+  const subT = [null, null, null];
+  parts.forEach(pt => {
+    const u = clamp((P - pt.a) / (pt.b - pt.a));
+    if (!force && (u === 0 || u === 1) && pt.last === u) return;
+    pt.last = u;
+    if (P <= pt.a) { setInst(pt.mesh, pt.i, pt.seat, qI, 0); return; }
+    const ar = arrive(pt.a, pt.b, P), st = (mob ? MSTREAMS : STREAMS)[pt.j];
+    const start = pt.seat.clone().add(st).add(pt.jit), hover = pt.seat.clone().add(V(0, 0, 0.08));
+    const perp = V(-st.y, st.x, 0).normalize().multiplyScalar(pt.perpR);
+    const ctrl = start.clone().lerp(hover, 0.5).add(perp).add(V(0, 0, 0.5));
+    const pos = bez(start, ctrl, hover, ar.k).lerp(pt.seat, ar.seat);
+    const q = pt.qFrom.clone().slerp(qI, ar.k).premultiply(pt.q);
+    if (pt.spin) q.multiply(qZ(pt.spin * (1 - ar.seat)));
+    setInst(pt.mesh, pt.i, pos, q, V(pt.sc, pt.sc, pt.sc * (1 - ar.comp * 2)));
+  });
+  smd.instanceColor && (smd.instanceColor.needsUpdate = true);
+  // Screw-head recesses follow the screws; branch arms track the screw that is driving now.
+  screwParts.forEach((pt, n) => {
+    const u = clamp((P - pt.a) / (pt.b - pt.a));
+    if (u > 0.55 && u < 1 && pt.grp !== 'smd') { const j = n % 3; if (!subT[j]) subT[j] = pt.seat.clone().add(V(0, 0, 0.035 * pt.sc + 0.02)); }
+    pt.mesh.getMatrixAt(pt.i, dummy.matrix); dummy.matrix.decompose(dummy.position, dummy.quaternion, dummy.scale);
+    dummy.position.add(V(0, 0, 0.0345 * dummy.scale.z)); dummy.updateMatrix(); recess.setMatrixAt(n, dummy.matrix);
+  });
+  recess.instanceMatrix.needsUpdate = true;
+  workTips = subT;
+
+  // Draw the arms.
+  for (let j = 0; j < ARMS; j++) {
+    const a = A[j], tp = tips[j], T = a.clone().lerp(tp.tip, armExt), len = a.distanceTo(T);
+    const c1 = a.clone().add(V((j - 1) * 0.25, 0.08, 0.35 * Math.min(1, len))), c2 = T.clone().add(V(0, 0.05, 0.4 * Math.min(1, len)));
+    chain(j * (SEGS + SUBS * SUBSEG), a, c1, c2, T, SEGS, 0.052, 0.03, armExt);
+    // Claw at the tip: two fingers along the tangent, closed when gripping.
+    const tg = cubicTan(a, c1, c2, T, 1), qa = new THREE.Quaternion().setFromUnitVectors(V(0, 0, -1), tg.clone().negate().multiplyScalar(-1));
+    qa.setFromUnitVectors(V(0, 0, 1), tg.clone().negate());
+    const side = V(1, 0, 0).applyQuaternion(qa), open = tp.grip ? 0.024 : 0.045, on = armExt > 0.01 ? 1 : 0;
+    setInst(fingers, j * 2, T.clone().addScaledVector(side, open), qa, on);
+    setInst(fingers, j * 2 + 1, T.clone().addScaledVector(side, -open), qa, on);
+    // Branch arms: from 55% along the main arm to a target (a driving screw) or folded near the tip.
+    const B0 = cubic(a, c1, c2, T, 0.55);
+    for (let k2 = 0; k2 < SUBS; k2++) {
+      const fold = T.clone().add(V((k2 ? 1 : -1) * 0.16, 0.1, 0.12));
+      const goal = (k2 === 0 && subT[j]) ? subT[j] : fold;
+      const ST = B0.clone().lerp(goal, armExt), sc1 = B0.clone().add(V(0, 0, 0.2)), sc2 = ST.clone().add(V(0, 0, 0.22));
+      chain(j * (SEGS + SUBS * SUBSEG) + SEGS + k2 * SUBSEG, B0, sc1, sc2, ST, SUBSEG, 0.026, 0.016, armExt);
+      const st2 = cubicTan(B0, sc1, sc2, ST, 1), qs = new THREE.Quaternion().setFromUnitVectors(V(0, 0, 1), st2.clone().negate());
+      const spin = (k2 === 0 && subT[j]) ? qZ(t * 9) : qI;
+      setInst(k2 ? drivers : sockets, j, ST, qs.clone().multiply(spin), on);
+    }
   }
-  bolts.instanceMatrix.needsUpdate = true;
 
-  // Idle life and the shared shudder.
-  const sh = Math.exp(-(t - shudderAt) * 16) * (t > shudderAt ? 1 : 0);
-  asm.position.y = s.reduceMotion ? 0 : Math.sin(t * 0.9) * 0.008;
-  asm.scale.set(1 + sh * 0.002, 1 - sh * 0.004, 1 + sh * 0.002);
-
-  // Rig framing: still inside a stage, one slow ease between stages.
-  const eBox = ss(1.05, 1.42, P), eFin = ss(3.15, 4.0, P);
-  if (narrow) {
-    const zc = cam.position.length(), visH = 2 * zc * Math.tan(THREE.MathUtils.degToRad(cam.fov / 2));
-    rig.position.set(0, visH * 0.165, 0);
-    rig.scale.setScalar(1);
-    rig.rotation.set(mix(0, 0.1, eBox), mix(mix(-0.1, -0.28, eBox), -0.18, eFin), 0);
-  } else {
-    // Rig offsets were tuned at camera distance 10. Scale them with the desktop distance,
-    // so the object stays centered in the right half when the camera moves in.
-    // x is a share of the visible width at the rig plane, so the object stays centered
-    // in the right half at any window size and camera distance. y was tuned at distance 10.
-    const zr = Z_DESK / 10, visW = 2 * Z_DESK * Math.tan(THREE.MathUtils.degToRad(15)) * (canvas.clientWidth / canvas.clientHeight);
-    // The exploded hero pieces spread upward, so the rig sits lower until they join.
-    const yHero = mix(-0.42, 0, ss(0.2, 0.6, P));
-    rig.position.set(visW * mix(mix(0.25, 0.23, eBox), 0.04, eFin), zr * mix(mix(yHero, -0.05, eBox), 0.62, eFin), 0);
-    rig.scale.setScalar(mix(1, 0.9, eFin));
-    const p = s.pointer;
-    rig.rotation.set(-p.sy * 0.03 + mix(0, 0.12, eBox), mix(mix(-0.2, -0.45, eBox), -0.24, eFin) + p.sx * 0.05, 0);
-  }
-
-  // Camera: a slow dolly and a 3-degree orbit across the scroll, a push-in at power-on.
-  const aspect = canvas.clientWidth / canvas.clientHeight;
-  // Portrait: the box takes about 60% of the width, which leaves room for the wrench at the corner bolts.
-  // Portrait tablets are wide but short in the top half, so the height can set the distance there.
-  const tn = 2 * Math.tan(THREE.MathUtils.degToRad(15));
-  const base = narrow ? Math.max((BW / 0.6) / (tn * aspect), 8.0 / tn) : Z_DESK;
-  const z = base * mix(1.03, 0.97, clamp(P / 4)) * (1 - 0.05 * ss(ON_AT, 3.4, P));
-  const orb = mix(0.026, -0.026, clamp(P / 4));
-  cam.position.set(Math.sin(orb) * z, 0, Math.cos(orb) * z);
-  cam.lookAt(0, 0, 0);
+  // 6. Display, LEDs, pulses.
+  LEDS.forEach((l, i) => { const e = ss(T_LED + i * 0.05, T_LED + i * 0.05 + 0.05, P);
+    leds.setColorAt(i, LED_OFF.clone().lerp(LED_ON[i], e)); setInst(leds, i, mainAt(l[0], l[1], ZT + 0.006), qI, P > 1.3 ? 1 : 0); });
+  leds.instanceColor.needsUpdate = true;
+  const pe = ss(T_PULSE, T_PULSE + 0.15, P);
+  pulsePaths.forEach((pp, i) => {
+    if (pe <= 0) { setInst(pulses, i, pp.p[0], qI, 0); return; }
+    const d = ((s.reduceMotion ? 0.5 : t * 0.35 + pp.ph) % 1) * pp.tot;
+    let j = 1; while (j < pp.L.length - 1 && pp.L[j] < d) j++;
+    const fr = (d - pp.L[j - 1]) / Math.max(1e-6, pp.L[j] - pp.L[j - 1]);
+    setInst(pulses, i, pp.p[j - 1].clone().lerp(pp.p[j], fr), qI, pe);
+  });
 
   // Lights: the key warms as the build completes and drifts slowly.
-  key.color.copy(KEY_COOL).lerp(KEY_WARM, ss(1.4, ON_AT, P));
-  key.position.set(-3 + Math.sin(t * 0.13) * 0.5, 4, 5);
-
-  const on = P > ON_AT;
-  if (on && powerAt < 0) powerAt = t;
-  if (!on) powerAt = -1;
+  key.color.copy(KEY_COOL).lerp(KEY_WARM, ss(1.0, 2.9, P));
+  key.position.set(-4 + Math.sin(t * 0.13) * 0.5, 5, 4);
+  cinemaUpdate(P, t);
   primed = true;
 }
 
 /* ---------- loop: scroll sets a target, a critically damped spring follows ---------- */
 const KS = 120, KD = 2 * Math.sqrt(KS);
-let P = window.SCRAP.target(), vel = 0, lastDraw = -1;
+let P = window.SCRAP.target(), vel = 0, lastDraw = -1, bootAt = -1;
+function screenTick(t, still) {
+  const on = P > SCREEN_ON;
+  if (on && bootAt < 0) bootAt = t;
+  if (!on) bootAt = -1;
+  if (still || t - lastDraw > 1 / 20) { lastDraw = t; drawScreen(on, still ? 3 : t - bootAt); }
+}
 function frame(t, dt) {
   const target = window.SCRAP.target();
   if (window.SCRAP.fixed != null) { P = target; vel = 0; }
   else { const st = Math.min(dt, 1 / 30); vel += (KS * (target - P) - KD * vel) * st; P += vel * st; }
   update(P, t);
   runSweeps(t);
-  if (powerAt >= 0 || t - lastDraw > 1 / 30) {
-    lastDraw = t;
-    const on = powerAt >= 0;
-    drawScreen(on, on ? (window.SCRAP.fixed != null ? 4 + t : t - powerAt) : 0);
-  }
+  governor(dt);
+  screenTick(t, window.SCRAP.fixed != null && P > SCREEN_ON && t > 1.5);
 }
 if (s.reduceMotion) {
-  const still = () => { P = window.SCRAP.target(); update(P, 1.5); runSweeps(99); drawScreen(P > ON_AT, 4); s.render(); };
+  const still = () => { P = window.SCRAP.target(); update(P, 1.5); runSweeps(99); drawScreen(P > SCREEN_ON, 3); s.render(); };
   window.addEventListener('scroll', still, { passive: true });
   window.addEventListener('resize', still);
   still();
 } else {
   s.onFrame(frame);
 }
-document.body.classList.add('live');
+document.body.classList.add('live'); document.body.classList.remove('no-webgl');
 </script>
 </body>
 </html>
