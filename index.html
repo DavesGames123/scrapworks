@@ -1060,43 +1060,47 @@ function posterMode() {
   canvas.style.display = 'none';                                 // the stage stops its loop when the canvas leaves the view
 }
 
-/* Hero bolts: a few plain silver hex bolts drifting around the wrench. They are placed in screen
-   space (NDC + depth), so they stay out of the headline on every layout, and they clear out as the build starts. */
+/* Hero bolts: plain silver hex bolts orbiting the wrench on tilted, slightly elliptical orbits, so they
+   pass in front of and behind it. Each bolt points along its path and spins about its own axis. Scroll
+   speed feeds the orbit speed. As the build starts, the orbits spiral outward and the bolts shrink away. */
 const heroBolts = (() => {
-  const N = SMALL ? 5 : 7;
+  const N = SMALL ? 6 : 9;
   const parts = [k.soft.hexNut(0.1, 0.068, 0).translate(0, 0, 0.034), zAxis(k.soft.cylinder(0.042, 0.3, 0.008, 20)).translate(0, 0, -0.15)];
   for (let i = 0; i < 5; i++) parts.push(zAxis(k.soft.ring(0.047, 0.041, 0.012, 0.004)).translate(0, 0, -0.07 - i * 0.045));
   const m = new THREE.InstancedMesh(merge(parts), M.steel({ anisotropy: 0, roughness: 0.3 }), N);
   m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); s.scene.add(m);
   const B = [];
-  for (let i = 0; i < N; i++) B.push({ u: (i + 0.5) / N + (rnd() - 0.5) * 0.08, v: rnd(), d: 3.4 + rnd() * 8, ph: rnd() * 6.283,
-    ax: V(rnd() - 0.5, rnd() - 0.5, rnd() - 0.5).normalize(), sp: 0.12 + rnd() * 0.18, tilt: qE(rnd() * 3, rnd() * 3, 0) });
+  for (let i = 0; i < N; i++) {
+    // Each orbit: radius (x wrench size), ellipse ratio, plane tilt, start angle, speed, spin.
+    const plane = new THREE.Quaternion().setFromEuler(new THREE.Euler((rnd() - 0.5) * 1.9, (rnd() - 0.5) * 1.2, rnd() * 6.283));
+    B.push({ r: 0.62 + (i % 3) * 0.17 + rnd() * 0.08, ell: 0.72 + rnd() * 0.2, plane, th: i / N * 6.283 + rnd() * 0.4,
+      w: (0.42 + rnd() * 0.36) * (i % 4 === 3 ? -1 : 1), spin: 2.2 + rnd() * 2.6, ph: rnd() * 6.283, sc: 0.85 + rnd() * 0.35 });
+  }
   return { m, B };
 })();
-const touch = window.matchMedia('(hover: none)').matches;
-const bv = new THREE.Vector3(), bq = new THREE.Quaternion();
+const bv = new THREE.Vector3(), bq = new THREE.Quaternion(), bt2 = new THREE.Vector3(), boltBox = new THREE.Box3();
+const boltC = new THREE.Vector3(), boltSz = new THREE.Vector3(), Zp = new THREE.Vector3(0, 0, 1);
+let boltLastT = -1;
 function updateHeroBolts(P, t) {
   const { m, B } = heroBolts, e = ss(0.4, 0.62, P), on = P < 0.66;
-  const aspect = canvas.clientWidth / canvas.clientHeight, shortLand = aspect > 1.3 && canvas.clientHeight < 520;
-  cam.getWorldDirection(camFwd);
-  // Parallax: the pointer on desktop, a slow automatic drift on touch screens.
-  const px = touch || s.reduceMotion ? Math.sin(t * 0.21) * 0.5 : s.pointer.sx, py = touch || s.reduceMotion ? Math.cos(t * 0.17) * 0.5 : s.pointer.sy;
+  if (!on) { B.forEach((b, i) => { dummy.scale.setScalar(0); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); }); m.instanceMatrix.needsUpdate = true; return; }
+  const dt = boltLastT < 0 ? 0 : clamp(t - boltLastT, 0, 0.05); boltLastT = t;
+  // Orbit center and size follow the wrench, so the orbits stay with it on every layout.
+  boltBox.setFromObject(inner); boltBox.getCenter(boltC); boltBox.getSize(boltSz);
+  const R = Math.max(boltSz.x, boltSz.y) * 0.62;
+  const boost = 1 + Math.min(Math.abs(vel) * 2.5, 3);              // scroll speed spins the orbits up
   B.forEach((b, i) => {
-    if (!on) { dummy.scale.setScalar(0); dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix); return; }
-    const bt = s.reduceMotion ? 0 : t;
-    // Allowed screen regions (NDC): desktop right half; short landscape left half; portrait top half.
-    let x, y;
-    if (narrow) { x = mix(-0.86, 0.86, b.u); y = mix(0.14, 0.76, b.v); }     // top half, below the nav
-    else if (shortLand) { x = mix(-0.9, -0.1, b.u); y = mix(-0.78, 0.78, b.v); }
-    else { x = mix(0.1, 0.92, b.u); y = mix(-0.78, 0.66, b.v); }          // right half, below the nav
-    const par = 0.035 * 7 / b.d;
-    x += Math.sin(bt * 0.23 + b.ph) * 0.025 + px * par; y += Math.cos(bt * 0.19 + b.ph) * 0.025 + py * par;
-    const cx = narrow ? 0 : shortLand ? -0.5 : 0.5, cy = narrow ? 0.5 : 0;     // clear out: drift away from the subject
-    x = mix(x, x + (x - cx) * 1.2, e); y = mix(y, y + (y - cy) * 1.2, e);
-    bv.set(x, y, 0.5).unproject(cam).sub(cam.position).normalize();
-    const pos = cam.position.clone().addScaledVector(bv, b.d / bv.dot(camFwd));
-    bq.setFromAxisAngle(b.ax, bt * b.sp + b.ph).multiply(b.tilt);
-    dummy.position.copy(pos); dummy.quaternion.copy(bq); dummy.scale.setScalar(1 - e);
+    if (!s.reduceMotion) b.th += b.w * boost * dt;
+    const rr = R * b.r * (1 + 0.05 * Math.sin(t * 1.3 + b.ph)) * (1 + 1.8 * e);   // breathing, then spiral out
+    const th = b.th + e * 2.2 * Math.sign(b.w);
+    bv.set(Math.cos(th) * rr, Math.sin(th) * rr * b.ell, 0).applyQuaternion(b.plane);
+    // Tangent: the bolt axis points along its path.
+    bt2.set(-Math.sin(th) * rr, Math.cos(th) * rr * b.ell, 0).applyQuaternion(b.plane).normalize().multiplyScalar(Math.sign(b.w));
+    bq.setFromUnitVectors(Zp, bt2);
+    const spin = new THREE.Quaternion().setFromAxisAngle(Zp, (s.reduceMotion ? 0 : t) * b.spin + b.ph);
+    dummy.position.copy(boltC).add(bv);
+    dummy.quaternion.copy(bq).multiply(spin);
+    dummy.scale.setScalar(b.sc * (1 - e));
     dummy.updateMatrix(); m.setMatrixAt(i, dummy.matrix);
   });
   m.instanceMatrix.needsUpdate = true;
