@@ -1,15 +1,19 @@
 # ScrapWorks website
 
-Homepage mockups for Scrap, served at https://scrapworks.art by GitHub Pages from `main`.
+The Scrap website, served at https://scrapworks.website by GitHub Pages from `main`.
 
-    index.html              list of the five directions
-    01-foundry.html         conventional layout, 3D wrench hero
-    02-control-panel.html   machine faceplate, three feature toggles
-    03-assembly-line.html   scroll story, the wrench assembles
-    04-machined.html        black anodized, quiet and centered
-    05-forge.html           near-black, heat glow, embers
-    shared/scrap-brand.js   wordmark, icon, favicon, Three.js PBR kit
-    shared/BRIEF.md         rules that all five pages follow
+    index.html              the homepage: the Assembly Line scroll build
+    mockups.html            list of the five early directions
+    01-foundry.html         early direction: conventional layout
+    02-control-panel.html   early direction: faceplate and amber CRT
+    04-machined.html        early direction: black anodized, centered
+    05-forge.html           early direction: heat glow, embers
+    shared/scrap-brand.js   logo parameters, wordmark, icon, favicon,
+                            Three.js kit (stage, materials, soft geometry)
+    shared/BRIEF.md         rules for the early directions
+    design/                 logo labs and the logo study (not linked)
+
+The early directions are frozen. Only index.html is developed.
 
 All product copy on the pages is placeholder text.
 

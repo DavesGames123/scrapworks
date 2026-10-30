@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scrap Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<script src="shared/scrap-brand.js"></script>
+<style>
+  :root { --bg: #0a0a0b; --ink: #ecebe6; --mute: #85868b; --line: rgba(255,255,255,.08); --y: #ffc21a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body { font: 400 16px/1.5 Inter, system-ui, sans-serif; min-height: 100vh; display: grid; place-items: center; }
+  main { width: min(560px, 100% - 32px); padding: 64px 0; }
+  .brand { font: 800 72px/1 'Barlow Condensed', sans-serif; color: var(--y); }
+  p { color: var(--mute); margin: 16px 0 48px; }
+  ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+  li a {
+    display: flex; align-items: baseline; gap: 20px; padding: 18px 0;
+    border-bottom: 1px solid var(--line); color: var(--ink); text-decoration: none;
+    font: 500 18px/1 Inter, sans-serif; transition: color .15s;
+  }
+  li a span { color: var(--mute); font-size: 13px; width: 20px; }
+  li a::after { content: "\2192"; margin-left: auto; color: var(--mute); transition: color .15s; }
+  li a:hover, li a:hover::after { color: var(--y); }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand" data-scrap-wordmark></div>
+  <p>Five homepage directions.</p>
+  <ol>
+    <li><a href="01-foundry.html"><span>01</span>Foundry</a></li>
+    <li><a href="02-control-panel.html"><span>02</span>Control Panel</a></li>
+    <li><a href="./"><span>03</span>Assembly Line</a></li>
+    <li><a href="04-machined.html"><span>04</span>Machined</a></li>
+    <li><a href="05-forge.html"><span>05</span>Forge</a></li>
+  </ol>
+</main>
+</body>
+</html>
