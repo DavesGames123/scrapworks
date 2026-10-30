@@ -459,7 +459,46 @@
         }
         return { pts: out, nrm: nrm };
       }
-      var all = [outer].concat(holes).map(inset);
+      /*
+       * Safety: the inset contours must be simple polygons, and must not cross each other. A convex
+       * corner sharper than r folds the inset over itself; the slab then shows spikes and torn faces.
+       * Shrink r until every inset contour is clean (at most 6 tries; r = 0 always is).
+       */
+      function segX(a, b, c, d) {
+        var d1 = (d[0] - c[0]) * (a[1] - c[1]) - (d[1] - c[1]) * (a[0] - c[0]);
+        var d2 = (d[0] - c[0]) * (b[1] - c[1]) - (d[1] - c[1]) * (b[0] - c[0]);
+        var d3 = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+        var d4 = (b[0] - a[0]) * (d[1] - a[1]) - (b[1] - a[1]) * (d[0] - a[0]);
+        return ((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0));
+      }
+      function crosses(cs) {
+        var segs = [];
+        cs.forEach(function (ct, ci) { var n = ct.pts.length; for (var i = 0; i < n; i++) segs.push([ct.pts[i], ct.pts[(i + 1) % n], ci, i, n]); });
+        // Grid buckets keep this near-linear for dense outlines.
+        var cell = 0, minx = 1e9, miny = 1e9;
+        segs.forEach(function (sg) { cell += Math.hypot(sg[1][0] - sg[0][0], sg[1][1] - sg[0][1]); minx = Math.min(minx, sg[0][0]); miny = Math.min(miny, sg[0][1]); });
+        cell = Math.max(1e-6, cell / segs.length * 4);
+        var grid = {};
+        function key(x, y) { return Math.floor((x - minx) / cell) + ',' + Math.floor((y - miny) / cell); }
+        for (var k = 0; k < segs.length; k++) {
+          var sg = segs[k], x0 = Math.min(sg[0][0], sg[1][0]), x1 = Math.max(sg[0][0], sg[1][0]), y0 = Math.min(sg[0][1], sg[1][1]), y1 = Math.max(sg[0][1], sg[1][1]);
+          var gx0 = Math.floor((x0 - minx) / cell), gx1 = Math.floor((x1 - minx) / cell), gy0 = Math.floor((y0 - miny) / cell), gy1 = Math.floor((y1 - miny) / cell);
+          for (var gx = gx0; gx <= gx1; gx++) for (var gy = gy0; gy <= gy1; gy++) {
+            var b = grid[gx + ',' + gy] || (grid[gx + ',' + gy] = []);
+            for (var m = 0; m < b.length; m++) {
+              var o = segs[b[m]];
+              if (o[2] === sg[2] && (Math.abs(o[3] - sg[3]) <= 1 || Math.abs(o[3] - sg[3]) === sg[4] - 1)) continue;   // neighbours share a vertex
+              if (segX(sg[0], sg[1], o[0], o[1])) return true;
+            }
+            b.push(k);
+          }
+        }
+        return false;
+      }
+      var all = [outer].concat(holes).map(inset), tries = 0;
+      while (r > 0 && tries < 6 && crosses(all)) { r *= 0.6; tries++; all = [outer].concat(holes).map(inset); }
+      if (r > 0 && crosses(all)) { r = 0; all = [outer].concat(holes).map(inset); }
+      zi = Math.max(0, zf - r);   // the bevel z must follow the final r, or caps and bevel separate
       // Edge sweep: phi from 0 (front) to PI (back), with the flat wall between PI/2 rings.
       var phis = [];
       for (var i = 0; i <= seg; i++) phis.push(i / seg * Math.PI / 2);
