@@ -305,7 +305,7 @@
           over33: dts.filter(function (d) { return d > 33.4; }).length, dpr: window.devicePixelRatio,
           size: innerWidth + 'x' + innerHeight, seg: {} };
         Object.keys(seg).sort().forEach(function (k) { var a = seg[k]; out.seg[k] = +(a.reduce(function (x, y) { return x + y; }, 0) / a.length).toFixed(2); });
-        console.log('SCRAP_BENCH ' + JSON.stringify(Object.assign(out, window.SCRAP.benchInfo || {}, window.SCRAP.benchExtra ? window.SCRAP.benchExtra() : {}, window.SCRAP.benchDyn ? window.SCRAP.benchDyn() : {}, { scene: null, slow: (window.SCRAP.slow || []).slice(0, 20), js: window.SCRAP.bt ? { upd: +(window.SCRAP.bt.upd / window.SCRAP.bt.n).toFixed(2), misc: +(window.SCRAP.bt.misc / window.SCRAP.bt.n).toFixed(2), screen: +(window.SCRAP.bt.screen / window.SCRAP.bt.n).toFixed(2) } : null })));
+        console.log('SCRAP_BENCH ' + JSON.stringify(Object.assign(out, window.SCRAP.benchInfo || {}, window.SCRAP.benchExtra ? window.SCRAP.benchExtra() : {}, window.SCRAP.benchDyn ? window.SCRAP.benchDyn() : {}, { collide: window.SCRAP.collide || null, scene: null, slow: (window.SCRAP.slow || []).slice(0, 20), js: window.SCRAP.bt ? { upd: +(window.SCRAP.bt.upd / window.SCRAP.bt.n).toFixed(2), misc: +(window.SCRAP.bt.misc / window.SCRAP.bt.n).toFixed(2), screen: +(window.SCRAP.bt.screen / window.SCRAP.bt.n).toFixed(2) } : null })));
         return;
       }
       requestAnimationFrame(tick);
@@ -860,37 +860,251 @@ unified.visible = true; head.visible = handle.visible = false;
 const C0 = new THREE.Box3().setFromObject(unified).getCenter(V(0, 0, 0)); C0.z = 0;
 const W_MATS = [wMat.mat, wNutMat];
 
-/* ---------- arms: segmented, branching, with tool tips ---------- */
-const ARMS = 3, SEGS = 30, SUBS = 2, SUBSEG = 12;
+/* ---------- arms: FABRIK chains with tapered vertebrae and tool tips ----------
+ * Each arm is a jointed chain solved by FABRIK (forward and backward reaching IK) every frame, warm
+ * started from the last frame. Segments have fixed lengths; the arm pays out from the wrench neck, so
+ * only the segments it needs are out, and the rest wait collapsed at the root. Joint limits keep it from
+ * kinking. A keep-out rule lifts every body joint (all but the tip region) over the enclosure, so the
+ * arm arches over the walls instead of passing through them. The body trails the tip (per-joint lag),
+ * and a low traveling wave keeps it alive. Sub-arms are short FABRIK chains rooted near the tip.
+ * Everything below is allocation-free in the frame loop: all vectors are preallocated.
+ */
+const ARMS = 3, SEGS = 30, SUBS = 2, SUBSEG = 12, SEG_L = 0.1, SUB_L = 0.042;
 const vertGeo = k.soft.cylinder(0.045, 0.05, 0.012, 12);              // axis Y; 12 sides: 162 instances, so each triangle counts
 const jointGeo = k.soft.ring(0.05, 0.03, 0.016, 0.005);                // axis Y
-const verts = inst(vertGeo, armMat, ARMS * (SEGS + SUBS * SUBSEG));
-const joints = inst(jointGeo, brassD, ARMS * (SEGS + SUBS * SUBSEG));
+const vertMat = M.brass({ roughness: 0.34 });
+const verts = inst(vertGeo, vertMat, ARMS * (SEGS + SUBS * SUBSEG));  // brass vertebrae
+const joints = inst(jointGeo, armMat, ARMS * (SEGS + SUBS * SUBSEG));  // dark steel collars between them
 const fingerGeo = k.soft.box(0.022, 0.03, 0.11, 0.008).translate(0, 0, -0.055);
 const fingers = inst(fingerGeo, steel, ARMS * 2);
 const sockets = inst(k.soft.hexNut(0.032, 0.07, 0.58).translate(0, 0, -0.035), brass, ARMS);
 const driverMat = M.steel({ anisotropy: 0, roughness: 0.3, emissive: new THREE.Color(1.0, 0.55, 0.12), emissiveIntensity: 0 });
 const drivers = inst(zAxis(k.soft.cylinder(0.008, 0.11, 0.003, 12)).translate(0, 0, -0.055), driverMat, ARMS);
-const qTan = new THREE.Quaternion();
-function cubic(a, b, c, d, t) {
-  const u = 1 - t;
-  return a.clone().multiplyScalar(u * u * u).addScaledVector(b, 3 * u * u * t).addScaledVector(c, 3 * u * t * t).addScaledVector(d, t * t * t);
+// Nerve: three small glow points per arm that run root to tip while the arm works. Over 1, so they bloom.
+const NERVE = 3;
+const nerves = inst(new THREE.SphereGeometry(0.012, 10, 8), M.glow(0xffb040, 1.7), ARMS * NERVE);
+
+// The enclosure, as boxes for the keep-out rule and the collision check (device frame, z up).
+const BOX_OUT = { x: TW / 2, y: THt / 2, z: HW };            // outer walls
+const BOX_IN = { x: IW / 2, y: IH / 2 };                      // interior
+const KEEP = 0.07;                                            // clearance for arm joints over the walls
+
+function makeChain(n, L) {
+  const c = { n, L, p: [], q: [], len: new Float32Array(n), init: false };
+  for (let i = 0; i <= n; i++) { c.p.push(new THREE.Vector3()); c.q.push(new THREE.Vector3()); }
+  return c;
 }
-function cubicTan(a, b, c, d, t) {
-  const u = 1 - t;
-  return b.clone().sub(a).multiplyScalar(3 * u * u).addScaledVector(c.clone().sub(b), 6 * u * t).addScaledVector(d.clone().sub(c), 3 * t * t).normalize();
+const mains = [0, 1, 2].map(() => makeChain(SEGS, SEG_L));
+const subC = [0, 1, 2].map(() => [makeChain(SUBSEG, SUB_L), makeChain(SUBSEG, SUB_L)]);
+// Per arm: spring state for the tip, sub tips, claw opening, and the root direction.
+const armS = [0, 1, 2].map(() => ({ tip: new THREE.Vector3(), tipV: new THREE.Vector3(), sub: [new THREE.Vector3(), new THREE.Vector3()],
+  subV: [new THREE.Vector3(), new THREE.Vector3()], open: 0.035, grip: false, work: false, init: false }));
+const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), _d = new THREE.Vector3(), _e = new THREE.Vector3();
+const _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _sc = new THREE.Vector3(), ZUP = V(0, 0, 1), ZDN = V(0, 0, -1);
+
+// Critically damped smoothing toward a target (Unity SmoothDamp). Stable at any dt.
+function damp(x, v, target, smooth, dt) {
+  if (dt <= 0) { x.copy(target); v.set(0, 0, 0); return; }
+  const om = 2 / smooth, ex = om * dt, k = 1 / (1 + ex + 0.48 * ex * ex + 0.235 * ex * ex * ex);
+  _e.copy(x).sub(target);                                     // change
+  _d.copy(v).addScaledVector(_e, om).multiplyScalar(dt);      // temp
+  v.addScaledVector(_d, -om).multiplyScalar(k);
+  x.copy(target).add(_e.add(_d).multiplyScalar(k));
 }
-// Lay vertebrae and brass joints along a cubic. r0 -> r1 taper; ext 0 hides the arm.
-function chain(base, A, c1, c2, T, n, r0, r1, ext) {
-  const len = A.distanceTo(T), gap = len / Math.max(1, n - 1);
-  for (let i = 0; i < n; i++) {
-    const t = i / (n - 1), p = cubic(A, c1, c2, T, t), tg = cubicTan(A, c1, c2, T, t);
-    qTan.setFromUnitVectors(YUP, tg);
-    const r = mix(r0, r1, t) / 0.045, h = clamp(gap / 0.05 * 0.9, 0.15, 1.6), on = ext > 0.001 && len > 0.02 ? 1 : 0;
-    setInst(verts, base + i, p, qTan, V(r * on, h * on, r * on));
-    setInst(joints, base + i, cubic(A, c1, c2, T, Math.min(1, t + 0.5 / (n - 1))), qTan, V(r * 0.72 * on, 0.7 * on, r * 0.72 * on));
+
+// Pay out: the segment lengths from the tip back, so only `pay` length is out of the neck.
+function payOut(c, pay) {
+  let left = Math.max(0, Math.min(pay, c.n * c.L));
+  for (let i = c.n - 1; i >= 0; i--) { const l = Math.min(c.L, left); c.len[i] = l; left -= l; }
+}
+// Keep-out: a body joint over the enclosure footprint must stay above the walls.
+function keepOut(p, margin) {
+  if (Math.abs(p.x) < BOX_OUT.x + margin && Math.abs(p.y) < BOX_OUT.y + margin && p.z < BOX_OUT.z + margin) p.z = BOX_OUT.z + margin;
+}
+// Walls are solid for every joint, the tip included: a joint over a wall band stays above the wall top.
+// (Seats are inside the interior, never in a wall band, so this never blocks a placement.)
+function wallOut(p, r) {
+  if (Math.abs(p.x) < BOX_OUT.x + r && Math.abs(p.y) < BOX_OUT.y + r && p.z < BOX_OUT.z + r &&
+      (Math.abs(p.x) > BOX_IN.x - r || Math.abs(p.y) > BOX_IN.y - r)) p.z = BOX_OUT.z + r;
+}
+const COS_LIM = Math.cos(THREE.MathUtils.degToRad(32)), COS_ROOT = Math.cos(THREE.MathUtils.degToRad(70));
+// Limit the bend between segment d (out) and the previous segment direction pd (both unit).
+function limitBend(d, pd, cosLim) {
+  const COS_LIM = cosLim, c = d.dot(pd);
+  if (c >= COS_LIM) return;
+  _e.copy(d).addScaledVector(pd, -c);
+  if (_e.lengthSq() < 1e-9) { _e.set(1, 0, 0).addScaledVector(pd, -pd.x); }
+  _e.normalize();
+  d.copy(pd).multiplyScalar(COS_LIM).addScaledVector(_e, Math.sqrt(1 - COS_LIM * COS_LIM));
+}
+/*
+ * fabrik(c, root, target, iters, tipFree, rootDir): solve chain c in place.
+ * tipFree: arc length from the tip within which joints may enter the enclosure (the working end).
+ */
+function fabrik(c, root, target, iters, tipFree, rootDir) {
+  const p = c.p, n = c.n, len = c.len;
+  let total = 0; for (let i = 0; i < n; i++) total += len[i];
+  if (!c.init) {   // start as an arch over the box, from root to target
+    _a.copy(root).lerp(target, 0.5); _a.z = Math.max(_a.z, BOX_OUT.z + 0.5) + 0.3;
+    let acc = 0;
+    for (let i = 0; i <= n; i++) {
+      const t = total > 0 ? acc / total : i / n; if (i < n) acc += len[i];
+      p[i].copy(root).multiplyScalar((1 - t) * (1 - t)).addScaledVector(_a, 2 * (1 - t) * t).addScaledVector(target, t * t);
+    }
+    c.init = true;
+  }
+  for (let it = 0; it < iters; it++) {
+    // Backward: from the target to the root.
+    p[n].copy(target);
+    for (let i = n - 1; i >= 0; i--) {
+      if (len[i] <= 1e-6) { p[i].copy(p[i + 1]); continue; }
+      _a.copy(p[i]).sub(p[i + 1]); const l = _a.length();
+      if (l < 1e-6) _a.set(0, 0.001, 0.001); _a.normalize();
+      p[i].copy(p[i + 1]).addScaledVector(_a, len[i]);
+    }
+    // Forward: from the root, with bend limits and the keep-out rule.
+    p[0].copy(root); _b.copy(rootDir);
+    let fromTip = total, firstPaid = 0; while (firstPaid < n - 1 && len[firstPaid] <= 1e-6) firstPaid++;
+    for (let i = 0; i < n; i++) {
+      if (len[i] <= 1e-6) { p[i + 1].copy(p[i]); continue; }
+      _a.copy(p[i + 1]).sub(p[i]); if (_a.lengthSq() < 1e-12) _a.copy(_b); _a.normalize();
+      limitBend(_a, _b, i === firstPaid ? COS_ROOT : COS_LIM);
+      p[i + 1].copy(p[i]).addScaledVector(_a, len[i]);
+      fromTip -= len[i];
+      if (fromTip > tipFree) keepOut(p[i + 1], KEEP); else wallOut(p[i + 1], 0.035);
+      _b.copy(p[i + 1]).sub(p[i]).normalize();
+    }
   }
 }
+// Body lag: middle joints trail the solved pose a little (the tip leads, the body follows).
+function trail(c, dt) {
+  if (dt <= 0) { for (let i = 0; i <= c.n; i++) c.q[i].copy(c.p[i]); return; }
+  for (let i = 1; i < c.n; i++) {
+    const w = 1 - 0.55 * Math.sin(Math.PI * i / c.n), a = 1 - Math.pow(1 - w, dt * 60);
+    c.q[i].lerp(c.p[i], a);
+  }
+  c.q[0].copy(c.p[0]); c.q[c.n].copy(c.p[c.n]);
+}
+// Write the chain to instances: vertebra per segment (taper root->tip), collar at each joint.
+// wave: amplitude of the traveling wave; ph: its phase.
+function drawChain(c, base, r0, r1, wave, ph, show) {
+  const n = c.n;
+  for (let i = 0; i < n; i++) {
+    const A = c.q[i], B = c.q[i + 1], l = c.len[i];
+    if (!show || l <= 1e-4) { setInst(verts, base + i, A, qI, 0); setInst(joints, base + i, A, qI, 0); continue; }
+    const t = (i + 0.5) / n, env = Math.sin(Math.PI * t);
+    _a.copy(B).sub(A); const d = _a.length() || 1; _a.multiplyScalar(1 / d);
+    _c.crossVectors(_a, ZUP); if (_c.lengthSq() < 1e-6) _c.set(1, 0, 0); _c.normalize();
+    const off = wave * env * Math.sin(ph - t * 9);
+    _d.copy(A).add(B).multiplyScalar(0.5).addScaledVector(_c, off);
+    _q.setFromUnitVectors(YUP, _a);
+    const r = mix(r0, r1, t) / 0.045;
+    setInst(verts, base + i, _d, _q, _sc.set(r, (l / 0.05) * 0.84, r));
+    _d.copy(B).addScaledVector(_c, wave * Math.sin(Math.PI * (i + 1) / n) * Math.sin(ph - (i + 1) / n * 9));
+    setInst(joints, base + i, _d, _q, _sc.set(r * 0.78, 0.72, r * 0.78));
+  }
+}
+// Point on the chain at fraction f (0 root, 1 tip), by joint index.
+function chainAt(out, c, f) {
+  const x = clamp(f) * c.n, i = Math.min(c.n - 1, Math.floor(x));
+  return out.copy(c.q[i]).lerp(c.q[i + 1], x - i);
+}
+
+/* ---------- piece paths: lift, travel level, drop (rounded corners, by arc length) ---------- */
+// Travel heights for the bottom of a carried piece: over the walls (HW) and every seated part, one
+// lane per arm, so two pieces in flight never share a height. The lid travels highest.
+const LANES = [HW + 0.13, HW + 0.4, HW + 0.67], LID_LANE = HW + 0.62;
+const _P0 = new THREE.Vector3(), _P1 = new THREE.Vector3(), _P2 = new THREE.Vector3(), _P3 = new THREE.Vector3(), _pos = new THREE.Vector3();
+const _u1 = new THREE.Vector3(), _u2 = new THREE.Vector3(), _u3 = new THREE.Vector3();
+const _ca = new THREE.Vector3(), _cb = new THREE.Vector3(), _cc = new THREE.Vector3(), _cd = new THREE.Vector3();
+const PS = new Float32Array(6), RC = 0.2;   // segment lengths: line, corner, line, corner, line, total
+function pathSetup(P0, P1, P2, P3) {
+  _u1.copy(P1).sub(P0); const l1 = _u1.length(); if (l1 > 1e-6) _u1.multiplyScalar(1 / l1);
+  _u2.copy(P2).sub(P1); const l2 = _u2.length(); if (l2 > 1e-6) _u2.multiplyScalar(1 / l2);
+  _u3.copy(P3).sub(P2); const l3 = _u3.length(); if (l3 > 1e-6) _u3.multiplyScalar(1 / l3);
+  const r1 = Math.min(RC, l1 / 2, l2 / 2), r2 = Math.min(RC, l2 / 2, l3 / 2);
+  _ca.copy(P1).addScaledVector(_u1, -r1); _cb.copy(P1).addScaledVector(_u2, r1);
+  _cc.copy(P2).addScaledVector(_u2, -r2); _cd.copy(P2).addScaledVector(_u3, r2);
+  PS[0] = l1 - r1; PS[1] = (_ca.distanceTo(_cb) + 2 * r1) / 2; PS[2] = Math.max(0, l2 - r1 - r2);
+  PS[3] = (_cc.distanceTo(_cd) + 2 * r2) / 2; PS[4] = l3 - r2; PS[5] = PS[0] + PS[1] + PS[2] + PS[3] + PS[4];
+}
+function quadAt(out, a, p, b, t) { const u = 1 - t; return out.copy(a).multiplyScalar(u * u).addScaledVector(p, 2 * u * t).addScaledVector(b, t * t); }
+function pathAt(out, P0, P1, P2, P3, s) {
+  pathSetup(P0, P1, P2, P3);
+  let d = clamp(s, 0, PS[5]);
+  if (d <= PS[0]) return out.copy(P0).lerp(_ca, PS[0] > 0 ? d / PS[0] : 1); d -= PS[0];
+  if (d <= PS[1]) return quadAt(out, _ca, P1, _cb, PS[1] > 0 ? d / PS[1] : 1); d -= PS[1];
+  if (d <= PS[2]) return out.copy(_cb).lerp(_cc, PS[2] > 0 ? d / PS[2] : 1); d -= PS[2];
+  if (d <= PS[3]) return quadAt(out, _cc, P2, _cd, PS[3] > 0 ? d / PS[3] : 1); d -= PS[3];
+  return out.copy(_cd).lerp(P3, PS[4] > 0 ? d / PS[4] : 1);
+}
+function pathL(P0, P1, P2, P3) { pathSetup(P0, P1, P2, P3); return PS[5]; }
+function pathHL(P0, P1, P2, P3) { pathSetup(P0, P1, P2, P3); return PS[5] - PS[4]; }   // up to the straight drop
+const armTips = [0, 1, 2].map(() => ({ tip: new THREE.Vector3(), has: false, grip: false, work: false, lift: 0 }));
+const inFlight = [];
+let armT = -1, armP = -99;
+// Frame time for the arm springs; 0 after a jump in P (warm-up, ?p, a fast scroll), which snaps them.
+function armDt(t, P) {
+  let dt = armT < 0 ? 0 : t - armT;
+  if (dt < 0 || dt > 0.25 || Math.abs(P - armP) > 0.15) dt = 0;
+  armT = t; armP = P; return Math.min(dt, 0.05);
+}
+
+/* ---------- ?collide: count collisions (debug only) ---------- */
+const COLLIDE = new URLSearchParams(location.search).has('collide');
+const CSTAT = { frames: 0, hitFrames: 0, piecePiece: 0, pieceWall: 0, pieceSeated: 0, armBox: 0, armWall: 0 };
+if (COLLIDE) { window.SCRAP.collide = CSTAT; window.SCRAP._arms = () => ({ tipT: armTips.map(t => t.tip.toArray().map(v => +v.toFixed(3))), tip: mains.map(c => c.q[c.n].toArray().map(v => +v.toFixed(3))), spr: armS.map(a => a.tip.toArray().map(v => +v.toFixed(3))), pay: mains.map(c => +Array.from(c.len).reduce((x, y) => x + y, 0).toFixed(2)) }); }
+const localBoxes = new Map(), _m4 = new THREE.Matrix4(), _bx = new THREE.Box3(), _by = new THREE.Box3();
+function localBox(obj) {
+  let b = localBoxes.get(obj); if (b) return b;
+  b = new THREE.Box3();
+  const p = obj.position.clone(), q = obj.quaternion.clone(), sc = obj.scale.clone(), vis = obj.visible;
+  obj.position.set(0, 0, 0); obj.quaternion.identity(); obj.scale.setScalar(1); obj.visible = true;
+  obj.updateMatrixWorld(true);
+  const inv = obj.matrixWorld.clone().invert();
+  obj.traverse(m => {
+    if (!m.isMesh || !m.visible) return;
+    let gb;
+    if (m.isInstancedMesh) { m.computeBoundingBox(); gb = m.boundingBox.clone(); }
+    else { if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); gb = m.geometry.boundingBox.clone(); }
+    b.union(gb.applyMatrix4(_m4.multiplyMatrices(inv, m.matrixWorld)));
+  });
+  obj.position.copy(p); obj.quaternion.copy(q); obj.scale.copy(sc); obj.visible = vis; obj.updateMatrixWorld(true);
+  localBoxes.set(obj, b); return b;
+}
+function deviceBox(obj, out) { obj.updateMatrix(); return out.copy(localBox(obj)).applyMatrix4(obj.matrix); }
+const WALL_BOXES = [
+  new THREE.Box3(V(-TW / 2, -THt / 2, 0), V(-IW / 2, THt / 2, HW)), new THREE.Box3(V(IW / 2, -THt / 2, 0), V(TW / 2, THt / 2, HW)),
+  new THREE.Box3(V(-TW / 2, -THt / 2, 0), V(TW / 2, -IH / 2, HW)), new THREE.Box3(V(-TW / 2, IH / 2, 0), V(TW / 2, THt / 2, HW)),
+  new THREE.Box3(V(-IW / 2, -IH / 2, -TB), V(IW / 2, IH / 2, 0))];
+const EPS = 0.012;   // touching (a module on the board, the lid on the walls) is not a collision
+function hit(a, b) { return a.max.x - EPS > b.min.x && a.min.x + EPS < b.max.x && a.max.y - EPS > b.min.y && a.min.y + EPS < b.max.y && a.max.z - EPS > b.min.z && a.min.z + EPS < b.max.z; }
+function collisionCheck() {
+  CSTAT.frames++; let any = 0;
+  for (let i = 0; i < inFlight.length; i++) {
+    deviceBox(inFlight[i].obj, _bx);
+    for (let j = i + 1; j < inFlight.length; j++) { if (hit(_bx, deviceBox(inFlight[j].obj, _by))) { CSTAT.piecePiece++; any++; } }
+    for (const w of WALL_BOXES) if (hit(_bx, w)) { CSTAT.pieceWall++; any++; }
+    for (const bt of BEATS) {
+      if (P_ < bt.b || bt === inFlight[i]) continue;
+      if (inFlight[i].obj !== lid && bt.obj === board) continue;   // modules sit on the board by design
+      if (hit(_bx, deviceBox(bt.obj, _by))) { CSTAT.pieceSeated++; any++; }
+    }
+  }
+  for (let j = 0; j < ARMS; j++) {
+    const c = mains[j]; let fromTip = 0;
+    for (let i = c.n; i >= 1; i--) {
+      const p = c.q[i]; if (c.len[i - 1] <= 1e-4) break;
+      const inFoot = Math.abs(p.x) < BOX_OUT.x && Math.abs(p.y) < BOX_OUT.y && p.z < BOX_OUT.z;
+      const inWall = inFoot && (Math.abs(p.x) > BOX_IN.x || Math.abs(p.y) > BOX_IN.y);
+      if (inWall) { CSTAT.armWall++; any++; if ((CSTAT.at = CSTAT.at || []).length < 12) CSTAT.at.push([+P_.toFixed(3), j, i, +p.x.toFixed(2), +p.y.toFixed(2), +p.z.toFixed(2)]); }
+      else if (inFoot && fromTip > 0.5) { CSTAT.armBox++; any++; }
+      fromTip += c.len[i - 1];
+    }
+  }
+  if (any) CSTAT.hitFrames++;
+}
+let P_ = 0;
 
 /* ---------- wrench poses (device frame): { pos, phi, s, gap } ---------- */
 let narrow = false;
@@ -939,7 +1153,8 @@ const BEATS = [
   [lid, V(0, 0, LIDZ), -1, 2.42, 2.6, 0.06]
 ].map(b => ({ obj: b[0], seat: b[1], arm: b[2], a: b[3], b: b[4], top: b[5] }));
 const LID_GRIPS = [V(-0.9, 0.55, 0), V(0.9, 0.55, 0), V(0, -0.6, 0)];
-function idleTip(j, A) { return A.clone().add(V((j - 1) * 0.28, -0.26 - (j === 1 ? 0.06 : 0), 0.12)); }
+// Idle tip: just out of the neck, the three arms fanned. out: the vector to write (allocation-free).
+function idleTip(j, A, out) { return (out || new THREE.Vector3()).copy(A).add(_ca.set((j - 1) * 0.28, -0.26 - (j === 1 ? 0.06 : 0), 0.12)); }
 
 /* ---------- the logo landing: project the wordmark C into the scene ---------- */
 const markC = () => document.querySelector('.final-mark .scrap-glyph');
@@ -1305,31 +1520,43 @@ function update(P, t) {
     dummy.scale.setScalar(ar.started ? 1 : 0); dummy.updateMatrix(); standoffs.setMatrixAt(i, dummy.matrix); });
   standoffs.instanceMatrix.needsUpdate = true;
 
-  // 4. Arms carry modules out of the wrench and place them.
+  // 4. Arms carry modules out of the wrench and place them, one piece per arm at a time, on a planned
+  // path: lift vertically to the arm's travel height (above the walls and every seated part), travel
+  // level to above the seat, then drop straight onto it. Each arm has its own travel height (a lane),
+  // so pieces in flight at the same time never meet. Corners are rounded so the motion stays fluid.
+  P_ = P;
   const A = anchors(wp);
-  const armExt = ss(OPEN[0], OPEN[1], P) * (1 - ss(CLOSE[0] - 0.08, CLOSE[0] + 0.04, P));
-  const tips = A.map((a, j) => ({ tip: idleTip(j, a), grip: false, subs: null }));
-  BEATS.forEach(bt => {
+  for (let j = 0; j < ARMS; j++) { const tp = armTips[j]; tp.grip = tp.work = tp.has = false; tp.lift = 0; }
+  inFlight.length = 0;
+  for (const bt of BEATS) {
     const u = clamp((P - bt.a) / (bt.b - bt.a)), o = bt.obj;
     o.visible = P > bt.a;
-    if (!o.visible) return;
-    const arms = bt.arm < 0 ? [0, 1, 2] : [bt.arm];
-    const src = A[arms[0]].clone().add(V(0, -0.2, -0.05)), hover = bt.seat.clone().add(V(0, 0, 0.35));
-    let pos, sc = 1, grip = true;
-    if (u < 0.14) { const e = easeOut(u / 0.14); pos = src.clone(); sc = mix(0.12, 1, e); }
-    else if (u < 0.66) { const e = easeIO((u - 0.14) / 0.52); pos = bez(src, src.clone().lerp(hover, 0.5).add(V(0, 0.1, 0.45)), hover, e); }
-    else if (u < 0.84) { const e = easeOut((u - 0.66) / 0.18); pos = hover.clone().lerp(bt.seat, e); }
-    else { pos = bt.seat.clone(); grip = false; }
+    if (!o.visible) continue;
+    if (P >= bt.b) { o.position.copy(bt.seat); o.quaternion.identity(); o.scale.setScalar(1); continue; }
+    const lead = bt.arm < 0 ? 1 : bt.arm, H = bt.arm < 0 ? LID_LANE : LANES[bt.arm];
+    // Staging: just below the arm's root, behind the back wall and above its top.
+    _P0.copy(A[lead]); _P0.y -= 0.2; _P0.z -= 0.1;
+    const top = Math.max(_P0.z, H);
+    _P1.set(_P0.x, _P0.y, top); _P2.set(bt.seat.x, bt.seat.y, top); _P3.copy(bt.seat);
+    let sc = 1, grip = true, lift = 0;
+    const hl = pathHL(_P0, _P1, _P2, _P3), L = PS[5];
+    if (u < 0.12) { sc = mix(0.12, 1, easeOut(u / 0.12)); _pos.copy(_P0); }
+    else if (u < 0.66) pathAt(_pos, _P0, _P1, _P2, _P3, easeIO((u - 0.12) / 0.54) * hl);
+    else if (u < 0.71) { pathAt(_pos, _P0, _P1, _P2, _P3, hl); lift = 0.03 * Math.sin(Math.PI * (u - 0.66) / 0.05); _pos.z += lift; }  // anticipation
+    else pathAt(_pos, _P0, _P1, _P2, _P3, mix(hl, L, easeOut(clamp((u - 0.71) / 0.13))));   // the drop decelerates onto the seat
+    if (u > 0.84) { _pos.copy(bt.seat); grip = false; }
     const comp = Math.sin(Math.PI * clamp((u - 0.84) / 0.06)) * 0.015;
-    o.position.copy(pos); o.quaternion.copy(qZ(0.5 * (1 - easeIO(clamp(u / 0.66))))); o.scale.set(sc, sc, sc * (1 - comp));
-    if (bt.arm >= 0 && o.userData.sweep === undefined) o.userData.sweep = 0;
-    if (P >= bt.b) { o.position.copy(bt.seat); o.quaternion.identity(); o.scale.setScalar(1); }
-    if (u > 0 && u < 1) arms.forEach((j, n) => {
-      const grab = bt.arm < 0 ? pos.clone().add(LID_GRIPS[n]).add(V(0, 0, bt.top)) : pos.clone().add(V(0, 0, bt.top * sc + 0.02));
-      const back = idleTip(j, A[j]), r = grip ? 0 : easeIO((u - 0.84) / 0.16);
-      tips[j] = { tip: grab.lerp(back, r), grip: grip, subs: bt.seat };
-    });
-  });
+    o.position.copy(_pos); o.quaternion.setFromAxisAngle(ZUP, 0.5 * (1 - easeIO(clamp(u / 0.66)))); o.scale.set(sc, sc, sc * (1 - comp));
+    if (u < 0.84) inFlight.push(bt);
+    const nA = bt.arm < 0 ? ARMS : 1;
+    for (let n = 0; n < nA; n++) {
+      const j = bt.arm < 0 ? n : bt.arm, tp = armTips[j];
+      if (bt.arm < 0) tp.tip.copy(_pos).add(LID_GRIPS[n]); else tp.tip.copy(_pos);
+      tp.tip.z += bt.arm < 0 ? bt.top : bt.top * sc + 0.02;
+      tp.has = true; tp.grip = grip && u > 0.04; tp.work = grip; tp.lift = lift;
+      if (!grip) { const r = easeIO((u - 0.84) / 0.16); idleTip(j, A[j], _e); tp.tip.lerp(_e, r); tp.tip.z += 0.08 * Math.sin(Math.PI * r); }  // recoil, then relax
+    }
+  }
   if (P > 2.12 && P < 2.3) { sdCard.visible = true; const e = easeIO(clamp((P - 2.12) / 0.14)); sdCard.position.copy(mainAt(Z.SAVE[0], Z.SAVE[1] - 0.3 * (1 - e), ZT + 0.016)); }
   else sdCard.visible = P >= 2.3; if (P >= 2.3) sdCard.position.copy(mainAt(Z.SAVE[0], Z.SAVE[1], ZT + 0.016));
   // Cables grow.
@@ -1364,29 +1591,65 @@ function update(P, t) {
   recess.instanceMatrix.needsUpdate = true;
   workTips = subT;
 
-  // Draw the arms.
+  // Draw the arms: deploy staggered (arm 0 first), retract in reverse order. Each arm is a FABRIK chain
+  // from its root at the neck to a sprung tip; the sub-arms root near the tip and react a little later.
+  const dt = armDt(t, P);
   for (let j = 0; j < ARMS; j++) {
-    const a = A[j], tp = tips[j], T = a.clone().lerp(tp.tip, armExt), len = a.distanceTo(T);
-    const c1 = a.clone().add(V((j - 1) * 0.25, 0.08, 0.35 * Math.min(1, len))), c2 = T.clone().add(V(0, 0.05, 0.4 * Math.min(1, len)));
-    chain(j * (SEGS + SUBS * SUBSEG), a, c1, c2, T, SEGS, 0.052, 0.03, armExt);
-    // Claw at the tip: two fingers along the tangent, closed when gripping.
-    const tg = cubicTan(a, c1, c2, T, 1), qa = new THREE.Quaternion().setFromUnitVectors(V(0, 0, -1), tg.clone().negate().multiplyScalar(-1));
-    qa.setFromUnitVectors(V(0, 0, 1), tg.clone().negate());
-    const side = V(1, 0, 0).applyQuaternion(qa), open = tp.grip ? 0.024 : 0.045, on = armExt > 0.01 ? 1 : 0;
-    setInst(fingers, j * 2, T.clone().addScaledVector(side, open), qa, on);
-    setInst(fingers, j * 2 + 1, T.clone().addScaledVector(side, -open), qa, on);
-    // Branch arms: from 55% along the main arm to a target (a driving screw) or folded near the tip.
-    const B0 = cubic(a, c1, c2, T, 0.55);
+    const a = A[j], st = armS[j], tp = armTips[j], c = mains[j];
+    const ext = ss(OPEN[0] - 0.02 + j * 0.05, OPEN[0] + 0.1 + j * 0.05, P) * (1 - ss(CLOSE[0] - 0.08 - j * 0.04, CLOSE[0] + 0.02 - j * 0.04, P));
+    if (!tp.has) idleTip(j, a, tp.tip);
+    // Idle breathing sway on the tip target.
+    const tm = s.reduceMotion ? 0 : t;
+    _a.copy(tp.tip).add(_e.set(Math.sin(tm * 0.9 + j * 2.1) * 0.02, Math.cos(tm * 0.7 + j) * 0.015, Math.sin(tm * 1.1 + j) * 0.012 * (tp.has ? 0.3 : 1)));
+    // Deploy and retract: the tip travels out of the neck along with the pay-out.
+    _a.lerpVectors(a, _a, easeOut(ext));
+    if (!st.init || dt <= 0) { st.tip.copy(_a); st.tipV.set(0, 0, 0); st.init = true; }
+    damp(st.tip, st.tipV, _a, tp.has ? 0.07 : 0.16, dt);
+    // Pay out only what the arm needs: the straight distance plus a little slack.
+    const need = a.distanceTo(st.tip);
+    payOut(c, ext * Math.min(c.n * c.L, need * 1.12 + 0.05));   // a little slack for a living curve; more would loop
+    if (dt <= 0) c.init = false;
+    _b.set(0, -0.35, -0.94).normalize();                       // out of the neck: forward and down
+    fabrik(c, a, st.tip, dt <= 0 ? 24 : 12, 0.5, _b);
+    trail(c, dt);
+    const show = ext > 0.004;
+    const wave = (0.006 + 0.03 * Math.sin(Math.PI * clamp(ext)) * (ext < 0.999 ? 1 : 0) + (tp.has ? 0 : 0.01)) * (s.reduceMotion ? 0 : 1);
+    drawChain(c, j * (SEGS + SUBS * SUBSEG), 0.05, 0.028, wave, tm * 3.2 + j * 2.1, show);
+    // Claw: two fingers along the last segment; open on approach, closed on the grip, eased.
+    _c.copy(c.q[c.n]).sub(c.q[c.n - 1]); if (_c.lengthSq() < 1e-9) _c.set(0, 0, -1); _c.normalize();
+    _q.setFromUnitVectors(ZUP, _e.copy(_c).negate());
+    const openT = tp.grip ? 0.021 : (tp.has ? 0.05 : 0.036);
+    st.open += (openT - st.open) * (dt <= 0 ? 1 : 1 - Math.exp(-dt * 14));
+    _d.set(1, 0, 0).applyQuaternion(_q);
+    setInst(fingers, j * 2, _e.copy(c.q[c.n]).addScaledVector(_d, st.open), _q, show ? 1 : 0);
+    setInst(fingers, j * 2 + 1, _e.copy(c.q[c.n]).addScaledVector(_d, -st.open), _q, show ? 1 : 0);
+    // Sub-arms: rooted 8 joints back from the tip; the socket goes to the screw that is driving now.
+    const rj = Math.max(1, c.n - 8);
     for (let k2 = 0; k2 < SUBS; k2++) {
-      const fold = T.clone().add(V((k2 ? 1 : -1) * 0.16, 0.1, 0.12));
-      const goal = (k2 === 0 && subT[j]) ? subT[j] : fold;
-      const ST = B0.clone().lerp(goal, armExt), sc1 = B0.clone().add(V(0, 0, 0.2)), sc2 = ST.clone().add(V(0, 0, 0.22));
-      chain(j * (SEGS + SUBS * SUBSEG) + SEGS + k2 * SUBSEG, B0, sc1, sc2, ST, SUBSEG, 0.026, 0.016, armExt);
-      const st2 = cubicTan(B0, sc1, sc2, ST, 1), qs = new THREE.Quaternion().setFromUnitVectors(V(0, 0, 1), st2.clone().negate());
-      const spin = (k2 === 0 && subT[j]) ? qZ(t * 9) : qI;
-      setInst(k2 ? drivers : sockets, j, ST, qs.clone().multiply(spin), on);
+      const sc2 = subC[j][k2], drive = k2 === 0 && subT[j];
+      if (drive) _a.copy(subT[j]);
+      else _a.copy(c.q[c.n]).add(_e.set((k2 ? 1 : -1) * 0.15, 0.08, 0.14));
+      if (dt <= 0) { st.sub[k2].copy(_a); st.subV[k2].set(0, 0, 0); sc2.init = false; }
+      damp(st.sub[k2], st.subV[k2], _a, drive ? 0.1 : 0.2, dt);   // later than the main tip
+      payOut(sc2, ext * Math.min(sc2.n * sc2.L, c.q[rj].distanceTo(st.sub[k2]) * 1.2 + 0.08));
+      _b.copy(c.q[rj]).sub(c.q[rj - 1]).normalize();
+      fabrik(sc2, c.q[rj], st.sub[k2], dt <= 0 ? 16 : 6, 1e9, _b);
+      trail(sc2, dt);
+      drawChain(sc2, j * (SEGS + SUBS * SUBSEG) + SEGS + k2 * SUBSEG, 0.026, 0.016, wave * 0.5, tm * 3.6 + k2, show);
+      _c.copy(sc2.q[sc2.n]).sub(sc2.q[sc2.n - 1]); if (_c.lengthSq() < 1e-9) _c.set(0, 0, -1); _c.normalize();
+      // Tool orientation: along the sub-arm, turning to the bolt axis (straight down) as it reaches the screw.
+      _q.setFromUnitVectors(ZUP, _e.copy(_c).negate());
+      if (drive) { const near = clamp(1 - sc2.q[sc2.n].distanceTo(subT[j]) / 0.12); _q.slerp(qI, near); _q2.setFromAxisAngle(ZUP, tm * 11); _q.multiply(_q2); }
+      setInst(k2 ? drivers : sockets, j, sc2.q[sc2.n], _q, show ? 1 : 0);
+    }
+    // Nerve glow: points run root to tip while the arm carries or drives.
+    const live = show && (tp.work || !!subT[j]);
+    for (let m = 0; m < NERVE; m++) {
+      const f = ((tm * 0.7 + m / NERVE + j * 0.21) % 1);
+      setInst(nerves, j * NERVE + m, chainAt(_d, c, f), qI, live ? 0.6 + 0.6 * Math.sin(Math.PI * f) : 0);
     }
   }
+  if (COLLIDE) collisionCheck();
 
   // 6. Display, LEDs, pulses.
   LEDS.forEach((l, i) => { const e = ss(T_LED + i * 0.05, T_LED + i * 0.05 + 0.05, P);
