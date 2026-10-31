@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getting started - Warp Wiki</title>
+<meta name="description" content="New project, the starter game, cargo run, the panels, and the smoke test">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="getting-started">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#a-new-project">A new project</a></li><li><a href="#the-starter">The starter</a></li><li><a href="#the-smallest-game">The smallest game</a></li><li><a href="#the-panel-checklist">The panel checklist</a></li><li><a href="#the-test-loop">The test loop</a></li><li><a href="#next-steps">Next steps</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Getting started</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">New project, the starter game, cargo run, the panels, and the smoke test</p><table class="infobox"><caption>Getting started</caption><tr><th>Category</th><td><a href="category-introduction.html">Introduction</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example starter</code><br><code>cargo run -p warp_sdk --example pong</code><br><code>cargo run -p warp_sdk --example snake</code></td></tr></table><p><strong>Getting started</strong> with Warp means making a Rust crate that depends on <code>warp_sdk</code>, implements <a class="sym" href="renderer.html#sym-Renderer"><code>Renderer</code></a>, and starts the engine with <a class="sym" href="renderer.html#sym-run"><code>run</code></a>. The usual route is to copy the worked starter, which the editor's New Project command also writes. The starter is a small complete game, so a new project begins with a title screen, a pause menu, saves and passing tests. This article covers the project layout, the first run, the editor panels, and the headless test loop.</p>
+<h2 id="a-new-project">A new project</h2>
+<p>The editor's New Project command writes four files: <code>Cargo.toml</code>, <code>src/main.rs</code>, <code>.gitignore</code> and <code>warp_app.toml</code>.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> The Cargo manifest and the source are the code half of the project. <code>warp_app.toml</code> is the data half: see <a href="manifest.html" data-slug="manifest">App manifest</a>.</p>
+<p>The generated manifest makes three decisions. It holds an empty <code>[workspace]</code> table, so that cargo stops walking up the directory tree and no parent folder claims the package as a member. It names <code>warp_sdk</code> by path, because the engine is a checkout and not a published crate. It names no second copy of egui or ultraviolet, because <code>warp_sdk</code> re-exports both.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-toml">[workspace]
+
+[dependencies]
+warp_sdk = { path = <span class="s">"&lt;engine root&gt;/warp_sdk"</span> }</code></pre></div>
+<p>A game that plays over a network adds <code>features = ["net"]</code> to that line. See <a href="net.html" data-slug="net">Networking</a>.</p>
+<p>The engine root is the checkout that the editor found. When the editor finds no checkout, the path is a placeholder, and a comment in the file tells the author to replace it.</p>
+<h2 id="the-starter">The starter</h2>
+<p>The source that New Project writes is kept verbatim in <code>warp_sdk/examples/starter.rs</code>, which the compiler builds. The generator stamps the project name into <code>const GAME</code> and the second window title. A test named <code>generator_matches_the_compiled_example</code> fails when the two copies differ.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-bash">cargo run  -p warp_sdk --example starter
+cargo test -p warp_sdk --example starter</code></pre></div>
+<p>The starter is a game about a drifter that grabs sparks and brings them home, with two verbs: move and grab. Its header lists one line for each kit that it uses, so it also works as an index of the SDK. The rule stated there is to change the rules and keep the structure.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Kit</th>
+<th>Use in the starter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="front-menu.html" data-slug="front-menu">Menu screens</a></td>
+<td>Title and Pause, real buttons, keys and mouse</td>
+</tr>
+<tr>
+<td><a href="front-save.html" data-slug="front-save">Save slots</a></td>
+<td>Continue reads the latest slot, Pause then Save writes it</td>
+</tr>
+<tr>
+<td><a href="front-settings.html" data-slug="front-settings">Settings</a></td>
+<td>The settings page, from Title and from Pause</td>
+</tr>
+<tr>
+<td><a href="fonts.html" data-slug="fonts">Fonts</a>, <a href="palette-kit.html" data-slug="palette-kit">Palette kit</a></td>
+<td>Faces and colours from one mood</td>
+</tr>
+<tr>
+<td><a href="visual.html" data-slug="visual">Visual language</a>, <a href="semiotics.html" data-slug="semiotics">Semiotics</a></td>
+<td>One colour per role, and icons in the deck panels</td>
+</tr>
+<tr>
+<td><a href="cine.html" data-slug="cine">Cine</a></td>
+<td>Every screen change is a film transition</td>
+</tr>
+<tr>
+<td><a href="squircle.html" data-slug="squircle">Squircle kit</a></td>
+<td>The deck: panels open only when the player asks</td>
+</tr>
+<tr>
+<td><a href="hud-progress.html" data-slug="hud-progress">HUD progress</a>, <a href="hud-cues.html" data-slug="hud-cues">HUD cues</a>, <a href="hud-minimap.html" data-slug="hud-minimap">HUD minimap</a></td>
+<td>The stage meter, the cause of each forced change, the map</td>
+</tr>
+<tr>
+<td><a href="teach.html" data-slug="teach">Teach kit</a></td>
+<td>Glyph prompts for the two verbs</td>
+</tr>
+<tr>
+<td><a href="juice.html" data-slug="juice">Juice</a></td>
+<td>Feedback on a grab and a delivery</td>
+</tr>
+<tr>
+<td><a href="post.html" data-slug="post">Post effects</a></td>
+<td>The look, from a preset</td>
+</tr>
+<tr>
+<td><a href="soundtrack.html" data-slug="soundtrack">Soundtrack</a></td>
+<td>The player's own music, and the game's effects</td>
+</tr>
+<tr>
+<td><a href="smoke.html" data-slug="smoke">Smoke test</a></td>
+<td>The screen names, and the playability test</td>
+</tr>
+</tbody>
+</table>
+<p>Its <code>main</code> sets the window icon and calls <a class="sym" href="renderer.html#sym-run"><code>run</code></a>:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">fn</span> <span class="f">main</span>() {
+    <span class="c">// The game icon, drawn from its name and seed, on every window.</span>
+    warp_sdk::icon::<span class="f">set_window_icon</span>(&amp;warp_sdk::icon::<span class="t">IconSpec</span>::<span class="f">from_name</span>(<span class="t">GAME</span>, <span class="t">SEED</span>));
+    warp_sdk::run::&lt;<span class="t">Game</span>&gt;(<span class="t">Config</span> {
+        window_mode: <span class="t">WindowMode</span>::<span class="t">Windowed</span>(<span class="n">1280</span>, <span class="n">720</span>),
+        window_title: <span class="t">GAME</span>,
+        secondary_window_title: <span class="s">"starter — second view"</span>,
+    });
+}</code></pre></div>
+<h2 id="the-smallest-game">The smallest game</h2>
+<p>A game needs only the four required methods of <a class="sym" href="renderer.html#sym-Renderer"><code>Renderer</code></a>. This one draws a circle:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::{egui, run, <span class="t">Config</span>, <span class="t">DisplaySettings</span>, <span class="t">RenderContext</span>, <span class="t">Renderer</span>, <span class="t">ViewportId</span>};
+<span class="k">use</span> warp_sdk::winit_input_helper::<span class="t">WinitInputHelper</span>;
+
+<span class="k">struct</span> <span class="t">Game</span> { x: f32 }
+<span class="k">impl</span> <span class="t">Renderer</span> <span class="k">for</span> <span class="t">Game</span> {
+    <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="k">Self</span> { <span class="t">Game</span> { x: <span class="n">0.0</span> } }
+    <span class="k">fn</span> <span class="f">input</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _: <span class="t">ViewportId</span>, _: &amp;<span class="t">WinitInputHelper</span>, _: u16, _: u16) {}
+    <span class="k">fn</span> <span class="f">render</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _: <span class="t">ViewportId</span>, ctx: &amp;<span class="k">mut</span> <span class="t">RenderContext</span>) {
+        ctx.<span class="f">draw_circle</span>(warp_sdk::ultraviolet::<span class="t">Vec2</span>::<span class="f">new</span>(<span class="k">self</span>.x, <span class="n">0.0</span>), <span class="n">0.5</span>, [<span class="n">240</span>, <span class="n">240</span>, <span class="n">250</span>, <span class="n">255</span>]);
+    }
+    <span class="k">fn</span> <span class="f">gui</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _: <span class="t">ViewportId</span>, _: &amp;egui::<span class="t">Context</span>, _: &amp;<span class="k">mut</span> <span class="t">DisplaySettings</span>) {}
+}
+<span class="k">fn</span> <span class="f">main</span>() { run::&lt;<span class="t">Game</span>&gt;(<span class="t">Config</span> { window_title: <span class="s">"Game"</span>, ..<span class="t">Default</span>::<span class="f">default</span>() }); }</code></pre></div>
+<p>A bare <a class="sym" href="renderer.html#sym-Renderer"><code>Renderer</code></a> fills the Game view and leaves every other panel dead. For a game that a player starts, pauses and quits, the choices are the <a href="front.html" data-slug="front">Front end</a> kits, as the starter uses them, or <a href="shell.html" data-slug="shell">Game shell</a>, which wraps a game in ready screens.</p>
+<p>Three whole games serve as patterns. Each is complete, needs no assets, and carries its own headless boot test.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Example</th>
+<th>Pattern</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pong</code></td>
+<td>Continuous motion, collision, scoring</td>
+</tr>
+<tr>
+<td><code>snake</code></td>
+<td>A discrete grid, growth, a tick clock</td>
+</tr>
+<tr>
+<td><code>observatory</code></td>
+<td>A scientific viewer on the squircle kit</td>
+</tr>
+</tbody>
+</table>
+<h2 id="the-panel-checklist">The panel checklist</h2>
+<p>Each editor panel that a game drives is one channel, re-exported through <code>warp_sdk</code>. A game publishes to the channels it has data for and ignores the rest.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Panel</th>
+<th>Channel</th>
+<th>How a game feeds it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hierarchy and Inspector</td>
+<td><a href="census.html" data-slug="census">Census</a></td>
+<td>Publish <a class="sym" href="census.html#sym-Census"><code>Census</code></a> rows each frame, gated on <a class="sym" href="census.html#sym-census_wanted"><code>census_wanted</code></a></td>
+</tr>
+<tr>
+<td>Control Map</td>
+<td><a href="bindings.html" data-slug="bindings">Bindings</a></td>
+<td><code>register</code> a static table of actions, and read verbs with <a class="sym" href="bindings.html#sym-held"><code>held</code></a> and <a class="sym" href="bindings.html#sym-pressed"><code>pressed</code></a></td>
+</tr>
+<tr>
+<td>Console</td>
+<td><a href="devconsole.html" data-slug="devconsole">Dev console</a></td>
+<td><code>publish</code> lines, <a class="sym" href="devconsole.html#sym-publish_words"><code>publish_words</code></a> for completions, and drain <a class="sym" href="devconsole.html#sym-take_submissions"><code>take_submissions</code></a></td>
+</tr>
+<tr>
+<td>Audio Scope</td>
+<td><a href="audio.html" data-slug="audio">Audio</a></td>
+<td>Play through the audio bus, or write samples to the scope</td>
+</tr>
+<tr>
+<td>Storyboard</td>
+<td><a href="hostlink.html" data-slug="hostlink">Host link</a></td>
+<td>Name the current screen. <a class="sym" href="smoke.html#sym-report_screen"><code>smoke::report_screen</code></a> does this and also records it for tests</td>
+</tr>
+<tr>
+<td>Perf and Profiler</td>
+<td><a href="profile.html" data-slug="profile">Profiler</a></td>
+<td>Record per-frame spans. The loop timings need no code</td>
+</tr>
+<tr>
+<td>A panel of your own</td>
+<td><a href="window.html" data-slug="window">Custom windows</a></td>
+<td>Implement WarpWindow and register it before <a class="sym" href="renderer.html#sym-run"><code>run</code></a></td>
+</tr>
+</tbody>
+</table>
+<p>The starter wires the Hierarchy, the Control Map, the Console and the Storyboard. The recipes for each channel are in <a href="building-a-game.html" data-slug="building-a-game">Building a game</a>.</p>
+<h2 id="the-test-loop">The test loop</h2>
+<p>A game is not done until something has run it. That check needs no window and no GPU, because <a class="sym" href="smoke.html"><code>smoke</code></a> drives the whole frame loop in a test.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="a">#[test]</span>
+<span class="k">fn</span> <span class="f">it_boots</span>() {
+    <span class="k">let</span> report = warp_sdk::smoke::boot::&lt;<span class="t">Game</span>&gt;(<span class="n">120</span>);
+    assert!(report.<span class="f">drove_a_panel</span>(), <span class="s">"the game wired no panels"</span>);
+}</code></pre></div>
+<p>The boot test proves that the game constructs and survives its frames. It sends no input, so a second test proves that a player can leave the title:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::smoke::{<span class="k">self</span>, <span class="t">Key</span>, <span class="t">Script</span>};
+
+<span class="a">#[test]</span>
+<span class="k">fn</span> <span class="f">title_to_play</span>() {
+    <span class="k">let</span> report = smoke::play::&lt;<span class="t">Game</span>&gt;(<span class="t">Script</span>::<span class="f">new</span>().<span class="f">wait</span>(<span class="n">30</span>).<span class="f">press</span>(<span class="t">Key</span>::<span class="t">Return</span>).<span class="f">wait</span>(<span class="n">60</span>));
+    assert!(report.<span class="f">reached</span>(<span class="s">"play"</span>), <span class="s">"Enter did not start a run: {report:?}"</span>);
+}</code></pre></div>
+<p>The game must name its screens with <a class="sym" href="smoke.html#sym-report_screen"><code>smoke::report_screen</code></a> for that assertion to hold. <code>cargo test</code> is then the whole check: write the game, run the tests, read the failure, fix it, and stop on green. The tests do not prove pixels. See <a href="smoke.html" data-slug="smoke">Smoke test</a> for what each report holds.</p>
+<h2 id="next-steps">Next steps</h2>
+<p><a href="building-a-game.html" data-slug="building-a-game">Building a game</a> gives the reading order, the kit for each need, and the recipes for drawing and for the panels. The art direction rules in <a href="art-direction.html" data-slug="art-direction">Art direction</a> apply before the first screen is drawn, and they cover text, menus, fonts, lighting and density.</p><h2 id="see-also">See also</h2><ul><li><a href="warp.html" data-slug="warp">Warp</a></li><li><a href="renderer.html" data-slug="renderer">Renderer and run</a></li><li><a href="building-a-game.html" data-slug="building-a-game">Building a game</a></li><li><a href="smoke.html" data-slug="smoke">Smoke test</a></li><li><a href="shell.html" data-slug="shell">Game shell</a></li><li><a href="manifest.html" data-slug="manifest">App manifest</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/panels/editor/project/scaffold.rs</code> - <code>The bodies of a new project&#x27;s files: Cargo.toml, src/main.rs, .gitignore,</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_core/src/panels/editor/project/scaffold.rs</code> - <code>`ultraviolet` AT THE ENGINE&#x27;S OWN VERSION.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/panels/editor/project/scaffold.rs</code> - <code>`generator_matches_the_compiled_example` fails when</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/examples/starter.rs</code> - <code>grab. Change the rules, keep the structure.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/examples/starter.rs</code> - <code>census_wanted</code></li></ol><table class="navbox"><tr><th><a href="category-introduction.html">Introduction</a></th></tr><tr><td><a href="warp.html" data-slug="warp">Warp</a> · <b>Getting started</b></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-introduction.html">Introduction</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

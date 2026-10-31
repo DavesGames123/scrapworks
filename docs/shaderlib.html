@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shader library - Warp Wiki</title>
+<meta name="description" content="WGSL building blocks that a game composes into its own shaders">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+<script src="assets/demos/shaderplay.js" defer></script>
+</head>
+<body class="" data-slug="shaderlib">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#design">Design</a></li><li><a href="#how-compose-works">How compose works</a><ul><li><a href="#the-snippet-record">The Snippet record</a></li><li><a href="#dependency-lines">Dependency lines</a></li><li><a href="#resolution">Resolution</a></li><li><a href="#name-prefixes">Name prefixes</a></li></ul></li><li><a href="#validation">Validation</a></li><li><a href="#the-materialsample-record">The MaterialSample record</a></li><li><a href="#conventions">Conventions</a></li><li><a href="#usage">Usage</a><ul><li><a href="#in-a-render-pass">In a render pass</a></li><li><a href="#in-a-lit-sprite">In a lit sprite</a></li></ul></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Shader library</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">WGSL building blocks that a game composes into its own shaders</p><table class="infobox"><caption>Shader library</caption><tr><th>Category</th><td><a href="category-shader-library.html">Shader library</a></td></tr><tr><th>Modules</th><td><code>warp_sdk::shaderlib</code><br><code>warp_sdk::shaderlib::core</code><br><code>warp_sdk::shaderlib::creature</code><br><code>warp_sdk::shaderlib::material</code><br><code>warp_sdk::shaderlib::noise</code><br><code>warp_sdk::shaderlib::organic</code><br><code>warp_sdk::shaderlib::pattern</code><br><code>warp_sdk::shaderlib::post</code><br><code>warp_sdk::shaderlib::sdf</code><br><code>warp_sdk::shaderlib::terrain</code><br><code>warp_sdk::shaderlib::water</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/shaderlib/mod.rs</code><br><code>warp_sdk/src/shaderlib/core.rs</code><br><code>warp_sdk/src/shaderlib/creature.rs</code><br><code>warp_sdk/src/shaderlib/material.rs</code><br><code>warp_sdk/src/shaderlib/noise.rs</code><br><code>warp_sdk/src/shaderlib/organic.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">15</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example lit2d</code></td></tr></table><p><strong>Shader library</strong> is the collection of WGSL function files that a Warp game composes into its own shaders. It lives in the module <a class="sym" href="shaderlib.html"><code>warp_sdk::shaderlib</code></a>, with one <code>.wgsl</code> file for each block under <code>warp_sdk/shaderlib/</code>, embedded at compile time and validated by <code>cargo test</code>. A game names the files it wants, receives one WGSL string, and appends its own entry points. The library holds functions and structs only. It holds no pipelines, no bind groups and no entry points.</p>
+<div class="demo" data-demo="shaderplay"><noscript>This demo needs JavaScript.</noscript></div>
+
+<h2 id="design">Design</h2>
+<p>WGSL has no import statement, so the library supplies one by convention. Each file states its dependencies in a comment, and the <a class="sym" href="#sym-compose"><code>compose</code></a> function concatenates the files in dependency order.[[src:warp_sdk/src/shaderlib/mod.rs|pub fn compose(paths: &amp;[&amp;str]) -&gt; String]] The Rust side knows nothing about the WGSL it carries beyond those comments.</p>
+<p>No file in the library declares anything at module scope except <code>fn</code> and <code>struct</code>. There is no <code>@group</code> binding, no <code>var&lt;uniform&gt;</code>, no <code>override</code> and no module <code>const</code>. A function therefore receives everything through its arguments: time as a <code>time: f32</code> parameter, a texture as a <code>texture_2d&lt;f32&gt;</code> parameter and a sampler as a <code>sampler</code> parameter. As a result, no file expects a uniform layout, and a game is free to keep its own bind groups. The time value and any other animated input are the game's to supply.</p>
+<p>The files are grouped into ten categories, each a submodule that holds one <a class="sym" href="#sym-SNIPPETS"><code>SNIPPETS</code></a> slice:</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Category</th>
+<th>Module</th>
+<th>Article</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>core</td>
+<td><a class="sym" href="shaderlib.html"><code>shaderlib::core</code></a></td>
+<td>this article</td>
+<td>The MaterialSample record</td>
+</tr>
+<tr>
+<td>noise</td>
+<td><a class="sym" href="shaderlib.html"><code>shaderlib::noise</code></a></td>
+<td><a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a></td>
+<td>Hashes, value, gradient, simplex and cellular noise, fBm, curl, warp, dither</td>
+</tr>
+<tr>
+<td>sdf</td>
+<td><a class="sym" href="shaderlib.html"><code>shaderlib::sdf</code></a></td>
+<td><a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a></td>
+<td>2D distance shapes, operators, relief, vector fields, polar maps</td>
+</tr>
+<tr>
+<td>material</td>
+<td><a class="sym" href="shaderlib.html"><code>shaderlib::material</code></a></td>
+<td><a href="shader-material.html" data-slug="shader-material">Material shaders</a></td>
+<td>Procedural surfaces that return MaterialSample</td>
+</tr>
+<tr>
+<td>water</td>
+<td><a class="sym" href="shaderlib.html"><code>shaderlib::water</code></a></td>
+<td><a href="shader-water.html" data-slug="shader-water">Water shaders</a></td>
+<td>Caustics, fog, plumes, flow, refraction, simulation display</td>
+</tr>
+<tr>
+<td>post</td>
+<td><a class="sym" href="shaderlib.html"><code>shaderlib::post</code></a></td>
+<td><a href="shader-post.html" data-slug="shader-post">Post shaders</a></td>
+<td>Bloom, tonemapping, grading, colour science, sampling, beams, fire</td>
+</tr>
+<tr>
+<td>organic</td>
+<td><a class="sym" href="shaderlib.html"><code>shaderlib::organic</code></a></td>
+<td><a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a></td>
+<td>Corals, plants and growth patterns</td>
+</tr>
+<tr>
+<td>creature</td>
+<td><a class="sym" href="shaderlib.html"><code>shaderlib::creature</code></a></td>
+<td><a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a></td>
+<td>Layered 2D body plans for sea life and a submersible</td>
+</tr>
+<tr>
+<td>terrain</td>
+<td><a class="sym" href="shaderlib.html"><code>shaderlib::terrain</code></a></td>
+<td><a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a></td>
+<td>Caves, heightfields, strata, reveal, map shading</td>
+</tr>
+<tr>
+<td>pattern</td>
+<td><a class="sym" href="shaderlib.html"><code>shaderlib::pattern</code></a></td>
+<td><a href="shader-pattern.html" data-slug="shader-pattern">Pattern shaders</a></td>
+<td>Per-pixel line art, tilings and seamless motion</td>
+</tr>
+</tbody>
+</table>
+<p>The file <code>warp_sdk/shaderlib/CATALOG.md</code> lists every file on one line, with its function names and tags.</p>
+<h2 id="how-compose-works">How compose works</h2>
+<h3 id="the-snippet-record">The Snippet record</h3>
+<p>A <a class="sym" href="#sym-Snippet"><code>Snippet</code></a> holds a <code>path</code> and a <code>src</code>, both <code>&amp;'static str</code>. The path is relative to <code>warp_sdk/shaderlib/</code>, always with a forward slash and the <code>.wgsl</code> extension, for example <code>"noise/hash.wgsl"</code>.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> Each category module builds its slice with the crate-private <code>snippet!</code> macro, which calls <code>include_str!</code>. The source text is thus part of the Rust binary, and a game needs no shader files at runtime.</p>
+<p><a class="sym" href="#sym-all"><code>all()</code></a> chains every category slice in category order. <a class="sym" href="#sym-get"><code>get()</code></a> finds one snippet by exact path with a linear search through <a class="sym" href="#sym-all"><code>all()</code></a>.</p>
+<h3 id="dependency-lines">Dependency lines</h3>
+<p>A dependency is one comment line of the form below.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="c">// requires: noise/hash.wgsl</span></code></pre></div>
+<p><a class="sym" href="#sym-requires"><code>requires</code></a> scans every line of a file, not only the header. It trims the line, keeps it only if it starts with <code>// requires:</code>, and trims what follows.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup> The remainder must be exactly one path. A file with several dependencies has one line for each, and a trailing remark on the same line would become part of the path.</p>
+<h3 id="resolution">Resolution</h3>
+<p><a class="sym" href="#sym-compose"><code>compose</code></a> walks the list depth first. For each path it looks up the snippet, returns at once if the snippet is already in the <code>seen</code> list, adds it to <code>seen</code>, visits each dependency, and only then writes the file. The result has these properties:</p>
+<ul>
+<li>Each file appears once, however many files require it.</li>
+<li>A dependency appears before the file that requires it.</li>
+<li>The requested files keep their given order, apart from what their dependencies pull forward.</li>
+<li>Each file is preceded by a marker line, <code>// ---- shaderlib/&lt;path&gt;</code>, so that a line number in a compiler message can be traced to its source file.</li>
+<li>The <code>seen</code> entry is added before the dependencies are visited, so a dependency cycle ends the walk and does not recurse forever.</li>
+</ul>
+<p>An unknown path panics with <code>shaderlib: no snippet at &lt;path&gt;</code>. The doc comment gives the reason: "a typo fails the game's own boot test and not a GPU pipeline at runtime."<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<h3 id="name-prefixes">Name prefixes</h3>
+<p>All files share one WGSL namespace after composition, so the library avoids collisions by naming. Every function starts with its category: <code>noise_</code>, <code>sdf_</code>, <code>material_</code>, <code>water_</code>, <code>post_</code>, <code>organic_</code>, <code>creature_</code>, <code>terrain_</code> or <code>pattern_</code>. The core file also uses <code>material_</code>, for <code>material_default</code>. Structs carry the prefix in one of two styles, as in SdfProfile and <code>sdf_FieldCell</code>. Sub-prefixes follow the file, such as <code>post_beam_</code>, <code>post_fire_</code>, <code>water_snow_</code> and <code>pattern_grid_</code>.</p>
+<p>The rule is a convention. No test enforces it. A game that appends its own functions should keep clear of these prefixes.</p>
+<h2 id="validation">Validation</h2>
+<p>The test module in <code>warp_sdk/src/shaderlib/mod.rs</code> has three tests, and they run under naga 0.12 with all validation flags on:</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Test</th>
+<th>What it checks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>every_snippet_composes_and_validates</code></td>
+<td>Each file, composed alone with its dependencies, parses and validates</td>
+</tr>
+<tr>
+<td><code>every_requirement_resolves</code></td>
+<td>Every <code>// requires:</code> line names an existing snippet</td>
+</tr>
+<tr>
+<td><code>paths_are_unique</code></td>
+<td>No two snippets share a path, so <a class="sym" href="#sym-get"><code>get</code></a> and <a class="sym" href="#sym-compose"><code>compose</code></a> are unambiguous</td>
+</tr>
+</tbody>
+</table>
+<p>The first test is the reason that a dependency line cannot be forgotten: a file that calls another file's function without requiring it fails to validate.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<p>The tests check each file alone. They do not check a game's combination of files, and they check no entry point. A game validates its own shader with naga in a test. The <a class="sym" href="lit2d.html"><code>lit2d</code></a> example does this for its material in <code>the_material_validates</code>, and <a class="sym" href="lit2d.html#sym-compose_gbuffer_wgsl"><code>compose_gbuffer_wgsl</code></a> exists for that purpose.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<h2 id="the-materialsample-record">The MaterialSample record</h2>
+<p><code>core/material.wgsl</code> defines the one surface record that "every material and every lit2d pass agrees on".<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup> A material function returns it, the <a href="lit2d.html" data-slug="lit2d">Lit2d</a> G-buffer stores it, and the lighting pass shades it. The material, organic and creature categories, and the <code>sdf_relief_material</code> function, all return this type.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Meaning</th>
+<th><code>material_default</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>albedo</code></td>
+<td><code>vec3&lt;f32&gt;</code></td>
+<td>Linear RGB base colour, 0..1</td>
+<td>0.5 grey</td>
+</tr>
+<tr>
+<td><code>normal</code></td>
+<td><code>vec3&lt;f32&gt;</code></td>
+<td>Tangent-space unit normal, +z faces the camera</td>
+<td>(0, 0, 1)</td>
+</tr>
+<tr>
+<td><code>height</code></td>
+<td><code>f32</code></td>
+<td>0..1, for parallax and contact shadows</td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>roughness</code></td>
+<td><code>f32</code></td>
+<td>0 is a mirror, 1 is chalk</td>
+<td>0.8</td>
+</tr>
+<tr>
+<td><code>metallic</code></td>
+<td><code>f32</code></td>
+<td>0 is dielectric, 1 is metal</td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>emissive</code></td>
+<td><code>vec3&lt;f32&gt;</code></td>
+<td>Linear RGB added after lighting, can exceed 1 and so feeds bloom</td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>alpha</code></td>
+<td><code>f32</code></td>
+<td>Coverage, 0..1</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<h2 id="conventions">Conventions</h2>
+<p>The categories were written from different sources and do not share every convention. These points hold across the library:</p>
+<ul>
+<li><strong>Colour</strong> is linear RGB unless a name or comment says sRGB. The colour maps in <code>post/color_science.wgsl</code> and the fire ramps in <code>post/fire.wgsl</code> return sRGB-encoded values.</li>
+<li><strong>Normals</strong> use +z toward the camera.</li>
+<li><strong>Signed distances</strong> are negative inside a shape.</li>
+<li><strong>Coverage</strong> is 0..1. Pixel size is usually an argument named <a class="sym" href="scale.html#sym-px"><code>px</code></a> or <code>aa</code>, in the same units as the position.</li>
+<li><strong>Noise position</strong> is in cells. One unit is about one feature, so a caller scales <code>p</code> to set the feature size.</li>
+<li><strong>Seeds</strong> differ by category. The noise, post, terrain and pattern files take <code>seed: u32</code>. The material, organic, creature and water files take a float seed. <code>noise_hash11</code> and similar functions hash raw float bits.</li>
+<li><strong>Private noise</strong> exists in several categories. <code>material_vnoised</code>, <code>organic_vnoise</code>, <code>creature_vnoise</code>, <code>pattern_vnoise</code> and <code>water_vnoise</code> are separate functions, each with the range its own category documents.</li>
+<li><strong>Fragment stage only.</strong> Functions that call <code>fwidth</code>, <code>dpdx</code> or <code>dpdy</code> work only in a fragment stage. Those calls appear in code only in <code>sdf/eval.wgsl</code> and in the pattern category. Other files take a pixel size as an argument. Texture reads use <code>textureSampleLevel</code> or <code>textureLoad</code>, so they are legal in any stage.</li>
+<li><strong>Comment headers.</strong> Each file starts with a header that gives its parameters and output ranges. Many list <code>grep -n</code> targets for their main functions.</li>
+</ul>
+<h2 id="usage">Usage</h2>
+<h3 id="in-a-render-pass">In a render pass</h3>
+<p>A game composes the files, appends its own entry points and creates the module. Sample adapted from <code>API.md</code>, with a path that exists:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> <span class="k">mut</span> src = warp_sdk::shaderlib::<span class="f">compose</span>(&amp;[<span class="s">"material/rock.wgsl"</span>, <span class="s">"post/bloom.wgsl"</span>]);
+src.<span class="f">push_str</span>(<span class="t">MY_ENTRY_POINTS</span>);
+<span class="k">let</span> module = device.<span class="f">create_shader_module</span>(warp_sdk::wgpu::<span class="t">ShaderModuleDescriptor</span> {
+    label: <span class="t">Some</span>(<span class="s">"stone"</span>),
+    source: warp_sdk::wgpu::<span class="t">ShaderSource</span>::<span class="t">Wgsl</span>(src.<span class="f">into</span>()),
+});</code></pre></div>
+<p>The string MY_ENTRY_POINTS holds the game's <code>@vertex</code> and <code>@fragment</code> functions and its bindings. The bind group layout and the pipeline belong to the game, as in any other pass on the <a href="renderer.html" data-slug="renderer">Renderer and run</a>.</p>
+<h3 id="in-a-lit-sprite">In a lit sprite</h3>
+<p>The <a href="lit2d.html" data-slug="lit2d">Lit2d</a> kit takes a material as one WGSL function, and <a class="sym" href="lit2d.html#sym-Material-with_shaderlib"><code>Material::with_shaderlib</code></a> lists the files it calls.[[src:warp_sdk/src/lit2d/mod.rs|pub fn with_shaderlib(mut self, paths: &amp;[&amp;'static str]) -&gt; Self {]] <a class="sym" href="lit2d.html#sym-compose_gbuffer_wgsl"><code>compose_gbuffer_wgsl</code></a> always includes <code>core/material.wgsl</code>, then the listed files, the material function and the G-buffer template.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> material = lit.<span class="f">add_material</span>(<span class="t">Material</span>::<span class="f">new</span>(<span class="s">"lit2d example"</span>, <span class="t">MATERIAL</span>).<span class="f">with_shaderlib</span>(&amp;[<span class="s">"noise/fbm.wgsl"</span>]));</code></pre></div>
+<p>The material function has a fixed signature. The body below calls one library material, using the world position and the instance seed:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">lit2d_material</span>(uv: vec2&lt;f32&gt;, world: vec2&lt;f32&gt;, inst: <span class="t">Lit2dInstance</span>) -&gt; <span class="t">MaterialSample</span> {
+    <span class="k">return</span> <span class="f">material_rock</span>(world, <span class="n">2.0</span>, <span class="n">0.6</span>, <span class="n">0.4</span>, vec3&lt;f32&gt;(<span class="n">1.0</span>), inst.seed);
+}</code></pre></div>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>WGSL has no function pointers. Functions that need a scene distance take samples from the caller, as described in <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a>.</li>
+<li>WGSL has no recursion. <code>organic_tree</code> grows into a fixed array, and several pattern sources were not ported because they need state or recursion.</li>
+<li>The tests use naga 0.12, which accepts <code>sdf_polygon8</code>. Newer WGSL parsers read part of that function as a template list. See <a href="shader-sdf.html#limitations" data-slug="shader-sdf">SDF shaders</a>.</li>
+</ul>
+<h2 id="history">History</h2>
+<p>The skeleton, <a class="sym" href="#sym-compose"><code>compose</code></a> and the naga validation test were added on 2026-10-29 in commit <code>46a630b3</code>. The categories followed on the same day, in the order noise, sdf, post, water, material, organic, creature and terrain. A later commit ported further tables (<code>sdf/field.wgsl</code>, <code>sdf/polar.wgsl</code>, <code>post/fire.wgsl</code> and others), and the pattern category came after it. The last change of that day, <code>1f02df0c</code>, added <code>water/plume.wgsl</code> and <code>post/volumetric.wgsl</code> to correct low-resolution plumes and a rectangular headlamp cone.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 15 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-shaderlib" class="modhead"><code>warp_sdk::shaderlib</code></h3><h4>Functions</h4><div class="item" id="sym-all" data-name="all"><div class="sig"><a class="anchor" href="#sym-all" aria-label="Link to all">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">all</span>() -&gt; <span class="k">impl</span> <span class="t">Iterator</span>&lt;<span class="t">Item</span> = &amp;<span class="a">'static</span> <span class="t">Snippet</span>&gt;</code></div><div class="doc"><p>Every snippet in the library, in category order.</p></div></div><div class="item" id="sym-get" data-name="get"><div class="sig"><a class="anchor" href="#sym-get" aria-label="Link to get">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">get</span>(path: &amp;str) -&gt; <span class="t">Option</span>&lt;&amp;<span class="a">'static</span> <span class="t">Snippet</span>&gt;</code></div><div class="doc"><p>The snippet at <code>path</code>, for example <code>"noise/hash.wgsl"</code>.</p></div></div><div class="item" id="sym-requires" data-name="requires"><div class="sig"><a class="anchor" href="#sym-requires" aria-label="Link to requires">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">requires</span>(src: &amp;str) -&gt; <span class="k">impl</span> <span class="t">Iterator</span>&lt;<span class="t">Item</span> = &amp;str&gt;</code></div><div class="doc"><p>The paths a snippet names on its <code>// requires:</code> lines.</p></div></div><div class="item" id="sym-compose" data-name="compose"><div class="sig"><a class="anchor" href="#sym-compose" aria-label="Link to compose">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">compose</span>(paths: &amp;[&amp;str]) -&gt; <span class="t">String</span></code></div><div class="doc"><p>One WGSL string holding <code>paths</code> and everything they require, each file
+once, dependencies first. Panics on an unknown path, so a typo fails the
+game's own boot test and not a GPU pipeline at runtime.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Snippet" data-name="snippet"><div class="sig"><a class="anchor" href="#sym-Snippet" aria-label="Link to Snippet">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Snippet</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> path: &amp;<span class="a">'static</span> str,
+<span class="k">pub</span> src: &amp;<span class="a">'static</span> str,</code></pre></div><div class="doc"><p>One embedded WGSL file. <code>path</code> is relative to <code>warp_sdk/shaderlib/</code>.</p></div></div></div><h3 id="mod-shaderlib--core" class="modhead"><code>warp_sdk::shaderlib::core</code></h3><h4>Constants</h4><div class="item" id="sym-SNIPPETS" data-name="snippets"><div class="sig"><a class="anchor" href="#sym-SNIPPETS" aria-label="Link to SNIPPETS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SNIPPETS</span>: &amp;[<span class="t">Snippet</span>] = &amp;[ snippet!(<span class="s">"core/material.wgsl"</span>), ]</code></div></div><h3 id="mod-shaderlib--creature" class="modhead"><code>warp_sdk::shaderlib::creature</code></h3><h4>Constants</h4><div class="item" id="sym-SNIPPETS" data-name="snippets"><div class="sig"><a class="anchor" href="#sym-SNIPPETS" aria-label="Link to SNIPPETS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SNIPPETS</span>: &amp;[<span class="t">Snippet</span>] = &amp;[ snippet!(<span class="s">"creature/common.wgsl"</span>), snippet!(<span class="s">"creature/parts.wgsl"</span>), snippet!(<span class="s">"creature/fish.wgsl"</span>), snippet!(<span class="s">"creature/jellyfish.wgsl"</span>), snippet!(<span class="s">"creature/cephalopod.wgsl"</span>), snippet!(<span class="s">"creature/crustacean.wgsl"</span>), snippet!(<span class="s">"creature/gloom.wgsl"</span>), snippet!(<span class="s">"creature/submersible.wgsl"</span>), ]</code></div></div><h3 id="mod-shaderlib--material" class="modhead"><code>warp_sdk::shaderlib::material</code></h3><h4>Constants</h4><div class="item" id="sym-SNIPPETS" data-name="snippets"><div class="sig"><a class="anchor" href="#sym-SNIPPETS" aria-label="Link to SNIPPETS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SNIPPETS</span>: &amp;[<span class="t">Snippet</span>] = &amp;[ snippet!(<span class="s">"material/common.wgsl"</span>), snippet!(<span class="s">"material/flesh.wgsl"</span>), snippet!(<span class="s">"material/ground.wgsl"</span>), snippet!(<span class="s">"material/ice.wgsl"</span>), snippet!(<span class="s">"material/layer.wgsl"</span>), snippet!(<span class="s">"material/metal.wgsl"</span>), snippet!(<span class="s">"material/rock.wgsl"</span>), snippet!(<span class="s">"material/volcanic.wgsl"</span>), snippet!(<span class="s">"material/wood.wgsl"</span>), ]</code></div></div><h3 id="mod-shaderlib--noise" class="modhead"><code>warp_sdk::shaderlib::noise</code></h3><h4>Constants</h4><div class="item" id="sym-SNIPPETS" data-name="snippets"><div class="sig"><a class="anchor" href="#sym-SNIPPETS" aria-label="Link to SNIPPETS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SNIPPETS</span>: &amp;[<span class="t">Snippet</span>] = &amp;[ snippet!(<span class="s">"noise/hash.wgsl"</span>), snippet!(<span class="s">"noise/cellular.wgsl"</span>), snippet!(<span class="s">"noise/curl.wgsl"</span>), snippet!(<span class="s">"noise/dither.wgsl"</span>), snippet!(<span class="s">"noise/fbm.wgsl"</span>), snippet!(<span class="s">"noise/gradient.wgsl"</span>), snippet!(<span class="s">"noise/simplex.wgsl"</span>), snippet!(<span class="s">"noise/value.wgsl"</span>), snippet!(<span class="s">"noise/warp.wgsl"</span>), ]</code></div></div><h3 id="mod-shaderlib--organic" class="modhead"><code>warp_sdk::shaderlib::organic</code></h3><h4>Constants</h4><div class="item" id="sym-SNIPPETS" data-name="snippets"><div class="sig"><a class="anchor" href="#sym-SNIPPETS" aria-label="Link to SNIPPETS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SNIPPETS</span>: &amp;[<span class="t">Snippet</span>] = &amp;[ snippet!(<span class="s">"organic/common.wgsl"</span>), snippet!(<span class="s">"organic/coral_branch.wgsl"</span>), snippet!(<span class="s">"organic/coral_massive.wgsl"</span>), snippet!(<span class="s">"organic/coral_soft.wgsl"</span>), snippet!(<span class="s">"organic/growth.wgsl"</span>), snippet!(<span class="s">"organic/plant.wgsl"</span>), snippet!(<span class="s">"organic/tree.wgsl"</span>), ]</code></div></div><h3 id="mod-shaderlib--pattern" class="modhead"><code>warp_sdk::shaderlib::pattern</code></h3><h4>Constants</h4><div class="item" id="sym-SNIPPETS" data-name="snippets"><div class="sig"><a class="anchor" href="#sym-SNIPPETS" aria-label="Link to SNIPPETS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SNIPPETS</span>: &amp;[<span class="t">Snippet</span>] = &amp;[ snippet!(<span class="s">"pattern/kit.wgsl"</span>), snippet!(<span class="s">"pattern/botanical.wgsl"</span>), snippet!(<span class="s">"pattern/distort.wgsl"</span>), snippet!(<span class="s">"pattern/flow.wgsl"</span>), snippet!(<span class="s">"pattern/geometric.wgsl"</span>), snippet!(<span class="s">"pattern/grid.wgsl"</span>), snippet!(<span class="s">"pattern/hopf.wgsl"</span>), snippet!(<span class="s">"pattern/iso.wgsl"</span>), snippet!(<span class="s">"pattern/mesh.wgsl"</span>), snippet!(<span class="s">"pattern/modifiers.wgsl"</span>), snippet!(<span class="s">"pattern/motion.wgsl"</span>),</code></div></div><h3 id="mod-shaderlib--post" class="modhead"><code>warp_sdk::shaderlib::post</code></h3><h4>Constants</h4><div class="item" id="sym-SNIPPETS" data-name="snippets"><div class="sig"><a class="anchor" href="#sym-SNIPPETS" aria-label="Link to SNIPPETS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SNIPPETS</span>: &amp;[<span class="t">Snippet</span>] = &amp;[ snippet!(<span class="s">"post/color.wgsl"</span>), snippet!(<span class="s">"post/bloom.wgsl"</span>), snippet!(<span class="s">"post/tonemap.wgsl"</span>), snippet!(<span class="s">"post/exposure.wgsl"</span>), snippet!(<span class="s">"post/grade.wgsl"</span>), snippet!(<span class="s">"post/lens.wgsl"</span>), snippet!(<span class="s">"post/grain.wgsl"</span>), snippet!(<span class="s">"post/sharpen.wgsl"</span>), snippet!(<span class="s">"post/dither.wgsl"</span>), snippet!(<span class="s">"post/glow.wgsl"</span>), snippet!(<span class="s">"post/color_science.wgsl"</span>),</code></div></div><h3 id="mod-shaderlib--sdf" class="modhead"><code>warp_sdk::shaderlib::sdf</code></h3><h4>Constants</h4><div class="item" id="sym-SNIPPETS" data-name="snippets"><div class="sig"><a class="anchor" href="#sym-SNIPPETS" aria-label="Link to SNIPPETS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SNIPPETS</span>: &amp;[<span class="t">Snippet</span>] = &amp;[ snippet!(<span class="s">"sdf/eval.wgsl"</span>), snippet!(<span class="s">"sdf/ops.wgsl"</span>), snippet!(<span class="s">"sdf/prim_basic.wgsl"</span>), snippet!(<span class="s">"sdf/prim_curve.wgsl"</span>), snippet!(<span class="s">"sdf/relief.wgsl"</span>), snippet!(<span class="s">"sdf/field.wgsl"</span>), snippet!(<span class="s">"sdf/polar.wgsl"</span>), ]</code></div></div><h3 id="mod-shaderlib--terrain" class="modhead"><code>warp_sdk::shaderlib::terrain</code></h3><h4>Constants</h4><div class="item" id="sym-SNIPPETS" data-name="snippets"><div class="sig"><a class="anchor" href="#sym-SNIPPETS" aria-label="Link to SNIPPETS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SNIPPETS</span>: &amp;[<span class="t">Snippet</span>] = &amp;[ snippet!(<span class="s">"terrain/dla.wgsl"</span>), snippet!(<span class="s">"terrain/strata.wgsl"</span>), snippet!(<span class="s">"terrain/cave.wgsl"</span>), snippet!(<span class="s">"terrain/heightfield.wgsl"</span>), snippet!(<span class="s">"terrain/shade.wgsl"</span>), snippet!(<span class="s">"terrain/reveal.wgsl"</span>), snippet!(<span class="s">"terrain/map.wgsl"</span>), ]</code></div></div><h3 id="mod-shaderlib--water" class="modhead"><code>warp_sdk::shaderlib::water</code></h3><h4>Constants</h4><div class="item" id="sym-SNIPPETS" data-name="snippets"><div class="sig"><a class="anchor" href="#sym-SNIPPETS" aria-label="Link to SNIPPETS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SNIPPETS</span>: &amp;[<span class="t">Snippet</span>] = &amp;[ snippet!(<span class="s">"water/noise.wgsl"</span>), snippet!(<span class="s">"water/caustics.wgsl"</span>), snippet!(<span class="s">"water/branched_flow.wgsl"</span>), snippet!(<span class="s">"water/light_shafts.wgsl"</span>), snippet!(<span class="s">"water/depth_fog.wgsl"</span>), snippet!(<span class="s">"water/marine_snow.wgsl"</span>), snippet!(<span class="s">"water/plume.wgsl"</span>), snippet!(<span class="s">"water/surface.wgsl"</span>), snippet!(<span class="s">"water/flow.wgsl"</span>), snippet!(<span class="s">"water/fluid_color.wgsl"</span>), snippet!(<span class="s">"water/refraction.wgsl"</span>),</code></div></div><h2 id="see-also">See also</h2><ul><li><a href="lit2d.html" data-slug="lit2d">Lit2d</a></li><li><a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a></li><li><a href="shader-material.html" data-slug="shader-material">Material shaders</a></li><li><a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a></li><li><a href="post.html" data-slug="post">Post effects</a></li><li><a href="renderer.html" data-slug="renderer">Renderer and run</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/shaderlib/mod.rs</code> - <code>/// One embedded WGSL file. `path` is relative to `warp_sdk/shaderlib/`.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/shaderlib/mod.rs</code> - <code>src.lines().filter_map(|l| l.trim().strip_prefix(&quot;// requires:&quot;)).map(str::trim)</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/shaderlib/mod.rs</code> - <code>/// game&#x27;s own boot test and not a GPU pipeline at runtime.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/shaderlib/mod.rs</code> - <code>/// Every snippet, composed with its requirements, is valid WGSL.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/lit2d/mod.rs</code> - <code>/// validate a material with naga before it reaches a device.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/core/material.wgsl</code> - <code>struct MaterialSample</code></li></ol><table class="navbox"><tr><th><a href="category-shader-library.html">Shader library</a></th></tr><tr><td><b>Shader library</b> · <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a> · <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> · <a href="shader-material.html" data-slug="shader-material">Material shaders</a> · <a href="shader-water.html" data-slug="shader-water">Water shaders</a> · <a href="shader-post.html" data-slug="shader-post">Post shaders</a> · <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> · <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> · <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> · <a href="shader-pattern.html" data-slug="shader-pattern">Pattern shaders</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-shader-library.html">Shader library</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

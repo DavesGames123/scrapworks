@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Network sessions - Warp Wiki</title>
+<meta name="description" content="host, guest and role holder, with seats, channels, blobs, chat and reconnect">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="net-session">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#what-a-session-does">What a session does</a></li><li><a href="#objects-not-globals">Objects, not globals</a></li><li><a href="#the-host">The host</a><ul><li><a href="#hostconfig">HostConfig</a></li><li><a href="#seats">Seats</a></li></ul></li><li><a href="#the-guest">The guest</a><ul><li><a href="#reconnect">Reconnect</a></li><li><a href="#a-malicious-host">A malicious host</a></li></ul></li><li><a href="#session-the-role-holder">Session: the role holder</a><ul><li><a href="#the-invite-join">The invite join</a></li></ul></li><li><a href="#events">Events</a></li><li><a href="#sending">Sending</a></li><li><a href="#guards">Guards</a><ul><li><a href="#the-guest-filter">The guest filter</a></li></ul></li><li><a href="#blobs">Blobs</a></li><li><a href="#chat">Chat</a></li><li><a href="#the-last-session-record">The last-session record</a></li><li><a href="#timers">Timers</a></li><li><a href="#byte-counts">Byte counts</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Network sessions</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">host, guest and role holder, with seats, channels, blobs, chat and reconnect</p><table class="infobox"><caption>Network sessions</caption><tr><th>Category</th><td><a href="category-networking.html">Networking</a></td></tr><tr><th>Module</th><td><code>warp_sdk::net::session</code></td></tr><tr><th>Source</th><td><code>warp_net/src/session/mod.rs</code></td></tr><tr><th>Feature</th><td><code>net</code></td></tr><tr><th>Public items</th><td><a href="#reference">108</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example pong_link</code></td></tr></table><p><strong>Network sessions</strong> are the top layer of Warp's networking: the host and guest objects that run the handshake, hold seats, carry application channels and blobs, and survive a dropped link. They live in <a class="sym" href="net-session.html"><code>warp_sdk::net::session</code></a>, re-exported from the <code>warp_net</code> crate. A session is one host and a set of guests, on any transport that gives a <a class="sym" href="net.html#sym-FrameIo"><code>FrameIo</code></a>. The session layer does not know which transport it runs on.</p>
+<h2 id="what-a-session-does">What a session does</h2>
+<ul>
+<li><strong>Join.</strong> A SPAKE2 handshake on the join code and the build seals every frame after connect. Then comes a Hello message, a Welcome message, and a seat with a random seat token.</li>
+<li><strong>Channels.</strong> The application sends <code>(channel, bytes)</code> reliably and in order, or latest-wins per channel and key.</li>
+<li><strong>Blobs.</strong> A guest asks for a named blob, and the host deflates it and sends it in chunks.</li>
+<li><strong>Liveness and reconnect.</strong> Both ends send at least once a second. A silent link is interrupted, the host holds the seat, and the guest redials.</li>
+<li><strong>Guards.</strong> The join-code lockout, kick and ban by source, rate limits, a frame cap, and the guest filter.</li>
+<li><strong>Chat.</strong> A relay with the seat and name from the host's record of the link.</li>
+<li><strong>The last-session record.</strong> Data that the application may store, to rejoin after a restart.</li>
+</ul>
+<p><sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<h2 id="objects-not-globals">Objects, not globals</h2>
+<p><a class="sym" href="#sym-Host"><code>Host</code></a> and <a class="sym" href="#sym-Guest"><code>Guest</code></a> are values that the application holds, and clones share one host or one link. One process may run many of them, which is how the tests run a host and guests together. The Stella Nova code that this came from kept the role in a process global. <a class="sym" href="#sym-Session"><code>Session</code></a> is an optional holder for one role at a time: off, host, a guest, or a dial in progress. <sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<p>Each link has two threads. Each new link has a handshake thread, each <a class="sym" href="#sym-Host"><code>Host</code></a> has one housekeeping thread, and each <a class="sym" href="#sym-Guest"><code>Guest</code></a> has a keepalive thread and at most one reconnect thread. The application polls events from any thread. <a class="sym" href="#sym-Host"><code>Host</code></a> and <a class="sym" href="#sym-Guest"><code>Guest</code></a> hide the threads, and neither <a class="sym" href="#sym-Host-send"><code>Host::send</code></a> nor <a class="sym" href="#sym-Guest-send"><code>Guest::send</code></a> blocks.</p>
+<h2 id="the-host">The host</h2>
+<p><a class="sym" href="#sym-Host-new"><code>Host::new</code></a> starts a host with a <a class="sym" href="net.html#sym-Domain"><code>Domain</code></a>, its name in the roster, a build string, the join code and a <a class="sym" href="#sym-HostConfig"><code>HostConfig</code></a>. It fails only when the housekeeping thread does not start. The host has no transport of its own. The game gives it each accepted transport with <a class="sym" href="#sym-Host-accept_io"><code>Host::accept_io</code></a>. The <code>from</code> label also names the source for the lockout and the ban. A TCP "ip:port" label counts per IP, and a P2P label from <a class="sym" href="net-transports.html#sym-peer_label"><code>peer_label</code></a> counts per node. <sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<p><a class="sym" href="#sym-Host-stop"><code>Host::stop</code></a> ends the session. Every guest gets a goodbye first, so it ends at once and does not try to reconnect. The housekeeping thread and the links hold the host until then. <sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<h3 id="hostconfig">HostConfig</h3>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hello_timeout</code></td>
+<td>5 s</td>
+<td>The longest handshake and Hello</td>
+</tr>
+<tr>
+<td><code>idle_timeout</code></td>
+<td><code>interrupt_after</code> (4 s)</td>
+<td>A welcomed guest silent this long is interrupted</td>
+</tr>
+<tr>
+<td><code>blob_period</code></td>
+<td>30 s</td>
+<td>One blob request per guest per this time</td>
+</tr>
+<tr>
+<td><code>seat_hold</code></td>
+<td>60 s</td>
+<td>How long an interrupted guest's seat is held</td>
+</tr>
+<tr>
+<td><code>keepalive</code></td>
+<td>1 s</td>
+<td>The roster keepalive period</td>
+</tr>
+<tr>
+<td><code>trust_loopback</code></td>
+<td>true</td>
+<td>A loopback guest is not a source for the kick ban or the blob source limit</td>
+</tr>
+<tr>
+<td><code>max_players</code></td>
+<td>4</td>
+<td>The seats, the host included: 2 to <a class="sym" href="#sym-MAX_SEATS"><code>MAX_SEATS</code></a></td>
+</tr>
+<tr>
+<td><code>app_limit</code></td>
+<td><a class="sym" href="#sym-ChannelLimit-DEFAULT"><code>ChannelLimit::DEFAULT</code></a></td>
+<td>The shared rate of application channels</td>
+</tr>
+<tr>
+<td><code>channel_limits</code></td>
+<td>empty</td>
+<td>Channels with a limit of their own</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-MAX_SEATS"><code>MAX_SEATS</code></a> is 64. HostConfig::default takes the timers from the environment through <a class="sym" href="#sym-Timers-from_env"><code>Timers::from_env</code></a>. <a class="sym" href="#sym-HostConfig-with_timers"><code>HostConfig::with_timers</code></a> takes them from the caller, which is what the tests use.</p>
+<h3 id="seats">Seats</h3>
+<p>Seat 0 is always the host. A transport gets a temporary id at the end of the handshake, and its Hello decides the real seat. A fresh guest takes a free seat and a new random token. A guest that sends the token of a held seat gets that seat back, with the same id and name. A transport in the handshake holds no seat, so a peer that does not know the code cannot keep a guest out. <sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<ul>
+<li>A welcomed guest whose link closes without a goodbye raises Event::GuestInterrupted. Its seat is held for <code>seat_hold</code>, then Event::GuestLeft fires with LeaveReason::TimedOut.</li>
+<li>A guest that sends a goodbye frees the seat at once. Its token stays valid for <code>seat_hold</code>, so a rejoin gets the same id while that id is free.</li>
+<li><a class="sym" href="#sym-Host-kick"><code>Host::kick</code></a> sends a goodbye with the kicked reason, and the token is refused for the rest of the session.</li>
+</ul>
+<p><a class="sym" href="#sym-Host-roster"><code>Host::roster</code></a> lists the host and guests, with held seats. <a class="sym" href="#sym-Host-interrupted"><code>Host::interrupted</code></a> lists held seats with the seconds left. <a class="sym" href="#sym-Host-seats_used"><code>Host::seats_used</code></a> and <a class="sym" href="#sym-Host-handshakes"><code>Host::handshakes</code></a> report the counts.</p>
+<h2 id="the-guest">The guest</h2>
+<p><a class="sym" href="#sym-Guest-start"><code>Guest::start</code></a> runs on a connected transport, a <a class="sym" href="#sym-JoinSpec"><code>JoinSpec</code></a>, and an optional <a class="sym" href="#sym-Dialer"><code>Dialer</code></a> that opens a new transport to the same host for a reconnect. With no dialer, a lost link ends the session. The handshake runs on a thread, so the call returns at once.</p>
+<p><a class="sym" href="#sym-JoinSpec-new"><code>JoinSpec::new</code></a> is a fresh join. <a class="sym" href="#sym-JoinSpec-rejoin_from"><code>JoinSpec::rejoin_from</code></a> joins again from a <a class="sym" href="#sym-SessionRecord"><code>SessionRecord</code></a>. Its fields also carry a label for the status line, the <a class="sym" href="#sym-Via"><code>Via</code></a> transport for the record, and a <a class="sym" href="#sym-GuestConfig"><code>GuestConfig</code></a>.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th><a class="sym" href="#sym-GuestConfig"><code>GuestConfig</code></a> field</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>handshake_timeout</code></td>
+<td>5 s</td>
+<td>The longest handshake, and the longest wait for Welcome on a redial</td>
+</tr>
+<tr>
+<td><code>interrupt_after</code></td>
+<td>4 s</td>
+<td>A link silent this long is interrupted</td>
+</tr>
+<tr>
+<td><code>give_up</code></td>
+<td>60 s</td>
+<td>The time before the guest ends with EndReason::HostLost</td>
+</tr>
+<tr>
+<td><code>backoff_base</code></td>
+<td>1 s</td>
+<td>The first reconnect wait</td>
+</tr>
+<tr>
+<td><code>keepalive</code></td>
+<td>1 s</td>
+<td>The keepalive period</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-LinkState"><code>LinkState</code></a> answers what the link is doing now, for a banner drawn each frame: Off, Hosting, Joining, Linked, Interrupted or Ended.</p>
+<h3 id="reconnect">Reconnect</h3>
+<p>A guest becomes interrupted when the link goes silent for <code>interrupt_after</code>, or closes with no goodbye. The host sends the roster each second, so a quiet host is a lost host. A driver thread redials after 1, 2, 4, 8, 8 and so on times <code>backoff_base</code>, as <a class="sym" href="#sym-backoff"><code>backoff</code></a> computes. Each redial runs the full handshake and sends the seat token. The host gives back the same seat, and the guest pushes Event::Reconnected. The application must then resync its state with the host. <sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<p>After <code>give_up</code> the guest ends with EndReason::HostLost. A link that closes within 10 seconds of a redial's Welcome continues the last interrupted phase, so a host that sends Welcome and then closes cannot hold the guest for ever. A wrong code on a redial ends the guest, because it most likely means that the host restarted. <a class="sym" href="#sym-Guest-reconnect_now"><code>Guest::reconnect_now</code></a> starts the next attempt at once. <sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<p><a class="sym" href="#sym-Guest-send"><code>Guest::send</code></a> returns false while interrupted, and the send is dropped and counted, not queued. A game therefore reads the state again after reconnecting and does not rely on a replay.</p>
+<h3 id="a-malicious-host">A malicious host</h3>
+<p>The guest does not trust the host either. It accepts one blob start for each request that it sent. A seat id at or over <a class="sym" href="#sym-MAX_SEATS"><code>MAX_SEATS</code></a> is refused. Names, chat lines and status text are cleaned and cut. A reconnect that gets another seat is refused. Roster events keep to 16 per second. Text from a peer passes through a filter that removes control, separator, bidi, tag and other invisible characters. <sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<h2 id="session-the-role-holder">Session: the role holder</h2>
+<p><a class="sym" href="#sym-Session"><code>Session</code></a> holds one role, and clones share it. <a class="sym" href="#sym-Session-role"><code>Session::role</code></a> gives a <a class="sym" href="#sym-Role"><code>Role</code></a> of Off, <a class="sym" href="#sym-Host"><code>Host</code></a> or <a class="sym" href="#sym-Guest"><code>Guest</code></a>. A guest role is either a <a class="sym" href="#sym-Guest"><code>Guest</code></a> value or a dial, a join whose resolve and connect run on a worker thread, so DNS and the connect timeout do not stop a render thread.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Call</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Session-host"><code>Session::host</code></a></td>
+<td>Ends the role before, and holds the host</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Session-join_tcp"><code>Session::join_tcp</code></a></td>
+<td>Joins an address over TCP</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Session-join_invite"><code>Session::join_invite</code></a></td>
+<td>Joins from a pasted invite</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Session-join_dialed"><code>Session::join_dialed</code></a></td>
+<td>Joins with a connect closure that the caller gives</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Session-join_dialed_after"><code>Session::join_dialed_after</code></a></td>
+<td>Starts a fallback in place of a watched dial</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Session-leave"><code>Session::leave</code></a></td>
+<td>Ends the role</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Session-link_state"><code>Session::link_state</code></a> and <a class="sym" href="#sym-Session-status_line"><code>Session::status_line</code></a> report for all roles. <a class="sym" href="#sym-Session-host_handle"><code>Session::host_handle</code></a>, <a class="sym" href="#sym-Session-guest"><code>Session::guest</code></a> and <a class="sym" href="#sym-Session-current_dial"><code>Session::current_dial</code></a> give the value inside.</p>
+<p>A join or a leave ends the role before it. A dial that connects after it stopped being the role drops its link. A fallback replaces the dial it watched only while that dial is still the role, with the check and the change under one lock, so a leave or a newer join wins, and the fallback returns <a class="sym" href="#sym-DIAL_SUPERSEDED"><code>DIAL_SUPERSEDED</code></a> and does not connect. <sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup></p>
+<h3 id="the-invite-join">The invite join</h3>
+<p><a class="sym" href="#sym-Session-join_invite"><code>Session::join_invite</code></a> decodes the invite first, so a bad invite is an error on return, and the <a class="sym" href="#sym-JoinSpec"><code>JoinSpec</code></a> code is replaced by the code in the invite. A version 2 invite with a node id dials P2P first when the application gives a <a class="sym" href="net-transports.html#sym-P2p"><code>P2p</code></a> endpoint. A watcher thread follows that dial, and when it failed and is still the role, TCP starts. A version 1 invite, or no endpoint, goes to TCP at once. The TCP connect tries each invite address in order, and moves on only after a connect failure, never after a handshake refusal, so a wrong code is never tried twice. <sup class="ref"><a href="#ref-10" id="cite-10">[10]</a></sup></p>
+<p><a class="sym" href="#sym-host_invite"><code>host_invite</code></a> builds the invite on the host side: the LAN address, a public address when one was found and it differs, the TCP port, the node id and the join code. If no LAN address is found, it writes <code>127.0.0.1</code>.</p>
+<h2 id="events">Events</h2>
+<p><a class="sym" href="#sym-Host-poll_events"><code>Host::poll_events</code></a> and <a class="sym" href="#sym-Guest-poll_events"><code>Guest::poll_events</code></a> drain a queue of <a class="sym" href="#sym-Event"><code>Event</code></a> values. At most 65,536 wait. Past that, the oldest drops and <a class="sym" href="#sym-Host-events_dropped"><code>Host::events_dropped</code></a> rises, so an application that stops polling cannot grow the memory. <a class="sym" href="#sym-Host-history"><code>Host::history</code></a> and <a class="sym" href="#sym-Guest-history"><code>Guest::history</code></a> read the newest 256 link events with no drain, and they exclude messages and blob traffic. <sup class="ref"><a href="#ref-11" id="cite-11">[11]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Seen by</th>
+<th>Events</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Host</td>
+<td>GuestJoined, GuestInterrupted, GuestReturned, GuestLeft</td>
+</tr>
+<tr>
+<td>Guest</td>
+<td>Joined, HostInterrupted, Reconnecting, Reconnected, SessionEnded, PeerJoined, PeerLeft, BlobProgress, BlobDone, BlobFailed</td>
+</tr>
+<tr>
+<td>Both</td>
+<td>Message</td>
+</tr>
+</tbody>
+</table>
+<p>On the host, the <code>peer</code> of Event::Message is the seat of the sender, and the filter has passed it. On a guest, <code>peer</code> is 0. <a class="sym" href="#sym-EndReason"><code>EndReason</code></a> gives why a session ended for a guest: HostEnded, Kicked, Refused, HostLost, Left or Error.</p>
+<h2 id="sending">Sending</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Call</th>
+<th>Delivery</th>
+<th>Limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Host-send"><code>Host::send</code></a>, <a class="sym" href="#sym-Host-broadcast"><code>Host::broadcast</code></a></td>
+<td>Reliable, in order</td>
+<td>A guest with more than <code>send_queue_cap</code> bytes unsent is closed</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Host-send_latest"><code>Host::send_latest</code></a>, <a class="sym" href="#sym-Host-broadcast_latest"><code>Host::broadcast_latest</code></a></td>
+<td>Latest-wins per channel and key</td>
+<td>At most 256 keys wait per link</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Guest-send"><code>Guest::send</code></a></td>
+<td>Reliable, in order</td>
+<td>64 KiB less 64 bytes per message</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Guest-send_latest"><code>Guest::send_latest</code></a></td>
+<td>Latest-wins per channel and key</td>
+<td>The batch must fit the guest frame cap</td>
+</tr>
+</tbody>
+</table>
+<p>A latest-wins value can go out twice but never out of date. Each batch holds only the newest value of each key, and a key is always in the same batch. <sup class="ref"><a href="#ref-12" id="cite-12">[12]</a></sup></p>
+<h2 id="guards">Guards</h2>
+<p>Only a guest that knows the join code passes the handshake, but the host still does not trust it. The guards are independent of what the application does. <sup class="ref"><a href="#ref-13" id="cite-13">[13]</a></sup></p>
+<ul>
+<li><strong>Handshakes.</strong> At most 16 transports wait in the handshake at one time, and at most 4 from one source. A transport must finish the handshake and send a valid Hello within <code>hello_timeout</code>.</li>
+<li><strong>Lockout.</strong> Five failures in 60 s lock a source for 60 s. Thirty from all sources lock the host. A wrong build counts as a wrong code.</li>
+<li><strong>Frames.</strong> A guest frame over 64 KiB closes the link before decode.</li>
+<li><strong>Rates.</strong> A token bucket per guest and per class drops a flood. The default <a class="sym" href="#sym-ChannelLimit"><code>ChannelLimit</code></a> is 60 messages a second with a burst of 240, room for a 60 Hz input stream. A guest over an application rate for 10 seconds is closed. Blob requests also take a token from a bucket per source, so a redial does not refill them.</li>
+<li><strong>The guest filter.</strong> See below.</li>
+<li><strong>Kick.</strong> <a class="sym" href="#sym-Host-kick"><code>Host::kick</code></a> bans the seat token and the source for the rest of the session. A banned source gets no fresh seat, but its Hello can still bring the token of a live, held or recent seat, so another guest behind the same NAT IP keeps its seat across a redial.</li>
+<li><strong>Sends.</strong> A guest that does not read for <code>send_queue_cap</code> bytes is closed by the next reliable send.</li>
+</ul>
+<h3 id="the-guest-filter">The guest filter</h3>
+<p><a class="sym" href="#sym-Host-set_filter"><code>Host::set_filter</code></a> sets the application check on each guest message that passed the rate limits. It receives an <a class="sym" href="#sym-Inbound"><code>Inbound</code></a> and returns an <a class="sym" href="#sym-Admit"><code>Admit</code></a>. Admit::Accept queues the message as an event, Admit::Drop drops it, and Admit::Kick closes the guest and refuses its token. The seat, the token and the name in <a class="sym" href="#sym-Inbound"><code>Inbound</code></a> come from the host's record of the link, never from the payload. The filter runs on the reader thread of the guest with no host lock held, so it may call the <a class="sym" href="#sym-Host"><code>Host</code></a>. With no filter, every message is accepted. <sup class="ref"><a href="#ref-14" id="cite-14">[14]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">fn</span> <span class="f">admit</span>(m: &amp;<span class="t">Inbound</span>) -&gt; <span class="t">Admit</span> {
+    <span class="k">match</span> m.channel {
+        <span class="t">CH_INPUT</span> <span class="k">if</span> m.data.<span class="f">len</span>() == <span class="n">1</span> &amp;&amp; m.data[<span class="n">0</span>] &lt;= <span class="n">2</span> =&gt; <span class="t">Admit</span>::<span class="t">Accept</span>,
+        <span class="t">CH_INPUT</span> =&gt; <span class="t">Admit</span>::<span class="t">Kick</span>,
+        _ =&gt; <span class="t">Admit</span>::<span class="t">Drop</span>,
+    }
+}</code></pre></div>
+<h2 id="blobs">Blobs</h2>
+<p>A blob is one named byte string from the host to the guests that asked for it, deflated and cut in chunks of 1 MiB. The flow has four steps:</p>
+<ol>
+<li>A guest calls <a class="sym" href="#sym-Guest-request_blob"><code>Guest::request_blob</code></a>.</li>
+<li>The host's <a class="sym" href="#sym-Host-take_blob_request"><code>Host::take_blob_request</code></a> returns the name, once per encode, while no encode runs.</li>
+<li>The host calls <a class="sym" href="#sym-Host-deliver_blob"><code>Host::deliver_blob</code></a> with the bytes, which deflates on a worker and sends to every guest that waits for that name. <a class="sym" href="#sym-Host-fail_blob"><code>Host::fail_blob</code></a> is the other ending, and the caller must use one of the two.</li>
+<li>The guest gets Event::BlobProgress per chunk, then Event::BlobDone or Event::BlobFailed.</li>
+</ol>
+<p>One encode runs at a time and serves every guest that waits, so a flood of requests costs one. Each guest has one request per <code>blob_period</code>. The guest refuses a blob over 256 MiB, packed or inflated, grows its buffer as chunks arrive so that an announced size cannot force a large allocation, and checks the sizes and an FNV hash. <sup class="ref"><a href="#ref-15" id="cite-15">[15]</a></sup></p>
+<h2 id="chat">Chat</h2>
+<p><a class="sym" href="#sym-Host-say"><code>Host::say</code></a> and <a class="sym" href="#sym-Guest-say"><code>Guest::say</code></a> send a line. <a class="sym" href="#sym-Host-notice"><code>Host::notice</code></a> adds a relay line. A guest sends only text. The host writes the seat and the name from its own record of the link, so a guest cannot forge them. A guest does not add its own line: the line shows when the host relays it back. Each <a class="sym" href="#sym-Host"><code>Host</code></a> and <a class="sym" href="#sym-Guest"><code>Guest</code></a> keeps a log of 200 lines, read with <a class="sym" href="#sym-Host-chat_since"><code>Host::chat_since</code></a> and <a class="sym" href="#sym-Guest-chat_since"><code>Guest::chat_since</code></a> and a cursor. A <a class="sym" href="#sym-ChatLine"><code>ChatLine</code></a> has a <a class="sym" href="#sym-ChatKind"><code>ChatKind</code></a>: <a class="sym" href="challenge.html#sym-Player"><code>Player</code></a>, Joined, Left or Notice. The rate is 5 lines every 10 seconds. <sup class="ref"><a href="#ref-16" id="cite-16">[16]</a></sup></p>
+<h2 id="the-last-session-record">The last-session record</h2>
+<p><a class="sym" href="#sym-Guest-record"><code>Guest::record</code></a> gives a <a class="sym" href="#sym-SessionRecord"><code>SessionRecord</code></a> after the first Welcome: the host name, this guest's name, the <a class="sym" href="#sym-Via"><code>Via</code></a> transport, the join code, the seat token, and the time the session was last live. <code>warp_net</code> keeps it in memory only, and the application decides where to store it. <a class="sym" href="#sym-SessionRecord-encode"><code>SessionRecord::encode</code></a> and <a class="sym" href="#sym-SessionRecord-decode"><code>SessionRecord::decode</code></a> give a plain text body. Kicked or Refused forgets the record. HostLost, HostEnded and Left keep it, because those are what a person retries. The code and the token are secrets of the session and must not go to a log. <sup class="ref"><a href="#ref-17" id="cite-17">[17]</a></sup></p>
+<h2 id="timers">Timers</h2>
+<p><a class="sym" href="#sym-INTERRUPT_AFTER"><code>INTERRUPT_AFTER</code></a> is 4 s, and <a class="sym" href="#sym-SEAT_HOLD"><code>SEAT_HOLD</code></a> and <a class="sym" href="#sym-GIVE_UP"><code>GIVE_UP</code></a> are 60 s. <a class="sym" href="#sym-Timers-from_env"><code>Timers::from_env</code></a> reads WARP_NET_INTERRUPT_S, WARP_NET_HOLD_S and WARP_NET_GIVE_UP_S in seconds, once per process, so a test or a lab can shorten them with no code change. <a class="sym" href="#sym-timers_from"><code>timers_from</code></a> does the same with a lookup that the caller gives. A missing, bad or non-positive value keeps the default. <sup class="ref"><a href="#ref-18" id="cite-18">[18]</a></sup></p>
+<h2 id="byte-counts">Byte counts</h2>
+<p>Each link counts the sealed wire bytes that it writes, per class. <a class="sym" href="#sym-HostConfig"><code>HostConfig</code></a> and <a class="sym" href="#sym-JoinSpec"><code>JoinSpec</code></a> carry the setup in a <code>counting</code> field, and <a class="sym" href="#sym-Host-counters"><code>Host::counters</code></a> and <a class="sym" href="#sym-Guest-counters"><code>Guest::counters</code></a> read the counts. Session messages, blobs and each application channel can count separately. A latest-wins frame that a newer frame replaced is never written, so it is not counted.</p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>The host is a single point of failure. A guest that loses the host for <code>give_up</code> ends, and no guest takes over.</li>
+<li>A wrong build looks like a wrong code to the guest, because both fail at the same step.</li>
+<li><a class="sym" href="#sym-Host-stop"><code>Host::stop</code></a> must be called. The housekeeping thread and the links hold the host until then.</li>
+<li>The counting types are not in the <a class="sym" href="net.html"><code>warp_sdk::net</code></a> surface, so a game cannot name them through that module.</li>
+</ul><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 108 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-net--session" class="modhead"><code>warp_sdk::net::session</code> <span class="feat">feature <code>net</code></span></h3><h4>Functions</h4><div class="item" id="sym-backoff" data-name="backoff"><div class="sig"><a class="anchor" href="#sym-backoff" aria-label="Link to backoff">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">backoff</span>(base: <span class="t">Duration</span>, n: u32) -&gt; <span class="t">Duration</span></code></div><div class="doc"><p>The reconnect wait before attempt <code>n</code> (1-based): 1, 2, 4, 8, 8, ... x
+<code>base</code>.</p></div></div><div class="item" id="sym-host_invite" data-name="host_invite"><div class="sig"><a class="anchor" href="#sym-host_invite" aria-label="Link to host_invite">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">host_invite</span>(fmt: &amp;<span class="t">InviteFormat</span>, port: u16, node: <span class="t">Option</span>&lt;[u8; <span class="n">32</span>]&gt;, code: &amp;str, public: <span class="t">Option</span>&lt;&amp;<span class="t">PublicAddress</span>&gt;) -&gt; <span class="t">Result</span>&lt;<span class="t">String</span>, invite::<span class="t">InviteError</span>&gt;</code></div><div class="doc"><p>The invite of a host: the LAN address of this machine, the public
+address from <code>public</code> when it found one and it differs, the TCP
+<code>port</code>, the P2P <code>node</code> id when the host has an endpoint, and the join
+<code>code</code>. The application gives the InviteFormat.</p></div></div><div class="item" id="sym-timers_from" data-name="timers_from"><div class="sig"><a class="anchor" href="#sym-timers_from" aria-label="Link to timers_from">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">timers_from</span>(get: <span class="k">impl</span> <span class="t">Fn</span>(&amp;str) -&gt; <span class="t">Option</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="t">Timers</span></code></div><div class="doc"><p>The timers from <code>get</code> (an env lookup): WARP_NET_INTERRUPT_S,
+WARP_NET_HOLD_S and WARP_NET_GIVE_UP_S, in seconds. A missing, bad or
+non-positive value keeps the default.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Admit" data-name="admit"><div class="sig"><a class="anchor" href="#sym-Admit" aria-label="Link to Admit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Admit</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Queue the message as Event::Message.</span>
+<span class="t">Accept</span>,
+<span class="c">/// Drop the message.</span>
+<span class="t">Drop</span>,
+<span class="c">/// Drop the message and close the guest. Its token is refused for the</span>
+<span class="c">/// rest of the session.</span>
+<span class="t">Kick</span>,</code></pre></div><div class="doc"><p>What the guest filter decided for one message.</p></div></div></div><div class="typeblock"><div class="item" id="sym-ChannelLimit" data-name="channellimit"><div class="sig"><a class="anchor" href="#sym-ChannelLimit" aria-label="Link to ChannelLimit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">ChannelLimit</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> rate: f64,
+<span class="k">pub</span> burst: f64,</code></pre></div><div class="doc"><p>The rate of one class of guest message: <code>burst</code> messages, then <code>rate</code>
+a second.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-ChannelLimit-DEFAULT" data-name="channellimit::default"><div class="sig"><a class="anchor" href="#sym-ChannelLimit-DEFAULT" aria-label="Link to ChannelLimit::DEFAULT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">DEFAULT</span>: <span class="t">ChannelLimit</span> = <span class="t">ChannelLimit</span></code></div><div class="doc"><p>60 a second, burst 240: room for a 60 Hz input stream.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-ChatKind" data-name="chatkind"><div class="sig"><a class="anchor" href="#sym-ChatKind" aria-label="Link to ChatKind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">ChatKind</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A person wrote it.</span>
+<span class="t">Player</span>,
+<span class="c">/// A peer connected or returned.</span>
+<span class="t">Joined</span>,
+<span class="c">/// A peer left, was removed, or the link dropped.</span>
+<span class="t">Left</span>,
+<span class="c">/// Any other system notice.</span>
+<span class="t">Notice</span>,</code></pre></div><div class="doc"><p>What kind of chat line this is. A GUI picks the color from it.</p></div></div></div><div class="typeblock"><div class="item" id="sym-ChatLine" data-name="chatline"><div class="sig"><a class="anchor" href="#sym-ChatLine" aria-label="Link to ChatLine">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">ChatLine</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Rises by one per line in this log. The reader cursor.</span>
+<span class="k">pub</span> seq: u64,
+<span class="c">/// Wall time, seconds since the Unix epoch.</span>
+<span class="k">pub</span> at: u64,
+<span class="k">pub</span> kind: <span class="t">ChatKind</span>,
+<span class="c">/// The seat of the writer or subject (0 = host); None for a notice.</span>
+<span class="k">pub</span> seat: <span class="t">Option</span>&lt;u8&gt;,
+<span class="k">pub</span> name: <span class="t">String</span>,
+<span class="k">pub</span> text: <span class="t">String</span>,</code></pre></div><div class="doc"><p>One line in the relay.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Connected" data-name="connected"><div class="sig"><a class="anchor" href="#sym-Connected" aria-label="Link to Connected">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Connected</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> io: <span class="t">FrameIo</span>,
+<span class="c">/// Opens a new transport to the same host, for a reconnect.</span>
+<span class="k">pub</span> dialer: <span class="t">Option</span>&lt;<span class="t">Dialer</span>&gt;,
+<span class="c">/// The transport, for the SessionRecord. None keeps the JoinSpec via.</span>
+<span class="k">pub</span> via: <span class="t">Option</span>&lt;<span class="t">Via</span>&gt;,</code></pre></div><div class="doc"><p>A connected transport that a Dial worker gives to the Guest.</p></div></div></div><div class="typeblock"><div class="item" id="sym-DialHandle" data-name="dialhandle"><div class="sig"><a class="anchor" href="#sym-DialHandle" aria-label="Link to DialHandle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">DialHandle</span>(<span class="t">Arc</span>&lt;<span class="t">Dial</span>&gt;)</code></div><div class="doc"><p>A handle on one Dial, to watch it (the P2P fallback).</p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-DialHandle-failed" data-name="dialhandle::failed"><div class="sig"><a class="anchor" href="#sym-DialHandle-failed" aria-label="Link to DialHandle::failed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">failed</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">String</span>&gt;</code></div><div class="doc"><p>The connect error, once the worker failed.</p></div></div><div class="item" id="sym-DialHandle-label" data-name="dialhandle::label"><div class="sig"><a class="anchor" href="#sym-DialHandle-label" aria-label="Link to DialHandle::label">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">label</span>(&amp;<span class="k">self</span>) -&gt; &amp;str</code></div><div class="doc"><p>What the Dial connects to.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Dialer" data-name="dialer"><div class="sig"><a class="anchor" href="#sym-Dialer" aria-label="Link to Dialer">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">type</span> <span class="t">Dialer</span> = <span class="t">Arc</span>&lt;<span class="k">dyn</span> <span class="t">Fn</span>() -&gt; <span class="t">Result</span>&lt;<span class="t">FrameIo</span>, <span class="t">String</span>&gt; + <span class="t">Send</span> + <span class="t">Sync</span>&gt;</code></div><div class="doc"><p>Opens a new transport to the same host, for a reconnect. For TCP,
+transport::tcp::dialer gives one.</p></div></div></div><div class="typeblock"><div class="item" id="sym-EndReason" data-name="endreason"><div class="sig"><a class="anchor" href="#sym-EndReason" aria-label="Link to EndReason">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">EndReason</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The host stopped hosting or quit on purpose (it sent Bye).</span>
+<span class="t">HostEnded</span>,
+<span class="c">/// The host removed this guest.</span>
+<span class="t">Kicked</span>,
+<span class="c">/// The host refused the join: the text says why.</span>
+<span class="t">Refused</span>(<span class="t">String</span>),
+<span class="c">/// The host stopped answering, and the reconnect attempts ran out.</span>
+<span class="t">HostLost</span>,
+<span class="c">/// This guest chose to leave.</span>
+<span class="t">Left</span>,
+<span class="c">/// Another error, with its text.</span>
+<span class="t">Error</span>(<span class="t">String</span>),</code></pre></div><div class="doc"><p>Why a session ended for this guest.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Event" data-name="event"><div class="sig"><a class="anchor" href="#sym-Event" aria-label="Link to Event">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Event</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A guest got a fresh seat.</span>
+<span class="t">GuestJoined</span> { peer: u8, name: <span class="t">String</span> },
+<span class="c">/// A guest went quiet. Its seat is held for its return.</span>
+<span class="t">GuestInterrupted</span> { peer: u8, name: <span class="t">String</span> },
+<span class="c">/// A held guest came back to its seat.</span>
+<span class="t">GuestReturned</span> { peer: u8, name: <span class="t">String</span> },
+<span class="t">GuestLeft</span> { peer: u8, name: <span class="t">String</span>, reason: <span class="t">LeaveReason</span> },
+<span class="c">/// The host gave this guest a seat. `rejoined` is true when it is the</span>
+<span class="c">/// seat of the rejoin token.</span>
+<span class="t">Joined</span> { seat: u8, host_name: <span class="t">String</span>, rejoined: bool },
+<span class="c">/// The host went quiet. Reconnect attempts begin.</span>
+<span class="t">HostInterrupted</span>,
+<span class="c">/// A reconnect attempt started.</span>
+<span class="t">Reconnecting</span> { attempt: u32 },
+<span class="c">/// The link is back, in the same seat. The application resyncs its</span>
+<span class="c">/// state with the host.</span>
+<span class="t">Reconnected</span>,
+<span class="c">/// The session ended for this guest.</span>
+<span class="t">SessionEnded</span>(<span class="t">EndReason</span>),
+<span class="c">/// Another person came or went, as a guest sees it (from the roster).</span>
+<span class="t">PeerJoined</span> { peer: u8, name: <span class="t">String</span> },
+<span class="t">PeerLeft</span> { peer: u8, name: <span class="t">String</span> },
+<span class="c">/// A blob transfer moved: bytes received and the packed total.</span>
+<span class="t">BlobProgress</span> { name: <span class="t">String</span>, got: u64, total: u64 },
+<span class="c">/// A blob arrived and passed its checks: the inflated bytes.</span>
+<span class="t">BlobDone</span> { name: <span class="t">String</span>, data: <span class="t">Vec</span>&lt;u8&gt; },
+<span class="c">/// A blob failed: too large, short, a bad checksum or a bad inflate.</span>
+<span class="t">BlobFailed</span> { name: <span class="t">String</span>, reason: <span class="t">String</span> },
+<span class="c">/// Application bytes on `channel`. On the host, `peer` is the seat of</span>
+<span class="c">/// the guest that sent it, and the guest filter passed it. On a guest,</span>
+<span class="c">/// `peer` is 0: the host sent it.</span>
+<span class="t">Message</span> { peer: u8, channel: u16, data: <span class="t">Vec</span>&lt;u8&gt; },</code></pre></div><div class="doc"><p>One thing that happened in the session.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Guest" data-name="guest"><div class="sig"><a class="anchor" href="#sym-Guest" aria-label="Link to Guest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Guest</span></code></div><div class="doc"><p>A handle on a guest link. Clones share one link. The worker threads
+hold weak handles, so a dropped guest closes its link.</p></div></div><details class="members"><summary>22 methods</summary><div class="item" id="sym-Guest-start" data-name="guest::start"><div class="sig"><a class="anchor" href="#sym-Guest-start" aria-label="Link to Guest::start">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">start</span>(io: <span class="t">FrameIo</span>, dialer: <span class="t">Option</span>&lt;<span class="t">Dialer</span>&gt;, spec: <span class="t">JoinSpec</span>) -&gt; <span class="t">Guest</span></code></div><div class="doc"><p>Start the handshake on a connected transport <code>io</code>. <code>dialer</code> opens a
+new transport to the same host for a reconnect: with None, a lost
+link ends the session. The handshake runs on a thread, so this
+returns at once. A refusal sets the status to "Refused: ..." and
+ends the guest.</p></div></div><div class="item" id="sym-Guest-leave" data-name="guest::leave"><div class="sig"><a class="anchor" href="#sym-Guest-leave" aria-label="Link to Guest::leave">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">leave</span>(&amp;<span class="k">self</span>)</code></div><div class="doc"><p>Leave: send Bye(Leaving), then close. The session ends with Left and
+no reconnect. The host frees the seat at once.</p></div></div><div class="item" id="sym-Guest-status" data-name="guest::status"><div class="sig"><a class="anchor" href="#sym-Guest-status" aria-label="Link to Guest::status">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">status</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">String</span></code></div><div class="doc"><p>One status line for a lobby or a banner.</p></div></div><div class="item" id="sym-Guest-counters" data-name="guest::counters"><div class="sig"><a class="anchor" href="#sym-Guest-counters" aria-label="Link to Guest::counters">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">counters</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="t">Arc</span>&lt;<span class="t">ByteCounters</span>&gt;</code></div><div class="doc"><p>The wire bytes that the links of this guest wrote, per class
+(JoinSpec::counting).</p></div></div><div class="item" id="sym-Guest-local_id" data-name="guest::local_id"><div class="sig"><a class="anchor" href="#sym-Guest-local_id" aria-label="Link to Guest::local_id">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">local_id</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;u8&gt;</code></div><div class="doc"><p>The seat of this guest, after Welcome.</p></div></div><div class="item" id="sym-Guest-roster" data-name="guest::roster"><div class="sig"><a class="anchor" href="#sym-Guest-roster" aria-label="Link to Guest::roster">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">roster</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">PeerInfo</span>&gt;</code></div><div class="doc"><p>Every person in the session, host first, as the host sent it.</p></div></div><div class="item" id="sym-Guest-closed" data-name="guest::closed"><div class="sig"><a class="anchor" href="#sym-Guest-closed" aria-label="Link to Guest::closed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">closed</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True when the session ended (Ended). An Interrupted guest is not
+closed: it reconnects.</p></div></div><div class="item" id="sym-Guest-interrupted" data-name="guest::interrupted"><div class="sig"><a class="anchor" href="#sym-Guest-interrupted" aria-label="Link to Guest::interrupted">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">interrupted</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True while the link is Interrupted and a reconnect runs.</p></div></div><div class="item" id="sym-Guest-token" data-name="guest::token"><div class="sig"><a class="anchor" href="#sym-Guest-token" aria-label="Link to Guest::token">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">token</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">Token</span>&gt;</code></div><div class="doc"><p>The seat token, after Welcome.</p></div></div><div class="item" id="sym-Guest-host_name" data-name="guest::host_name"><div class="sig"><a class="anchor" href="#sym-Guest-host_name" aria-label="Link to Guest::host_name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">host_name</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">String</span></code></div><div class="doc"><p>The host name from Welcome.</p></div></div><div class="item" id="sym-Guest-poll_events" data-name="guest::poll_events"><div class="sig"><a class="anchor" href="#sym-Guest-poll_events" aria-label="Link to Guest::poll_events">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">poll_events</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">Event</span>&gt;</code></div><div class="doc"><p>Every event since the last call, oldest first.</p></div></div><div class="item" id="sym-Guest-history" data-name="guest::history"><div class="sig"><a class="anchor" href="#sym-Guest-history" aria-label="Link to Guest::history">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">history</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">Event</span>&gt;</code></div><div class="doc"><p>The newest link events (no messages), oldest first. No drain.</p></div></div><div class="item" id="sym-Guest-events_dropped" data-name="guest::events_dropped"><div class="sig"><a class="anchor" href="#sym-Guest-events_dropped" aria-label="Link to Guest::events_dropped">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">events_dropped</span>(&amp;<span class="k">self</span>) -&gt; u64</code></div><div class="doc"><p>Events that dropped because the application did not poll.</p></div></div><div class="item" id="sym-Guest-chat_since" data-name="guest::chat_since"><div class="sig"><a class="anchor" href="#sym-Guest-chat_since" aria-label="Link to Guest::chat_since">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">chat_since</span>(&amp;<span class="k">self</span>, cursor: u64) -&gt; (<span class="t">Vec</span>&lt;<span class="t">ChatLine</span>&gt;, u64)</code></div><div class="doc"><p>The chat lines after <code>cursor</code>, oldest first, and the new cursor.</p></div></div><div class="item" id="sym-Guest-record" data-name="guest::record"><div class="sig"><a class="anchor" href="#sym-Guest-record" aria-label="Link to Guest::record">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">record</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">SessionRecord</span>&gt;</code></div><div class="doc"><p>The last-session record, for a rejoin after a restart. None before
+the first Welcome, with no <code>via</code> in the JoinSpec, and after a kick
+or a refusal.</p></div></div><div class="item" id="sym-Guest-link_state" data-name="guest::link_state"><div class="sig"><a class="anchor" href="#sym-Guest-link_state" aria-label="Link to Guest::link_state">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">link_state</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">LinkState</span></code></div><div class="doc"><p>What the link does now.</p></div></div><div class="item" id="sym-Guest-reconnect_now" data-name="guest::reconnect_now"><div class="sig"><a class="anchor" href="#sym-Guest-reconnect_now" aria-label="Link to Guest::reconnect_now">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reconnect_now</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>Start the next reconnect attempt now. False when not Interrupted or
+an attempt runs.</p></div></div><div class="item" id="sym-Guest-blob_progress" data-name="guest::blob_progress"><div class="sig"><a class="anchor" href="#sym-Guest-blob_progress" aria-label="Link to Guest::blob_progress">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">blob_progress</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;(<span class="t">String</span>, u64, u64)&gt;</code></div><div class="doc"><p>The blob in transfer: its name, the bytes received and the packed
+total. None when no transfer runs.</p></div></div><div class="item" id="sym-Guest-send" data-name="guest::send"><div class="sig"><a class="anchor" href="#sym-Guest-send" aria-label="Link to Guest::send">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">send</span>(&amp;<span class="k">self</span>, channel: u16, data: &amp;[u8]) -&gt; bool</code></div><div class="doc"><p>Send <code>data</code> on <code>channel</code> to the host, reliably and in order. False
+before Welcome, while Interrupted (the send is dropped and counted),
+after the end, or for data over GUEST_APP_MAX bytes (the host would
+close the link).</p></div></div><div class="item" id="sym-Guest-send_latest" data-name="guest::send_latest"><div class="sig"><a class="anchor" href="#sym-Guest-send_latest" aria-label="Link to Guest::send_latest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">send_latest</span>(&amp;<span class="k">self</span>, channel: u16, key: u32, data: &amp;[u8]) -&gt; bool</code></div><div class="doc"><p>Send <code>data</code> on <code>channel</code> to the host, latest-wins per (<code>channel</code>,
+<code>key</code>). False as for <code>send</code>, or when the batch of waiting values is
+over the guest frame cap.</p></div></div><div class="item" id="sym-Guest-request_blob" data-name="guest::request_blob"><div class="sig"><a class="anchor" href="#sym-Guest-request_blob" aria-label="Link to Guest::request_blob">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">request_blob</span>(&amp;<span class="k">self</span>, name: &amp;str) -&gt; bool</code></div><div class="doc"><p>Ask the host for blob <code>name</code>. The host answers with the blob
+(Event::BlobProgress, then Event::BlobDone or Event::BlobFailed), or
+with a status Notice when it cannot build it. A new request replaces
+a request that got no answer. False when not linked.</p></div></div><div class="item" id="sym-Guest-say" data-name="guest::say"><div class="sig"><a class="anchor" href="#sym-Guest-say" aria-label="Link to Guest::say">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">say</span>(&amp;<span class="k">self</span>, text: &amp;str) -&gt; <span class="t">Result</span>&lt;(), <span class="t">String</span>&gt;</code></div><div class="doc"><p>Send one chat line to the host. The line shows when the host relays
+it back. Err is a sentence for the player: no link, or the local
+rate check refused it.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-GuestConfig" data-name="guestconfig"><div class="sig"><a class="anchor" href="#sym-GuestConfig" aria-label="Link to GuestConfig">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">GuestConfig</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The longest handshake, and the longest wait for Welcome on a redial.</span>
+<span class="k">pub</span> handshake_timeout: <span class="t">Duration</span>,
+<span class="c">/// A link silent for this long is Interrupted (4 s).</span>
+<span class="k">pub</span> interrupt_after: <span class="t">Duration</span>,
+<span class="c">/// The time in Interrupted before the guest ends with HostLost (60 s).</span>
+<span class="k">pub</span> give_up: <span class="t">Duration</span>,
+<span class="c">/// The first reconnect wait. The waits are 1, 2, 4, 8, 8, ... x this.</span>
+<span class="k">pub</span> backoff_base: <span class="t">Duration</span>,
+<span class="c">/// The keepalive period (1 s).</span>
+<span class="k">pub</span> keepalive: <span class="t">Duration</span>,</code></pre></div><div class="doc"><p>The guest timers. Tests make them short, so they need no env.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-GuestConfig-with_timers" data-name="guestconfig::with_timers"><div class="sig"><a class="anchor" href="#sym-GuestConfig-with_timers" aria-label="Link to GuestConfig::with_timers">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_timers</span>(t: <span class="t">Timers</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The defaults with the liveness timers of <code>t</code>.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Host" data-name="host"><div class="sig"><a class="anchor" href="#sym-Host" aria-label="Link to Host">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Host</span></code></div><div class="doc"><p>A handle on a running host. Clones share one host. Call <code>stop</code> to end
+it: the housekeeping thread and the links hold the host until then.</p></div></div><details class="members"><summary>28 methods</summary><div class="item" id="sym-Host-new" data-name="host::new"><div class="sig"><a class="anchor" href="#sym-Host-new" aria-label="Link to Host::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(domain: <span class="t">Domain</span>, name: &amp;str, build: &amp;str, code: &amp;str, cfg: <span class="t">HostConfig</span>) -&gt; std::io::<span class="t">Result</span>&lt;<span class="t">Host</span>&gt;</code></div><div class="doc"><p>Start a host. <code>name</code> is the host's own name in the roster. Only a
+guest that runs the handshake in the same <code>domain</code> (the application
+name), with <code>code</code> and the same <code>build</code>, joins. The host has no transport of its own: give it each accepted
+transport with <code>accept_io</code>. Err when the housekeeping thread does
+not start.</p></div></div><div class="item" id="sym-Host-set_filter" data-name="host::set_filter"><div class="sig"><a class="anchor" href="#sym-Host-set_filter" aria-label="Link to Host::set_filter">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_filter</span>(&amp;<span class="k">self</span>, f: <span class="k">impl</span> <span class="t">Fn</span>(&amp;<span class="t">Inbound</span>) -&gt; <span class="t">Admit</span> + <span class="t">Send</span> + <span class="t">Sync</span> + <span class="a">'static</span>)</code></div><div class="doc"><p>Set the guest filter: the application check on each guest message
+that passed the rate limits. It runs on the reader thread of the
+guest, with no host lock held, so it may call the Host. With no
+filter, every message is accepted.</p></div></div><div class="item" id="sym-Host-accept_io" data-name="host::accept_io"><div class="sig"><a class="anchor" href="#sym-Host-accept_io" aria-label="Link to Host::accept_io">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">accept_io</span>(&amp;<span class="k">self</span>, io: <span class="t">FrameIo</span>, from: &amp;str)</code></div><div class="doc"><p>Start the handshake on a transport that the application accepted:
+a TCP stream, a P2P connection, a platform connection. <code>from</code> names
+the transport in the log, and its <code>source_key</code> is the source for the
+lockout and the ban (for example "ip:port" for TCP).</p></div></div><div class="item" id="sym-Host-name" data-name="host::name"><div class="sig"><a class="anchor" href="#sym-Host-name" aria-label="Link to Host::name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">name</span>(&amp;<span class="k">self</span>) -&gt; &amp;str</code></div><div class="doc"><p>The host's own name, cleaned.</p></div></div><div class="item" id="sym-Host-join_code" data-name="host::join_code"><div class="sig"><a class="anchor" href="#sym-Host-join_code" aria-label="Link to Host::join_code">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">join_code</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">String</span></code></div><div class="doc"><p>The join code that guests must type.</p></div></div><div class="item" id="sym-Host-stopped" data-name="host::stopped"><div class="sig"><a class="anchor" href="#sym-Host-stopped" aria-label="Link to Host::stopped">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stopped</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True after <code>stop</code>.</p></div></div><div class="item" id="sym-Host-stop" data-name="host::stop"><div class="sig"><a class="anchor" href="#sym-Host-stop" aria-label="Link to Host::stop">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stop</span>(&amp;<span class="k">self</span>)</code></div><div class="doc"><p>Close every guest and every transport in the handshake. Every guest
+gets Bye(HostEnding) first, so it ends at once and does not try to
+reconnect.</p></div></div><div class="item" id="sym-Host-kick" data-name="host::kick"><div class="sig"><a class="anchor" href="#sym-Host-kick" aria-label="Link to Host::kick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">kick</span>(&amp;<span class="k">self</span>, peer: u8) -&gt; bool</code></div><div class="doc"><p>Remove guest <code>peer</code> from the session. The guest gets Bye(Kicked),
+and the link closes. Its token is refused for the rest of the
+session. A held seat is freed at once. False when the seat is empty,
+or for peer 0 (the host). The source of the guest gets no fresh seat
+for the rest of the session, so the guest cannot join again with the
+code as a new guest. Other guests behind the same IP keep their
+seats, also across a redial with their own token. A loopback source
+is not banned when <code>trust_loopback</code> is set.</p></div></div><div class="item" id="sym-Host-code_fails" data-name="host::code_fails"><div class="sig"><a class="anchor" href="#sym-Host-code_fails" aria-label="Link to Host::code_fails">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">code_fails</span>(&amp;<span class="k">self</span>) -&gt; u64</code></div><div class="doc"><p>Failed handshake confirmations so far.</p></div></div><div class="item" id="sym-Host-status" data-name="host::status"><div class="sig"><a class="anchor" href="#sym-Host-status" aria-label="Link to Host::status">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">status</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">String</span></code></div><div class="doc"><p>One status line for a host panel.</p></div></div><div class="item" id="sym-Host-roster" data-name="host::roster"><div class="sig"><a class="anchor" href="#sym-Host-roster" aria-label="Link to Host::roster">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">roster</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">PeerInfo</span>&gt;</code></div><div class="doc"><p>The host and every guest that passed Hello, host first, with the
+held seats.</p></div></div><div class="item" id="sym-Host-interrupted" data-name="host::interrupted"><div class="sig"><a class="anchor" href="#sym-Host-interrupted" aria-label="Link to Host::interrupted">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">interrupted</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;(u8, <span class="t">String</span>, f32)&gt;</code></div><div class="doc"><p>The held seats: id, name, and the seconds left before the hold ends.</p></div></div><div class="item" id="sym-Host-seats_used" data-name="host::seats_used"><div class="sig"><a class="anchor" href="#sym-Host-seats_used" aria-label="Link to Host::seats_used">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">seats_used</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>Seats in use: guests with or without a Hello, and held seats.</p></div></div><div class="item" id="sym-Host-handshakes" data-name="host::handshakes"><div class="sig"><a class="anchor" href="#sym-Host-handshakes" aria-label="Link to Host::handshakes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">handshakes</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>Transports in the handshake now.</p></div></div><div class="item" id="sym-Host-poll_events" data-name="host::poll_events"><div class="sig"><a class="anchor" href="#sym-Host-poll_events" aria-label="Link to Host::poll_events">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">poll_events</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">Event</span>&gt;</code></div><div class="doc"><p>Every event since the last call, oldest first: guest arrivals and
+departures, and the guest messages that the filter accepted.</p></div></div><div class="item" id="sym-Host-history" data-name="host::history"><div class="sig"><a class="anchor" href="#sym-Host-history" aria-label="Link to Host::history">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">history</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">Event</span>&gt;</code></div><div class="doc"><p>The newest link events (no messages), oldest first. No drain.</p></div></div><div class="item" id="sym-Host-events_dropped" data-name="host::events_dropped"><div class="sig"><a class="anchor" href="#sym-Host-events_dropped" aria-label="Link to Host::events_dropped">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">events_dropped</span>(&amp;<span class="k">self</span>) -&gt; u64</code></div><div class="doc"><p>Events that dropped because the application did not poll.</p></div></div><div class="item" id="sym-Host-say" data-name="host::say"><div class="sig"><a class="anchor" href="#sym-Host-say" aria-label="Link to Host::say">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">say</span>(&amp;<span class="k">self</span>, text: &amp;str) -&gt; <span class="t">Result</span>&lt;(), <span class="t">String</span>&gt;</code></div><div class="doc"><p>The host player's own chat line: cleaned, checked against the chat
+rate, added to the host log and sent to every guest. Err is a
+sentence for the player.</p></div></div><div class="item" id="sym-Host-notice" data-name="host::notice"><div class="sig"><a class="anchor" href="#sym-Host-notice" aria-label="Link to Host::notice">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">notice</span>(&amp;<span class="k">self</span>, text: &amp;str)</code></div><div class="doc"><p>A relay Notice line: cleaned, added to the host log and sent to
+every guest.</p></div></div><div class="item" id="sym-Host-chat_since" data-name="host::chat_since"><div class="sig"><a class="anchor" href="#sym-Host-chat_since" aria-label="Link to Host::chat_since">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">chat_since</span>(&amp;<span class="k">self</span>, cursor: u64) -&gt; (<span class="t">Vec</span>&lt;<span class="t">ChatLine</span>&gt;, u64)</code></div><div class="doc"><p>The chat lines after <code>cursor</code>, oldest first, and the new cursor.</p></div></div><div class="item" id="sym-Host-counters" data-name="host::counters"><div class="sig"><a class="anchor" href="#sym-Host-counters" aria-label="Link to Host::counters">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">counters</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="t">Arc</span>&lt;<span class="t">ByteCounters</span>&gt;</code></div><div class="doc"><p>The wire bytes that the links of this host wrote, per class
+(HostConfig::counting).</p></div></div><div class="item" id="sym-Host-send" data-name="host::send"><div class="sig"><a class="anchor" href="#sym-Host-send" aria-label="Link to Host::send">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">send</span>(&amp;<span class="k">self</span>, peer: u8, channel: u16, data: &amp;[u8]) -&gt; bool</code></div><div class="doc"><p>Send <code>data</code> on <code>channel</code> to guest <code>peer</code>, reliably and in order.
+False when that seat has no welcomed guest, or the guest does not
+read (more than <code>send_queue_cap</code> bytes unsent): it is then closed.</p></div></div><div class="item" id="sym-Host-broadcast" data-name="host::broadcast"><div class="sig"><a class="anchor" href="#sym-Host-broadcast" aria-label="Link to Host::broadcast">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">broadcast</span>(&amp;<span class="k">self</span>, channel: u16, data: &amp;[u8])</code></div><div class="doc"><p>Send <code>data</code> on <code>channel</code> to every welcomed guest, reliably and in
+order.</p></div></div><div class="item" id="sym-Host-send_latest" data-name="host::send_latest"><div class="sig"><a class="anchor" href="#sym-Host-send_latest" aria-label="Link to Host::send_latest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">send_latest</span>(&amp;<span class="k">self</span>, peer: u8, channel: u16, key: u32, data: &amp;[u8]) -&gt; bool</code></div><div class="doc"><p>Send <code>data</code> on <code>channel</code> to guest <code>peer</code>, latest-wins per
+(<code>channel</code>, <code>key</code>): an unsent older message with the same channel
+and key is replaced. For state that only its newest value matters,
+for example a cursor or a paddle. False when the seat is empty.</p></div></div><div class="item" id="sym-Host-broadcast_latest" data-name="host::broadcast_latest"><div class="sig"><a class="anchor" href="#sym-Host-broadcast_latest" aria-label="Link to Host::broadcast_latest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">broadcast_latest</span>(&amp;<span class="k">self</span>, channel: u16, key: u32, data: &amp;[u8])</code></div><div class="doc"><p><code>send_latest</code> to every welcomed guest.</p></div></div><div class="item" id="sym-Host-take_blob_request" data-name="host::take_blob_request"><div class="sig"><a class="anchor" href="#sym-Host-take_blob_request" aria-label="Link to Host::take_blob_request">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_blob_request</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">String</span>&gt;</code></div><div class="doc"><p>The name of a blob that a guest asked for, once per encode, while no
+encode runs. The caller must end the encode with <code>deliver_blob</code> or
+<code>fail_blob</code> for that name.</p></div></div><div class="item" id="sym-Host-deliver_blob" data-name="host::deliver_blob"><div class="sig"><a class="anchor" href="#sym-Host-deliver_blob" aria-label="Link to Host::deliver_blob">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">deliver_blob</span>(&amp;<span class="k">self</span>, name: &amp;str, raw: <span class="t">Vec</span>&lt;u8&gt;)</code></div><div class="doc"><p>Deflate <code>raw</code> on a worker thread, then send it as blob <code>name</code> to
+every guest that waits for that name, and end the encode. The call
+returns at once.</p></div></div><div class="item" id="sym-Host-fail_blob" data-name="host::fail_blob"><div class="sig"><a class="anchor" href="#sym-Host-fail_blob" aria-label="Link to Host::fail_blob">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">fail_blob</span>(&amp;<span class="k">self</span>, name: &amp;str, reason: &amp;str)</code></div><div class="doc"><p>Tell every guest that waits for blob <code>name</code> that it could not be
+built, and end the encode.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-HostConfig" data-name="hostconfig"><div class="sig"><a class="anchor" href="#sym-HostConfig" aria-label="Link to HostConfig">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">HostConfig</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The longest handshake and Hello.</span>
+<span class="k">pub</span> hello_timeout: <span class="t">Duration</span>,
+<span class="c">/// A welcomed guest silent for this long is GuestInterrupted. The</span>
+<span class="c">/// default is Timers::interrupt_after (4 s).</span>
+<span class="k">pub</span> idle_timeout: <span class="t">Duration</span>,
+<span class="c">/// One blob request per guest per this time.</span>
+<span class="k">pub</span> blob_period: <span class="t">Duration</span>,
+<span class="c">/// How long the seat of an interrupted guest is held (60 s).</span>
+<span class="k">pub</span> seat_hold: <span class="t">Duration</span>,
+<span class="c">/// The roster keepalive period.</span>
+<span class="k">pub</span> keepalive: <span class="t">Duration</span>,
+<span class="c">/// True: a guest from a loopback address is not a source for the kick</span>
+<span class="c">/// ban and the blob source limit.</span>
+<span class="k">pub</span> trust_loopback: bool,
+<span class="c">/// The seats, the host included: 2 to MAX_SEATS. The default is 4.</span>
+<span class="k">pub</span> max_players: usize,
+<span class="c">/// The rate of the application channels that have no limit of their</span>
+<span class="c">/// own, shared by those channels.</span>
+<span class="k">pub</span> app_limit: <span class="t">ChannelLimit</span>,
+<span class="c">/// Application channels with a limit of their own.</span>
+<span class="k">pub</span> channel_limits: <span class="t">Vec</span>&lt;(u16, <span class="t">ChannelLimit</span>)&gt;,
+<span class="c">/// A guest with more unsent bytes than this does not read. A reliable</span>
+<span class="c">/// send to it closes it. It is above BLOB_QUEUE_CAP, so a reliable send</span>
+<span class="c">/// right after a blob passes.</span>
+<span class="k">pub</span> send_queue_cap: usize,
+<span class="c">/// The byte counters of the guest links, and the class of each</span>
+<span class="c">/// application channel (mod.rs Counting). The default is fresh</span>
+<span class="c">/// counters.</span>
+<span class="k">pub</span> counting: <span class="t">Counting</span>,</code></pre></div><div class="doc"><p>The host settings. Tests make the timers short.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-HostConfig-with_timers" data-name="hostconfig::with_timers"><div class="sig"><a class="anchor" href="#sym-HostConfig-with_timers" aria-label="Link to HostConfig::with_timers">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_timers</span>(t: <span class="t">Timers</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The defaults with the liveness timers of <code>t</code>.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Inbound" data-name="inbound"><div class="sig"><a class="anchor" href="#sym-Inbound" aria-label="Link to Inbound">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Inbound</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> peer: u8,
+<span class="k">pub</span> token: <span class="t">Token</span>,
+<span class="k">pub</span> name: <span class="t">String</span>,
+<span class="k">pub</span> channel: u16,
+<span class="k">pub</span> data: <span class="t">Vec</span>&lt;u8&gt;,</code></pre></div><div class="doc"><p>One application message from a guest, as the guest filter sees it.
+<code>peer</code>, <code>token</code> and <code>name</code> come from the host's record of the link.</p></div></div></div><div class="typeblock"><div class="item" id="sym-JoinSpec" data-name="joinspec"><div class="sig"><a class="anchor" href="#sym-JoinSpec" aria-label="Link to JoinSpec">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">JoinSpec</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The application name of the handshake. The host must use the same.</span>
+<span class="k">pub</span> domain: <span class="t">Domain</span>,
+<span class="c">/// This guest's name. The host cleans it.</span>
+<span class="k">pub</span> name: <span class="t">String</span>,
+<span class="c">/// The build id. A host with another build refuses the guest.</span>
+<span class="k">pub</span> build: <span class="t">String</span>,
+<span class="c">/// The join code of the host.</span>
+<span class="k">pub</span> code: <span class="t">String</span>,
+<span class="c">/// How the host is named in the status line until Welcome.</span>
+<span class="k">pub</span> label: <span class="t">String</span>,
+<span class="c">/// Ask for the seat of this token (a rejoin from a SessionRecord).</span>
+<span class="k">pub</span> rejoin: <span class="t">Option</span>&lt;<span class="t">Token</span>&gt;,
+<span class="c">/// The transport, for the SessionRecord. With None, the guest makes</span>
+<span class="c">/// no record.</span>
+<span class="k">pub</span> via: <span class="t">Option</span>&lt;<span class="t">Via</span>&gt;,
+<span class="k">pub</span> cfg: <span class="t">GuestConfig</span>,
+<span class="c">/// The byte counters of the links of this guest, the first link and</span>
+<span class="c">/// each redial, and the class of each application channel (mod.rs</span>
+<span class="c">/// Counting). The default is fresh counters.</span>
+<span class="k">pub</span> counting: <span class="t">Counting</span>,</code></pre></div><div class="doc"><p>What a guest needs to join.</p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-JoinSpec-new" data-name="joinspec::new"><div class="sig"><a class="anchor" href="#sym-JoinSpec-new" aria-label="Link to JoinSpec::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(domain: <span class="t">Domain</span>, name: &amp;str, build: &amp;str, code: &amp;str) -&gt; <span class="t">JoinSpec</span></code></div><div class="doc"><p>A fresh join with the default timers.</p></div></div><div class="item" id="sym-JoinSpec-rejoin_from" data-name="joinspec::rejoin_from"><div class="sig"><a class="anchor" href="#sym-JoinSpec-rejoin_from" aria-label="Link to JoinSpec::rejoin_from">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">rejoin_from</span>(domain: <span class="t">Domain</span>, record: &amp;<span class="t">SessionRecord</span>, build: &amp;str) -&gt; <span class="t">JoinSpec</span></code></div><div class="doc"><p>A rejoin of the session in <code>record</code>: the same code, name and
+transport, and the seat token. The host gives back the seat while
+it is held, or a fresh seat when the hold ended.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-LeaveReason" data-name="leavereason"><div class="sig"><a class="anchor" href="#sym-LeaveReason" aria-label="Link to LeaveReason">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">LeaveReason</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The guest sent Bye.</span>
+<span class="t">Left</span>,
+<span class="c">/// The guest stopped answering, and its held seat timed out.</span>
+<span class="t">TimedOut</span>,
+<span class="c">/// The host kicked the guest.</span>
+<span class="t">Kicked</span>,</code></pre></div><div class="doc"><p>Why a guest left the session, as the host sees it.</p></div></div></div><div class="typeblock"><div class="item" id="sym-LinkState" data-name="linkstate"><div class="sig"><a class="anchor" href="#sym-LinkState" aria-label="Link to LinkState">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">LinkState</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// No session.</span>
+<span class="t">Off</span>,
+<span class="c">/// This process hosts. `interrupted` counts guests whose link went</span>
+<span class="c">/// quiet and whose seat is held for their return.</span>
+<span class="t">Hosting</span> { guests: usize, interrupted: usize },
+<span class="c">/// A guest on its way in: connect, handshake, until the first Welcome.</span>
+<span class="t">Joining</span>,
+<span class="c">/// A guest with a seat.</span>
+<span class="t">Linked</span>,
+<span class="c">/// A guest whose host went quiet. `attempt` is the reconnect try in</span>
+<span class="c">/// progress, `next_in_s` the wait before the next one, `gives_up_in_s`</span>
+<span class="c">/// the time left before the session ends.</span>
+<span class="t">Interrupted</span> { attempt: u32, next_in_s: f32, gives_up_in_s: f32 },
+<span class="c">/// A guest whose session ended.</span>
+<span class="t">Ended</span>(<span class="t">EndReason</span>),</code></pre></div><div class="doc"><p>What the link is doing now.</p></div></div></div><div class="typeblock"><div class="item" id="sym-PeerInfo" data-name="peerinfo"><div class="sig"><a class="anchor" href="#sym-PeerInfo" aria-label="Link to PeerInfo">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">PeerInfo</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> id: u8,
+<span class="k">pub</span> name: <span class="t">String</span>,</code></pre></div><div class="doc"><p>One person as the roster lists them. Seat 0 is always the host.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Role" data-name="role"><div class="sig"><a class="anchor" href="#sym-Role" aria-label="Link to Role">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Role</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">struct</span> <span class="t">Connected</span> {
+<span class="k">pub</span> io: <span class="t">FrameIo</span>,
+<span class="c">/// Opens a new transport to the same host, for a reconnect.</span>
+<span class="k">pub</span> dialer: <span class="t">Option</span>&lt;<span class="t">Dialer</span>&gt;,
+<span class="c">/// The transport, for the SessionRecord. None keeps the JoinSpec via.</span>
+<span class="k">pub</span> via: <span class="t">Option</span>&lt;<span class="t">Via</span>&gt;,</code></pre></div><div class="doc"><p>What the role of a Session is.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Session" data-name="session"><div class="sig"><a class="anchor" href="#sym-Session" aria-label="Link to Session">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Session</span></code></div><div class="doc"><p>The role holder. Clones share one role.</p></div></div><details class="members"><summary>14 methods</summary><div class="item" id="sym-Session-new" data-name="session::new"><div class="sig"><a class="anchor" href="#sym-Session-new" aria-label="Link to Session::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="t">Session</span></code></div></div><div class="item" id="sym-Session-host" data-name="session::host"><div class="sig"><a class="anchor" href="#sym-Session-host" aria-label="Link to Session::host">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">host</span>(&amp;<span class="k">self</span>, h: <span class="t">Host</span>)</code></div><div class="doc"><p>End the role before, and host <code>h</code>.</p></div></div><div class="item" id="sym-Session-leave" data-name="session::leave"><div class="sig"><a class="anchor" href="#sym-Session-leave" aria-label="Link to Session::leave">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">leave</span>(&amp;<span class="k">self</span>)</code></div><div class="doc"><p>End the role, if any: a host stops, a guest leaves, and a Dial
+worker that connects later drops its link.</p></div></div><div class="item" id="sym-Session-role" data-name="session::role"><div class="sig"><a class="anchor" href="#sym-Session-role" aria-label="Link to Session::role">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">role</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Role</span></code></div></div><div class="item" id="sym-Session-host_handle" data-name="session::host_handle"><div class="sig"><a class="anchor" href="#sym-Session-host_handle" aria-label="Link to Session::host_handle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">host_handle</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">Host</span>&gt;</code></div><div class="doc"><p>The Host, while the role is Host.</p></div></div><div class="item" id="sym-Session-guest" data-name="session::guest"><div class="sig"><a class="anchor" href="#sym-Session-guest" aria-label="Link to Session::guest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">guest</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">Guest</span>&gt;</code></div><div class="doc"><p>The Guest, once a Dial connected.</p></div></div><div class="item" id="sym-Session-current_dial" data-name="session::current_dial"><div class="sig"><a class="anchor" href="#sym-Session-current_dial" aria-label="Link to Session::current_dial">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">current_dial</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">DialHandle</span>&gt;</code></div><div class="doc"><p>The Dial that is the role now, if any.</p></div></div><div class="item" id="sym-Session-dial_error" data-name="session::dial_error"><div class="sig"><a class="anchor" href="#sym-Session-dial_error" aria-label="Link to Session::dial_error">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">dial_error</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">String</span>&gt;</code></div><div class="doc"><p>The connect error of a Dial that is still the role.</p></div></div><div class="item" id="sym-Session-link_state" data-name="session::link_state"><div class="sig"><a class="anchor" href="#sym-Session-link_state" aria-label="Link to Session::link_state">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">link_state</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">LinkState</span></code></div><div class="doc"><p>What the link does now.</p></div></div><div class="item" id="sym-Session-status_line" data-name="session::status_line"><div class="sig"><a class="anchor" href="#sym-Session-status_line" aria-label="Link to Session::status_line">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">status_line</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">String</span></code></div><div class="doc"><p>One line for a panel.</p></div></div><div class="item" id="sym-Session-join_dialed" data-name="session::join_dialed"><div class="sig"><a class="anchor" href="#sym-Session-join_dialed" aria-label="Link to Session::join_dialed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> join_dialed&lt;<span class="t">F</span>&gt;(&amp;<span class="k">self</span>, label: &amp;str, spec: <span class="t">JoinSpec</span>, connect: <span class="t">F</span>) -&gt; <span class="t">Result</span>&lt;<span class="t">DialHandle</span>, <span class="t">String</span>&gt; <span class="k">where</span> <span class="t">F</span>: <span class="t">FnOnce</span>() -&gt; <span class="t">Result</span>&lt;<span class="t">Connected</span>, <span class="t">String</span>&gt; + <span class="t">Send</span> + <span class="a">'static</span></code></div><div class="doc"><p>Start a guest join with <code>connect</code> on the "net-dial" worker. The role
+before ends, and a Dial for <code>label</code> takes its place at once, so the
+call returns before the connect. When <code>connect</code> gives a transport
+and the Dial is still the role, the Guest replaces it. A failure
+stays on the Dial as its status.</p></div></div><div class="item" id="sym-Session-join_dialed_after" data-name="session::join_dialed_after"><div class="sig"><a class="anchor" href="#sym-Session-join_dialed_after" aria-label="Link to Session::join_dialed_after">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> join_dialed_after&lt;<span class="t">F</span>&gt;(&amp;<span class="k">self</span>, watched: &amp;<span class="t">DialHandle</span>, label: &amp;str, spec: <span class="t">JoinSpec</span>, connect: <span class="t">F</span>) -&gt; <span class="t">Result</span>&lt;<span class="t">DialHandle</span>, <span class="t">String</span>&gt; <span class="k">where</span> <span class="t">F</span>: <span class="t">FnOnce</span>() -&gt; <span class="t">Result</span>&lt;<span class="t">Connected</span>, <span class="t">String</span>&gt; + <span class="t">Send</span> + <span class="a">'static</span></code></div><div class="doc"><p>Start a join in place of the Dial <code>watched</code> (a fallback). The check
+that <code>watched</code> is still the role and the change to the new Dial
+occur under one lock. Thus a leave or a newer join that comes after
+the check of the caller wins, and this call returns DIAL_SUPERSEDED
+and does not connect. No leave runs: a Dial has no link.</p></div></div><div class="item" id="sym-Session-join_tcp" data-name="session::join_tcp"><div class="sig"><a class="anchor" href="#sym-Session-join_tcp" aria-label="Link to Session::join_tcp">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">join_tcp</span>(&amp;<span class="k">self</span>, addr: &amp;str, default_port: u16, spec: <span class="t">JoinSpec</span>) -&gt; <span class="t">Result</span>&lt;<span class="t">DialHandle</span>, <span class="t">String</span>&gt;</code></div><div class="doc"><p>Join over TCP: <code>addr</code> is "ip", "ip:port" or "name:port", and a
+missing port is <code>default_port</code>. Returns at once (join_dialed).</p></div></div><div class="item" id="sym-Session-join_invite" data-name="session::join_invite"><div class="sig"><a class="anchor" href="#sym-Session-join_invite" aria-label="Link to Session::join_invite">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">join_invite</span>(&amp;<span class="k">self</span>, fmt: &amp;<span class="t">InviteFormat</span>, text: &amp;str, <span class="k">mut</span> spec: <span class="t">JoinSpec</span>, p2p: <span class="t">Option</span>&lt;<span class="t">P2p</span>&gt;) -&gt; <span class="t">Result</span>&lt;(), <span class="t">String</span>&gt;</code></div><div class="doc"><p>Join from a pasted invite. The invite gives the join code, so
+<code>spec.code</code> is replaced. A version 2 invite dials the host over P2P
+first when <code>p2p</code> is Some, and the LAN addresses over TCP only after
+that dial failed. Err on return only for a bad invite or a failed
+worker start.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-SessionRecord" data-name="sessionrecord"><div class="sig"><a class="anchor" href="#sym-SessionRecord" aria-label="Link to SessionRecord">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">SessionRecord</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> host_name: <span class="t">String</span>,
+<span class="c">/// This guest's own name in that session.</span>
+<span class="k">pub</span> name: <span class="t">String</span>,
+<span class="k">pub</span> via: <span class="t">Via</span>,
+<span class="k">pub</span> code: <span class="t">String</span>,
+<span class="k">pub</span> token: <span class="t">Token</span>,
+<span class="c">/// Unix seconds when the session was last live.</span>
+<span class="k">pub</span> live_at: u64,</code></pre></div><div class="doc"><p>The stored session.</p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-SessionRecord-age_s" data-name="sessionrecord::age_s"><div class="sig"><a class="anchor" href="#sym-SessionRecord-age_s" aria-label="Link to SessionRecord::age_s">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">age_s</span>(&amp;<span class="k">self</span>) -&gt; u64</code></div><div class="doc"><p>Seconds since the session was last live.</p></div></div><div class="item" id="sym-SessionRecord-seat_may_be_held" data-name="sessionrecord::seat_may_be_held"><div class="sig"><a class="anchor" href="#sym-SessionRecord-seat_may_be_held" aria-label="Link to SessionRecord::seat_may_be_held">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">seat_may_be_held</span>(&amp;<span class="k">self</span>, seat_hold: <span class="t">Duration</span>) -&gt; bool</code></div><div class="doc"><p>True while the age is under <code>seat_hold</code>: a rejoin may get the same
+seat back.</p></div></div><div class="item" id="sym-SessionRecord-encode" data-name="sessionrecord::encode"><div class="sig"><a class="anchor" href="#sym-SessionRecord-encode" aria-label="Link to SessionRecord::encode">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">encode</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">String</span></code></div><div class="doc"><p>The text body: one "key=value" line each.</p></div></div><div class="item" id="sym-SessionRecord-decode" data-name="sessionrecord::decode"><div class="sig"><a class="anchor" href="#sym-SessionRecord-decode" aria-label="Link to SessionRecord::decode">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">decode</span>(t: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="t">SessionRecord</span>&gt;</code></div><div class="doc"><p>Read a text body. None when a field is missing or bad.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Timers" data-name="timers"><div class="sig"><a class="anchor" href="#sym-Timers" aria-label="Link to Timers">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Timers</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> interrupt_after: <span class="t">Duration</span>,
+<span class="k">pub</span> seat_hold: <span class="t">Duration</span>,
+<span class="k">pub</span> give_up: <span class="t">Duration</span>,</code></pre></div><div class="doc"><p>The liveness timers.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Timers-from_env" data-name="timers::from_env"><div class="sig"><a class="anchor" href="#sym-Timers-from_env" aria-label="Link to Timers::from_env">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_env</span>() -&gt; <span class="t">Timers</span></code></div><div class="doc"><p>The timers from the env of this process: WARP_NET_INTERRUPT_S,
+WARP_NET_HOLD_S and WARP_NET_GIVE_UP_S, in seconds. A test or a lab
+makes them short with no code change. The env is read once.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Token" data-name="token"><div class="sig"><a class="anchor" href="#sym-Token" aria-label="Link to Token">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">type</span> <span class="t">Token</span> = [u64; <span class="n">2</span>]</code></div><div class="doc"><p>A rejoin token: random, one per guest seat per session. The host gives
+it in the first Welcome. Only the sealed link carries it.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Via" data-name="via"><div class="sig"><a class="anchor" href="#sym-Via" aria-label="Link to Via">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Via</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A TCP address, "ip:port" or "name:port".</span>
+<span class="t">Tcp</span>(<span class="t">String</span>),
+<span class="c">/// The node id of a P2P host. `addr` is a direct address when the</span>
+<span class="c">/// join had one (local mode, where no discovery finds the host).</span>
+<span class="t">P2p</span> { node: [u8; <span class="n">32</span>], addr: <span class="t">Option</span>&lt;<span class="t">SocketAddr</span>&gt; },
+<span class="c">/// Another transport, named by the application (for example a</span>
+<span class="c">/// platform lobby id). One line, no "=" at the start.</span>
+<span class="t">Other</span>(<span class="t">String</span>),</code></pre></div><div class="doc"><p>How the guest reached the host.</p></div></div></div><h4>Constants</h4><div class="item" id="sym-DIAL_SUPERSEDED" data-name="dial_superseded"><div class="sig"><a class="anchor" href="#sym-DIAL_SUPERSEDED" aria-label="Link to DIAL_SUPERSEDED">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">DIAL_SUPERSEDED</span>: &amp;str = <span class="s">"The join stopped: a leave or another join came first."</span></code></div><div class="doc"><p>The text when <code>join_dialed_after</code> finds that its watched Dial is not
+the role.</p></div></div><div class="item" id="sym-GIVE_UP" data-name="give_up"><div class="sig"><a class="anchor" href="#sym-GIVE_UP" aria-label="Link to GIVE_UP">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">GIVE_UP</span>: <span class="t">Duration</span> = <span class="t">Duration</span>::<span class="f">from_secs</span>(<span class="n">60</span>)</code></div><div class="doc"><p>An interrupted guest gives up reconnecting after this long.</p></div></div><div class="item" id="sym-INTERRUPT_AFTER" data-name="interrupt_after"><div class="sig"><a class="anchor" href="#sym-INTERRUPT_AFTER" aria-label="Link to INTERRUPT_AFTER">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">INTERRUPT_AFTER</span>: <span class="t">Duration</span> = <span class="t">Duration</span>::<span class="f">from_secs</span>(<span class="n">4</span>)</code></div><div class="doc"><p>A link silent for this long is Interrupted.</p></div></div><div class="item" id="sym-MAX_SEATS" data-name="max_seats"><div class="sig"><a class="anchor" href="#sym-MAX_SEATS" aria-label="Link to MAX_SEATS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MAX_SEATS</span>: usize = <span class="n">64</span></code></div><div class="doc"><p>The most seats in one session, the host included. A seat id from a
+host at or over this is refused. HostConfig::max_players picks the
+seats of one session (default 4).</p></div></div><div class="item" id="sym-SEAT_HOLD" data-name="seat_hold"><div class="sig"><a class="anchor" href="#sym-SEAT_HOLD" aria-label="Link to SEAT_HOLD">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SEAT_HOLD</span>: <span class="t">Duration</span> = <span class="t">Duration</span>::<span class="f">from_secs</span>(<span class="n">60</span>)</code></div><div class="doc"><p>The host holds an interrupted guest's seat for this long.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="net.html" data-slug="net">Networking</a></li><li><a href="net-invite.html" data-slug="net-invite">Network invites</a></li><li><a href="net-transports.html" data-slug="net-transports">Network transports</a></li><li><a href="net-discover.html" data-slug="net-discover">LAN discovery</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_net/src/session/mod.rs</code> - <code>WHAT A SESSION DOES</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_net/src/session/dial.rs</code> - <code>The Stella Nova source kept the role in a process global (SESSION). A</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_net/src/session/guard.rs</code> - <code>The key that limits count per source: the IP of a TCP peer (&quot;ip:port&quot;</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_net/src/session/host.rs</code> - <code>Close every guest and every transport in the handshake. Every guest</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_net/src/session/host.rs</code> - <code>One transport in the handshake. It holds no seat: a transport that</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_net/src/session/guest.rs</code> - <code>guest pushes Event::Reconnected: the application resyncs</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_net/src/session/guest.rs</code> - <code>next Interrupted keeps the attempt count and the give-up time of the</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_net/src/session/guest.rs</code> - <code>The guest does not trust the host. It accepts one BlobBegin for each</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_net/src/session/dial.rs</code> - <code>A join or a leave ends the role before it. A Dial worker that connects</code></li><li id="ref-10"><a class="back" href="#cite-10" aria-label="Back to the text">^</a> <code>warp_net/src/session/dial.rs</code> - <code>address in order, and goes to the next one only after a connect</code></li><li id="ref-11"><a class="back" href="#cite-11" aria-label="Back to the text">^</a> <code>warp_net/src/session/events.rs</code> - <code>Over that, the oldest event drops and the drop count rises, so an</code></li><li id="ref-12"><a class="back" href="#cite-12" aria-label="Back to the text">^</a> <code>warp_net/src/session/mod.rs</code> - <code>value can go out twice, never out of date: a batch holds only the</code></li><li id="ref-13"><a class="back" href="#cite-13" aria-label="Back to the text">^</a> <code>warp_net/src/session/host.rs</code> - <code>Only a guest that knows the join code passes the handshake, but the</code></li><li id="ref-14"><a class="back" href="#cite-14" aria-label="Back to the text">^</a> <code>warp_net/src/session/host.rs</code> - <code>Set the guest filter: the application check on each guest message</code></li><li id="ref-15"><a class="back" href="#cite-15" aria-label="Back to the text">^</a> <code>warp_net/src/session/blob.rs</code> - <code>BlobBegin that it did not ask for. A blob over BLOB_LIMIT, packed or</code></li><li id="ref-16"><a class="back" href="#cite-16" aria-label="Back to the text">^</a> <code>warp_net/src/session/chat.rs</code> - <code>the seat and the name from its own record of the link that sent the</code></li><li id="ref-17"><a class="back" href="#cite-17" aria-label="Back to the text">^</a> <code>warp_net/src/session/record.rs</code> - <code>code and the token are secrets of the session. Do not write them to a</code></li><li id="ref-18"><a class="back" href="#cite-18" aria-label="Back to the text">^</a> <code>warp_net/src/session/mod.rs</code> - <code>WARP_NET_HOLD_S and WARP_NET_GIVE_UP_S, in seconds. A missing, bad or</code></li></ol><table class="navbox"><tr><th><a href="category-networking.html">Networking</a></th></tr><tr><td><a href="net.html" data-slug="net">Networking</a> · <b>Network sessions</b> · <a href="net-invite.html" data-slug="net-invite">Network invites</a> · <a href="net-transports.html" data-slug="net-transports">Network transports</a> · <a href="net-discover.html" data-slug="net-discover">LAN discovery</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-networking.html">Networking</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

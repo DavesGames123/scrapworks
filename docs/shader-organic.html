@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Organic shaders - Warp Wiki</title>
+<meta name="description" content="WGSL corals, plants, fungi and growth patterns as 2D distance fields">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="shader-organic">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#files">Files</a></li><li><a href="#conventions">Conventions</a></li><li><a href="#structure-of-a-form">Structure of a form</a></li><li><a href="#branching">Branching</a></li><li><a href="#corals-and-plants">Corals and plants</a></li><li><a href="#growth-patterns">Growth patterns</a></li><li><a href="#usage">Usage</a></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Organic shaders</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">WGSL corals, plants, fungi and growth patterns as 2D distance fields</p><p><strong>Organic shaders</strong> are the <code>organic/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL functions that draw corals, plants, fungi and growth patterns as 2D distance fields shaded into a MaterialSample. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::organic</code></a>. Forms are parametric and take one species record, so one seed gives one individual. All functions start with <code>organic_</code>. The ports come from Stella Nova reef and plant pages, rewritten for 2D.</p>
+<h2 id="files">Files</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>File</th>
+<th>Central functions</th>
+<th>Forms</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>organic/common.wgsl</code></td>
+<td><code>organic_species</code>, <code>organic_smin</code>, <code>organic_taper</code>, <code>organic_dome</code>, <code>organic_normal</code>, <code>organic_sample</code>, <code>organic_cell_edge</code></td>
+<td>Shared record, noise, shapes, shading</td>
+</tr>
+<tr>
+<td><code>organic/tree.wgsl</code></td>
+<td><code>organic_tree</code></td>
+<td>Fixed-depth iterated branching</td>
+</tr>
+<tr>
+<td><code>organic/coral_branch.wgsl</code></td>
+<td><code>organic_staghorn</code>, <code>organic_fan</code></td>
+<td>Staghorn coral, gorgonian sea fan</td>
+</tr>
+<tr>
+<td><code>organic/coral_massive.wgsl</code></td>
+<td><code>organic_brain</code>, <code>organic_plate</code>, <code>organic_encrust</code></td>
+<td>Brain, plate and encrusting coral</td>
+</tr>
+<tr>
+<td><code>organic/coral_soft.wgsl</code></td>
+<td><code>organic_anemone</code>, <code>organic_polyps</code>, <code>organic_sponge</code></td>
+<td>Anemone, polyp field, sponge</td>
+</tr>
+<tr>
+<td><code>organic/plant.wgsl</code></td>
+<td><code>organic_kelp</code>, <code>organic_seagrass</code>, <code>organic_mushroom</code></td>
+<td>Kelp, seagrass, mushroom</td>
+</tr>
+<tr>
+<td><code>organic/growth.wgsl</code></td>
+<td><code>organic_dendrite</code>, <code>organic_veins</code>, <code>organic_gray_scott_step</code></td>
+<td>Dendrites, veins, reaction-diffusion</td>
+</tr>
+</tbody>
+</table>
+<p>Every file requires <code>organic/common.wgsl</code>, which requires <code>noise/hash.wgsl</code> and <code>core/material.wgsl</code>. <code>organic/coral_branch.wgsl</code> also requires <code>organic/tree.wgsl</code>.</p>
+<h2 id="conventions">Conventions</h2>
+<p>Every form uses local 2D units. The base is at the origin and the form grows along +y in a side view, except where a file says "top view".<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> The brain coral centre is at (0, size/2). <a class="sym" href="scale.html#sym-px"><code>px</code></a> is the size of one pixel in local units, used for anti-aliased coverage.</p>
+<p>The species record has five fields:</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>seed</code></td>
+<td>Any float. One seed gives one individual</td>
+</tr>
+<tr>
+<td><code>size</code></td>
+<td>Height of the form in local units, <code>&gt; 0</code></td>
+</tr>
+<tr>
+<td><code>branchiness</code></td>
+<td>0..1, from sparse and simple to dense. Each file maps it to its own control</td>
+</tr>
+<tr>
+<td><code>colour_a</code></td>
+<td>Linear RGB body colour</td>
+</tr>
+<tr>
+<td><code>colour_b</code></td>
+<td>Linear RGB tip, ridge or accent colour</td>
+</tr>
+</tbody>
+</table>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">organic_species</span>(seed: f32, size: f32, branchiness: f32, colour_a: vec3&lt;f32&gt;, colour_b: vec3&lt;f32&gt;) -&gt; <span class="t">OrganicSpecies</span></code></pre></div>
+<p>There is no time input. Moving forms take a <code>flow</code> vector in local units, with <code>|flow|</code> about 0..2, which the game animates, so a current or a passing fish moves the tentacles.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<h2 id="structure-of-a-form">Structure of a form</h2>
+<p>Each form has an <code>_sdf</code> function and a material function. The <code>_sdf</code> function returns a vector, with signed distance in x and form-specific channels after it. The material function calls it, derives a normal from height samples with <code>organic_normal</code>, and builds the result with <code>organic_sample</code>. A game that needs only the outline, such as for contact, can call the <code>_sdf</code> function alone.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Function</th>
+<th>y</th>
+<th>z</th>
+<th>w</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>organic_staghorn_sdf</code>, <code>organic_fan_sdf</code></td>
+<td>0 at base, 1 at a tip or rim</td>
+<td>Local limb radius</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>organic_kelp_sdf</code></td>
+<td>0 at holdfast, 1 at a blade tip</td>
+<td>Local half width</td>
+<td>1 on a gas float</td>
+</tr>
+<tr>
+<td><code>organic_seagrass_sdf</code></td>
+<td>0..1 up the blade</td>
+<td>Blade hash</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>organic_mushroom_sdf</code></td>
+<td>0 on the stem, 1 on the cap top</td>
+<td>Local radius</td>
+<td>Gill mask</td>
+</tr>
+<tr>
+<td><code>organic_anemone_sdf</code></td>
+<td>0 on the column, 1 at a tentacle tip</td>
+<td>Local radius</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>organic_sponge_sdf</code></td>
+<td>0 at base, 1 at a rim</td>
+<td>Local radius</td>
+<td>Osculum mask</td>
+</tr>
+</tbody>
+</table>
+<h2 id="branching">Branching</h2>
+<p>WGSL has no recursion, so an L-system turtle is not possible. <code>organic_tree</code> grows a binary tree level by level into a fixed array, at most 5 levels and 31 limbs, and returns the smooth union of its tapered limbs.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> <code>depth</code> is 1..5, <code>taper</code> is 0.4..0.95, <code>spread</code> is 0.2..1.2 radians, and <code>prune</code> is the chance that a limb above level 1 does not grow. The output is (distance, 0 at root to 1 at a tip, local radius), and the header suggests the radius as input to <code>organic_dome</code>.</p>
+<p>The cost is notable: the staghorn material calls the tree three times, up to 279 limbs, for the normal.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<h2 id="corals-and-plants">Corals and plants</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">organic_staghorn</span>(p: vec2&lt;f32&gt;, sp: <span class="t">OrganicSpecies</span>, px: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">organic_fan</span>(p: vec2&lt;f32&gt;, sp: <span class="t">OrganicSpecies</span>, px: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">organic_brain</span>(p: vec2&lt;f32&gt;, sp: <span class="t">OrganicSpecies</span>, px: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">organic_plate</span>(p: vec2&lt;f32&gt;, sp: <span class="t">OrganicSpecies</span>, px: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">organic_encrust</span>(p: vec2&lt;f32&gt;, ground_d: f32, centre: vec2&lt;f32&gt;, reach: f32, sp: <span class="t">OrganicSpecies</span>, px: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">organic_anemone</span>(p: vec2&lt;f32&gt;, sp: <span class="t">OrganicSpecies</span>, flow: vec2&lt;f32&gt;, extension: f32, px: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">organic_polyps</span>(p: vec2&lt;f32&gt;, sp: <span class="t">OrganicSpecies</span>, extension: f32, px: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">organic_sponge</span>(p: vec2&lt;f32&gt;, sp: <span class="t">OrganicSpecies</span>, px: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">organic_kelp</span>(p: vec2&lt;f32&gt;, sp: <span class="t">OrganicSpecies</span>, flow: vec2&lt;f32&gt;, bend: f32, px: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">organic_seagrass</span>(p: vec2&lt;f32&gt;, sp: <span class="t">OrganicSpecies</span>, flow: vec2&lt;f32&gt;, bend: f32, px: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">organic_mushroom</span>(p: vec2&lt;f32&gt;, sp: <span class="t">OrganicSpecies</span>, spots: f32, px: f32) -&gt; <span class="t">MaterialSample</span></code></pre></div>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Form</th>
+<th>Meaning of <code>branchiness</code></th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Staghorn</td>
+<td>Stems, levels and pruning</td>
+<td>Pale round tips and corallite bumps</td>
+</tr>
+<tr>
+<td>Fan</td>
+<td>Fan width and mesh density</td>
+<td>Voronoi walls in a polar domain, held by thick ribs</td>
+</tr>
+<tr>
+<td>Brain</td>
+<td>Valley density</td>
+<td>Stripes bent by two noise octaves</td>
+</tr>
+<tr>
+<td>Plate</td>
+<td>Number of tiers</td>
+<td>Side view, a stalk under one to four plates</td>
+</tr>
+<tr>
+<td>Encrusting</td>
+<td>Lumpiness</td>
+<td><code>ground_d</code> is the signed distance to the host surface</td>
+</tr>
+<tr>
+<td>Anemone</td>
+<td>Tentacle count</td>
+<td><code>extension</code> 0 is closed, 1 is open</td>
+</tr>
+<tr>
+<td>Sponge</td>
+<td>Tube count</td>
+<td>One to five vase tubes with a dark osculum</td>
+</tr>
+<tr>
+<td>Kelp</td>
+<td>Blade count</td>
+<td>Blades alternate, each with a gas float</td>
+</tr>
+<tr>
+<td>Seagrass</td>
+<td>Blade density</td>
+<td>An endless row along x</td>
+</tr>
+<tr>
+<td>Mushroom</td>
+<td>Cap shape, 0 bell and 1 flat</td>
+<td><code>spots</code> 1 gives dense pale spots</td>
+</tr>
+</tbody>
+</table>
+<p>Brain coral bends stripes and not closed curves, so its valleys run side by side and meander with no closed rings.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup> <code>organic_brain_groove</code> exposes that step alone:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">organic_brain_groove</span>(q: vec2&lt;f32&gt;, seed: f32, density: f32) -&gt; f32</code></pre></div>
+<p>Its result is 0 on a ridge and 1 in a valley. <code>organic_polyp_extension_near</code> reduces <code>extension</code> near a threat, so that polyps inside a radius close.</p>
+<h2 id="growth-patterns">Growth patterns</h2>
+<p><code>organic_dendrite</code> gives the look of diffusion-limited aggregation, from short jagged segments at four scales that each point toward a root. <code>organic_veins</code> applies the same scheme with long smooth segments and an optional net of closed cells. Both return (distance, 0 on coarse limbs to 1 on fine twigs), and <code>organic_branch_shade</code> shades that as a raised, tinted line.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">organic_dendrite</span>(p: vec2&lt;f32&gt;, root: vec2&lt;f32&gt;, scale: f32, reach: f32, density: f32, seed: f32) -&gt; vec2&lt;f32&gt;
+<span class="k">fn</span> <span class="f">organic_veins</span>(p: vec2&lt;f32&gt;, root: vec2&lt;f32&gt;, scale: f32, reach: f32, density: f32, areoles: f32, seed: f32) -&gt; vec2&lt;f32&gt;</code></pre></div>
+<p>The Gray-Scott functions are for a game's own compute pass, because state must persist between steps:</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Function</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>organic_gray_scott_start</code></td>
+<td>Start state, <code>u = 1</code> with <code>v = 1</code> in seed spots</td>
+</tr>
+<tr>
+<td><code>organic_laplacian9</code></td>
+<td>9-point Laplacian, 0.2 for edges, 0.05 for corners, -1 for centre</td>
+</tr>
+<tr>
+<td><code>organic_gray_scott_step</code></td>
+<td>One step. Typical <code>du = 1.0</code>, <code>dv = 0.5</code>, <code>dt = 1.0</code></td>
+</tr>
+<tr>
+<td><code>organic_gray_scott_preset</code></td>
+<td>(feed, kill) for 0 coral growth, 1 mitosis, 2 brain maze, 3 spots, 4 worms</td>
+</tr>
+<tr>
+<td><code>organic_gray_scott_shade</code></td>
+<td>A MaterialSample from <code>v</code> and its +x and +y neighbours</td>
+</tr>
+</tbody>
+</table>
+<h2 id="usage">Usage</h2>
+<p>The body below builds one species and calls a kelp, with the flow animated by the game through a <code>time</code> value:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">let</span> sp = <span class="f">organic_species</span>(seed, <span class="n">1.0</span>, <span class="n">0.6</span>, vec3&lt;f32&gt;(<span class="n">0.1</span>, <span class="n">0.25</span>, <span class="n">0.08</span>), vec3&lt;f32&gt;(<span class="n">0.3</span>, <span class="n">0.35</span>, <span class="n">0.1</span>));
+<span class="k">let</span> flow = vec2&lt;f32&gt;(<span class="f">sin</span>(time) * <span class="n">0.5</span>, <span class="n">0.0</span>);
+<span class="k">let</span> m = <span class="f">organic_kelp</span>(local, sp, flow, <span class="n">0.7</span>, px);</code></pre></div>
+<p>It composes <code>organic/plant.wgsl</code>.</p>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<ul>
+<li>The result is a MaterialSample, so a form fits directly in a <a href="lit2d.html" data-slug="lit2d">Lit2d</a> material.</li>
+<li><code>organic_encrust</code> takes a distance from any surface, such as <code>terrain_cave_sdf</code> in <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a>.</li>
+<li>Forms have their own smooth union, <code>organic_smin</code>, separate from <code>sdf_smooth_union_poly</code> in <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a>.</li>
+</ul><h2 id="see-also">See also</h2><ul><li><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></li><li><a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a></li><li><a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a></li><li><a href="shader-material.html" data-slug="shader-material">Material shaders</a></li><li><a href="lit2d.html" data-slug="lit2d">Lit2d</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/organic/common.wgsl</code> - <code>// the origin and the form grows along +y (side view), except where a file</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/organic/coral_soft.wgsl</code> - <code>//   flow            current at the form, local units; |flow| about 0..2.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/organic/tree.wgsl</code> - <code>// organic/tree.wgsl — fixed-depth iterated branching. WGSL has no</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/organic/coral_branch.wgsl</code> - <code>// .. 1 at a tip or rim, z = local limb radius. Cost: the staghorn material</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/organic/coral_massive.wgsl</code> - <code>// by two octaves of noise (domain warp), so valleys run side by side and</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/organic/growth.wgsl</code> - <code>// organic/growth.wgsl — growth patterns. Dendrite field: the look of</code></li></ol><table class="navbox"><tr><th><a href="category-shader-library.html">Shader library</a></th></tr><tr><td><a href="shaderlib.html" data-slug="shaderlib">Shader library</a> · <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a> · <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> · <a href="shader-material.html" data-slug="shader-material">Material shaders</a> · <a href="shader-water.html" data-slug="shader-water">Water shaders</a> · <a href="shader-post.html" data-slug="shader-post">Post shaders</a> · <b>Organic shaders</b> · <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> · <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> · <a href="shader-pattern.html" data-slug="shader-pattern">Pattern shaders</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-shader-library.html">Shader library</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

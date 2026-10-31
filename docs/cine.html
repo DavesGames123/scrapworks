@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cine - Warp Wiki</title>
+<meta name="description" content="Film-grammar transitions between screens, easing, and hover animation">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="cine">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#usage">Usage</a></li><li><a href="#the-film-grammar">The film grammar</a></li><li><a href="#how-it-draws">How it draws</a></li><li><a href="#easing">Easing</a></li><li><a href="#spring">Spring</a></li><li><a href="#hover-animation">Hover animation</a></li><li><a href="#reduced-motion">Reduced motion</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Cine</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">Film-grammar transitions between screens, easing, and hover animation</p><table class="infobox"><caption>Cine</caption><tr><th>Category</th><td><a href="category-front-end.html">Front end</a></td></tr><tr><th>Module</th><td><code>warp_sdk::cine</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/cine.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">105</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example cine</code><br><code>cargo run -p warp_sdk --example starter</code></td></tr></table><p><strong>Cine</strong> is a kit of animated transitions between screens and hover animations for buttons, drawn in egui over any game, in the <a class="sym" href="cine.html"><code>warp_sdk::cine</code></a> module. A game holds one <a class="sym" href="#sym-Cine"><code>Cine</code></a> for its screen enum, asks for a change with one call, and draws each visible screen through a <a class="sym" href="#sym-Layer"><code>Layer</code></a> that the kit gives it. The module also holds 22 easing curves and a critically damped <a class="sym" href="#sym-Spring"><code>Spring</code></a>. Its premise is that a transition is a sentence in film language and not decoration.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::cine::{<span class="t">Cine</span>, <span class="t">Dir</span>, <span class="t">Kind</span>};
+
+<span class="a">#[derive(Clone, Copy, PartialEq, Debug)]</span>
+<span class="k">enum</span> <span class="t">Screen</span> { <span class="t">Title</span>, <span class="t">Play</span>, <span class="t">Pause</span> }
+
+<span class="c">// In `new`:</span>
+<span class="k">let</span> <span class="k">mut</span> cine = <span class="t">Cine</span>::<span class="f">new</span>(<span class="t">Screen</span>::<span class="t">Title</span>);
+<span class="c">// When the player presses Esc:</span>
+cine.<span class="f">go</span>(<span class="t">Screen</span>::<span class="t">Pause</span>, <span class="t">Kind</span>::<span class="t">Push</span>(<span class="t">Dir</span>::<span class="t">Left</span>));
+<span class="c">// In `gui`, every frame:</span>
+cine.<span class="f">update</span>(ctx);
+<span class="k">for</span> (screen, layer) <span class="k">in</span> cine.<span class="f">layers</span>() {
+    layer.<span class="f">draw</span>(ctx, |ctx| <span class="f">draw_screen</span>(ctx, screen));
+}
+cine.<span class="f">paint</span>(ctx);</code></pre></div>
+<p>The call order in a frame is <a class="sym" href="#sym-Cine-update"><code>update</code></a>, then <a class="sym" href="#sym-Cine-layers"><code>layers</code></a>, then <a class="sym" href="#sym-Cine-paint"><code>paint</code></a>. <a class="sym" href="#sym-Cine-update"><code>update</code></a> reads the frame step, the screen rect and the motion preference, and advances the clock. <a class="sym" href="#sym-Cine-paint"><code>paint</code></a> draws the matte on a foreground layer after the screens.</p>
+<p><a class="sym" href="#sym-Cine-go"><code>go</code></a> returns the <a class="sym" href="#sym-Transition"><code>Transition</code></a>, which takes <code>.secs</code> and <code>.ease</code>:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust">cine.<span class="f">go</span>(<span class="t">Screen</span>::<span class="t">Pause</span>, <span class="t">Kind</span>::<span class="t">Push</span>(<span class="t">Dir</span>::<span class="t">Left</span>)).<span class="f">secs</span>(<span class="n">0.4</span>);</code></pre></div>
+<p><a class="sym" href="#sym-Cine-screen"><code>Cine::screen</code></a> gives the screen the game is on, or is going to, and input should route there. <a class="sym" href="#sym-Cine-busy"><code>busy</code></a> is true while a transition runs. A <a class="sym" href="#sym-Cine-go"><code>go</code></a> during a transition starts from the screen that transition was going to. A <a class="sym" href="#sym-Cine-go"><code>go</code></a> to the current screen does nothing.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<h2 id="the-film-grammar">The film grammar</h2>
+<p>Each <a class="sym" href="#sym-Kind"><code>Kind</code></a> states when an editor uses it. The default is the cut, and most menu changes are cuts.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Kind</th>
+<th>When</th>
+<th>Seconds</th>
+<th>Curve</th>
+<th>Matte</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kind::Cut</td>
+<td>The action continues, and the player must not wait</td>
+<td>0</td>
+<td>Linear</td>
+<td></td>
+</tr>
+<tr>
+<td>Kind::DipToBlack</td>
+<td>Time passes, a chapter ends, death, respawn, a load</td>
+<td>0.7</td>
+<td>QuadInOut</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Kind::DipToColor</td>
+<td>A flash: white for impact, red for damage</td>
+<td>0.45</td>
+<td>QuadInOut</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Kind::Crossfade</td>
+<td>The same place at another time, or pause over play</td>
+<td>0.35</td>
+<td>Linear</td>
+<td></td>
+</tr>
+<tr>
+<td>Kind::Push</td>
+<td>The screens are neighbours in space</td>
+<td>0.5</td>
+<td>CubicInOut</td>
+<td></td>
+</tr>
+<tr>
+<td>Kind::Slide</td>
+<td>A card on the table: a modal panel, an inventory</td>
+<td>0.42</td>
+<td>ExpoOut</td>
+<td></td>
+</tr>
+<tr>
+<td>Kind::Iris</td>
+<td>The scene ends on one subject that matters</td>
+<td>0.9</td>
+<td>QuadInOut</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Kind::Wipe</td>
+<td>A change of place or story line. A clock wipe says time passes</td>
+<td>0.7</td>
+<td>CubicInOut</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Kind::DollyThrough</td>
+<td>The player goes deeper: menu into level</td>
+<td>0.65</td>
+<td>QuartInOut</td>
+<td></td>
+</tr>
+<tr>
+<td>Kind::RackFocus</td>
+<td>The attention changes and the place does not</td>
+<td>0.7</td>
+<td>QuadInOut</td>
+<td></td>
+</tr>
+<tr>
+<td>Kind::MatchCut</td>
+<td>Continuity of a thing: a button grows into its panel</td>
+<td>0.5</td>
+<td>CubicInOut</td>
+<td></td>
+</tr>
+<tr>
+<td>Kind::NoiseDissolve</td>
+<td>A dream, a teleport, a signal lost, decay</td>
+<td>0.8</td>
+<td>Linear</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<p>The values come from <a class="sym" href="#sym-Kind-default_secs"><code>Kind::default_secs</code></a> and <a class="sym" href="#sym-Kind-default_ease"><code>Kind::default_ease</code></a>.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> <a class="sym" href="#sym-Dir"><code>Dir</code></a> is the way the content moves: Left moves the old screen out to the left, and the new one comes in from the right. Push left goes forward, and push right goes back. Kind::Iris takes an <a class="sym" href="#sym-IrisShape"><code>IrisShape</code></a> (circle, diamond or square) and an optional point, with <code>None</code> at the centre. Kind::Wipe takes a <a class="sym" href="#sym-WipeShape"><code>WipeShape</code></a>: a straight edge, a radial growth, or a clock hand from twelve o'clock.</p>
+<p><a class="sym" href="#sym-Kind-showcase"><code>Kind::showcase</code></a> gives one of every form, 16 in all, for a demonstration or a test. The example <a class="sym" href="cine.html"><code>cine</code></a> cycles through them.</p>
+<h2 id="how-it-draws">How it draws</h2>
+<p><a class="sym" href="cine.html"><code>cine</code></a> draws on egui only, so it works over any game.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<p>Each screen draws inside <a class="sym" href="#sym-Layer-draw"><code>Layer::draw</code></a>. That call runs the closure, then fades and moves every shape that the screen painted, and it mutes the widgets of the screen while the screen moves. A <a class="sym" href="#sym-Layer"><code>Layer</code></a> has an <code>offset</code>, an <code>alpha</code>, a <a class="sym" href="scale.html"><code>scale</code></a>, a <code>pivot</code> and a <code>live</code> flag. <code>live</code> is true when no transition moves the screen, and only then do its widgets take input.</p>
+<p>The kinds fall into two groups. <a class="sym" href="#sym-Kind-uses_matte"><code>Kind::uses_matte</code></a> is true for dip, iris, wipe and noise dissolve. A matte kind closes over the old screen, switches screens at the half, and opens over the new one, so only one screen is visible at a time. The other kinds move two layers.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Kind</th>
+<th>Old screen</th>
+<th>New screen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kind::Crossfade</td>
+<td>Fades out</td>
+<td>Fades in</td>
+</tr>
+<tr>
+<td>Kind::Push</td>
+<td>Moves out by the screen size</td>
+<td>Moves in beside it</td>
+</tr>
+<tr>
+<td>Kind::Slide</td>
+<td>Moves a fifth of the way and dims</td>
+<td>Slides over it</td>
+</tr>
+<tr>
+<td>Kind::DollyThrough</td>
+<td>Scales up and fades</td>
+<td>Scales from 0.7 and fades in</td>
+</tr>
+<tr>
+<td>Kind::RackFocus</td>
+<td>Scales slightly and fades</td>
+<td>Scales slightly and fades in</td>
+</tr>
+<tr>
+<td>Kind::MatchCut</td>
+<td>Fades out early</td>
+<td>Fades in late</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Phase"><code>Phase</code></a> reports where a transition is: Out below one half, In from one half, and Done at one.</p>
+<p>Cine::matte sets the matte colour, and a Kind::DipToColor uses its own. Cine::accent sets the fill of the match cut shape, whose rect <a class="sym" href="#sym-Cine-morph_rect"><code>morph_rect</code></a> gives. Two directors in one context need different <code>id</code> values.</p>
+<p><a class="sym" href="#sym-Cine-blur"><code>Cine::blur</code></a> gives the softness of the old plane during a rack focus. A game with depth of field feeds it to <a href="post.html" data-slug="post">Post effects</a>:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> b = cine.<span class="f">blur</span>();
+warp_sdk::post::<span class="f">set</span>(|p| { p.dof.enabled = b &gt; <span class="n">0.0</span>; p.dof.max_blur = <span class="n">12.0</span> * b; });</code></pre></div>
+<p>For a match cut, the game passes the screen rects. The example takes <a class="sym" href="#sym-Cine-from"><code>from</code></a> from the rect of the button that was pressed.</p>
+<h2 id="easing">Easing</h2>
+<p><a class="sym" href="#sym-Ease"><code>Ease</code></a> holds 22 curves as a value that a transition can hold: linear, then in, out and in-out forms of quad, cubic, quart, expo, back, elastic and bounce. <a class="sym" href="#sym-Ease-apply"><code>Ease::apply</code></a> clamps its input to 0 to 1. Each curve gives 0 at 0 and 1 at 1, and back and elastic go outside that range between.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup> Each curve also exists as a free function, such as <a class="sym" href="#sym-cubic_out"><code>cubic_out</code></a>.</p>
+<h2 id="spring">Spring</h2>
+<p><a class="sym" href="#sym-Spring"><code>Spring</code></a> is a critically damped spring: the fastest move to a target with no overshoot. It suits a value whose target changes at any time, such as a hover amount. The step is the exact solution, so ten steps of 1/600 s land where one step of 1/60 s lands, and the result does not change with the frame rate.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> <span class="k">mut</span> s = cine::<span class="t">Spring</span>::<span class="f">new</span>(<span class="n">0.0</span>).<span class="f">settle_secs</span>(<span class="n">0.25</span>);
+s.target = <span class="n">1.0</span>;
+s.<span class="f">step</span>(dt);
+<span class="k">let</span> amount = s.value;</code></pre></div>
+<p><a class="sym" href="#sym-Spring-settle_secs"><code>settle_secs</code></a> sets the time for the spring to come within 1 percent of a new target from rest, by setting <code>omega</code> to 6.64 over the seconds. <a class="sym" href="#sym-Spring-snap"><code>snap</code></a> puts it on the target at rest, and <a class="sym" href="#sym-Spring-settled"><code>settled</code></a> tests whether it is within a tolerance and nearly still. <a href="juice.html" data-slug="juice">Juice</a> has a spring of its own for feedback.</p>
+<h2 id="hover-animation">Hover animation</h2>
+<p><a class="sym" href="#sym-Hover"><code>Hover</code></a> is a library of ten animations, and a button takes several at once.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Hover</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hover::Lift</td>
+<td>The main action, a card</td>
+</tr>
+<tr>
+<td>Hover::GlowSweep</td>
+<td>A rare or magic item, a "new" badge</td>
+</tr>
+<tr>
+<td>Hover::UnderlineGrow</td>
+<td>A text link, a quiet menu entry</td>
+</tr>
+<tr>
+<td>Hover::BracketClose</td>
+<td>A selection in a tactical or sci-fi menu</td>
+</tr>
+<tr>
+<td>Hover::SquircleExpand</td>
+<td>A friendly, soft interface</td>
+</tr>
+<tr>
+<td>Hover::LetterBreathe</td>
+<td>A title-screen entry</td>
+</tr>
+<tr>
+<td>Hover::Shimmer</td>
+<td>A premium or locked item</td>
+</tr>
+<tr>
+<td>Hover::Magnetic</td>
+<td>A large, playful button that leans to the pointer</td>
+</tr>
+<tr>
+<td>Hover::Ripple</td>
+<td>Every pressable thing that needs feedback on press</td>
+</tr>
+<tr>
+<td>Hover::FocusRing</td>
+<td>Keyboard and gamepad focus. Always give focus a visible ring</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Button"><code>cine::Button</code></a> is a button with these animations. Its default styles are lift, ripple and focus ring, and <code>.hover</code> adds one.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">if</span> ui.<span class="f">add</span>(cine::<span class="t">Button</span>::<span class="f">new</span>(<span class="s">"Play"</span>).<span class="f">hover</span>(<span class="t">Hover</span>::<span class="t">Lift</span>).<span class="f">hover</span>(<span class="t">Hover</span>::<span class="t">Ripple</span>)).<span class="f">clicked</span>() {
+    cine.<span class="f">go</span>(<span class="t">Screen</span>::<span class="t">Play</span>, <span class="t">Kind</span>::<span class="t">DipToBlack</span>);
+}</code></pre></div>
+<p><a class="sym" href="#sym-hover"><code>cine::hover</code></a> decorates a button that exists already, with a body that stays in place:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> r = ui.<span class="f">button</span>(<span class="s">"Inventory"</span>);
+cine::<span class="f">hover</span>(ui, &amp;r, &amp;[<span class="t">Hover</span>::<span class="t">BracketClose</span>, <span class="t">Hover</span>::<span class="t">Ripple</span>], accent);</code></pre></div>
+<p><a class="sym" href="#sym-hover_fx"><code>hover_fx</code></a> advances the springs of a response and gives a <a class="sym" href="#sym-HoverFx"><code>HoverFx</code></a>. A custom widget reads <code>offset</code>, <code>grow</code> and <code>spacing</code> to place its content, then paints with <a class="sym" href="#sym-HoverFx-paint_back"><code>paint_back</code></a>, <a class="sym" href="#sym-HoverFx-paint_mid"><code>paint_mid</code></a> and <a class="sym" href="#sym-HoverFx-paint_front"><code>paint_front</code></a>. The springs live in egui memory under the widget id.</p>
+<h2 id="reduced-motion">Reduced motion</h2>
+<p>The motion preference of <a class="sym" href="cine.html"><code>cine</code></a> is the context preference of the <a href="squircle.html" data-slug="squircle">squircle kit</a>. <a class="sym" href="#sym-set_reduce_motion"><code>set_reduce_motion</code></a> writes it, so the deck, the toasts and <a class="sym" href="cine.html"><code>cine</code></a> follow one switch.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<p>Under reduced motion, each transition becomes a linear crossfade of at most <a class="sym" href="#sym-REDUCED_SECS"><code>REDUCED_SECS</code></a>, 0.15 seconds, and a cut stays a cut. Each hover becomes a static highlight. <a class="sym" href="#sym-Cine-reduce_motion"><code>Cine::reduce_motion</code></a> forces the mode for one director. A game typically passes <code>access.reduce_motion</code> from <a href="front-settings.html" data-slug="front-settings">Settings</a> to <a class="sym" href="#sym-set_reduce_motion"><code>set_reduce_motion</code></a>.</p>
+<h2 id="limitations">Limitations</h2>
+<p>Layer::scale cannot scale egui shapes. <a class="sym" href="#sym-Layer-draw"><code>Layer::draw</code></a> applies only the alpha and the offset. A game that draws its world in <a class="sym" href="icon.html#sym-render"><code>render</code></a> reads <a class="sym" href="scale.html"><code>scale</code></a> and <code>offset</code> for its camera, and egui content reads <a class="sym" href="#sym-Layer-transform_rect"><code>Layer::transform_rect</code></a>.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup> Kind::DollyThrough and Kind::RackFocus therefore move egui content only through alpha unless the screen places itself. <a class="sym" href="#sym-Cine-new"><code>Cine::new</code></a> starts with an area of 1280 by 720 until the first <a class="sym" href="#sym-Cine-update"><code>update</code></a>.</p>
+<h2 id="history">History</h2>
+<p>The kit was added on 2026-10-29.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 105 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-cine" class="modhead"><code>warp_sdk::cine</code></h3><h4>Functions</h4><div class="item" id="sym-set_reduce_motion" data-name="set_reduce_motion"><div class="sig"><a class="anchor" href="#sym-set_reduce_motion" aria-label="Link to set_reduce_motion">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_reduce_motion</span>(ctx: &amp;egui::<span class="t">Context</span>, on: bool)</code></div><div class="doc"><p>Ask for reduced motion in this egui context, or ask for full motion.</p>
+<p>This writes the squircle kit motion preference, so the deck, the toasts
+and <code>cine</code> all follow the same one switch.</p>
+<p><code>ignore
+cine::set_reduce_motion(ctx, settings.reduce_motion);</code></p></div></div><div class="item" id="sym-reduce_motion" data-name="reduce_motion"><div class="sig"><a class="anchor" href="#sym-reduce_motion" aria-label="Link to reduce_motion">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reduce_motion</span>(ctx: &amp;egui::<span class="t">Context</span>) -&gt; bool</code></div><div class="doc"><p>True when this egui context asks for reduced motion.</p>
+<p><code>ignore
+if cine::reduce_motion(ctx) { /* skip the camera shake */ }</code></p></div></div><div class="item" id="sym-linear" data-name="linear"><div class="sig"><a class="anchor" href="#sym-linear" aria-label="Link to linear">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">linear</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Linear: no easing. Use it for a clock, not for a move.</p></div></div><div class="item" id="sym-quad_in" data-name="quad_in"><div class="sig"><a class="anchor" href="#sym-quad_in" aria-label="Link to quad_in">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">quad_in</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Quadratic ease in. Starts slow.</p></div></div><div class="item" id="sym-quad_out" data-name="quad_out"><div class="sig"><a class="anchor" href="#sym-quad_out" aria-label="Link to quad_out">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">quad_out</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Quadratic ease out. Stops soft.</p></div></div><div class="item" id="sym-quad_in_out" data-name="quad_in_out"><div class="sig"><a class="anchor" href="#sym-quad_in_out" aria-label="Link to quad_in_out">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">quad_in_out</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Quadratic ease in and out.</p></div></div><div class="item" id="sym-cubic_in" data-name="cubic_in"><div class="sig"><a class="anchor" href="#sym-cubic_in" aria-label="Link to cubic_in">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cubic_in</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Cubic ease in.</p></div></div><div class="item" id="sym-cubic_out" data-name="cubic_out"><div class="sig"><a class="anchor" href="#sym-cubic_out" aria-label="Link to cubic_out">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cubic_out</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Cubic ease out. The default curve for a thing that arrives.</p>
+<p><code>ignore
+let x = cine::cubic_out(t) * 200.0;</code></p></div></div><div class="item" id="sym-cubic_in_out" data-name="cubic_in_out"><div class="sig"><a class="anchor" href="#sym-cubic_in_out" aria-label="Link to cubic_in_out">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cubic_in_out</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Cubic ease in and out. The default curve for a thing that moves across.</p></div></div><div class="item" id="sym-quart_in" data-name="quart_in"><div class="sig"><a class="anchor" href="#sym-quart_in" aria-label="Link to quart_in">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">quart_in</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Quartic ease in.</p></div></div><div class="item" id="sym-quart_out" data-name="quart_out"><div class="sig"><a class="anchor" href="#sym-quart_out" aria-label="Link to quart_out">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">quart_out</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Quartic ease out.</p></div></div><div class="item" id="sym-quart_in_out" data-name="quart_in_out"><div class="sig"><a class="anchor" href="#sym-quart_in_out" aria-label="Link to quart_in_out">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">quart_in_out</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Quartic ease in and out.</p></div></div><div class="item" id="sym-expo_in" data-name="expo_in"><div class="sig"><a class="anchor" href="#sym-expo_in" aria-label="Link to expo_in">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">expo_in</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Exponential ease in. Exact 0 at 0 and 1 at 1.</p></div></div><div class="item" id="sym-expo_out" data-name="expo_out"><div class="sig"><a class="anchor" href="#sym-expo_out" aria-label="Link to expo_out">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">expo_out</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Exponential ease out. A fast start and a long soft stop.</p></div></div><div class="item" id="sym-expo_in_out" data-name="expo_in_out"><div class="sig"><a class="anchor" href="#sym-expo_in_out" aria-label="Link to expo_in_out">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">expo_in_out</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Exponential ease in and out.</p></div></div><div class="item" id="sym-back_in" data-name="back_in"><div class="sig"><a class="anchor" href="#sym-back_in" aria-label="Link to back_in">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">back_in</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Back ease in: a small pull back before the move.</p></div></div><div class="item" id="sym-back_out" data-name="back_out"><div class="sig"><a class="anchor" href="#sym-back_out" aria-label="Link to back_out">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">back_out</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Back ease out: the move goes past the end and comes back.</p></div></div><div class="item" id="sym-back_in_out" data-name="back_in_out"><div class="sig"><a class="anchor" href="#sym-back_in_out" aria-label="Link to back_in_out">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">back_in_out</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Back ease in and out.</p></div></div><div class="item" id="sym-elastic_out" data-name="elastic_out"><div class="sig"><a class="anchor" href="#sym-elastic_out" aria-label="Link to elastic_out">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">elastic_out</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Elastic ease out: the move rings like a spring. Exact at both ends.</p></div></div><div class="item" id="sym-elastic_in" data-name="elastic_in"><div class="sig"><a class="anchor" href="#sym-elastic_in" aria-label="Link to elastic_in">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">elastic_in</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Elastic ease in.</p></div></div><div class="item" id="sym-elastic_in_out" data-name="elastic_in_out"><div class="sig"><a class="anchor" href="#sym-elastic_in_out" aria-label="Link to elastic_in_out">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">elastic_in_out</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Elastic ease in and out.</p></div></div><div class="item" id="sym-bounce_out" data-name="bounce_out"><div class="sig"><a class="anchor" href="#sym-bounce_out" aria-label="Link to bounce_out">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">bounce_out</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Bounce ease out: the move falls and bounces to rest.</p></div></div><div class="item" id="sym-bounce_in" data-name="bounce_in"><div class="sig"><a class="anchor" href="#sym-bounce_in" aria-label="Link to bounce_in">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">bounce_in</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Bounce ease in.</p></div></div><div class="item" id="sym-bounce_in_out" data-name="bounce_in_out"><div class="sig"><a class="anchor" href="#sym-bounce_in_out" aria-label="Link to bounce_in_out">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">bounce_in_out</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>Bounce ease in and out.</p></div></div><div class="item" id="sym-hover_fx" data-name="hover_fx"><div class="sig"><a class="anchor" href="#sym-hover_fx" aria-label="Link to hover_fx">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">hover_fx</span>(ui: &amp;<span class="t">Ui</span>, response: &amp;<span class="t">Response</span>, styles: &amp;[<span class="t">Hover</span>]) -&gt; <span class="t">HoverFx</span></code></div><div class="doc"><p>Advance the hover springs of <code>response</code> and give the effects of <code>styles</code>.</p>
+<p><code>ignore
+let fx = cine::hover_fx(ui, &amp;response, &amp;[Hover::Lift]);
+let body = response.rect.translate(fx.offset);</code></p></div></div><div class="item" id="sym-hover" data-name="hover"><div class="sig"><a class="anchor" href="#sym-hover" aria-label="Link to hover">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">hover</span>(ui: &amp;<span class="t">Ui</span>, response: &amp;<span class="t">Response</span>, styles: &amp;[<span class="t">Hover</span>], accent: <span class="t">Color32</span>) -&gt; <span class="t">HoverFx</span></code></div><div class="doc"><p>Paint the effects of <code>styles</code> over a widget that is already drawn.</p>
+<p>The shapes go over the widget, so <code>Lift</code> moves only the shadow and the
+decorations. For a body that moves, use [<code>Button</code>] or draw the content
+with [<code>HoverFx::offset</code>].</p>
+<p><code>ignore
+let r = ui.button("Inventory");
+cine::hover(ui, &amp;r, &amp;[Hover::BracketClose, Hover::Ripple], accent);</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Ease" data-name="ease"><div class="sig"><a class="anchor" href="#sym-Ease" aria-label="Link to Ease">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Ease</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Linear</span>,
+<span class="t">QuadIn</span>,
+<span class="t">QuadOut</span>,
+<span class="t">QuadInOut</span>,
+<span class="t">CubicIn</span>,
+<span class="t">CubicOut</span>,
+<span class="t">CubicInOut</span>,
+<span class="t">QuartIn</span>,
+<span class="t">QuartOut</span>,
+<span class="t">QuartInOut</span>,
+<span class="t">ExpoIn</span>,
+<span class="t">ExpoOut</span>,
+<span class="t">ExpoInOut</span>,
+<span class="t">BackIn</span>,
+<span class="t">BackOut</span>,
+<span class="t">BackInOut</span>,
+<span class="t">ElasticIn</span>,
+<span class="t">ElasticOut</span>,
+<span class="t">ElasticInOut</span>,
+<span class="t">BounceIn</span>,
+<span class="t">BounceOut</span>,
+<span class="t">BounceInOut</span>,</code></pre></div><div class="doc"><p>One easing curve, as a value a transition can hold.</p>
+<p><code>ignore
+let y = cine::Ease::BackOut.apply(t);</code></p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-Ease-ALL" data-name="ease::all"><div class="sig"><a class="anchor" href="#sym-Ease-ALL" aria-label="Link to Ease::ALL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ALL</span>: [<span class="t">Ease</span>; <span class="n">22</span>] = [ <span class="t">Ease</span>::<span class="t">Linear</span>, <span class="t">Ease</span>::<span class="t">QuadIn</span>, <span class="t">Ease</span>::<span class="t">QuadOut</span>, <span class="t">Ease</span>::<span class="t">QuadInOut</span>, <span class="t">Ease</span>::<span class="t">CubicIn</span>, <span class="t">Ease</span>::<span class="t">CubicOut</span>, <span class="t">Ease</span>::<span class="t">CubicInOut</span>, <span class="t">Ease</span>::<span class="t">QuartIn</span>, <span class="t">Ease</span>::<span class="t">QuartOut</span>, <span class="t">Ease</span>::<span class="t">QuartInOut</span>, <span class="t">Ease</span>::<span class="t">ExpoIn</span>,</code></div><div class="doc"><p>Every curve, in declaration order.</p></div></div><div class="item" id="sym-Ease-apply" data-name="ease::apply"><div class="sig"><a class="anchor" href="#sym-Ease-apply" aria-label="Link to Ease::apply">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">apply</span>(<span class="k">self</span>, t: f32) -&gt; f32</code></div><div class="doc"><p>Reshape a linear <code>t</code>. The input is clamped to 0..1. Each curve gives
+0 at 0 and 1 at 1. Back and elastic go outside 0..1 between.</p>
+<p><code>ignore
+let eased = Ease::CubicInOut.apply(0.25);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Spring" data-name="spring"><div class="sig"><a class="anchor" href="#sym-Spring" aria-label="Link to Spring">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Spring</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> value: f32,
+<span class="k">pub</span> velocity: f32,
+<span class="k">pub</span> target: f32,
+<span class="c">/// The angular frequency, in radians per second. Larger is faster.</span>
+<span class="k">pub</span> omega: f32,</code></pre></div><div class="doc"><p>A critically damped spring: the fastest move to a target with no
+overshoot. Use it for a value whose target changes at any time, such as
+a hover amount or a cursor follower.</p>
+<p>The step is the exact solution, so ten steps of 1/600 s land where one
+step of 1/60 s lands. The result does not change with the frame rate.</p>
+<p><code>ignore
+let mut s = cine::Spring::new(0.0).settle_secs(0.25);
+s.target = 1.0;
+s.step(dt);
+let amount = s.value;</code></p></div></div><details class="members"><summary>10 methods</summary><div class="item" id="sym-Spring-new" data-name="spring::new"><div class="sig"><a class="anchor" href="#sym-Spring-new" aria-label="Link to Spring::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(value: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A spring at rest on <code>value</code>, which settles in about 0.25 s.</p></div></div><div class="item" id="sym-Spring-settle_secs" data-name="spring::settle_secs"><div class="sig"><a class="anchor" href="#sym-Spring-settle_secs" aria-label="Link to Spring::settle_secs">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">settle_secs</span>(<span class="k">mut</span> <span class="k">self</span>, secs: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the speed: from rest, the spring comes within 1 % of a new target
+in <code>secs</code> seconds.</p></div></div><div class="item" id="sym-Spring-step" data-name="spring::step"><div class="sig"><a class="anchor" href="#sym-Spring-step" aria-label="Link to Spring::step">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">step</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32)</code></div><div class="doc"><p>Advance the spring by <code>dt</code> seconds.</p></div></div><div class="item" id="sym-Spring-snap" data-name="spring::snap"><div class="sig"><a class="anchor" href="#sym-Spring-snap" aria-label="Link to Spring::snap">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">snap</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Put the spring on its target, at rest.</p></div></div><div class="item" id="sym-Spring-settled" data-name="spring::settled"><div class="sig"><a class="anchor" href="#sym-Spring-settled" aria-label="Link to Spring::settled">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">settled</span>(&amp;<span class="k">self</span>, eps: f32) -&gt; bool</code></div><div class="doc"><p>True when the spring is within <code>eps</code> of its target and nearly still.</p></div></div><div class="item" id="sym-Spring-new" data-name="spring::new"><div class="sig"><a class="anchor" href="#sym-Spring-new" aria-label="Link to Spring::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(value: f32, freq: f32, damping: f32) -&gt; <span class="t">Spring</span></code></div><div class="doc"><p>A spring at rest at <code>value</code>, with <code>freq</code> Hz and damping ratio <code>damping</code>.</p>
+<p><code>ignore
+let s = Spring::new(1.0, 5.0, 0.4);</code></p></div></div><div class="item" id="sym-Spring-bouncy" data-name="spring::bouncy"><div class="sig"><a class="anchor" href="#sym-Spring-bouncy" aria-label="Link to Spring::bouncy">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">bouncy</span>(value: f32) -&gt; <span class="t">Spring</span></code></div><div class="doc"><p>A spring that overshoots and wobbles: 4 Hz, damping 0.25.</p>
+<p><code>ignore
+let s = Spring::bouncy(0.0);</code></p></div></div><div class="item" id="sym-Spring-snappy" data-name="spring::snappy"><div class="sig"><a class="anchor" href="#sym-Spring-snappy" aria-label="Link to Spring::snappy">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">snappy</span>(value: f32) -&gt; <span class="t">Spring</span></code></div><div class="doc"><p>A spring that overshoots once and stops: 6 Hz, damping 0.5.</p>
+<p><code>ignore
+let s = Spring::snappy(0.0);</code></p></div></div><div class="item" id="sym-Spring-kick" data-name="spring::kick"><div class="sig"><a class="anchor" href="#sym-Spring-kick" aria-label="Link to Spring::kick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">kick</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, velocity: f32)</code></div><div class="doc"><p>Add <code>velocity</code> to the spring, in value units per second.</p>
+<p><code>ignore
+s.kick(3.0);</code></p></div></div><div class="item" id="sym-Spring-settled" data-name="spring::settled"><div class="sig"><a class="anchor" href="#sym-Spring-settled" aria-label="Link to Spring::settled">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">settled</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True when the spring is at its target and has no speed left.</p>
+<p><code>ignore
+if s.settled() { /* stop the repaint */ }</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Dir" data-name="dir"><div class="sig"><a class="anchor" href="#sym-Dir" aria-label="Link to Dir">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Dir</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Left</span>,
+<span class="t">Right</span>,
+<span class="t">Up</span>,
+<span class="t">Down</span>,</code></pre></div><div class="doc"><p>A direction on screen. For <code>Push</code> and <code>Slide</code> it is the way the content
+moves: <code>Left</code> moves the old screen out to the left, and the new screen
+comes in from the right.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Dir-vec" data-name="dir::vec"><div class="sig"><a class="anchor" href="#sym-Dir-vec" aria-label="Link to Dir::vec">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">vec</span>(<span class="k">self</span>) -&gt; <span class="t">Vec2</span></code></div><div class="doc"><p>The unit vector in egui space (y grows down).</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-IrisShape" data-name="irisshape"><div class="sig"><a class="anchor" href="#sym-IrisShape" aria-label="Link to IrisShape">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">IrisShape</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Circle</span>,
+<span class="t">Diamond</span>,
+<span class="t">Square</span>,</code></pre></div><div class="doc"><p>The shape of an iris.</p></div></div></div><div class="typeblock"><div class="item" id="sym-WipeShape" data-name="wipeshape"><div class="sig"><a class="anchor" href="#sym-WipeShape" aria-label="Link to WipeShape">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">WipeShape</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A straight edge that crosses the screen in one direction.</span>
+<span class="t">Linear</span>(<span class="t">Dir</span>),
+<span class="c">/// A circle that grows from the centre, then a hole that grows after it.</span>
+<span class="t">Radial</span>,
+<span class="c">/// A hand that sweeps once round from twelve o'clock.</span>
+<span class="t">Clock</span>,</code></pre></div><div class="doc"><p>The shape of a wipe edge.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Kind" data-name="kind"><div class="sig"><a class="anchor" href="#sym-Kind" aria-label="Link to Kind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Kind</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Instant change. WHEN: the action continues, and the player must not</span>
+<span class="c">/// wait. The default of film and of menus: a submenu, a tab, a list.</span>
+<span class="t">Cut</span>,
+<span class="c">/// Fade down to black, then up on the new screen. WHEN: time passes, a</span>
+<span class="c">/// chapter ends, the player dies or respawns, a level loads.</span>
+<span class="t">DipToBlack</span>,
+<span class="c">/// Fade through one colour. WHEN: a flash of impact or memory (white),</span>
+<span class="c">/// damage or alarm (red), a power-up (the accent colour).</span>
+<span class="t">DipToColor</span>(<span class="t">Color32</span>),
+<span class="c">/// The old screen fades out as the new fades in. WHEN: the same place at</span>
+<span class="c">/// another time, or one layer over another, such as pause over play.</span>
+<span class="t">Crossfade</span>,
+<span class="c">/// Both screens move together, side by side. WHEN: the screens are</span>
+<span class="c">/// neighbours in space. Push left to go forward, push right to go back,</span>
+<span class="c">/// push up to go to a deeper level.</span>
+<span class="t">Push</span>(<span class="t">Dir</span>),
+<span class="c">/// The new screen slides over the old one, which stays still. WHEN: a</span>
+<span class="c">/// card on top of the table: a modal panel, an inventory, a dialog.</span>
+<span class="t">Slide</span>(<span class="t">Dir</span>),
+<span class="c">/// A shape closes on one point, then opens on the new screen. WHEN: the</span>
+<span class="c">/// scene ends on one subject that matters. `at: None` is the centre.</span>
+<span class="t">Iris</span> { shape: <span class="t">IrisShape</span>, at: <span class="t">Option</span>&lt;<span class="t">Pos2</span>&gt; },
+<span class="c">/// An edge crosses the screen. WHEN: a change of place or of story line.</span>
+<span class="c">/// The clock wipe says that time passes.</span>
+<span class="t">Wipe</span>(<span class="t">WipeShape</span>),
+<span class="c">/// The camera moves into the old screen and through it. WHEN: the</span>
+<span class="c">/// player goes deeper: menu into level, world map into region.</span>
+<span class="t">DollyThrough</span>,
+<span class="c">/// The focus moves from one plane to the next in the same space. WHEN:</span>
+<span class="c">/// the attention changes and the place does not. The world goes soft</span>
+<span class="c">/// as the menu over it comes sharp. See [`Cine::blur`].</span>
+<span class="t">RackFocus</span>,
+<span class="c">/// One shape becomes the next. WHEN: continuity of a thing. The button</span>
+<span class="c">/// the player pressed grows into the panel it opens. `from` and `to`</span>
+<span class="c">/// are screen rects.</span>
+<span class="t">MatchCut</span> { from: <span class="t">Rect</span>, to: <span class="t">Rect</span> },
+<span class="c">/// The old screen breaks into cells that close, then open on the new</span>
+<span class="c">/// screen. WHEN: a dream, a teleport, a signal lost, a thing that decays.</span>
+<span class="t">NoiseDissolve</span>,</code></pre></div><div class="doc"><p>One kind of transition, with its film meaning.</p>
+<p><code>ignore
+cine.go(Screen::Map, Kind::Iris { shape: IrisShape::Circle, at: Some(pin) });</code></p></div></div><details class="members"><summary>6 methods</summary><div class="item" id="sym-Kind-default_secs" data-name="kind::default_secs"><div class="sig"><a class="anchor" href="#sym-Kind-default_secs" aria-label="Link to Kind::default_secs">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">default_secs</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The duration a film editor would give this kind, in seconds.</p></div></div><div class="item" id="sym-Kind-default_ease" data-name="kind::default_ease"><div class="sig"><a class="anchor" href="#sym-Kind-default_ease" aria-label="Link to Kind::default_ease">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">default_ease</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Ease</span></code></div><div class="doc"><p>The curve this kind uses unless the game sets one.</p></div></div><div class="item" id="sym-Kind-name" data-name="kind::name"><div class="sig"><a class="anchor" href="#sym-Kind-name" aria-label="Link to Kind::name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">name</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>A short name for a label.</p></div></div><div class="item" id="sym-Kind-uses_matte" data-name="kind::uses_matte"><div class="sig"><a class="anchor" href="#sym-Kind-uses_matte" aria-label="Link to Kind::uses_matte">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">uses_matte</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True when the kind closes a matte, switches screens at the half and
+opens the matte again. Only one screen is visible at a time.</p></div></div><div class="item" id="sym-Kind-showcase" data-name="kind::showcase"><div class="sig"><a class="anchor" href="#sym-Kind-showcase" aria-label="Link to Kind::showcase">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">showcase</span>(area: <span class="t">Rect</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">Kind</span>&gt;</code></div><div class="doc"><p>One of every kind, for a showcase or a test. <code>area</code> places the match
+cut rects.</p>
+<p><code>ignore
+for kind in Kind::showcase(ctx.screen_rect()) { /* ... */ }</code></p></div></div><div class="item" id="sym-Kind-new" data-name="kind::new"><div class="sig"><a class="anchor" href="#sym-Kind-new" aria-label="Link to Kind::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(id: &amp;<span class="a">'static</span> str, role: <span class="t">Role</span>, name: &amp;str) -&gt; <span class="t">Kind</span></code></div><div class="doc"><p>A kind with its role and its one- or two-word name.</p>
+<p><code>ignore
+Kind::new("gloom", Role::Danger, "Gloom")</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Phase" data-name="phase"><div class="sig"><a class="anchor" href="#sym-Phase" aria-label="Link to Phase">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Phase</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Progress below one half: the old screen leads.</span>
+<span class="t">Out</span>,
+<span class="c">/// Progress at or above one half: the new screen leads.</span>
+<span class="t">In</span>,
+<span class="c">/// Progress at one. The transition is over.</span>
+<span class="t">Done</span>,</code></pre></div><div class="doc"><p>Where a transition is.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Transition" data-name="transition"><div class="sig"><a class="anchor" href="#sym-Transition" aria-label="Link to Transition">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Transition</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> kind: <span class="t">Kind</span>,
+<span class="k">pub</span> secs: f32,
+<span class="k">pub</span> ease: <span class="t">Ease</span>,
+<span class="k">pub</span> elapsed: f32,</code></pre></div><div class="doc"><p>One running transition: a kind, a duration, a curve and a clock.</p>
+<p><code>ignore
+let mut t = cine::Transition::new(Kind::Crossfade);
+t.step(dt);
+let p = t.progress();</code></p></div></div><details class="members"><summary>9 methods</summary><div class="item" id="sym-Transition-new" data-name="transition::new"><div class="sig"><a class="anchor" href="#sym-Transition-new" aria-label="Link to Transition::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(kind: <span class="t">Kind</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A transition with the default duration and curve of <code>kind</code>.</p></div></div><div class="item" id="sym-Transition-reduced" data-name="transition::reduced"><div class="sig"><a class="anchor" href="#sym-Transition-reduced" aria-label="Link to Transition::reduced">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reduced</span>(<span class="k">self</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The same transition under reduced motion: a short crossfade. A cut
+stays a cut.</p></div></div><div class="item" id="sym-Transition-secs" data-name="transition::secs"><div class="sig"><a class="anchor" href="#sym-Transition-secs" aria-label="Link to Transition::secs">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">secs</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, secs: f32) -&gt; &amp;<span class="k">mut</span> <span class="k">Self</span></code></div><div class="doc"><p>Set the duration in seconds.</p></div></div><div class="item" id="sym-Transition-ease" data-name="transition::ease"><div class="sig"><a class="anchor" href="#sym-Transition-ease" aria-label="Link to Transition::ease">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">ease</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ease: <span class="t">Ease</span>) -&gt; &amp;<span class="k">mut</span> <span class="k">Self</span></code></div><div class="doc"><p>Set the curve.</p></div></div><div class="item" id="sym-Transition-step" data-name="transition::step"><div class="sig"><a class="anchor" href="#sym-Transition-step" aria-label="Link to Transition::step">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">step</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32)</code></div><div class="doc"><p>Advance the clock by <code>dt</code> seconds.</p></div></div><div class="item" id="sym-Transition-progress" data-name="transition::progress"><div class="sig"><a class="anchor" href="#sym-Transition-progress" aria-label="Link to Transition::progress">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">progress</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>Linear progress, 0..1. A transition of zero length is at 1.</p></div></div><div class="item" id="sym-Transition-eased" data-name="transition::eased"><div class="sig"><a class="anchor" href="#sym-Transition-eased" aria-label="Link to Transition::eased">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">eased</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>Progress through the curve.</p></div></div><div class="item" id="sym-Transition-phase" data-name="transition::phase"><div class="sig"><a class="anchor" href="#sym-Transition-phase" aria-label="Link to Transition::phase">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">phase</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Phase</span></code></div><div class="doc"><p>The phase now.</p></div></div><div class="item" id="sym-Transition-done" data-name="transition::done"><div class="sig"><a class="anchor" href="#sym-Transition-done" aria-label="Link to Transition::done">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">done</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True when the transition is over.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Layer" data-name="layer"><div class="sig"><a class="anchor" href="#sym-Layer" aria-label="Link to Layer">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Layer</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The move in points.</span>
+<span class="k">pub</span> offset: <span class="t">Vec2</span>,
+<span class="c">/// The opacity, 0..1.</span>
+<span class="k">pub</span> alpha: f32,
+<span class="c">/// The scale about `pivot`. 1 is no scale.</span>
+<span class="k">pub</span> scale: f32,
+<span class="c">/// The point the scale keeps still.</span>
+<span class="k">pub</span> pivot: <span class="t">Pos2</span>,
+<span class="c">/// True when no transition moves this screen. Its widgets take input.</span>
+<span class="k">pub</span> live: bool,</code></pre></div><div class="doc"><p>How one screen shows this frame: a move, an opacity and a scale about a
+pivot. A game draws a screen inside [<code>Layer::draw</code>], or reads the fields
+for its own world camera.</p>
+<p><code>ignore
+for (screen, layer) in cine.layers() {
+layer.draw(ctx, |ctx| self.draw_screen(ctx, screen));
+}</code></p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-Layer-rest" data-name="layer::rest"><div class="sig"><a class="anchor" href="#sym-Layer-rest" aria-label="Link to Layer::rest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">rest</span>(pivot: <span class="t">Pos2</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A screen at rest.</p></div></div><div class="item" id="sym-Layer-draw" data-name="layer::draw"><div class="sig"><a class="anchor" href="#sym-Layer-draw" aria-label="Link to Layer::draw">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> draw&lt;<span class="t">R</span>&gt;(&amp;<span class="k">self</span>, ctx: &amp;egui::<span class="t">Context</span>, draw: <span class="k">impl</span> <span class="t">FnOnce</span>(&amp;egui::<span class="t">Context</span>) -&gt; <span class="t">R</span>) -&gt; <span class="t">R</span></code></div><div class="doc"><p>Run <code>draw</code>, then fade and move every shape it painted. While the
+screen is not live, its widgets take no input.</p>
+<p>The scale is not applied to egui shapes. Use [<code>Layer::transform_rect</code>]
+to place content that must scale.</p></div></div><div class="item" id="sym-Layer-transform_pos" data-name="layer::transform_pos"><div class="sig"><a class="anchor" href="#sym-Layer-transform_pos" aria-label="Link to Layer::transform_pos">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">transform_pos</span>(&amp;<span class="k">self</span>, p: <span class="t">Pos2</span>) -&gt; <span class="t">Pos2</span></code></div><div class="doc"><p>Move and scale one point by this layer.</p></div></div><div class="item" id="sym-Layer-transform_rect" data-name="layer::transform_rect"><div class="sig"><a class="anchor" href="#sym-Layer-transform_rect" aria-label="Link to Layer::transform_rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">transform_rect</span>(&amp;<span class="k">self</span>, r: <span class="t">Rect</span>) -&gt; <span class="t">Rect</span></code></div><div class="doc"><p>Move and scale one rect by this layer.</p>
+<p><code>ignore
+let card = layer.transform_rect(card);</code></p></div></div><div class="item" id="sym-Layer-tint" data-name="layer::tint"><div class="sig"><a class="anchor" href="#sym-Layer-tint" aria-label="Link to Layer::tint">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">tint</span>(&amp;<span class="k">self</span>, c: <span class="t">Color32</span>) -&gt; <span class="t">Color32</span></code></div><div class="doc"><p>Multiply the alpha of <code>c</code> by this layer's opacity.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Cine" data-name="cine"><div class="sig"><a class="anchor" href="#sym-Cine" aria-label="Link to Cine">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Cine</span>&lt;<span class="t">S</span>&gt;</code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The matte colour of dips, irises, wipes and the noise dissolve. A</span>
+<span class="c">/// `DipToColor` uses its own colour.</span>
+<span class="k">pub</span> matte: <span class="t">Color32</span>,
+<span class="c">/// The fill of the match cut shape.</span>
+<span class="k">pub</span> accent: <span class="t">Color32</span>,
+<span class="c">/// The overlay layer id. Change it when two directors share a context.</span>
+<span class="k">pub</span> id: <span class="t">Id</span>,</code></pre></div><div class="doc"><p>The screen director: the screen the game is on, and the transition to
+the next one.</p>
+<p><code>S</code> is the game's own screen enum. See the module header for the frame
+loop.</p>
+<p><code>ignore
+let mut cine = Cine::new(Screen::Title);
+cine.go(Screen::Pause, Kind::Push(Dir::Left)).secs(0.4);</code></p></div></div><details class="members"><summary>18 methods</summary><div class="item" id="sym-Cine-new" data-name="cine::new"><div class="sig"><a class="anchor" href="#sym-Cine-new" aria-label="Link to Cine::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(screen: <span class="t">S</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A director that starts on <code>screen</code>, with no transition.</p></div></div><div class="item" id="sym-Cine-reduce_motion" data-name="cine::reduce_motion"><div class="sig"><a class="anchor" href="#sym-Cine-reduce_motion" aria-label="Link to Cine::reduce_motion">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reduce_motion</span>(<span class="k">mut</span> <span class="k">self</span>, on: bool) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Force reduced motion for this director, whatever the context says.</p></div></div><div class="item" id="sym-Cine-go" data-name="cine::go"><div class="sig"><a class="anchor" href="#sym-Cine-go" aria-label="Link to Cine::go">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">go</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, to: <span class="t">S</span>, kind: <span class="t">Kind</span>) -&gt; &amp;<span class="k">mut</span> <span class="t">Transition</span></code></div><div class="doc"><p>Go to <code>to</code> with <code>kind</code>. The returned transition takes <code>.secs(..)</code> and
+<code>.ease(..)</code>. A <code>go</code> during a transition starts from the screen that
+transition was going to. A <code>go</code> to the screen the game is on does
+nothing and returns the running transition or a finished cut.</p>
+<p><code>ignore
+cine.go(Screen::Options, Kind::Push(Dir::Left));</code></p></div></div><div class="item" id="sym-Cine-screen" data-name="cine::screen"><div class="sig"><a class="anchor" href="#sym-Cine-screen" aria-label="Link to Cine::screen">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">screen</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">S</span></code></div><div class="doc"><p>The screen the game is on, or is going to. Route input here.</p></div></div><div class="item" id="sym-Cine-from" data-name="cine::from"><div class="sig"><a class="anchor" href="#sym-Cine-from" aria-label="Link to Cine::from">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">S</span>&gt;</code></div><div class="doc"><p>The screen a running transition leaves, if one runs.</p></div></div><div class="item" id="sym-Cine-busy" data-name="cine::busy"><div class="sig"><a class="anchor" href="#sym-Cine-busy" aria-label="Link to Cine::busy">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">busy</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True while a transition runs.</p></div></div><div class="item" id="sym-Cine-transition" data-name="cine::transition"><div class="sig"><a class="anchor" href="#sym-Cine-transition" aria-label="Link to Cine::transition">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">transition</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Transition</span>&gt;</code></div><div class="doc"><p>The running transition, if any.</p></div></div><div class="item" id="sym-Cine-progress" data-name="cine::progress"><div class="sig"><a class="anchor" href="#sym-Cine-progress" aria-label="Link to Cine::progress">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">progress</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>Linear progress of the running transition, 0..1. At 1 when idle.</p></div></div><div class="item" id="sym-Cine-area" data-name="cine::area"><div class="sig"><a class="anchor" href="#sym-Cine-area" aria-label="Link to Cine::area">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">area</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Rect</span></code></div><div class="doc"><p>The screen rect the director lays out in. <code>update</code> sets it.</p></div></div><div class="item" id="sym-Cine-set_area" data-name="cine::set_area"><div class="sig"><a class="anchor" href="#sym-Cine-set_area" aria-label="Link to Cine::set_area">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_area</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, area: <span class="t">Rect</span>)</code></div><div class="doc"><p>Set the screen rect by hand, for a test or a sub-region.</p></div></div><div class="item" id="sym-Cine-step" data-name="cine::step"><div class="sig"><a class="anchor" href="#sym-Cine-step" aria-label="Link to Cine::step">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">step</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32)</code></div><div class="doc"><p>Advance the clock by <code>dt</code> seconds. <code>update</code> calls it.</p></div></div><div class="item" id="sym-Cine-update" data-name="cine::update"><div class="sig"><a class="anchor" href="#sym-Cine-update" aria-label="Link to Cine::update">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">update</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ctx: &amp;egui::<span class="t">Context</span>)</code></div><div class="doc"><p>Read the frame step, the screen rect and the motion preference from
+<code>ctx</code>, and advance. Call it once per frame, before <code>layers</code>.</p></div></div><div class="item" id="sym-Cine-blur" data-name="cine::blur"><div class="sig"><a class="anchor" href="#sym-Cine-blur" aria-label="Link to Cine::blur">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">blur</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>How soft the old plane is during a rack focus, 0..1. Zero for every
+other kind. A game with depth of field can feed it to the post kit:</p>
+<p><code>ignore
+let b = cine.blur();
+warp_sdk::post::set(|p| { p.dof.enabled = b &gt; 0.0; p.dof.max_blur = 12.0 * b; });</code></p></div></div><div class="item" id="sym-Cine-morph_rect" data-name="cine::morph_rect"><div class="sig"><a class="anchor" href="#sym-Cine-morph_rect" aria-label="Link to Cine::morph_rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">morph_rect</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">Rect</span>&gt;</code></div><div class="doc"><p>The rect of the match cut shape now, if a match cut runs.</p></div></div><div class="item" id="sym-Cine-layer" data-name="cine::layer"><div class="sig"><a class="anchor" href="#sym-Cine-layer" aria-label="Link to Cine::layer">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">layer</span>(&amp;<span class="k">self</span>, s: <span class="t">S</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">Layer</span>&gt;</code></div><div class="doc"><p>The transform of <code>s</code> this frame, or <code>None</code> when <code>s</code> is not visible.</p></div></div><div class="item" id="sym-Cine-layers" data-name="cine::layers"><div class="sig"><a class="anchor" href="#sym-Cine-layers" aria-label="Link to Cine::layers">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">layers</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;(<span class="t">S</span>, <span class="t">Layer</span>)&gt;</code></div><div class="doc"><p>Every visible screen with its transform, back to front.</p></div></div><div class="item" id="sym-Cine-paint" data-name="cine::paint"><div class="sig"><a class="anchor" href="#sym-Cine-paint" aria-label="Link to Cine::paint">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">paint</span>(&amp;<span class="k">self</span>, ctx: &amp;egui::<span class="t">Context</span>)</code></div><div class="doc"><p>Draw the matte or shape of the running transition on a foreground
+layer over the whole screen. Call it once per frame, after the
+screens.</p></div></div><div class="item" id="sym-Cine-show" data-name="cine::show"><div class="sig"><a class="anchor" href="#sym-Cine-show" aria-label="Link to Cine::show">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">show</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ctx: &amp;egui::<span class="t">Context</span>)</code></div><div class="doc"><p><code>update</code>, then <code>paint</code>. For a game that draws its screens itself
+with <code>layer</code>.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Hover" data-name="hover"><div class="sig"><a class="anchor" href="#sym-Hover" aria-label="Link to Hover">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Hover</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The button rises and its shadow grows. WHEN: the main action, a card.</span>
+<span class="t">Lift</span>,
+<span class="c">/// A soft glow, and a light that runs round the edge. WHEN: a rare or</span>
+<span class="c">/// magic item, a "new" badge.</span>
+<span class="t">GlowSweep</span>,
+<span class="c">/// A line grows from the centre under the label. WHEN: a text link, a</span>
+<span class="c">/// quiet menu entry.</span>
+<span class="t">UnderlineGrow</span>,
+<span class="c">/// Four corner brackets close in on the button. WHEN: a target, a</span>
+<span class="c">/// selection in a tactical or sci-fi menu.</span>
+<span class="t">BracketClose</span>,
+<span class="c">/// The button grows and its corners go round. WHEN: a friendly, soft</span>
+<span class="c">/// interface.</span>
+<span class="t">SquircleExpand</span>,
+<span class="c">/// The letters move apart and breathe. WHEN: a title-screen entry.</span>
+<span class="t">LetterBreathe</span>,
+<span class="c">/// A band of light crosses the face. WHEN: a premium or locked item.</span>
+<span class="t">Shimmer</span>,
+<span class="c">/// The button leans to the pointer. WHEN: a large, playful button.</span>
+<span class="t">Magnetic</span>,
+<span class="c">/// A circle grows from the press point. WHEN: every pressable thing</span>
+<span class="c">/// that needs feedback on press.</span>
+<span class="t">Ripple</span>,
+<span class="c">/// A ring morphs from a loose pill to a tight outline. WHEN: keyboard and</span>
+<span class="c">/// gamepad focus. Always give focus a visible ring.</span>
+<span class="t">FocusRing</span>,</code></pre></div><div class="doc"><p>One hover or press animation. A button takes several at once.</p>
+<p><code>ignore
+ui.add(cine::Button::new("Start").hover(Hover::BracketClose).hover(Hover::Shimmer));</code></p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-Hover-ALL" data-name="hover::all"><div class="sig"><a class="anchor" href="#sym-Hover-ALL" aria-label="Link to Hover::ALL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ALL</span>: [<span class="t">Hover</span>; <span class="n">10</span>] = [ <span class="t">Hover</span>::<span class="t">Lift</span>, <span class="t">Hover</span>::<span class="t">GlowSweep</span>, <span class="t">Hover</span>::<span class="t">UnderlineGrow</span>, <span class="t">Hover</span>::<span class="t">BracketClose</span>, <span class="t">Hover</span>::<span class="t">SquircleExpand</span>, <span class="t">Hover</span>::<span class="t">LetterBreathe</span>, <span class="t">Hover</span>::<span class="t">Shimmer</span>, <span class="t">Hover</span>::<span class="t">Magnetic</span>, <span class="t">Hover</span>::<span class="t">Ripple</span>, <span class="t">Hover</span>::<span class="t">FocusRing</span>, ]</code></div><div class="doc"><p>Every style, in declaration order.</p></div></div><div class="item" id="sym-Hover-name" data-name="hover::name"><div class="sig"><a class="anchor" href="#sym-Hover-name" aria-label="Link to Hover::name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">name</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>A short name for a label.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-HoverFx" data-name="hoverfx"><div class="sig"><a class="anchor" href="#sym-HoverFx" aria-label="Link to HoverFx">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">HoverFx</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The hover amount, 0..1.</span>
+<span class="k">pub</span> t: f32,
+<span class="c">/// The press amount, 0..1.</span>
+<span class="k">pub</span> press: f32,
+<span class="c">/// The focus amount, 0..1.</span>
+<span class="k">pub</span> focus: f32,
+<span class="c">/// A clock in seconds for looping effects.</span>
+<span class="k">pub</span> phase: f32,
+<span class="c">/// The move of the content: lift and magnetic.</span>
+<span class="k">pub</span> offset: <span class="t">Vec2</span>,
+<span class="c">/// Points to grow the body by on every side.</span>
+<span class="k">pub</span> grow: f32,
+<span class="c">/// Extra points between letters.</span>
+<span class="k">pub</span> spacing: f32,
+<span class="c">/// Live ripples: centre and age in seconds.</span>
+<span class="k">pub</span> ripples: <span class="t">Vec</span>&lt;(<span class="t">Pos2</span>, f32)&gt;,
+<span class="c">/// True when motion is reduced: the effects are static.</span>
+<span class="k">pub</span> reduced: bool,</code></pre></div><div class="doc"><p>The hover state of one widget this frame. [<code>hover_fx</code>] makes it. Read
+<code>offset</code>, <code>grow</code> and <code>spacing</code> to place the content, then paint the
+decorations with <code>paint_back</code>, <code>paint_mid</code> and <code>paint_front</code>.</p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-HoverFx-radius" data-name="hoverfx::radius"><div class="sig"><a class="anchor" href="#sym-HoverFx-radius" aria-label="Link to HoverFx::radius">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">radius</span>(&amp;<span class="k">self</span>, h: f32, styles: &amp;[<span class="t">Hover</span>]) -&gt; f32</code></div><div class="doc"><p>The corner radius of a body of height <code>h</code> under these effects.</p></div></div><div class="item" id="sym-HoverFx-paint_back" data-name="hoverfx::paint_back"><div class="sig"><a class="anchor" href="#sym-HoverFx-paint_back" aria-label="Link to HoverFx::paint_back">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">paint_back</span>(&amp;<span class="k">self</span>, painter: &amp;egui::<span class="t">Painter</span>, body: <span class="t">Rect</span>, radius: f32, styles: &amp;[<span class="t">Hover</span>], accent: <span class="t">Color32</span>)</code></div><div class="doc"><p>The shapes behind the body: shadow and glow.</p></div></div><div class="item" id="sym-HoverFx-paint_mid" data-name="hoverfx::paint_mid"><div class="sig"><a class="anchor" href="#sym-HoverFx-paint_mid" aria-label="Link to HoverFx::paint_mid">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">paint_mid</span>(&amp;<span class="k">self</span>, painter: &amp;egui::<span class="t">Painter</span>, body: <span class="t">Rect</span>, styles: &amp;[<span class="t">Hover</span>], accent: <span class="t">Color32</span>)</code></div><div class="doc"><p>The shapes on the face, under the label: ripple and shimmer. Pass a
+painter clipped to the body.</p></div></div><div class="item" id="sym-HoverFx-paint_front" data-name="hoverfx::paint_front"><div class="sig"><a class="anchor" href="#sym-HoverFx-paint_front" aria-label="Link to HoverFx::paint_front">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">paint_front</span>(&amp;<span class="k">self</span>, painter: &amp;egui::<span class="t">Painter</span>, body: <span class="t">Rect</span>, radius: f32, styles: &amp;[<span class="t">Hover</span>], accent: <span class="t">Color32</span>)</code></div><div class="doc"><p>The shapes over the label: underline, brackets, focus ring and the
+running light of the glow sweep.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Button" data-name="button"><div class="sig"><a class="anchor" href="#sym-Button" aria-label="Link to Button">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Button</span></code></div><div class="doc"><p>A button with hover and press animations. The default styles are lift,
+ripple and focus ring.</p>
+<p><code>ignore
+if ui.add(cine::Button::new("Play").hover(Hover::GlowSweep)).clicked() { /* ... */ }</code></p></div></div><details class="members"><summary>8 methods</summary><div class="item" id="sym-Button-new" data-name="button::new"><div class="sig"><a class="anchor" href="#sym-Button-new" aria-label="Link to Button::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(text: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A button with <code>text</code> on it.</p></div></div><div class="item" id="sym-Button-hover" data-name="button::hover"><div class="sig"><a class="anchor" href="#sym-Button-hover" aria-label="Link to Button::hover">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">hover</span>(<span class="k">mut</span> <span class="k">self</span>, h: <span class="t">Hover</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Add one hover style. The first call replaces the defaults.</p></div></div><div class="item" id="sym-Button-styles" data-name="button::styles"><div class="sig"><a class="anchor" href="#sym-Button-styles" aria-label="Link to Button::styles">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">styles</span>(<span class="k">mut</span> <span class="k">self</span>, s: &amp;[<span class="t">Hover</span>]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set every hover style at once.</p></div></div><div class="item" id="sym-Button-accent" data-name="button::accent"><div class="sig"><a class="anchor" href="#sym-Button-accent" aria-label="Link to Button::accent">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">accent</span>(<span class="k">mut</span> <span class="k">self</span>, c: <span class="t">Color32</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The colour of glow, underline, brackets and ring.</p></div></div><div class="item" id="sym-Button-ink" data-name="button::ink"><div class="sig"><a class="anchor" href="#sym-Button-ink" aria-label="Link to Button::ink">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">ink</span>(<span class="k">mut</span> <span class="k">self</span>, c: <span class="t">Color32</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The label colour.</p></div></div><div class="item" id="sym-Button-fill" data-name="button::fill"><div class="sig"><a class="anchor" href="#sym-Button-fill" aria-label="Link to Button::fill">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">fill</span>(<span class="k">mut</span> <span class="k">self</span>, c: <span class="t">Color32</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The face colour.</p></div></div><div class="item" id="sym-Button-font" data-name="button::font"><div class="sig"><a class="anchor" href="#sym-Button-font" aria-label="Link to Button::font">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">font</span>(<span class="k">mut</span> <span class="k">self</span>, f: <span class="t">FontId</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The label font.</p></div></div><div class="item" id="sym-Button-min_size" data-name="button::min_size"><div class="sig"><a class="anchor" href="#sym-Button-min_size" aria-label="Link to Button::min_size">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">min_size</span>(<span class="k">mut</span> <span class="k">self</span>, s: <span class="t">Vec2</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The smallest size of the button.</p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-REDUCED_SECS" data-name="reduced_secs"><div class="sig"><a class="anchor" href="#sym-REDUCED_SECS" aria-label="Link to REDUCED_SECS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">REDUCED_SECS</span>: f32 = <span class="n">0.15</span></code></div><div class="doc"><p>The longest duration of a transition under reduced motion, in seconds.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="front.html" data-slug="front">Front end</a></li><li><a href="front-menu.html" data-slug="front-menu">Menu screens</a></li><li><a href="squircle.html" data-slug="squircle">Squircle kit</a></li><li><a href="juice.html" data-slug="juice">Juice</a></li><li><a href="post.html" data-slug="post">Post effects</a></li><li><a href="front-settings.html" data-slug="front-settings">Settings</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/cine.rs</code> - <code>//! A transition is a sentence in film language, not decoration. Each</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/cine.rs</code> - <code>/// transition was going to. A `go` to the screen the game is on does</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/cine.rs</code> - <code>/// The duration a film editor would give this kind, in seconds.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/cine.rs</code> - <code>//! `cine` draws on egui only, so it works over any game. Each screen draws</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/cine.rs</code> - <code>/// 0 at 0 and 1 at 1. Back and elastic go outside 0..1 between.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/cine.rs</code> - <code>/// The step is the exact solution, so ten steps of 1/600 s land where one</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/cine.rs</code> - <code>/// A button with hover and press animations. The default styles are lift,</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/src/cine.rs</code> - <code>/// This writes the squircle kit motion preference, so the deck, the toasts</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_sdk/src/cine.rs</code> - <code>//! `Layer::scale` cannot scale egui shapes in this egui. A game that draws</code></li></ol><table class="navbox"><tr><th><a href="category-front-end.html">Front end</a></th></tr><tr><td><a href="front.html" data-slug="front">Front end</a> · <a href="front-menu.html" data-slug="front-menu">Menu screens</a> · <a href="front-save.html" data-slug="front-save">Save slots</a> · <a href="front-settings.html" data-slug="front-settings">Settings</a> · <a href="fonts.html" data-slug="fonts">Fonts</a> · <b>Cine</b> · <a href="icon.html" data-slug="icon">Application icon</a> · <a href="boot.html" data-slug="boot">Boot splash and screenshots</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-front-end.html">Front end</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

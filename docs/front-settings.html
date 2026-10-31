@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings - Warp Wiki</title>
+<meta name="description" content="One typed settings model, its file, and a six-tab page to edit it">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="front-settings">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#usage">Usage</a></li><li><a href="#the-model">The model</a><ul><li><a href="#display">Display</a></li><li><a href="#graphics">Graphics</a></li><li><a href="#audio">Audio</a></li><li><a href="#controls-accessibility-and-gameplay">Controls, accessibility and gameplay</a></li></ul></li><li><a href="#game-rows">Game rows</a></li><li><a href="#the-file">The file</a></li><li><a href="#the-post-switches-are-a-mask">The post switches are a mask</a></li><li><a href="#the-page">The page</a><ul><li><a href="#keys">Keys</a></li><li><a href="#style">Style</a></li></ul></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Settings</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">One typed settings model, its file, and a six-tab page to edit it</p><table class="infobox"><caption>Settings</caption><tr><th>Category</th><td><a href="category-front-end.html">Front end</a></td></tr><tr><th>Module</th><td><code>warp_sdk::front::settings</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/front/settings.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">68</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example settings</code></td></tr></table><p><strong>Settings</strong> are the settings model of a game, its file, and the page that edits it, in the <a class="sym" href="front-settings.html"><code>warp_sdk::front::settings</code></a> module. <a class="sym" href="#sym-Settings"><code>Settings</code></a> holds typed values in six groups, and <a class="sym" href="#sym-Page"><code>Page</code></a> draws them on six tabs with one call. The title menu and the pause menu embed the same page, so a game writes the settings screen once. A game reads the fields directly, every frame.</p>
+<h2 id="usage">Usage</h2>
+<p>The order in <a class="sym" href="#sym-Page-new"><code>new</code></a> matters. Register the key bindings, so the Controls tab lists them. Set the post look, so that load can mask it. Load the settings. Then add the game rows, because a value from the file wins over a default.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::front::settings::{<span class="t">Page</span>, <span class="t">Settings</span>};
+
+<span class="c">// In `new`: set the look first, then load. Load applies the post switches.</span>
+warp_sdk::post::<span class="f">replace</span>(warp_sdk::post::<span class="t">Post</span>::<span class="f">underwater</span>());
+<span class="k">let</span> <span class="k">mut</span> settings = <span class="t">Settings</span>::<span class="f">load</span>(<span class="s">"reef"</span>);
+<span class="k">let</span> <span class="k">mut</span> page = <span class="t">Page</span>::<span class="f">new</span>();
+
+<span class="c">// In `gui`, inside the pause menu or the title menu:</span>
+<span class="k">let</span> ev = page.<span class="f">show</span>(ui, &amp;<span class="k">mut</span> settings);
+<span class="k">if</span> ev.back { <span class="c">/* close the settings screen */</span> }
+<span class="k">if</span> ev.<span class="f">display_changed</span>() { <span class="c">/* send the display values to display_mode */</span> }
+<span class="k">let</span> music = settings.audio.<span class="f">gain</span>(warp_sdk::front::settings::<span class="t">Channel</span>::<span class="t">Music</span>);</code></pre></div>
+<h2 id="the-model">The model</h2>
+<p><a class="sym" href="#sym-Settings"><code>Settings</code></a> has six public groups: <a class="sym" href="fonts.html#sym-display"><code>display</code></a>, <code>graphics</code>, <a class="sym" href="audio.html"><code>audio</code></a>, <code>controls</code>, <code>accessibility</code> and <code>gameplay</code>. Each value also has a key, for example <code>audio.music</code>. The key is the name in the file, the name in <a class="sym" href="#sym-SettingsEvent-changed"><code>SettingsEvent::changed</code></a>, and the name that a row on the page edits, so one table holds all three uses.[[src:warp_sdk/src/front/settings.rs|//! The key is the name in the file, the name in [<a class="sym" href="#sym-SettingsEvent-changed"><code>SettingsEvent::changed</code></a>],]]</p>
+<p><a class="sym" href="#sym-Settings-value"><code>Settings::value</code></a> and <a class="sym" href="#sym-Settings-set_value"><code>Settings::set_value</code></a> work by key. <a class="sym" href="#sym-Settings-set_value"><code>set_value</code></a> clamps a number to the range of its row and returns true when the value changed. <a class="sym" href="#sym-Settings-flag"><code>flag</code></a>, <a class="sym" href="#sym-Settings-number"><code>number</code></a> and <a class="sym" href="#sym-Settings-pick"><code>pick</code></a> read one row, and give false, 0.0 or 0 for a key of another type.</p>
+<h3 id="display">Display</h3>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Range or choices</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>display.screen</code></td>
+<td>Borderless</td>
+<td>Windowed, Borderless, Fullscreen</td>
+</tr>
+<tr>
+<td><code>display.resolution</code></td>
+<td>1920 by 1080</td>
+<td>Display::resolutions, plus the current size</td>
+</tr>
+<tr>
+<td><code>display.vsync</code></td>
+<td>On</td>
+<td></td>
+</tr>
+<tr>
+<td><code>display.frame_cap</code></td>
+<td>0, no cap</td>
+<td>30, 60, 120, 144, 165, 240, unlimited</td>
+</tr>
+<tr>
+<td><code>display.ui_scale</code></td>
+<td>1.0</td>
+<td>0.75 to 2.0</td>
+</tr>
+<tr>
+<td><code>display.brightness</code></td>
+<td>1.0</td>
+<td>0.5 to 1.5</td>
+</tr>
+</tbody>
+</table>
+<p>A game sets Display::resolutions from the monitor list before it shows the page. <a class="sym" href="#sym-Settings-exposure"><code>Settings::exposure</code></a> multiplies a base gain by the brightness.</p>
+<h3 id="graphics">Graphics</h3>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Range or choices</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>graphics.preset</code></td>
+<td>High</td>
+<td>Low, Medium, High, Ultra, Custom</td>
+</tr>
+<tr>
+<td><code>graphics.particles</code></td>
+<td>1.0</td>
+<td>0.25 to 2.0</td>
+</tr>
+<tr>
+<td><code>graphics.fluid</code></td>
+<td>High</td>
+<td>Low, Medium, High, Ultra</td>
+</tr>
+<tr>
+<td><code>graphics.bloom</code></td>
+<td>On</td>
+<td></td>
+</tr>
+<tr>
+<td><code>graphics.anti_alias</code></td>
+<td>On</td>
+<td></td>
+</tr>
+<tr>
+<td><code>graphics.depth_of_field</code></td>
+<td>On</td>
+<td></td>
+</tr>
+<tr>
+<td><code>graphics.motion_blur</code></td>
+<td>Off</td>
+<td></td>
+</tr>
+<tr>
+<td><code>graphics.retro</code></td>
+<td>On</td>
+<td>The CRT tube</td>
+</tr>
+</tbody>
+</table>
+<p>A preset sets the quality values at once.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup> A change to one of those values picks the matching preset, or Custom when none matches. The retro switch is not part of a preset.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Preset</th>
+<th>Particles</th>
+<th>Fluid</th>
+<th>Bloom</th>
+<th>Anti-alias</th>
+<th>Depth of field</th>
+<th>Motion blur</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Low</td>
+<td>0.5</td>
+<td>Low</td>
+<td>Off</td>
+<td>On</td>
+<td>Off</td>
+<td>Off</td>
+</tr>
+<tr>
+<td>Medium</td>
+<td>0.75</td>
+<td>Medium</td>
+<td>On</td>
+<td>On</td>
+<td>Off</td>
+<td>Off</td>
+</tr>
+<tr>
+<td>High</td>
+<td>1.0</td>
+<td>High</td>
+<td>On</td>
+<td>On</td>
+<td>On</td>
+<td>Off</td>
+</tr>
+<tr>
+<td>Ultra</td>
+<td>1.5</td>
+<td>Ultra</td>
+<td>On</td>
+<td>On</td>
+<td>On</td>
+<td>On</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-FluidRes-cells"><code>FluidRes::cells</code></a> gives the grid cells on the long side: 128, 256, 384 or 512.</p>
+<h3 id="audio">Audio</h3>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>audio.master</code></td>
+<td>0.8</td>
+</tr>
+<tr>
+<td><code>audio.music</code></td>
+<td>0.7</td>
+</tr>
+<tr>
+<td><code>audio.effects</code></td>
+<td>0.8</td>
+</tr>
+<tr>
+<td><code>audio.ambience</code></td>
+<td>0.8</td>
+</tr>
+<tr>
+<td><code>audio.interface</code></td>
+<td>0.6</td>
+</tr>
+<tr>
+<td><code>audio.mute_unfocused</code></td>
+<td>On</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Audio-gain"><code>Audio::gain</code></a> gives the gain to play a channel at, master times the channel, clamped to the range 0 to 1.</p>
+<h3 id="controls-accessibility-and-gameplay">Controls, accessibility and gameplay</h3>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Range or choices</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>controls.sensitivity</code></td>
+<td>1.0</td>
+<td>0.1 to 3.0</td>
+</tr>
+<tr>
+<td><code>controls.invert_y</code></td>
+<td>Off</td>
+<td></td>
+</tr>
+<tr>
+<td><code>controls.vibration</code></td>
+<td>On</td>
+<td></td>
+</tr>
+<tr>
+<td><code>access.text_size</code></td>
+<td>1.0</td>
+<td>0.8 to 2.0</td>
+</tr>
+<tr>
+<td><code>access.captions</code></td>
+<td>Off</td>
+<td></td>
+</tr>
+<tr>
+<td><code>access.reduce_motion</code></td>
+<td>Off</td>
+<td></td>
+</tr>
+<tr>
+<td><code>access.screen_shake</code></td>
+<td>1.0</td>
+<td>0.0 to 1.0</td>
+</tr>
+<tr>
+<td><code>access.colour_blind</code></td>
+<td>Off</td>
+<td>Off, Protanopia, Deuteranopia, Tritanopia</td>
+</tr>
+<tr>
+<td><code>access.hold_to_toggle</code></td>
+<td>Off</td>
+<td></td>
+</tr>
+<tr>
+<td><code>gameplay.difficulty</code></td>
+<td>Normal</td>
+<td>Story, Normal, Hard</td>
+</tr>
+<tr>
+<td><code>gameplay.hints</code></td>
+<td>On</td>
+<td></td>
+</tr>
+<tr>
+<td><code>gameplay.autosave</code></td>
+<td>On</td>
+<td></td>
+</tr>
+<tr>
+<td><code>gameplay.pause_unfocused</code></td>
+<td>On</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>The Controls tab also lists one row for each action in the <a href="bindings.html" data-slug="bindings">Bindings</a> catalog, under the group of that action. The key bindings keep their own file. <a class="sym" href="#sym-Settings-text_scale"><code>Settings::text_scale</code></a> multiplies the interface scale by the text size.</p>
+<h2 id="game-rows">Game rows</h2>
+<p><a class="sym" href="#sym-Settings-add_toggle"><code>add_toggle</code></a>, <a class="sym" href="#sym-Settings-add_slider"><code>add_slider</code></a> and <a class="sym" href="#sym-Settings-add_choice"><code>add_choice</code></a> add a row to the Gameplay tab, under a key of <code>game.&lt;name&gt;</code>. A value from the file wins over the default. Adding a key twice keeps the first row.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> A row's bare name also works in <a class="sym" href="#sym-Settings-flag"><code>flag</code></a>, <a class="sym" href="#sym-Settings-number"><code>number</code></a> and <a class="sym" href="#sym-Settings-pick"><code>pick</code></a>.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">fn</span> <span class="f">add_game_rows</span>(s: &amp;<span class="k">mut</span> <span class="t">Settings</span>) {
+    s.<span class="f">add_toggle</span>(<span class="s">"motes"</span>, <span class="s">"Show motes"</span>, <span class="s">"Draw the small particles in the water."</span>, <span class="k">true</span>);
+    s.<span class="f">add_slider</span>(<span class="s">"drift"</span>, <span class="s">"Current speed"</span>, <span class="s">"Change the speed of the water."</span>, <span class="n">0.25</span>, <span class="n">2.0</span>, <span class="n">1.0</span>, <span class="t">Unit</span>::<span class="t">Times</span>);
+    s.<span class="f">add_choice</span>(<span class="s">"lamp"</span>, <span class="s">"Lamp colour"</span>, <span class="s">"The colour of the lamp light."</span>, &amp;[<span class="s">"Amber"</span>, <span class="s">"Cyan"</span>, <span class="s">"White"</span>], <span class="n">0</span>);
+}</code></pre></div>
+<p><a class="sym" href="#sym-Unit"><code>Unit</code></a> sets how a slider writes its value: Percent shows 0.75 as 75%, Times shows 1.25 with a multiplication sign, and Plain shows the number. A slider made this way has a keyboard step of a tenth of its span and a fine step of a hundredth.</p>
+<h2 id="the-file">The file</h2>
+<p><a class="sym" href="#sym-Settings-load"><code>Settings::load</code></a> reads <code>settings.cfg</code> in the game's folder under the application data root, at the path that <a class="sym" href="#sym-Settings-path_for"><code>path_for</code></a> gives. The file is one <code>key = value</code> per line, with a <code>version</code> line first and <code>#</code> comments. Toggles write <a class="sym" href="gpu.html#sym-on"><code>on</code></a> or <code>off</code>, and choices write their label. A missing or broken file gives the defaults, and a missing key keeps its default.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<p>An unknown key stays in the model and goes back into the file on save, so an older build does not delete the values of a newer build.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup> The same mechanism carries game rows: a value for <code>game.tracers</code> waits as an unknown key until <a class="sym" href="#sym-Settings-add_toggle"><code>add_toggle</code></a> claims it. <a class="sym" href="#sym-Settings-unknown_keys"><code>unknown_keys</code></a> lists them.</p>
+<p><a class="sym" href="#sym-Settings-save"><code>Settings::save</code></a> writes the file that <a class="sym" href="#sym-Settings-load"><code>load</code></a> read. It writes nothing for a model that did not come from <a class="sym" href="#sym-Settings-load"><code>load</code></a>. <a class="sym" href="#sym-Settings-save_to"><code>save_to</code></a> writes to a temporary file and then renames it, so a crash does not leave half a file. <a class="sym" href="#sym-Settings-from_text"><code>Settings::from_text</code></a> and <a class="sym" href="#sym-Settings-to_text"><code>to_text</code></a> parse and write the text with no file and no change to <a class="sym" href="post.html"><code>post</code></a>.</p>
+<h2 id="the-post-switches-are-a-mask">The post switches are a mask</h2>
+<p>The graphics switches for bloom, anti-aliasing, depth of field, motion blur and retro can only remove an effect from the look of the game. They never add an effect that the look does not use.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup> A switch that is off turns that effect off, and a switch that is on keeps the value of the look. This is why retro can default to on while the CRT stays off in a look that does not use it.</p>
+<p><a class="sym" href="#sym-Settings-load"><code>load</code></a> captures the look from <a class="sym" href="post.html#sym-get"><code>post::get</code></a>, so a game sets the look before it loads, or calls <a class="sym" href="#sym-Settings-set_look"><code>set_look</code></a> afterwards. <a class="sym" href="#sym-Settings-apply_post"><code>apply_post</code></a> writes the masked look to <a href="post.html" data-slug="post">Post effects</a>, and <a class="sym" href="#sym-Settings-post_for"><code>post_for</code></a> gives the masked look with no side effect. Depth of field masks both depth-of-field effects.</p>
+<h2 id="the-page">The page</h2>
+<p><a class="sym" href="#sym-Page-show"><code>Page::show</code></a> draws the page in a <code>Ui</code>, runs its input and returns a <a class="sym" href="#sym-SettingsEvent"><code>SettingsEvent</code></a>. The page applies the post switches and saves the file by itself. It saves after a change, when no pointer button is down, so a drag does not write on every frame.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup> Display and audio changes are only reported, and the game wires them.</p>
+<p><a class="sym" href="#sym-SettingsEvent"><code>SettingsEvent</code></a> has the <a class="sym" href="#sym-SettingsEvent-changed"><code>changed</code></a> list of keys and a <code>back</code> flag. A rebind appears as <code>bind.&lt;action id&gt;</code>. <a class="sym" href="#sym-SettingsEvent-changed"><code>changed(key)</code></a>, <a class="sym" href="#sym-SettingsEvent-tab_changed"><code>tab_changed</code></a>, <a class="sym" href="#sym-SettingsEvent-display_changed"><code>display_changed</code></a> and <a class="sym" href="#sym-SettingsEvent-audio_changed"><code>audio_changed</code></a> query the list.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> ev = page.<span class="f">show</span>(ui, &amp;<span class="k">mut</span> settings);
+<span class="k">if</span> ev.<span class="f">changed</span>(<span class="s">"audio.music"</span>) { music.<span class="f">set_volume</span>(settings.audio.<span class="f">gain</span>(<span class="t">Channel</span>::<span class="t">Music</span>)); }</code></pre></div>
+<p>The example embeds the page in an area over a dimmed scene:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust">egui::<span class="t">Area</span>::<span class="f">new</span>(<span class="s">"settings_menu"</span>).<span class="f">fixed_pos</span>(rect.min).<span class="f">show</span>(ctx, |ui| {
+    ui.<span class="f">set_min_size</span>(size);
+    ui.<span class="f">set_max_size</span>(size);
+    ev = <span class="k">self</span>.page.<span class="f">show</span>(ui, &amp;<span class="k">mut</span> <span class="k">self</span>.settings);
+});
+<span class="k">if</span> ev.back {
+    <span class="k">self</span>.open = <span class="k">false</span>;
+}</code></pre></div>
+<h3 id="keys">Keys</h3>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Up, Down</td>
+<td>Move the focus</td>
+</tr>
+<tr>
+<td>Left, Right</td>
+<td>Change the value. Shift gives the fine step</td>
+</tr>
+<tr>
+<td>Enter, Space</td>
+<td>Toggle, cycle, start a rebind, or press a button</td>
+</tr>
+<tr>
+<td>Delete</td>
+<td>Put the row back to its default</td>
+</tr>
+<tr>
+<td>Q, E, Tab</td>
+<td>Change the tab</td>
+</tr>
+<tr>
+<td>Escape</td>
+<td>Set <code>back</code></td>
+</tr>
+</tbody>
+</table>
+<p>A gamepad kit sends the same moves as <a class="sym" href="#sym-Nav"><code>Nav</code></a> values through <a class="sym" href="#sym-Page-push"><code>Page::push</code></a>, which queues them for the next <a class="sym" href="#sym-Page-show"><code>show</code></a>. <a class="sym" href="#sym-Page-apply"><code>Page::apply</code></a> runs one move with no drawing. While a rebind row waits for a key, <a class="sym" href="#sym-Page-is_listening"><code>is_listening</code></a> is true, and the game should not run game input on that key. Escape cancels a rebind, and Delete or Backspace clears it.</p>
+<p>The page reads no keys while another egui widget wants the keyboard. A game that opens the page on Escape must not show it in the same frame, because it reads the same press and closes at once.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<p>Each tab ends with a Restore defaults row. <a class="sym" href="#sym-Settings-restore"><code>Settings::restore</code></a> resets one tab and returns the keys that changed. On the Controls tab it also resets every key binding. Game rows return to the defaults given when they were added.</p>
+<h3 id="style">Style</h3>
+<p><a class="sym" href="#sym-SettingsStyle"><code>SettingsStyle</code></a> sets the page's font families, its base size and its colours. <a class="sym" href="#sym-Page-style"><code>Page::style</code></a> installs it. The page itself obeys <code>text_size</code> and <a class="sym" href="cine.html#sym-reduce_motion"><code>reduce_motion</code></a>.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> style = <span class="t">SettingsStyle</span> { numbers: egui::<span class="t">FontFamily</span>::<span class="t">Monospace</span>, ..<span class="t">Default</span>::<span class="f">default</span>() };
+<span class="k">Self</span> { settings, page: <span class="t">Page</span>::<span class="f">new</span>().<span class="f">style</span>(style), open: <span class="k">false</span> }</code></pre></div>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Setting</th>
+<th>What the game does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Display values</td>
+<td>Sends them to <a href="display-mode.html" data-slug="display-mode">Display mode</a> when <a class="sym" href="#sym-SettingsEvent-display_changed"><code>display_changed</code></a> is true. This module stores them and does not change the window</td>
+</tr>
+<tr>
+<td>Audio values</td>
+<td>Applies <a class="sym" href="#sym-Audio-gain"><code>Audio::gain</code></a> to its sinks, for example <a href="soundtrack.html" data-slug="soundtrack">Soundtrack</a></td>
+</tr>
+<tr>
+<td><code>access.reduce_motion</code></td>
+<td>Passes it to <a class="sym" href="cine.html#sym-set_reduce_motion"><code>cine::set_reduce_motion</code></a></td>
+</tr>
+<tr>
+<td><code>graphics.fluid</code></td>
+<td>Reads <a class="sym" href="#sym-FluidRes-cells"><code>FluidRes::cells</code></a> for <a href="fluid-solver.html" data-slug="fluid-solver">Fluid solver</a></td>
+</tr>
+<tr>
+<td><code>access.screen_shake</code>, <code>access.colour_blind</code>, <code>access.captions</code></td>
+<td>Reads the field. The module draws no filter and no caption</td>
+</tr>
+</tbody>
+</table>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>Version 1 is the first format, so there is no migration. A newer version keeps the keys that this build knows.</li>
+<li>Most values take effect only where the game reads them. The page changes <a class="sym" href="post.html"><code>post</code></a> and nothing else in the engine.</li>
+<li>Display::resolutions has a fixed default list until the game supplies the monitor list.</li>
+</ul><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 68 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-front--settings" class="modhead"><code>warp_sdk::front::settings</code></h3><h4>Functions</h4><div class="item" id="sym-raw_key" data-name="raw_key"><div class="sig"><a class="anchor" href="#sym-raw_key" aria-label="Link to raw_key">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">raw_key</span>(k: egui::<span class="t">Key</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">RawKey</span>&gt;</code></div><div class="doc"><p>The engine key for an egui key. None for a key the engine cannot name.</p>
+<p><code>ignore
+assert_eq!(raw_key(egui::Key::Space), Some(RawKey::Space));</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Tab" data-name="tab"><div class="sig"><a class="anchor" href="#sym-Tab" aria-label="Link to Tab">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Tab</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Display</span>,
+<span class="t">Graphics</span>,
+<span class="t">Audio</span>,
+<span class="t">Controls</span>,
+<span class="t">Accessibility</span>,
+<span class="t">Gameplay</span>,</code></pre></div><div class="doc"><p>The six tabs of the settings page, in the order the page shows them.</p>
+<p><code>ignore
+page.tab = Tab::Audio;</code></p></div></div><details class="members"><summary>3 methods</summary><div class="item" id="sym-Tab-ALL" data-name="tab::all"><div class="sig"><a class="anchor" href="#sym-Tab-ALL" aria-label="Link to Tab::ALL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ALL</span>: [<span class="t">Tab</span>; <span class="n">6</span>] = [ <span class="t">Tab</span>::<span class="t">Display</span>, <span class="t">Tab</span>::<span class="t">Graphics</span>, <span class="t">Tab</span>::<span class="t">Audio</span>, <span class="t">Tab</span>::<span class="t">Controls</span>, <span class="t">Tab</span>::<span class="t">Accessibility</span>, <span class="t">Tab</span>::<span class="t">Gameplay</span>, ]</code></div><div class="doc"><p>Every tab, in page order.</p></div></div><div class="item" id="sym-Tab-label" data-name="tab::label"><div class="sig"><a class="anchor" href="#sym-Tab-label" aria-label="Link to Tab::label">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">label</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>The name on the tab strip.</p></div></div><div class="item" id="sym-Tab-owns" data-name="tab::owns"><div class="sig"><a class="anchor" href="#sym-Tab-owns" aria-label="Link to Tab::owns">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">owns</span>(<span class="k">self</span>, key: &amp;str) -&gt; bool</code></div><div class="doc"><p>True when <code>key</code> is a key of a row on this tab.</p>
+<p><code>ignore
+assert!(Tab::Audio.owns("audio.music"));</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-ScreenMode" data-name="screenmode"><div class="sig"><a class="anchor" href="#sym-ScreenMode" aria-label="Link to ScreenMode">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">ScreenMode</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Windowed</span>,
+<span class="t">Borderless</span>,
+<span class="t">Fullscreen</span>,</code></pre></div><div class="doc"><p>How the window fills the screen.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Display" data-name="display"><div class="sig"><a class="anchor" href="#sym-Display" aria-label="Link to Display">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Display</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> screen: <span class="t">ScreenMode</span>,
+<span class="c">/// Width and height in pixels.</span>
+<span class="k">pub</span> resolution: (u32, u32),
+<span class="c">/// The sizes the page offers. Set this from the monitor list before</span>
+<span class="c">/// you show the page. The current size is always offered.</span>
+<span class="k">pub</span> resolutions: <span class="t">Vec</span>&lt;(u32, u32)&gt;,
+<span class="k">pub</span> vsync: bool,
+<span class="c">/// Frames per second. 0 is no cap.</span>
+<span class="k">pub</span> frame_cap: u32,
+<span class="c">/// The interface scale. 1.0 is 100 %.</span>
+<span class="k">pub</span> ui_scale: f32,
+<span class="c">/// A gain on the picture. 1.0 is no change. See [`Settings::exposure`].</span>
+<span class="k">pub</span> brightness: f32,</code></pre></div><div class="doc"><p>Display values. The engine applies them through <code>display_mode</code>; this
+module only stores them.</p>
+<p><code>ignore
+let (w, h) = settings.display.resolution;</code></p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Display-resolution_options" data-name="display::resolution_options"><div class="sig"><a class="anchor" href="#sym-Display-resolution_options" aria-label="Link to Display::resolution_options">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">resolution_options</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;(u32, u32)&gt;</code></div><div class="doc"><p>The sizes the resolution row offers: <code>resolutions</code>, sorted, with the
+current size added when the list does not have it.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Quality" data-name="quality"><div class="sig"><a class="anchor" href="#sym-Quality" aria-label="Link to Quality">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Quality</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Low</span>,
+<span class="t">Medium</span>,
+<span class="t">High</span>,
+<span class="t">Ultra</span>,
+<span class="t">Custom</span>,</code></pre></div><div class="doc"><p>The quality preset. <code>Custom</code> shows when the values match no preset.</p></div></div></div><div class="typeblock"><div class="item" id="sym-FluidRes" data-name="fluidres"><div class="sig"><a class="anchor" href="#sym-FluidRes" aria-label="Link to FluidRes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">FluidRes</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Low</span>,
+<span class="t">Medium</span>,
+<span class="t">High</span>,
+<span class="t">Ultra</span>,</code></pre></div><div class="doc"><p>The fluid simulation grid size.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-FluidRes-cells" data-name="fluidres::cells"><div class="sig"><a class="anchor" href="#sym-FluidRes-cells" aria-label="Link to FluidRes::cells">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cells</span>(<span class="k">self</span>) -&gt; u32</code></div><div class="doc"><p>Grid cells on the long side: 128, 256, 384 or 512.</p>
+<p><code>ignore
+let cells = settings.graphics.fluid.cells();</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Graphics" data-name="graphics"><div class="sig"><a class="anchor" href="#sym-Graphics" aria-label="Link to Graphics">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Graphics</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> preset: <span class="t">Quality</span>,
+<span class="c">/// A multiplier on particle counts. 1.0 is the game's own count.</span>
+<span class="k">pub</span> particle_density: f32,
+<span class="k">pub</span> fluid: <span class="t">FluidRes</span>,
+<span class="k">pub</span> bloom: bool,
+<span class="k">pub</span> anti_alias: bool,
+<span class="k">pub</span> depth_of_field: bool,
+<span class="k">pub</span> motion_blur: bool,
+<span class="c">/// The CRT tube.</span>
+<span class="k">pub</span> retro: bool,</code></pre></div><div class="doc"><p>Graphics values. The five switches mask the game's post look.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Channel" data-name="channel"><div class="sig"><a class="anchor" href="#sym-Channel" aria-label="Link to Channel">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Channel</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Music</span>,
+<span class="t">Effects</span>,
+<span class="t">Ambience</span>,
+<span class="t">Interface</span>,</code></pre></div><div class="doc"><p>One audio channel. See [<code>Audio::gain</code>].</p></div></div></div><div class="typeblock"><div class="item" id="sym-Audio" data-name="audio"><div class="sig"><a class="anchor" href="#sym-Audio" aria-label="Link to Audio">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Audio</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> master: f32,
+<span class="k">pub</span> music: f32,
+<span class="k">pub</span> effects: f32,
+<span class="k">pub</span> ambience: f32,
+<span class="k">pub</span> interface: f32,
+<span class="c">/// Silence the game when its window does not have the focus.</span>
+<span class="k">pub</span> mute_unfocused: bool,</code></pre></div><div class="doc"><p>Audio volumes, 0.0 to 1.0.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Audio-gain" data-name="audio::gain"><div class="sig"><a class="anchor" href="#sym-Audio-gain" aria-label="Link to Audio::gain">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">gain</span>(&amp;<span class="k">self</span>, ch: <span class="t">Channel</span>) -&gt; f32</code></div><div class="doc"><p>The gain to play a channel at: master times the channel.</p>
+<p><code>ignore
+sink.set_volume(settings.audio.gain(Channel::Music));</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Controls" data-name="controls"><div class="sig"><a class="anchor" href="#sym-Controls" aria-label="Link to Controls">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Controls</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A multiplier on camera or aim speed. 1.0 is no change.</span>
+<span class="k">pub</span> sensitivity: f32,
+<span class="k">pub</span> invert_y: bool,
+<span class="c">/// Gamepad rumble.</span>
+<span class="k">pub</span> vibration: bool,</code></pre></div><div class="doc"><p>Control values. The key bindings live in <code>warp_sdk::bindings</code>, which
+keeps its own file.</p></div></div></div><div class="typeblock"><div class="item" id="sym-ColourBlind" data-name="colourblind"><div class="sig"><a class="anchor" href="#sym-ColourBlind" aria-label="Link to ColourBlind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">ColourBlind</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Off</span>,
+<span class="t">Protanopia</span>,
+<span class="t">Deuteranopia</span>,
+<span class="t">Tritanopia</span>,</code></pre></div><div class="doc"><p>The colour-blind filter.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Accessibility" data-name="accessibility"><div class="sig"><a class="anchor" href="#sym-Accessibility" aria-label="Link to Accessibility">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Accessibility</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A multiplier on text size. 1.0 is 100 %.</span>
+<span class="k">pub</span> text_size: f32,
+<span class="k">pub</span> captions: bool,
+<span class="c">/// Stop easing, camera sway and flashes.</span>
+<span class="k">pub</span> reduce_motion: bool,
+<span class="c">/// A multiplier on screen shake. 0.0 is no shake.</span>
+<span class="k">pub</span> screen_shake: f32,
+<span class="k">pub</span> colour_blind: <span class="t">ColourBlind</span>,
+<span class="c">/// Press once to start a held action and once more to stop it.</span>
+<span class="k">pub</span> hold_to_toggle: bool,</code></pre></div><div class="doc"><p>Accessibility values. The page itself obeys <code>text_size</code> and
+<code>reduce_motion</code>.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Difficulty" data-name="difficulty"><div class="sig"><a class="anchor" href="#sym-Difficulty" aria-label="Link to Difficulty">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Difficulty</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Story</span>,
+<span class="t">Normal</span>,
+<span class="t">Hard</span>,</code></pre></div><div class="doc"><p>The difficulty.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Gameplay" data-name="gameplay"><div class="sig"><a class="anchor" href="#sym-Gameplay" aria-label="Link to Gameplay">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Gameplay</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> difficulty: <span class="t">Difficulty</span>,
+<span class="c">/// Show tutorial prompts.</span>
+<span class="k">pub</span> hints: bool,
+<span class="k">pub</span> autosave: bool,
+<span class="k">pub</span> pause_unfocused: bool,
+<span class="c">/// The rows the game added, in the order it added them.</span>
+<span class="k">pub</span> custom: <span class="t">Vec</span>&lt;<span class="t">GameRow</span>&gt;,</code></pre></div><div class="doc"><p>Gameplay values, and the rows the game adds. See [<code>Settings::add_toggle</code>].</p></div></div></div><div class="typeblock"><div class="item" id="sym-GameRow" data-name="gamerow"><div class="sig"><a class="anchor" href="#sym-GameRow" aria-label="Link to GameRow">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">GameRow</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> key: <span class="t">String</span>,
+<span class="k">pub</span> label: <span class="t">String</span>,
+<span class="k">pub</span> hint: <span class="t">String</span>,
+<span class="k">pub</span> kind: <span class="t">Kind</span>,
+<span class="k">pub</span> value: <span class="t">Value</span>,
+<span class="k">pub</span> default: <span class="t">Value</span>,</code></pre></div><div class="doc"><p>A row the game added to the Gameplay tab. Its key is <code>game.&lt;name&gt;</code>.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Value" data-name="value"><div class="sig"><a class="anchor" href="#sym-Value" aria-label="Link to Value">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Value</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Toggle</span>(bool),
+<span class="t">Number</span>(f32),
+<span class="c">/// An index into the choice list.</span>
+<span class="t">Pick</span>(usize),</code></pre></div><div class="doc"><p>One value of one row.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Unit" data-name="unit"><div class="sig"><a class="anchor" href="#sym-Unit" aria-label="Link to Unit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Unit</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// 0.75 shows as `75%`.</span>
+<span class="t">Percent</span>,
+<span class="c">/// 1.25 shows as `1.25×`.</span>
+<span class="t">Times</span>,
+<span class="c">/// The number as it is, with up to two decimals.</span>
+<span class="t">Plain</span>,</code></pre></div><div class="doc"><p>How a slider writes its value.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Unit-format" data-name="unit::format"><div class="sig"><a class="anchor" href="#sym-Unit-format" aria-label="Link to Unit::format">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">format</span>(<span class="k">self</span>, v: f32) -&gt; <span class="t">String</span></code></div><div class="doc"><p>The readout text for a value.</p>
+<p><code>ignore
+assert_eq!(Unit::Percent.format(0.5), "50%");</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Kind" data-name="kind"><div class="sig"><a class="anchor" href="#sym-Kind" aria-label="Link to Kind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Kind</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Toggle</span>,
+<span class="c">/// `step` is the plain keyboard step, `fine` the Shift step and the grid.</span>
+<span class="t">Slider</span> { min: f32, max: f32, step: f32, fine: f32, unit: <span class="t">Unit</span> },
+<span class="t">Choice</span>(<span class="t">Vec</span>&lt;<span class="t">String</span>&gt;),
+<span class="c">/// A key binding row for one `bindings` action id.</span>
+<span class="t">Bind</span>(&amp;<span class="a">'static</span> str),
+<span class="c">/// A row that runs an action, for example "Restore defaults".</span>
+<span class="t">Button</span>,</code></pre></div><div class="doc"><p>What kind of control a row has.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Row" data-name="row"><div class="sig"><a class="anchor" href="#sym-Row" aria-label="Link to Row">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Row</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> key: <span class="t">String</span>,
+<span class="k">pub</span> label: <span class="t">String</span>,
+<span class="c">/// The one line the page shows under the rows for the focused row.</span>
+<span class="k">pub</span> hint: <span class="t">String</span>,
+<span class="c">/// The section header the row sits under.</span>
+<span class="k">pub</span> section: <span class="t">String</span>,
+<span class="k">pub</span> kind: <span class="t">Kind</span>,
+<span class="c">/// None for `Bind` and `Button` rows.</span>
+<span class="k">pub</span> value: <span class="t">Option</span>&lt;<span class="t">Value</span>&gt;,</code></pre></div><div class="doc"><p>One row of a tab, with its current value. Made by [<code>Settings::rows</code>].</p></div></div></div><div class="typeblock"><div class="item" id="sym-Settings" data-name="settings"><div class="sig"><a class="anchor" href="#sym-Settings" aria-label="Link to Settings">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Settings</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> display: <span class="t">Display</span>,
+<span class="k">pub</span> graphics: <span class="t">Graphics</span>,
+<span class="k">pub</span> audio: <span class="t">Audio</span>,
+<span class="k">pub</span> controls: <span class="t">Controls</span>,
+<span class="k">pub</span> accessibility: <span class="t">Accessibility</span>,
+<span class="k">pub</span> gameplay: <span class="t">Gameplay</span>,</code></pre></div><div class="doc"><p>Every setting the game and the page share. See the module header.</p>
+<p><code>ignore
+let mut settings = Settings::load("reef");
+settings.add_toggle("tracers", "Show currents", "Draw the water flow as lines.", false);
+if settings.flag("tracers") { /* draw the currents */ }</code></p></div></div><details class="members"><summary>23 methods</summary><div class="item" id="sym-Settings-value" data-name="settings::value"><div class="sig"><a class="anchor" href="#sym-Settings-value" aria-label="Link to Settings::value">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">value</span>(&amp;<span class="k">self</span>, key: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="t">Value</span>&gt;</code></div><div class="doc"><p>The current value for a key. A game row also answers to its bare name.</p>
+<p><code>ignore
+assert_eq!(settings.value("display.vsync"), Some(Value::Toggle(true)));</code></p></div></div><div class="item" id="sym-Settings-set_value" data-name="settings::set_value"><div class="sig"><a class="anchor" href="#sym-Settings-set_value" aria-label="Link to Settings::set_value">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_value</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, key: &amp;str, v: <span class="t">Value</span>) -&gt; bool</code></div><div class="doc"><p>Write one value. Returns true when the value changed.</p>
+<p>A number is clamped to its row's range. A preset change sets the
+quality values. A quality value change picks the matching preset.</p>
+<p><code>ignore
+settings.set_value("audio.music", Value::Number(0.4));</code></p></div></div><div class="item" id="sym-Settings-flag" data-name="settings::flag"><div class="sig"><a class="anchor" href="#sym-Settings-flag" aria-label="Link to Settings::flag">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">flag</span>(&amp;<span class="k">self</span>, key: &amp;str) -&gt; bool</code></div><div class="doc"><p>The value of a toggle row. False for a key that is not a toggle.</p>
+<p><code>ignore
+if settings.flag("tracers") { /* ... */ }</code></p></div></div><div class="item" id="sym-Settings-number" data-name="settings::number"><div class="sig"><a class="anchor" href="#sym-Settings-number" aria-label="Link to Settings::number">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">number</span>(&amp;<span class="k">self</span>, key: &amp;str) -&gt; f32</code></div><div class="doc"><p>The value of a slider row. 0.0 for a key that is not a slider.</p></div></div><div class="item" id="sym-Settings-pick" data-name="settings::pick"><div class="sig"><a class="anchor" href="#sym-Settings-pick" aria-label="Link to Settings::pick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pick</span>(&amp;<span class="k">self</span>, key: &amp;str) -&gt; usize</code></div><div class="doc"><p>The choice index of a choice row. 0 for a key that is not a choice.</p></div></div><div class="item" id="sym-Settings-add_toggle" data-name="settings::add_toggle"><div class="sig"><a class="anchor" href="#sym-Settings-add_toggle" aria-label="Link to Settings::add_toggle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">add_toggle</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, name: &amp;str, label: &amp;str, hint: &amp;str, default: bool)</code></div><div class="doc"><p>Add a toggle row to the Gameplay tab. A value from the file wins over
+<code>default</code>. Adding a key twice keeps the first row.</p>
+<p><code>ignore
+settings.add_toggle("tracers", "Show currents", "Draw the water flow as lines.", false);</code></p></div></div><div class="item" id="sym-Settings-add_slider" data-name="settings::add_slider"><div class="sig"><a class="anchor" href="#sym-Settings-add_slider" aria-label="Link to Settings::add_slider">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">add_slider</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, name: &amp;str, label: &amp;str, hint: &amp;str, min: f32, max: f32, default: f32, unit: <span class="t">Unit</span>, )</code></div><div class="doc"><p>Add a slider row to the Gameplay tab.</p>
+<p><code>ignore
+settings.add_slider("speed", "Game speed", "Change the speed of the world.",
+0.5, 2.0, 1.0, Unit::Times);</code></p></div></div><div class="item" id="sym-Settings-add_choice" data-name="settings::add_choice"><div class="sig"><a class="anchor" href="#sym-Settings-add_choice" aria-label="Link to Settings::add_choice">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">add_choice</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, name: &amp;str, label: &amp;str, hint: &amp;str, options: &amp;[&amp;str], default: usize)</code></div><div class="doc"><p>Add a choice row to the Gameplay tab.</p>
+<p><code>ignore
+settings.add_choice("map", "Minimap", "Where the map shows.", &amp;["Corner", "Off"], 0);</code></p></div></div><div class="item" id="sym-Settings-rows" data-name="settings::rows"><div class="sig"><a class="anchor" href="#sym-Settings-rows" aria-label="Link to Settings::rows">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">rows</span>(&amp;<span class="k">self</span>, tab: <span class="t">Tab</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">Row</span>&gt;</code></div><div class="doc"><p>The rows of one tab, with current values, in page order.</p>
+<p><code>ignore
+for row in settings.rows(Tab::Audio) { println!("{}", row.label); }</code></p></div></div><div class="item" id="sym-Settings-restore" data-name="settings::restore"><div class="sig"><a class="anchor" href="#sym-Settings-restore" aria-label="Link to Settings::restore">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">restore</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, tab: <span class="t">Tab</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;</code></div><div class="doc"><p>Put every value on one tab back to its default. Controls also resets
+every key binding. Returns the keys that changed.</p></div></div><div class="item" id="sym-Settings-exposure" data-name="settings::exposure"><div class="sig"><a class="anchor" href="#sym-Settings-exposure" aria-label="Link to Settings::exposure">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">exposure</span>(&amp;<span class="k">self</span>, base: f32) -&gt; f32</code></div><div class="doc"><p>The exposure gain to use: the look's own gain times <code>brightness</code>.</p>
+<p><code>ignore
+post::set(|p| p.exposure.gain = settings.exposure(1.0));</code></p></div></div><div class="item" id="sym-Settings-text_scale" data-name="settings::text_scale"><div class="sig"><a class="anchor" href="#sym-Settings-text_scale" aria-label="Link to Settings::text_scale">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">text_scale</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The text multiplier for game text: interface scale times text size.</p></div></div><div class="item" id="sym-Settings-set_look" data-name="settings::set_look"><div class="sig"><a class="anchor" href="#sym-Settings-set_look" aria-label="Link to Settings::set_look">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_look</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, look: <span class="t">Post</span>)</code></div><div class="doc"><p>Set the game's post look and apply the switches to it.</p>
+<p><code>ignore
+settings.set_look(Post::neon());</code></p></div></div><div class="item" id="sym-Settings-post_for" data-name="settings::post_for"><div class="sig"><a class="anchor" href="#sym-Settings-post_for" aria-label="Link to Settings::post_for">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">post_for</span>(&amp;<span class="k">self</span>, look: &amp;<span class="t">Post</span>) -&gt; <span class="t">Post</span></code></div><div class="doc"><p>The look with the graphics switches applied. A switch that is off
+turns that effect off. A switch that is on keeps the look's value.</p>
+<p><code>ignore
+let shown = settings.post_for(&amp;Post::cinematic());</code></p></div></div><div class="item" id="sym-Settings-apply_post" data-name="settings::apply_post"><div class="sig"><a class="anchor" href="#sym-Settings-apply_post" aria-label="Link to Settings::apply_post">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">apply_post</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Write the masked look to <code>warp_sdk::post</code>. The first call takes the
+look from <code>post::get()</code> when no look is set.</p></div></div><div class="item" id="sym-Settings-path_for" data-name="settings::path_for"><div class="sig"><a class="anchor" href="#sym-Settings-path_for" aria-label="Link to Settings::path_for">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">path_for</span>(game: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="t">PathBuf</span>&gt;</code></div><div class="doc"><p>The settings file of a game: <code>&lt;app data&gt;/games/&lt;game&gt;/settings.cfg</code>.
+None when the platform has no app-data folder.</p></div></div><div class="item" id="sym-Settings-load" data-name="settings::load"><div class="sig"><a class="anchor" href="#sym-Settings-load" aria-label="Link to Settings::load">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">load</span>(game: &amp;str) -&gt; <span class="t">Settings</span></code></div><div class="doc"><p>Load a game's settings and apply the post switches. A missing or
+broken file gives the defaults. Set the post look before this call.</p>
+<p><code>ignore
+let mut settings = Settings::load("reef");</code></p></div></div><div class="item" id="sym-Settings-load_from" data-name="settings::load_from"><div class="sig"><a class="anchor" href="#sym-Settings-load_from" aria-label="Link to Settings::load_from">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">load_from</span>(path: &amp;<span class="t">Path</span>) -&gt; <span class="t">Settings</span></code></div><div class="doc"><p>Load from one file and apply the post switches. Later saves go to
+the same file.</p></div></div><div class="item" id="sym-Settings-from_text" data-name="settings::from_text"><div class="sig"><a class="anchor" href="#sym-Settings-from_text" aria-label="Link to Settings::from_text">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_text</span>(text: &amp;str) -&gt; <span class="t">Settings</span></code></div><div class="doc"><p>Parse the file text. It does not touch <code>post</code>.</p>
+<p><code>ignore
+let s = Settings::from_text("version = 1\naudio.music = 0.4\n");</code></p></div></div><div class="item" id="sym-Settings-to_text" data-name="settings::to_text"><div class="sig"><a class="anchor" href="#sym-Settings-to_text" aria-label="Link to Settings::to_text">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">to_text</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">String</span></code></div><div class="doc"><p>The file text: a version line, then one <code>key = value</code> per row, then
+the unknown keys from the file that was loaded.</p></div></div><div class="item" id="sym-Settings-save" data-name="settings::save"><div class="sig"><a class="anchor" href="#sym-Settings-save" aria-label="Link to Settings::save">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">save</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; std::io::<span class="t">Result</span>&lt;()&gt;</code></div><div class="doc"><p>Write the file that <code>load</code> read. No file is written for a model that
+did not come from <code>load</code>.</p></div></div><div class="item" id="sym-Settings-save_to" data-name="settings::save_to"><div class="sig"><a class="anchor" href="#sym-Settings-save_to" aria-label="Link to Settings::save_to">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">save_to</span>(&amp;<span class="k">self</span>, path: &amp;<span class="t">Path</span>) -&gt; std::io::<span class="t">Result</span>&lt;()&gt;</code></div><div class="doc"><p>Write the file to one path. The write goes to a temporary file first,
+so a crash does not leave half a file.</p></div></div><div class="item" id="sym-Settings-unknown_keys" data-name="settings::unknown_keys"><div class="sig"><a class="anchor" href="#sym-Settings-unknown_keys" aria-label="Link to Settings::unknown_keys">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">unknown_keys</span>(&amp;<span class="k">self</span>) -&gt; <span class="k">impl</span> <span class="t">Iterator</span>&lt;<span class="t">Item</span> = (&amp;str, &amp;str)&gt;</code></div><div class="doc"><p>The unknown keys that the loaded file had.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Nav" data-name="nav"><div class="sig"><a class="anchor" href="#sym-Nav" aria-label="Link to Nav">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Nav</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Up</span>,
+<span class="t">Down</span>,
+<span class="c">/// Decrease or go to the previous choice. `fine` is the small step.</span>
+<span class="t">Left</span> { fine: bool },
+<span class="t">Right</span> { fine: bool },
+<span class="c">/// Toggle, go to the next choice, start a rebind, or press a button.</span>
+<span class="t">Accept</span>,
+<span class="c">/// Put the focused row back to its default.</span>
+<span class="t">Reset</span>,
+<span class="t">NextTab</span>,
+<span class="t">PrevTab</span>,
+<span class="t">Back</span>,</code></pre></div><div class="doc"><p>One navigation move. Keys make these inside [<code>Page::show</code>]; a gamepad
+kit sends them with [<code>Page::push</code>].</p></div></div></div><div class="typeblock"><div class="item" id="sym-SettingsEvent" data-name="settingsevent"><div class="sig"><a class="anchor" href="#sym-SettingsEvent" aria-label="Link to SettingsEvent">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">SettingsEvent</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The keys whose values changed this frame. A rebind is `bind.&lt;action id&gt;`.</span>
+<span class="k">pub</span> changed: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// The player asked to leave the settings screen.</span>
+<span class="k">pub</span> back: bool,</code></pre></div><div class="doc"><p>What one frame of the page did.</p>
+<p><code>ignore
+let ev = page.show(ui, &amp;mut settings);
+if ev.changed("audio.music") { music.set_volume(settings.audio.gain(Channel::Music)); }</code></p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-SettingsEvent-any" data-name="settingsevent::any"><div class="sig"><a class="anchor" href="#sym-SettingsEvent-any" aria-label="Link to SettingsEvent::any">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">any</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True when anything changed.</p></div></div><div class="item" id="sym-SettingsEvent-changed" data-name="settingsevent::changed"><div class="sig"><a class="anchor" href="#sym-SettingsEvent-changed" aria-label="Link to SettingsEvent::changed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">changed</span>(&amp;<span class="k">self</span>, key: &amp;str) -&gt; bool</code></div><div class="doc"><p>True when this key changed.</p></div></div><div class="item" id="sym-SettingsEvent-tab_changed" data-name="settingsevent::tab_changed"><div class="sig"><a class="anchor" href="#sym-SettingsEvent-tab_changed" aria-label="Link to SettingsEvent::tab_changed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">tab_changed</span>(&amp;<span class="k">self</span>, tab: <span class="t">Tab</span>) -&gt; bool</code></div><div class="doc"><p>True when a value on this tab changed.</p></div></div><div class="item" id="sym-SettingsEvent-display_changed" data-name="settingsevent::display_changed"><div class="sig"><a class="anchor" href="#sym-SettingsEvent-display_changed" aria-label="Link to SettingsEvent::display_changed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">display_changed</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True when a display value changed. Send the display values to
+<code>display_mode</code> when this is true.</p></div></div><div class="item" id="sym-SettingsEvent-audio_changed" data-name="settingsevent::audio_changed"><div class="sig"><a class="anchor" href="#sym-SettingsEvent-audio_changed" aria-label="Link to SettingsEvent::audio_changed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">audio_changed</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True when an audio value changed.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-SettingsStyle" data-name="settingsstyle"><div class="sig"><a class="anchor" href="#sym-SettingsStyle" aria-label="Link to SettingsStyle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">SettingsStyle</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Tabs and section headers.</span>
+<span class="k">pub</span> heading: <span class="t">FontFamily</span>,
+<span class="c">/// Row labels and the hint line.</span>
+<span class="k">pub</span> body: <span class="t">FontFamily</span>,
+<span class="c">/// Value readouts and key caps.</span>
+<span class="k">pub</span> numbers: <span class="t">FontFamily</span>,
+<span class="c">/// Text size before the accessibility multiplier.</span>
+<span class="k">pub</span> size: f32,
+<span class="k">pub</span> panel: <span class="t">Color32</span>,
+<span class="k">pub</span> row_focus: <span class="t">Color32</span>,
+<span class="k">pub</span> text: <span class="t">Color32</span>,
+<span class="k">pub</span> text_dim: <span class="t">Color32</span>,
+<span class="k">pub</span> accent: <span class="t">Color32</span>,
+<span class="k">pub</span> track: <span class="t">Color32</span>,
+<span class="k">pub</span> keycap: <span class="t">Color32</span>,
+<span class="k">pub</span> danger: <span class="t">Color32</span>,</code></pre></div><div class="doc"><p>Fonts and colours of the page. Give the families from the game's font
+set, so headings, labels and numbers do not all use one face.</p>
+<p><code>ignore
+let style = SettingsStyle { heading: FontFamily::Name("display".into()), ..Default::default() };
+let mut page = Page::new().style(style);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Page" data-name="page"><div class="sig"><a class="anchor" href="#sym-Page" aria-label="Link to Page">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Page</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The tab on show.</span>
+<span class="k">pub</span> tab: <span class="t">Tab</span>,</code></pre></div><div class="doc"><p>The settings page: tabs, rows and a hint line. Keep one <code>Page</code> in the
+game and draw it from the title menu or the pause menu.</p>
+<p><code>ignore
+let ev = self.page.show(ui, &amp;mut self.settings);</code></p></div></div><details class="members"><summary>7 methods</summary><div class="item" id="sym-Page-new" data-name="page::new"><div class="sig"><a class="anchor" href="#sym-Page-new" aria-label="Link to Page::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A page on the Display tab with the default style.</p></div></div><div class="item" id="sym-Page-style" data-name="page::style"><div class="sig"><a class="anchor" href="#sym-Page-style" aria-label="Link to Page::style">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">style</span>(<span class="k">mut</span> <span class="k">self</span>, style: <span class="t">SettingsStyle</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Use another style.</p></div></div><div class="item" id="sym-Page-focus" data-name="page::focus"><div class="sig"><a class="anchor" href="#sym-Page-focus" aria-label="Link to Page::focus">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">focus</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>The focused row index on the current tab.</p></div></div><div class="item" id="sym-Page-is_listening" data-name="page::is_listening"><div class="sig"><a class="anchor" href="#sym-Page-is_listening" aria-label="Link to Page::is_listening">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_listening</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True while a keybind row waits for the next key. Do not run game
+input on that key.</p></div></div><div class="item" id="sym-Page-push" data-name="page::push"><div class="sig"><a class="anchor" href="#sym-Page-push" aria-label="Link to Page::push">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">push</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, nav: <span class="t">Nav</span>)</code></div><div class="doc"><p>Queue one move for the next <code>show</code>. For gamepad input.</p>
+<p><code>ignore
+if pad.pressed(Button::DPadDown) { page.push(Nav::Down); }</code></p></div></div><div class="item" id="sym-Page-apply" data-name="page::apply"><div class="sig"><a class="anchor" href="#sym-Page-apply" aria-label="Link to Page::apply">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">apply</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, nav: <span class="t">Nav</span>, s: &amp;<span class="k">mut</span> <span class="t">Settings</span>, ev: &amp;<span class="k">mut</span> <span class="t">SettingsEvent</span>)</code></div><div class="doc"><p>Run one move now, without drawing. Returns the keys that changed and
+sets <code>back</code> in <code>ev</code> for [<code>Nav::Back</code>].</p></div></div><div class="item" id="sym-Page-show" data-name="page::show"><div class="sig"><a class="anchor" href="#sym-Page-show" aria-label="Link to Page::show">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">show</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ui: &amp;<span class="k">mut</span> egui::<span class="t">Ui</span>, s: &amp;<span class="k">mut</span> <span class="t">Settings</span>) -&gt; <span class="t">SettingsEvent</span></code></div><div class="doc"><p>Draw the page in <code>ui</code> and run its input. Returns what changed.</p>
+<p>The page applies the post switches and saves the file by itself.
+Display and audio changes are only reported: wire them in the game.</p>
+<p><code>ignore
+egui::CentralPanel::default().show(ctx, |ui| {
+let ev = page.show(ui, &amp;mut settings);
+});</code></p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-VERSION" data-name="version"><div class="sig"><a class="anchor" href="#sym-VERSION" aria-label="Link to VERSION">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">VERSION</span>: u32 = <span class="n">1</span></code></div><div class="doc"><p>The version that [<code>Settings::to_text</code>] writes.</p></div></div><div class="item" id="sym-FRAME_CAPS" data-name="frame_caps"><div class="sig"><a class="anchor" href="#sym-FRAME_CAPS" aria-label="Link to FRAME_CAPS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">FRAME_CAPS</span>: [u32; <span class="n">7</span>] = [<span class="n">30</span>, <span class="n">60</span>, <span class="n">120</span>, <span class="n">144</span>, <span class="n">165</span>, <span class="n">240</span>, <span class="n">0</span>]</code></div><div class="doc"><p>The frame caps the page offers. 0 is no cap.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="front.html" data-slug="front">Front end</a></li><li><a href="front-menu.html" data-slug="front-menu">Menu screens</a></li><li><a href="post.html" data-slug="post">Post effects</a></li><li><a href="display-mode.html" data-slug="display-mode">Display mode</a></li><li><a href="bindings.html" data-slug="bindings">Bindings</a></li><li><a href="cine.html" data-slug="cine">Cine</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/examples/settings.rs</code> - <code>*  2. Set the post look, so load can mask it with the graphics switches.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/settings.rs</code> - <code>Quality::Ultra =&gt; (1.5, FluidRes::Ultra, true, true, true, true),</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/settings.rs</code> - <code>/// Add a toggle row to the Gameplay tab. A value from the file wins over</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/settings.rs</code> - <code>/// Load a game&#x27;s settings and apply the post switches. A missing or</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/settings.rs</code> - <code>//! the file on save, so an older build does not delete the values of a newer</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/settings.rs</code> - <code>//! retro filter) can only remove an effect from the game&#x27;s look. They never</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/settings.rs</code> - <code>if s.dirty &amp;&amp; !dragging &amp;&amp; s.path.is_some() {</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/examples/settings.rs</code> - <code>// Do not show the page in this frame. It reads the same</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/settings.rs</code> - <code>/// Accessibility values. The page itself obeys `text_size` and</code></li></ol><table class="navbox"><tr><th><a href="category-front-end.html">Front end</a></th></tr><tr><td><a href="front.html" data-slug="front">Front end</a> · <a href="front-menu.html" data-slug="front-menu">Menu screens</a> · <a href="front-save.html" data-slug="front-save">Save slots</a> · <b>Settings</b> · <a href="fonts.html" data-slug="fonts">Fonts</a> · <a href="cine.html" data-slug="cine">Cine</a> · <a href="icon.html" data-slug="icon">Application icon</a> · <a href="boot.html" data-slug="boot">Boot splash and screenshots</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-front-end.html">Front end</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

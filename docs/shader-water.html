@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Water shaders - Warp Wiki</title>
+<meta name="description" content="WGSL caustics, depth fog, plumes, flow, refraction and simulation display">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="shader-water">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#files">Files</a></li><li><a href="#conventions">Conventions</a></li><li><a href="#caustics">Caustics</a></li><li><a href="#depth-and-light">Depth and light</a></li><li><a href="#branched-flow">Branched flow</a></li><li><a href="#marine-snow">Marine snow</a></li><li><a href="#plume">Plume</a></li><li><a href="#surface-and-flow">Surface and flow</a></li><li><a href="#fluid-colour-and-simulation-display">Fluid colour and simulation display</a></li><li><a href="#glass-refraction">Glass refraction</a></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Water shaders</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">WGSL caustics, depth fog, plumes, flow, refraction and simulation display</p><p><strong>Water shaders</strong> are the <code>water/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL files for underwater light, water surfaces, flow and the display of simulation textures. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::water</code></a>. It covers caustics, Beer-Lambert fog, light shafts, marine snow, vent plumes, glass refraction and colour for fluid fields. All functions start with <code>water_</code>. The GPU simulations themselves belong to the <a href="fluid.html" data-slug="fluid">Fluid kit</a> kit. These files only shade.</p>
+<h2 id="files">Files</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>File</th>
+<th>Provides</th>
+<th>Requires</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>water/noise.wgsl</code></td>
+<td>Value and gradient noise with analytic gradients, rotated fBm, an octave count from zoom</td>
+<td><code>noise/hash.wgsl</code></td>
+</tr>
+<tr>
+<td><code>water/caustics.wgsl</code></td>
+<td>Procedural and photon caustics, Hessian helper, tone map</td>
+<td><code>water/noise.wgsl</code></td>
+</tr>
+<tr>
+<td><code>water/branched_flow.wgsl</code></td>
+<td>Filaments from rays through a smooth random potential</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>water/light_shafts.wgsl</code></td>
+<td>Radial, directional and procedural light shafts</td>
+<td><code>water/noise.wgsl</code></td>
+</tr>
+<tr>
+<td><code>water/depth_fog.wgsl</code></td>
+<td>Per-channel absorption, in-scatter, sunlight at depth</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>water/marine_snow.wgsl</code></td>
+<td>Sinking particles as a density field, with a restrained mode</td>
+<td><code>noise/hash.wgsl</code></td>
+</tr>
+<tr>
+<td><code>water/plume.wgsl</code></td>
+<td>Vent plume density and normal</td>
+<td><code>water/noise.wgsl</code></td>
+</tr>
+<tr>
+<td><code>water/surface.wgsl</code></td>
+<td>Wave height, refraction offsets, Fresnel, glint, foam</td>
+<td><code>noise/hash.wgsl</code></td>
+</tr>
+<tr>
+<td><code>water/flow.wgsl</code></td>
+<td>Advection steps, two-phase flow map, curl velocity</td>
+<td><code>water/noise.wgsl</code></td>
+</tr>
+<tr>
+<td><code>water/fluid_color.wgsl</code></td>
+<td>Dye, density and velocity colour for stable-fluids fields</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>water/refraction.wgsl</code></td>
+<td>Vector Snell refraction for panels, dispersion, thin film, rim light</td>
+<td><code>noise/hash.wgsl</code>, <code>post/sampling.wgsl</code></td>
+</tr>
+<tr>
+<td><code>water/sim_view.wgsl</code></td>
+<td>Smooth reads of float grids; heat, signed, Life and terrain colours; fog of war</td>
+<td><code>post/color_science.wgsl</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="conventions">Conventions</h2>
+<p><code>p</code> is a position in world units unless a file says otherwise, and <code>time</code> is in seconds. Colour is linear RGB. A normal uses +z toward the camera, as in <code>core/material.wgsl</code>. Seeds in this category are floats. Files that read textures receive the texture and sampler as arguments, so no file expects a binding.</p>
+<p><code>water/noise.wgsl</code> exists because the noise category held only the hash file when the water files were written.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> Each fBm octave rotates the domain, which stops the octaves lining up on lattice axes, and the fBm gradients include that rotation so they stay exact. <code>water_fbm_octaves</code> takes the on-screen size of one noise cell in pixels and returns the octave count, 1..12, that keeps the finest octave near 2 pixels.</p>
+<h2 id="caustics">Caustics</h2>
+<p>The caustics file gives two methods. The procedural functions give an animated net of bright lines, cost little and need no input field. The photon method computes intensity from the surface height field: a ray through the slope moves by <code>depth * k * slope</code>, and the intensity is the area of the old cell over that of the new cell, <code>E = 1 / |det(I - depth * k * H)|</code>, with H the Hessian of the surface height.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">water_caustic_tile</span>(p: vec2&lt;f32&gt;, time: f32, iterations: i32) -&gt; f32
+<span class="k">fn</span> <span class="f">water_caustic_cells</span>(p: vec2&lt;f32&gt;, time: f32, sharpness: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">water_caustic_layered</span>(p: vec2&lt;f32&gt;, time: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">water_caustic_photon</span>(hess: vec3&lt;f32&gt;, depth: f32, k: f32, max_gain: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">water_caustic_photon_rgb</span>(hess: vec3&lt;f32&gt;, depth: f32, max_gain: f32) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">water_caustic_tonemap</span>(e: vec3&lt;f32&gt;, exposure: f32) -&gt; vec3&lt;f32&gt;</code></pre></div>
+<p><code>water_caustic_tile</code> tiles with period 1. Its output is about 0..1, though the code clamps it at 4, and 5 iterations is the stated default. <code>water_caustic_layered</code> combines two layers of <code>water_caustic_cells</code> bent by noise, with output 0..1. <code>hess</code> is (h_xx, h_yy, h_xy), which <code>water_hessian_fd</code> builds from nine height samples. <code>k</code> is about 0.25 for air to water. The photon output is 1 for flat water and rises to <code>max_gain</code> on caustic lines.</p>
+<h2 id="depth-and-light">Depth and light</h2>
+<p>Depth fog applies Beer-Lambert absorption per channel. Red goes first, so deep water turns blue-green.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> <code>water_abs_clear</code> and <code>water_abs_pool</code> are preset absorption vectors per metre.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">water_transmittance</span>(sigma: vec3&lt;f32&gt;, dist: f32) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">water_depth_fog</span>(color: vec3&lt;f32&gt;, sigma: vec3&lt;f32&gt;, dist: f32, fog_color: vec3&lt;f32&gt;) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">water_sun_at_depth</span>(sun: vec3&lt;f32&gt;, sigma: vec3&lt;f32&gt;, d: f32, sin_elev: f32) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">water_shafts_procedural</span>(p: vec2&lt;f32&gt;, surface_y: f32, slant: f32, time: f32, fade_depth: f32) -&gt; f32</code></pre></div>
+<p><code>water_shafts_radial</code>, <code>water_shafts_radial_jittered</code> and <code>water_shafts_directional</code> march an occlusion texture in which <code>r</code> is 1 where light passes. They use <code>textureSampleLevel</code>, so they are legal in any stage and in loops. The jittered form moves the march start per pixel, which turns the step pattern into fine noise, so fewer steps look clean. <code>water_shafts_procedural</code> needs no texture. Its <code>p</code> has y down from the surface.</p>
+<h2 id="branched-flow">Branched flow</h2>
+<p><code>water/branched_flow.wgsl</code> traces paraxial rays through a potential of six animated sinusoids. A ray starts at (x0, 0) and moves in +y. Its side position follows <code>x'' = -dV/dx</code>, and it carries <code>J = dx/dx0</code>. The intensity at the ray is <code>1 / |J|</code>, so it peaks where rays focus.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup> <code>water_branch_density</code> gathers rays per pixel, and <code>water_branch_color</code> tone-maps the result. <code>strength</code> is 0..2 with 0.3 as a good start.</p>
+<h2 id="marine-snow">Marine snow</h2>
+<p><code>water_snow_layer</code> and <code>water_snow_density</code> draw one particle per grid cell, with parallax across layers. The file treats snow as ambient detail and not a subject: a scene full of soft dots takes the eye from the seabed and the creatures. <code>water_snow_restrained</code> therefore defaults to a sparse field, with <code>water_snow_weight_default</code> returning 0.15.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup> The header gives this use, with the addition placed after fog and before bloom:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">let</span> snow = <span class="f">water_snow_restrained</span>(world, time, <span class="n">0.6</span>, <span class="n">0.15</span>, depth01,
+                                 <span class="f">water_snow_weight_default</span>(), <span class="n">0.6</span>, <span class="n">3</span>);
+col = col + snow_col * snow;   <span class="c">// add after fog, before bloom</span></code></pre></div>
+<h2 id="plume">Plume</h2>
+<p><code>water/plume.wgsl</code> draws a black smoker, bubble column or silt cloud as a density field with a normal. The column rises from the vent and widens with height. Gradient-noise fBm breaks it into billows, and a curl field warps the domain with a strength that grows with height. The noise domain moves up at the rise speed, so a billow keeps its shape as it rises. A threshold on the field gives crisp, broken edges and not a soft blob.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">water_plume_default</span>() -&gt; <span class="t">WaterPlume</span>
+<span class="k">fn</span> <span class="f">water_plume</span>(p: vec2&lt;f32&gt;, vent: vec2&lt;f32&gt;, time: f32, pl: <span class="t">WaterPlume</span>) -&gt; <span class="t">WaterPlumeSample</span>
+<span class="k">fn</span> <span class="f">water_plume_shade</span>(s: <span class="t">WaterPlumeSample</span>, light: vec3&lt;f32&gt;, col: vec3&lt;f32&gt;, ambient: vec3&lt;f32&gt;) -&gt; vec4&lt;f32&gt;</code></pre></div>
+<p>The sample has <code>density</code> 0..1, a unit <code>normal</code>, and <code>height01</code>, 0 at the vent and 1 at the top. <code>water_plume_shade</code> returns premultiplied colour. The header advises wrapping <code>time</code> in the game to keep it below about 1e4, and setting octaves from the zoom:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">var</span> pl = <span class="f">water_plume_default</span>();
+pl.octaves = <span class="f">water_fbm_octaves</span>(pl.scale * px_per_unit);
+<span class="k">let</span> s = <span class="f">water_plume</span>(world, vent, time, pl);
+<span class="k">let</span> c = <span class="f">water_plume_shade</span>(s, vec3&lt;f32&gt;(<span class="n">0.3</span>, <span class="n">0.8</span>, <span class="n">0.5</span>), smoke_col, ambient);
+out = c + (<span class="n">1.0</span> - c.a) * background;      <span class="c">// c is premultiplied</span></code></pre></div>
+<h2 id="surface-and-flow">Surface and flow</h2>
+<p><code>water_wave_height</code> sums four directional waves and returns (height, gradient). <code>water_normal_from_grad</code>, <code>water_refract_offset</code>, <code>water_fresnel</code>, <code>water_glint</code> and <code>water_foam_line</code> work on that result, and <code>water_surface_shade</code> gives the final colour. In <code>water_foam_line</code>, <code>shore</code> is the signed distance to the shore, positive in water.</p>
+<p><code>water/flow.wgsl</code> has the advection steps for a semi-Lagrangian pass, <code>water_advect_uv</code> and the RK2 pair <code>water_advect_mid</code> and <code>water_advect_rk2</code>. <code>water_flowmap</code> returns a <code>water_FlowUv</code> of two UVs and a blend weight. Each phase moves the UV for one period and then resets. The phases are half a period apart and cross-fade, so the reset does not show.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup> <code>water_curl</code> gives divergence-free velocity from 2D fBm.</p>
+<h2 id="fluid-colour-and-simulation-display">Fluid colour and simulation display</h2>
+<p><code>water/fluid_color.wgsl</code> turns the fields of a stable-fluids simulation into colour: <code>water_dye_color</code>, <code>water_density_ramp</code>, <code>water_velocity_color</code> and <code>water_vorticity</code>. The gradient comes from <code>water_fluid_grad</code> and four neighbour samples.</p>
+<p><code>water/sim_view.wgsl</code> reads a state texture with <code>textureLoad</code>, with no sampler, so it works on unfilterable <code>rgba32float</code> formats.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup> <code>water_sim_load_cubic</code> performs a Catmull-Rom upsample with 16 loads, clamped so that a sharp edge does not ring. Colour functions are <code>water_sim_heat</code> (HDR, output 0..2.6), <code>water_sim_signed</code>, <code>water_sim_life_age</code>, <code>water_sim_terrain</code> and <code>water_sim_fog_of_war</code>.</p>
+<h2 id="glass-refraction">Glass refraction</h2>
+<p><code>water/refraction.wgsl</code> serves 2D panels and lenses in pixels. <code>water_lens_round_rect</code> and <code>water_lens_superellipse</code> return a <code>water_LensSdf</code> of a signed distance <code>d</code>, negative inside, and an outward normal <code>m</code>, so no finite-difference probes are needed. <code>water_snell_bezel</code> gives the displacement across a circular-arc bezel for a slab, and <code>water_refract_dispersed</code> reads the backdrop with dispersion and frost. <code>water_thin_film</code> gives thin-film colour, with thickness in nanometres, and <code>water_conic_light</code> gives the rim light. Input ranges: <code>ratio</code> 0.1..4, <code>eta</code> is <code>1 / ior</code>, <code>abbe</code> 20..90.</p>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<ul>
+<li><code>post_dither_ign</code> from <a href="shader-post.html" data-slug="shader-post">Post shaders</a> is the jitter that the light shaft header suggests.</li>
+<li><code>creature_jelly_species</code> and the plant forms in <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> use a <code>flow</code> vector that the game supplies.</li>
+<li>The <a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a> and <a href="fluid-solver.html" data-slug="fluid-solver">Fluid solver</a> articles cover the simulations whose fields these files display.</li>
+</ul><h2 id="see-also">See also</h2><ul><li><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></li><li><a href="fluid.html" data-slug="fluid">Fluid kit</a></li><li><a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a></li><li><a href="shader-post.html" data-slug="shader-post">Post shaders</a></li><li><a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/water/noise.wgsl</code> - <code>// this file was written, the noise category registered only</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/water/caustics.wgsl</code> - <code>//      over the area of the new cell: E = 1 / |det(I - depth * k * H)|.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/water/depth_fog.wgsl</code> - <code>// (Beer-Lambert). Red goes first, so deep water goes blue-green.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/water/branched_flow.wgsl</code> - <code>// The intensity at the ray is 1 / |J|, so it peaks where rays focus.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/water/marine_snow.wgsl</code> - <code>// Restrained mode. Marine snow is ambient detail, not a subject. A scene</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/water/plume.wgsl</code> - <code>// the next frame matches the last one. A threshold on the field gives</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/water/flow.wgsl</code> - <code>// resets; the two phases are half a period apart and cross-fade, so the</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/water/sim_view.wgsl</code> - <code>//           (no sampler, so it works on unfilterable formats)</code></li></ol><table class="navbox"><tr><th><a href="category-shader-library.html">Shader library</a></th></tr><tr><td><a href="shaderlib.html" data-slug="shaderlib">Shader library</a> · <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a> · <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> · <a href="shader-material.html" data-slug="shader-material">Material shaders</a> · <b>Water shaders</b> · <a href="shader-post.html" data-slug="shader-post">Post shaders</a> · <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> · <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> · <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> · <a href="shader-pattern.html" data-slug="shader-pattern">Pattern shaders</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-shader-library.html">Shader library</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

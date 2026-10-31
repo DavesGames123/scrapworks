@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smoke test - Warp Wiki</title>
+<meta name="description" content="Boot a game with no window, and play it from a script">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="smoke">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#design">Design</a></li><li><a href="#usage">Usage</a><ul><li><a href="#boot">Boot</a></li><li><a href="#play">Play</a></li><li><a href="#probing-state">Probing state</a></li></ul></li><li><a href="#script">Script</a></li><li><a href="#reports">Reports</a></li><li><a href="#placeholders">Placeholders</a></li><li><a href="#the-gpu-pass">The GPU pass</a></li><li><a href="#how-a-run-differs-from-the-real-loop">How a run differs from the real loop</a></li><li><a href="#process-global-state">Process-global state</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Smoke test</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">Boot a game with no window, and play it from a script</p><table class="infobox"><caption>Smoke test</caption><tr><th>Category</th><td><a href="category-getting-started.html">Getting started</a></td></tr><tr><th>Module</th><td><code>warp_sdk::smoke</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/smoke.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">28</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example starter</code><br><code>cargo run -p warp_sdk --example pong</code></td></tr></table><p><strong>The smoke test</strong> is the headless proof that a Warp game runs and that a player can play it, with no window and no GPU requirement. It lives in the <a class="sym" href="smoke.html"><code>warp_sdk::smoke</code></a> module. <a class="sym" href="#sym-boot"><code>boot</code></a> drives the frame loop of a <a class="sym" href="renderer.html#sym-Renderer"><code>Renderer</code></a> for a number of frames, and <a class="sym" href="#sym-play"><code>play</code></a> also sends a <a class="sym" href="#sym-Script"><code>Script</code></a> of keys and mouse events and reports which screens the game went through. A panic fails the run, and a clean return is a game that runs.</p>
+<h2 id="design">Design</h2>
+<p>A game made from an idea is done only when something has run it. <a class="sym" href="renderer.html#sym-run"><code>run</code></a> opens a window and a GPU, which a test and a build agent do not have. <a class="sym" href="smoke.html"><code>smoke</code></a> needs neither for the core loop. <a class="sym" href="renderer.html#sym-RenderContext-new"><code>RenderContext::new</code></a> allocates CPU-side draw buffers and touches no device, so <a class="sym" href="icon.html#sym-render"><code>render</code></a> records its shapes into memory exactly as it would before the upload. <code>egui::Context::run</code> is a whole <code>gui</code> frame, and it also wants no window.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<p>The module draws a line between two claims: boot proves that a game runs, and play proves that it can be played. A game can compile, pass every test and still not start. In one case a menu was a stub that drew nothing, so no input could leave the title. <a class="sym" href="#sym-boot"><code>boot</code></a> sends no input and cannot see that.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<h2 id="usage">Usage</h2>
+<h3 id="boot">Boot</h3>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="a">#[test]</span>
+<span class="k">fn</span> <span class="f">it_boots</span>() {
+    <span class="k">let</span> report = warp_sdk::smoke::boot::&lt;<span class="t">Game</span>&gt;(<span class="n">120</span>);
+    assert!(report.<span class="f">drove_a_panel</span>(), <span class="s">"the game wired no panels"</span>);
+}</code></pre></div>
+<p>The starter asserts more. A game that publishes a census can assert on that field, so the test fails if the wiring is dropped.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> report = smoke::boot::&lt;<span class="t">Game</span>&gt;(<span class="n">120</span>);
+assert!(report.<span class="f">drew_something</span>(), <span class="s">"the game drew nothing: {report:?}"</span>);
+assert!(report.census_published, <span class="s">"the Hierarchy stayed empty: {report:?}"</span>);
+assert!(report.actions_registered &gt;= <span class="n">5</span>, <span class="s">"the Control Map stayed empty: {report:?}"</span>);
+assert!(report.placeholders.<span class="f">is_empty</span>());</code></pre></div>
+<h3 id="play">Play</h3>
+<p>A game names its screen each frame with <a class="sym" href="#sym-report_screen"><code>smoke::report_screen</code></a>. The name goes to the Storyboard, as the hostlink function of the same name does, and a run also records it. Games use this function in place of the hostlink call, because the hostlink function keeps the name only while an editor is attached.[[src:warp_sdk/src/smoke.rs|/// [<a class="sym" href="#sym-PlayReport-reached"><code>PlayReport::reached</code></a>] can see it. Use it in place of the hostlink call.]]</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::smoke::{<span class="k">self</span>, <span class="t">Key</span>, <span class="t">Script</span>};
+
+<span class="a">#[test]</span>
+<span class="k">fn</span> <span class="f">title_to_play</span>() {
+    <span class="k">let</span> report = smoke::play::&lt;<span class="t">Game</span>&gt;(<span class="t">Script</span>::<span class="f">new</span>().<span class="f">wait</span>(<span class="n">30</span>).<span class="f">press</span>(<span class="t">Key</span>::<span class="t">Return</span>).<span class="f">wait</span>(<span class="n">60</span>));
+    assert!(report.<span class="f">reached</span>(<span class="s">"play"</span>), <span class="s">"Enter did not start a run: {report:?}"</span>);
+    assert!(report.<span class="f">path_contains</span>(&amp;[<span class="s">"title"</span>, <span class="s">"play"</span>]));
+}
+<span class="c">// In the game, when the screen changes:</span>
+<span class="c">// warp_sdk::smoke::report_screen("play");</span></code></pre></div>
+<h3 id="probing-state">Probing state</h3>
+<p><a class="sym" href="#sym-play_with"><code>play_with</code></a> calls a closure after each frame with the game and the frame index, so a test can assert that the state changed. The starter uses it to prove that a held key moved the player.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> script = <span class="t">Script</span>::<span class="f">new</span>().<span class="f">wait</span>(<span class="n">20</span>).<span class="f">press</span>(<span class="t">K</span>::<span class="t">Return</span>).<span class="f">wait</span>(<span class="n">40</span>).<span class="f">hold</span>(<span class="t">K</span>::<span class="t">Right</span>, <span class="n">40</span>).<span class="f">press</span>(<span class="t">K</span>::<span class="t">Escape</span>).<span class="f">wait</span>(<span class="n">40</span>);
+<span class="k">let</span> <span class="k">mut</span> xs = <span class="t">Vec</span>::<span class="f">new</span>();
+<span class="k">let</span> report = smoke::play_with::&lt;<span class="t">Game</span>&gt;(script, |g, _| xs.<span class="f">push</span>(g.world.pos.x));
+assert!(report.<span class="f">path_contains</span>(&amp;[<span class="s">"title"</span>, <span class="s">"play"</span>, <span class="s">"pause"</span>]), <span class="s">"screens: {:?}"</span>, report.<span class="f">screens</span>());
+<span class="k">let</span> (start, end) = (xs[<span class="n">20</span>], *xs.<span class="f">last</span>().<span class="f">unwrap</span>());
+assert!(end &gt; start, <span class="s">"holding Right did not move the drifter: {start} -&gt; {end}"</span>);</code></pre></div>
+<h2 id="script">Script</h2>
+<p>A <a class="sym" href="#sym-Script"><code>Script</code></a> is a timeline of input, one entry for each frame. Each step adds frames, and the events of a step arrive at the start of its first frame, before <code>input</code> and <code>gui</code> run.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> An empty script runs no frame.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Step</th>
+<th>Frames</th>
+<th>What <code>input</code> sees</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Script-wait"><code>wait(f)</code></a></td>
+<td>f</td>
+<td>No new events</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Script-press"><code>press(k)</code></a></td>
+<td>1</td>
+<td><code>key_pressed(k)</code>, and <code>k</code> stays held</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Script-release"><code>release(k)</code></a></td>
+<td>1</td>
+<td><code>key_released(k)</code></td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Script-hold"><code>hold(k, f)</code></a></td>
+<td>f + 1</td>
+<td><code>k</code> held on f frames, released on the last</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Script-mouse_to"><code>mouse_to(xy)</code></a></td>
+<td>1</td>
+<td><code>mouse()</code> is <code>xy</code></td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Script-click"><code>click(b)</code></a></td>
+<td>2</td>
+<td><code>b</code> pressed, then released</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Script-hold_mouse"><code>hold_mouse(b, f)</code></a></td>
+<td>f + 1</td>
+<td><code>b</code> held on f frames, released on the last</td>
+</tr>
+</tbody>
+</table>
+<p>Mouse coordinates are pixels of <a class="sym" href="#sym-SIZE"><code>SIZE</code></a>, 1280 by 720, with the origin at the top left. The script drives the same <code>WinitInputHelper</code> that <code>input</code> reads and the egui input that <code>gui</code> reads, so a menu button that waits for a click sees it. <a class="sym" href="#sym-Key"><code>Key</code></a> is the winit key code and <a class="sym" href="#sym-Button"><code>Button</code></a> is the winit mouse button. Only the keys a menu uses reach egui: letters, digits, the arrows, Enter, Escape, Space, Tab, the function keys and a few others. Other keys reach <code>input</code> only.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<h2 id="reports">Reports</h2>
+<p><a class="sym" href="#sym-boot"><code>boot</code></a> returns a <a class="sym" href="#sym-Report"><code>Report</code></a>. <a class="sym" href="#sym-play"><code>play</code></a> returns a <a class="sym" href="#sym-PlayReport"><code>PlayReport</code></a>, which holds a <a class="sym" href="#sym-Report"><code>Report</code></a> and dereferences to it.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Script-frames"><code>frames</code></a></td>
+<td>Frames driven without a panic</td>
+</tr>
+<tr>
+<td><code>census_published</code></td>
+<td>The game published at least one census snapshot</td>
+</tr>
+<tr>
+<td><code>console_published</code></td>
+<td>The game published at least one console scrollback</td>
+</tr>
+<tr>
+<td><code>actions_registered</code></td>
+<td>The number of actions in the Control Map catalog</td>
+</tr>
+<tr>
+<td><code>shapes_drawn</code></td>
+<td>The peak of shapes recorded in one frame, not the sum</td>
+</tr>
+<tr>
+<td><code>underlay_drew</code></td>
+<td>Whether <code>scene_underlay</code> changed a pixel. <code>None</code> with no headless device</td>
+</tr>
+<tr>
+<td><code>frame_ms</code></td>
+<td>CPU time of each frame in milliseconds</td>
+</tr>
+<tr>
+<td><code>placeholders</code></td>
+<td>The placeholders that ran, in name order</td>
+</tr>
+</tbody>
+</table>
+<p>Three methods read those fields. <a class="sym" href="#sym-Report-drove_a_panel"><code>drove_a_panel</code></a> is the weakest useful assertion: a census, a console or an action exists. <a class="sym" href="#sym-Report-drew_something"><code>drew_something</code></a> is true for a CPU shape or an underlay pixel. <a class="sym" href="#sym-Report-p95_ms"><code>p95_ms</code></a> gives the 95th percentile of <code>frame_ms</code>. A budget check reads a percentile and not the maximum, because the first frames build fonts and pipelines.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<p><a class="sym" href="#sym-PlayReport"><code>PlayReport</code></a> adds <a class="sym" href="#sym-PlayReport-screens"><code>screens</code></a>, in order, with a name that repeats on the next frame kept once. <a class="sym" href="#sym-PlayReport-reached"><code>reached</code></a> tests one name. <a class="sym" href="#sym-PlayReport-path_contains"><code>path_contains</code></a> tests that the given names occur in order, and other screens may occur between them.</p>
+<h2 id="placeholders">Placeholders</h2>
+<p><code>warp_sdk::placeholder!("menus")</code> marks unfinished work. It goes where the real code will go, such as the body of a menu that draws nothing yet. Every <a class="sym" href="#sym-boot"><code>boot</code></a> and <a class="sym" href="#sym-play"><code>play</code></a> that runs past it panics and names it, so a stub cannot ship as a game that compiles and passes its tests.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup> <a class="sym" href="#sym-Script-allow_placeholders"><code>Script::allow_placeholders</code></a> lets a run finish while placeholders ran, and the report still lists them. In a shipped game the macro only records the name.</p>
+<p>To boot an unfinished game, use a script:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust">smoke::play::&lt;<span class="t">Game</span>&gt;(<span class="t">Script</span>::<span class="f">new</span>().<span class="f">wait</span>(<span class="n">120</span>).<span class="f">allow_placeholders</span>());</code></pre></div>
+<h2 id="the-gpu-pass">The GPU pass</h2>
+<p>When a headless device exists, each frame also calls <code>scene_underlay</code> into an HDR target cleared to zero, and the report tells whether it drew. A <a href="lit2d.html" data-slug="lit2d">Lit2d</a> game draws in the underlay, so without this pass it reads as a game that drew nothing.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup> Where no adapter answers, or where the environment sets <code>WARP_SMOKE_GPU=0</code>, the pass is skipped and <code>underlay_drew</code> is <code>None</code>. The engine pipelines are built once per process for this pass.</p>
+<h2 id="how-a-run-differs-from-the-real-loop">How a run differs from the real loop</h2>
+<p>A run drives <a class="sym" href="#sym-Script-new"><code>new</code></a>, then <code>input</code>, <a class="sym" href="icon.html#sym-render"><code>render</code></a>, the underlay and <code>gui</code> on the calling thread. That is a close copy of the frame and not the same frame:</p>
+<ul>
+<li><code>gui</code> runs after the underlay. The real loop runs <code>gui</code> before it. See <a href="renderer.html#frame-order" data-slug="renderer">frame order</a>.</li>
+<li>Each frame gets a fresh <a class="sym" href="renderer.html#sym-RenderContext"><code>RenderContext</code></a>, so <code>frame_reset</code> is not called.</li>
+<li><code>game_gui</code>, <code>scene_overlay</code>, <code>touch</code> and <code>set_crt_params</code> are not called, and <code>auto_style</code> has no effect.</li>
+<li><code>gui</code> receives a local copy of <code>DisplaySettings::DEFAULT</code>, not the global block.</li>
+<li>Time advances at a fixed 60 frames per second in the egui input.</li>
+</ul>
+<h2 id="process-global-state">Process-global state</h2>
+<p>The census, the bindings and the console exist once per process. A run stands in for a listening editor, so the game's gated publishes run. <code>census_published</code> and <code>console_published</code> are deltas against the values at the start of the run, because an earlier run in the process may already have moved those globals.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup> <code>actions_registered</code> reads the whole catalog, so it is not a delta. Screens and placeholders are kept per thread, and a run drives the game on the thread that called it, so parallel tests do not see each other's screens.</p>
+<h2 id="limitations">Limitations</h2>
+<p>A run proves that the game constructs, survives its frame loop, answers input and drives the panels it wired. It does not prove what the frame looks like: the CPU draw lists are not uploaded, and the underlay check tells only that some pixel changed.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup> <a class="sym" href="renderer.html#sym-RenderContext-frame_fingerprint"><code>RenderContext::frame_fingerprint</code></a> guards the submitted draws. A game that needs a loaded atlas to avoid a panic still has to open in the editor.</p>
+<h2 id="history">History</h2>
+<p>The headless boot harness was added on 2026-09-06.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 28 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-smoke" class="modhead"><code>warp_sdk::smoke</code></h3><h4>Functions</h4><div class="item" id="sym-report_screen" data-name="report_screen"><div class="sig"><a class="anchor" href="#sym-report_screen" aria-label="Link to report_screen">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">report_screen</span>(id: &amp;str)</code></div><div class="doc"><p>Name the screen the game is on, for the Storyboard and for [<code>play</code>].</p>
+<p>Call it every frame with the game's own name for its phase — <code>title</code>,
+<code>play</code>, <code>pause</code>. It sends the name to <code>hostlink::child::report_screen</code>,
+and while a smoke run drives the game it also records the name, so
+[<code>PlayReport::reached</code>] can see it. Use it in place of the hostlink call.</p>
+<p><code>ignore
+warp_sdk::smoke::report_screen(if self.started { "play" } else { "title" });</code></p></div></div><div class="item" id="sym-register_placeholder" data-name="register_placeholder"><div class="sig"><a class="anchor" href="#sym-register_placeholder" aria-label="Link to register_placeholder">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">register_placeholder</span>(name: &amp;str)</code></div><div class="doc"><p>Mark the named part of the game as unfinished. Use the
+<code>placeholder!</code> macro, not this function.</p>
+<p>A smoke run on this thread that saw a placeholder panics and names it,
+unless its script calls [<code>Script::allow_placeholders</code>]. In a shipped game
+the call only records the name.</p></div></div><div class="item" id="sym-boot" data-name="boot"><div class="sig"><a class="anchor" href="#sym-boot" aria-label="Link to boot">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> boot&lt;<span class="t">G</span>: <span class="t">Renderer</span>&gt;(frames: u32) -&gt; <span class="t">Report</span></code></div><div class="doc"><p>Boot <code>G</code> and drive <code>frames</code> whole frames, with no window and no input.</p>
+<p>Panics when a <code>placeholder!</code> ran. To boot an
+unfinished game, use <code>play(Script::new().wait(frames).allow_placeholders())</code>.</p>
+<h1>Example</h1>
+<p>```ignore</p>
+<h1>[test]</h1>
+<p>fn it_boots() {
+let report = warp_sdk::smoke::boot::<Game>(120);
+assert!(report.drove_a_panel(), "the game wired no panels");
+}
+```</p></div></div><div class="item" id="sym-play" data-name="play"><div class="sig"><a class="anchor" href="#sym-play" aria-label="Link to play">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> play&lt;<span class="t">G</span>: <span class="t">Renderer</span>&gt;(script: <span class="t">Script</span>) -&gt; <span class="t">PlayReport</span></code></div><div class="doc"><p>Play <code>G</code> from <code>script</code>, with no window, and report the screens it reached.</p>
+<p>Panics when a <code>placeholder!</code> ran, unless the script
+calls [<code>Script::allow_placeholders</code>].</p>
+<p>```ignore</p>
+<h1>[test]</h1>
+<p>fn enter_starts_a_run() {
+let report = smoke::play::<Game>(Script::new().wait(10).press(Key::Return).wait(30));
+assert!(report.path_contains(&amp;["title", "play"]), "{:?}", report.screens());
+}
+```</p></div></div><div class="item" id="sym-play_with" data-name="play_with"><div class="sig"><a class="anchor" href="#sym-play_with" aria-label="Link to play_with">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> play_with&lt;<span class="t">G</span>: <span class="t">Renderer</span>&gt;(script: <span class="t">Script</span>, probe: <span class="k">impl</span> <span class="t">FnMut</span>(&amp;<span class="t">G</span>, u32)) -&gt; <span class="t">PlayReport</span></code></div><div class="doc"><p>Play <code>G</code> from <code>script</code>, and call <code>probe</code> after each frame with the game
+and the frame index from 0. Use the probe to assert that the game state
+changed.</p>
+<p><code>ignore
+let mut score = 0;
+smoke::play_with::&lt;Game&gt;(script, |game, _frame| score = game.score);
+assert!(score &gt; 0, "the script scored nothing");</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Key" data-name="key"><div class="sig"><a class="anchor" href="#sym-Key" aria-label="Link to Key">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">type</span> <span class="t">Key</span> = warp_core::winit::event::<span class="t">VirtualKeyCode</span></code></div><div class="doc"><p>A key a [<code>Script</code>] presses. The winit key code that <code>WinitInputHelper</code> reads.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Button" data-name="button"><div class="sig"><a class="anchor" href="#sym-Button" aria-label="Link to Button">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">type</span> <span class="t">Button</span> = warp_core::winit::event::<span class="t">MouseButton</span></code></div><div class="doc"><p>A mouse button a [<code>Script</code>] presses.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Report" data-name="report"><div class="sig"><a class="anchor" href="#sym-Report" aria-label="Link to Report">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Report</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Frames driven without a panic.</span>
+<span class="k">pub</span> frames: u32,
+<span class="c">/// The game published at least one census snapshot (Hierarchy/Inspector).</span>
+<span class="k">pub</span> census_published: bool,
+<span class="c">/// The game published at least one console scrollback.</span>
+<span class="k">pub</span> console_published: bool,
+<span class="c">/// How many actions the game registered for the Control Map.</span>
+<span class="k">pub</span> actions_registered: usize,
+<span class="c">/// The most rects, lines, circles and sprites the game recorded in one</span>
+<span class="c">/// frame — the peak, not the sum, so a steady game reads as what it draws</span>
+<span class="c">/// each frame rather than that times the frame count.</span>
+<span class="k">pub</span> shapes_drawn: usize,
+<span class="c">/// Whether `scene_underlay` changed a pixel of the HDR target on any</span>
+<span class="c">/// checked frame. `None` when no headless device exists.</span>
+<span class="k">pub</span> underlay_drew: <span class="t">Option</span>&lt;bool&gt;,
+<span class="c">/// The CPU time of each frame in milliseconds: `input`, `render`, `gui`</span>
+<span class="c">/// and the underlay encode. One sample for each frame.</span>
+<span class="k">pub</span> frame_ms: <span class="t">Vec</span>&lt;f32&gt;,
+<span class="c">/// The placeholders that ran, in name order. Empty in a finished game.</span>
+<span class="k">pub</span> placeholders: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,</code></pre></div><div class="doc"><p>What one headless boot saw.</p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-Report-drove_a_panel" data-name="report::drove_a_panel"><div class="sig"><a class="anchor" href="#sym-Report-drove_a_panel" aria-label="Link to Report::drove_a_panel">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drove_a_panel</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>The game ran its frames and drove at least one editor panel. The weakest
+useful assertion a smoke test can make: it is more than a black window.</p></div></div><div class="item" id="sym-Report-drew_something" data-name="report::drew_something"><div class="sig"><a class="anchor" href="#sym-Report-drew_something" aria-label="Link to Report::drew_something">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drew_something</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>The game submitted something to draw: a CPU shape, or a pixel from
+<code>scene_underlay</code>. A game that draws nothing is a black window.</p>
+<p><code>ignore
+assert!(warp_sdk::smoke::boot::&lt;Game&gt;(60).drew_something());</code></p></div></div><div class="item" id="sym-Report-p95_ms" data-name="report::p95_ms"><div class="sig"><a class="anchor" href="#sym-Report-p95_ms" aria-label="Link to Report::p95_ms">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">p95_ms</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The 95th percentile of <code>frame_ms</code>. 0 when no frame ran.</p>
+<p>The first frames build fonts and pipelines, so a budget check reads
+the percentile and not the maximum.</p>
+<p><code>ignore
+assert!(report.p95_ms() &lt; 8.0, "frame CPU p95 {} ms", report.p95_ms());</code></p></div></div><div class="item" id="sym-Report-channel" data-name="report::channel"><div class="sig"><a class="anchor" href="#sym-Report-channel" aria-label="Link to Report::channel">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">channel</span>(&amp;<span class="k">self</span>, name: &amp;str) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">ChannelReport</span>&gt;</code></div><div class="doc"><p>The channel with this name.</p>
+<p><code>ignore
+let fluid = perf::report().channel("fluid");</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-PlayReport" data-name="playreport"><div class="sig"><a class="anchor" href="#sym-PlayReport" aria-label="Link to PlayReport">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">PlayReport</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The boot fields: panels, shapes, underlay, frame times, placeholders.</span>
+<span class="k">pub</span> report: <span class="t">Report</span>,
+<span class="c">/// The screens from [`report_screen`], in order. A name that repeats on</span>
+<span class="c">/// the next frame is kept once.</span>
+<span class="k">pub</span> screens: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,</code></pre></div><div class="doc"><p>What one scripted play saw: the [<code>Report</code>] of a boot, and the screens the
+game went through. It dereferences to the <code>Report</code>.</p>
+<p><code>ignore
+let report = smoke::play::&lt;Game&gt;(Script::new().wait(10).press(Key::Return).wait(30));
+assert!(report.path_contains(&amp;["title", "play"]), "{:?}", report.screens());</code></p></div></div><details class="members"><summary>3 methods</summary><div class="item" id="sym-PlayReport-screens" data-name="playreport::screens"><div class="sig"><a class="anchor" href="#sym-PlayReport-screens" aria-label="Link to PlayReport::screens">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">screens</span>(&amp;<span class="k">self</span>) -&gt; &amp;[<span class="t">String</span>]</code></div><div class="doc"><p>The screens the game reported, in order.</p>
+<p><code>ignore
+assert_eq!(report.screens(), ["title", "play"]);</code></p></div></div><div class="item" id="sym-PlayReport-reached" data-name="playreport::reached"><div class="sig"><a class="anchor" href="#sym-PlayReport-reached" aria-label="Link to PlayReport::reached">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reached</span>(&amp;<span class="k">self</span>, id: &amp;str) -&gt; bool</code></div><div class="doc"><p>The game reported the screen <code>id</code> at least once.</p>
+<p><code>ignore
+assert!(report.reached("play"));</code></p></div></div><div class="item" id="sym-PlayReport-path_contains" data-name="playreport::path_contains"><div class="sig"><a class="anchor" href="#sym-PlayReport-path_contains" aria-label="Link to PlayReport::path_contains">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">path_contains</span>(&amp;<span class="k">self</span>, path: &amp;[&amp;str]) -&gt; bool</code></div><div class="doc"><p>The screens in <code>path</code> occur in this order. Other screens can occur
+between them.</p>
+<p><code>ignore
+assert!(report.path_contains(&amp;["title", "play", "pause"]));</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Script" data-name="script"><div class="sig"><a class="anchor" href="#sym-Script" aria-label="Link to Script">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Script</span></code></div><div class="doc"><p>A timeline of input, one entry for each frame.</p>
+<p>Each step adds frames. The events of a step arrive at the start of its
+first frame, before <code>input</code> and <code>gui</code> run:</p>
+<table>
+<thead>
+<tr>
+<th>step</th>
+<th>frames</th>
+<th>what <code>input</code> sees</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>wait(f)</code></td>
+<td>f</td>
+<td>no new events</td>
+</tr>
+<tr>
+<td><code>press(k)</code></td>
+<td>1</td>
+<td><code>key_pressed(k)</code>; <code>k</code> stays held</td>
+</tr>
+<tr>
+<td><code>release(k)</code></td>
+<td>1</td>
+<td><code>key_released(k)</code></td>
+</tr>
+<tr>
+<td><code>hold(k, f)</code></td>
+<td>f + 1</td>
+<td><code>k</code> held on f frames, released on the last</td>
+</tr>
+<tr>
+<td><code>mouse_to(xy)</code></td>
+<td>1</td>
+<td><code>mouse()</code> is <code>xy</code></td>
+</tr>
+<tr>
+<td><code>click(b)</code></td>
+<td>2</td>
+<td><code>b</code> pressed, then released</td>
+</tr>
+<tr>
+<td><code>hold_mouse(b, f)</code></td>
+<td>f + 1</td>
+<td><code>b</code> held on f frames, released on the last</td>
+</tr>
+</tbody>
+</table>
+<p><code>ignore
+let script = Script::new()
+.wait(30)                       // the title fades in
+.press(Key::Return)             // start a run
+.hold(Key::Right, 60)           // move for one second
+.mouse_to([640.0, 360.0])
+.click(Button::Left)
+.wait(30);</code></p></div></div><details class="members"><summary>10 methods</summary><div class="item" id="sym-Script-new" data-name="script::new"><div class="sig"><a class="anchor" href="#sym-Script-new" aria-label="Link to Script::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>An empty script. <code>play</code> of an empty script runs no frame.</p></div></div><div class="item" id="sym-Script-wait" data-name="script::wait"><div class="sig"><a class="anchor" href="#sym-Script-wait" aria-label="Link to Script::wait">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">wait</span>(<span class="k">mut</span> <span class="k">self</span>, frames: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Add <code>frames</code> frames with no new input.</p></div></div><div class="item" id="sym-Script-press" data-name="script::press"><div class="sig"><a class="anchor" href="#sym-Script-press" aria-label="Link to Script::press">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">press</span>(<span class="k">self</span>, key: <span class="t">Key</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Add one frame that presses <code>key</code>. The key stays held until <code>release</code>.</p></div></div><div class="item" id="sym-Script-release" data-name="script::release"><div class="sig"><a class="anchor" href="#sym-Script-release" aria-label="Link to Script::release">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">release</span>(<span class="k">self</span>, key: <span class="t">Key</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Add one frame that releases <code>key</code>.</p></div></div><div class="item" id="sym-Script-hold" data-name="script::hold"><div class="sig"><a class="anchor" href="#sym-Script-hold" aria-label="Link to Script::hold">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">hold</span>(<span class="k">self</span>, key: <span class="t">Key</span>, frames: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Hold <code>key</code> for <code>frames</code> frames (at least 1), then release it on one
+more frame.</p></div></div><div class="item" id="sym-Script-mouse_to" data-name="script::mouse_to"><div class="sig"><a class="anchor" href="#sym-Script-mouse_to" aria-label="Link to Script::mouse_to">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">mouse_to</span>(<span class="k">self</span>, xy: [f32; <span class="n">2</span>]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Add one frame that moves the pointer to <code>xy</code>, in pixels of [<code>SIZE</code>].</p></div></div><div class="item" id="sym-Script-click" data-name="script::click"><div class="sig"><a class="anchor" href="#sym-Script-click" aria-label="Link to Script::click">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">click</span>(<span class="k">self</span>, button: <span class="t">Button</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Press <code>button</code> on one frame and release it on the next, at the pointer.</p></div></div><div class="item" id="sym-Script-hold_mouse" data-name="script::hold_mouse"><div class="sig"><a class="anchor" href="#sym-Script-hold_mouse" aria-label="Link to Script::hold_mouse">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">hold_mouse</span>(<span class="k">mut</span> <span class="k">self</span>, button: <span class="t">Button</span>, frames: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Hold <code>button</code> for <code>frames</code> frames (at least 1), then release it on one
+more frame.</p></div></div><div class="item" id="sym-Script-allow_placeholders" data-name="script::allow_placeholders"><div class="sig"><a class="anchor" href="#sym-Script-allow_placeholders" aria-label="Link to Script::allow_placeholders">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">allow_placeholders</span>(<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Let the run finish while placeholders ran. The report still lists them.</p></div></div><div class="item" id="sym-Script-frames" data-name="script::frames"><div class="sig"><a class="anchor" href="#sym-Script-frames" aria-label="Link to Script::frames">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">frames</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div><div class="doc"><p>How many frames the script runs.</p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-SIZE" data-name="size"><div class="sig"><a class="anchor" href="#sym-SIZE" aria-label="Link to SIZE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SIZE</span>: [u32; <span class="n">2</span>] = [<span class="n">1280</span>, <span class="n">720</span>]</code></div><div class="doc"><p>The surface size every run uses, in pixels. The mouse coordinates of a
+[<code>Script</code>] are in this space, with the origin at the top left.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="renderer.html" data-slug="renderer">Renderer and run</a></li><li><a href="getting-started.html" data-slug="getting-started">Getting started</a></li><li><a href="building-a-game.html" data-slug="building-a-game">Building a game</a></li><li><a href="shell.html" data-slug="shell">Game shell</a></li><li><a href="census.html" data-slug="census">Census</a></li><li><a href="perf.html" data-slug="perf">Perf</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/smoke.rs</code> - <code>//! `RenderContext::new()` allocates the CPU-side draw buffers and touches no</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/smoke.rs</code> - <code>//! BOOT PROVES IT RUNS. PLAY PROVES IT CAN BE PLAYED.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/smoke.rs</code> - <code>/// first frame, before `input` and `gui` run:</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/smoke.rs</code> - <code>/// The egui key for a winit key, for the keys a menu uses. Other keys reach</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/smoke.rs</code> - <code>/// The first frames build fonts and pipelines, so a budget check reads</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/smoke.rs</code> - <code>/// `smoke::boot` and `smoke::play` that runs past it fails with the name, so</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/smoke.rs</code> - <code>//! reads as a game that drew nothing. Where no adapter answers, or where</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/src/smoke.rs</code> - <code>//! are one per process. A run stands in for a listening editor so the game&#x27;s</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_sdk/src/smoke.rs</code> - <code>//! It proves the game constructs, survives its frame loop, answers input and</code></li></ol><table class="navbox"><tr><th><a href="category-getting-started.html">Getting started</a></th></tr><tr><td><a href="renderer.html" data-slug="renderer">Renderer and run</a> · <a href="shell.html" data-slug="shell">Game shell</a> · <b>Smoke test</b></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-getting-started.html">Getting started</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

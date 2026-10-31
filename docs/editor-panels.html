@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editor panels - Warp Wiki</title>
+<meta name="description" content="every panel a game can feed, and the channels that feed them">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="editor-panels">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#the-channel-table">The channel table</a></li><li><a href="#the-rule-the-panels-follow">The rule the panels follow</a><ul><li><a href="#a-panel-asks-for-what-it-draws">A panel asks for what it draws</a></li><li><a href="#actions-travel-as-data">Actions travel as data</a></li><li><a href="#the-two-ends-may-be-separate-processes">The two ends may be separate processes</a></li></ul></li><li><a href="#usage">Usage</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Editor panels</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">every panel a game can feed, and the channels that feed them</p><table class="infobox"><caption>Editor panels</caption><tr><th>Category</th><td><a href="category-editor-channels.html">Editor channels</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example starter</code><br><code>cargo run -p warp_sdk --example pong</code><br><code>cargo run -p warp_sdk --example observatory</code></td></tr></table><p><strong>Editor panels</strong> are the tool views of the Warp editor that a running game fills with its own data. Each panel a game drives is one channel, re-exported through <code>warp_sdk</code>. A game publishes to the channels for which it has data, and a game with no editor attached pays almost nothing. The channels share one rule: the game owns the facts, the panel draws them, and anything the panel wants done travels back as data.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<h2 id="the-channel-table">The channel table</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Panel</th>
+<th>Channel</th>
+<th>How a game feeds it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hierarchy and Inspector</td>
+<td><a href="census.html" data-slug="census">Census</a></td>
+<td>Publish <a class="sym" href="census.html#sym-Census"><code>Census</code></a> rows each frame, gated on <a class="sym" href="census.html#sym-census_wanted"><code>census_wanted</code></a></td>
+</tr>
+<tr>
+<td>Control Map</td>
+<td><a href="bindings.html" data-slug="bindings">Bindings</a></td>
+<td>Call <a class="sym" href="bindings.html#sym-register"><code>bindings::register</code></a>, then read verbs with <a class="sym" href="bindings.html#sym-held"><code>bindings::held</code></a> and <a class="sym" href="bindings.html#sym-pressed"><code>bindings::pressed</code></a></td>
+</tr>
+<tr>
+<td>Console</td>
+<td><a href="devconsole.html" data-slug="devconsole">Dev console</a></td>
+<td>Call <a class="sym" href="devconsole.html#sym-publish"><code>devconsole::publish</code></a> and <a class="sym" href="devconsole.html#sym-publish_words"><code>devconsole::publish_words</code></a>, and drain <a class="sym" href="devconsole.html#sym-take_submissions"><code>take_submissions</code></a></td>
+</tr>
+<tr>
+<td>Audio Scope</td>
+<td><a href="audio.html" data-slug="audio">Audio</a></td>
+<td>Play through <code>Bus</code>, or feed <a class="sym" href="audio.html#sym-write"><code>scope::write</code></a></td>
+</tr>
+<tr>
+<td>Storyboard</td>
+<td><a href="hostlink.html" data-slug="hostlink">Host link</a></td>
+<td>Call <code>report_screen</code> with the name of the current screen</td>
+</tr>
+<tr>
+<td>Perf Monitor and Profiler</td>
+<td><a href="profile.html" data-slug="profile">Profiler</a></td>
+<td>Record spans, or use <a href="perf.html" data-slug="perf">Perf</a></td>
+</tr>
+<tr>
+<td>An application panel</td>
+<td><a href="window.html" data-slug="window">Custom windows</a></td>
+<td>Implement <a class="sym" href="window.html#sym-WarpWindow"><code>WarpWindow</code></a> and call <a class="sym" href="window.html#sym-register"><code>window::register</code></a> before <a class="sym" href="renderer.html#sym-run"><code>run</code></a></td>
+</tr>
+</tbody>
+</table>
+<p>The <a href="palette.html" data-slug="palette">Palette roles</a> Theme panel and the post-processing panels edit shared tables and not game channels. See <a href="project-settings.html" data-slug="project-settings">Project settings</a>.</p>
+<h2 id="the-rule-the-panels-follow">The rule the panels follow</h2>
+<p>A game is not a panel, and a panel is not a game. The engine cannot name either side, so the dependency runs in one direction, and every channel is built around that fact.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<h3 id="a-panel-asks-for-what-it-draws">A panel asks for what it draws</h3>
+<p>The publisher does no work unless someone is looking. A panel re-asserts its interest on each frame that it draws, and the claim expires. A flag set on open and cleared on close would miss each way that a panel stops being drawn: another tab comes forward, a window closes, or the layout resets.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<p><a class="sym" href="census.html#sym-census_wanted"><code>census_wanted</code></a>, <a class="sym" href="devconsole.html#sym-console_wanted"><code>console_wanted</code></a> and <a class="sym" href="profile.html#sym-enabled"><code>profile::enabled</code></a> are three forms of this one brake. Each expiry counts something different, so that a stopped clock cannot hold a claim open:</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Channel</th>
+<th>Clock</th>
+<th>Grace</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Census</td>
+<td>Publishes</td>
+<td>3</td>
+</tr>
+<tr>
+<td>Console</td>
+<td>Polls of <a class="sym" href="devconsole.html#sym-console_wanted"><code>console_wanted</code></a></td>
+<td>3</td>
+</tr>
+<tr>
+<td>Profiler</td>
+<td>Calls to <a class="sym" href="profile.html#sym-frame"><code>profile::frame</code></a></td>
+<td>3 frames</td>
+</tr>
+</tbody>
+</table>
+<h3 id="actions-travel-as-data">Actions travel as data</h3>
+<p>A click on a row, a typed command and a rebind are records in a queue, which the application drains on its own frame. The application holds the world and the context needed to act, and neither exists at the moment that a panel draws. Queues are bounded, so a publisher that stops draining cannot grow one without limit.</p>
+<h3 id="the-two-ends-may-be-separate-processes">The two ends may be separate processes</h3>
+<p>The editor once linked the game, and these channels were statics in one address space. The editor now launches the game as a child process, so each process has its own copy of each static. <a href="hostlink.html" data-slug="hostlink">Host link</a> carries each channel across. Every panel that read a global became a message, and the failures of that split were quiet: the panel's own copy changed, so it looked as if it worked.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<p>A game calls the same functions in both cases. The per-frame <code>pump_</code> functions of <a class="sym" href="hostlink.html"><code>hostlink::child</code></a> forward what the game published.</p>
+<h2 id="usage">Usage</h2>
+<p><code>starter</code> wires the census, bindings and console channels, <code>pong</code> is a short worked example, and <code>observatory</code> also feeds the Audio Scope. Each editor-facing call is gated, or costs little with no reader, so a shipped game keeps these lines.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="c">// Hierarchy: the three things in play.</span>
+<span class="k">if</span> census::<span class="f">census_wanted</span>() {
+    census::<span class="f">publish</span>(census::<span class="t">Census</span> {
+        kinds: vec![census::<span class="t">Kind</span>::<span class="f">new</span>(<span class="s">"Body"</span>, [<span class="n">120</span>, <span class="n">200</span>, <span class="n">255</span>], census::<span class="t">Focus</span>::<span class="t">World</span>)],
+        rows: vec![
+            census::<span class="t">Entity</span>::<span class="f">new</span>(<span class="n">1</span>, <span class="n">0</span>, <span class="s">"Ball"</span>),
+            census::<span class="t">Entity</span>::<span class="f">new</span>(<span class="n">2</span>, <span class="n">0</span>, <span class="s">"Left Paddle"</span>),
+            census::<span class="t">Entity</span>::<span class="f">new</span>(<span class="n">3</span>, <span class="n">0</span>, <span class="s">"Right Paddle"</span>),
+        ],
+        ..<span class="t">Default</span>::<span class="f">default</span>()
+    });
+}</code></pre></div>
+<h2 id="limitations">Limitations</h2>
+<p>The Storyboard edges are edited in the panel, not by the game. <code>warp_sdk</code> does not re-export the editor's <code>shaderlab</code> and <code>story</code> panels, which sit behind an editor feature of <code>warp_core</code>.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p><h2 id="see-also">See also</h2><ul><li><a href="census.html" data-slug="census">Census</a></li><li><a href="bindings.html" data-slug="bindings">Bindings</a></li><li><a href="devconsole.html" data-slug="devconsole">Dev console</a></li><li><a href="audio.html" data-slug="audio">Audio</a></li><li><a href="profile.html" data-slug="profile">Profiler</a></li><li><a href="window.html" data-slug="window">Custom windows</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/panels/census/mod.rs</code> - <code>The application publishes rows. The panel draws them and pushes requests.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_core/src/devconsole.rs</code> - <code>The console lives in the application, and the dependency runs one way:</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/panels/census/interest.rs</code> - <code>So the panel re-asserts on every frame it draws, and the assertion expires.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/hostlink/mod.rs</code> - <code>EVERY PANEL THAT READ A GLOBAL IS A MESSAGE HERE</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/lib.rs</code> - <code>Do not re-add these here.</code></li></ol><table class="navbox"><tr><th><a href="category-editor-channels.html">Editor channels</a></th></tr><tr><td><b>Editor panels</b> · <a href="census.html" data-slug="census">Census</a> · <a href="devconsole.html" data-slug="devconsole">Dev console</a> · <a href="bindings.html" data-slug="bindings">Bindings</a> · <a href="audio.html" data-slug="audio">Audio</a> · <a href="palette.html" data-slug="palette">Palette roles</a> · <a href="profile.html" data-slug="profile">Profiler</a> · <a href="hostlink.html" data-slug="hostlink">Host link</a> · <a href="window.html" data-slug="window">Custom windows</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-editor-channels.html">Editor channels</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

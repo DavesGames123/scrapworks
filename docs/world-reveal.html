@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reveal grid - Warp Wiki</title>
+<meta name="description" content="fog of war state with line of sight, save data, minimap, and GPU textures">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="world-reveal">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#overview">Overview</a></li><li><a href="#usage">Usage</a></li><li><a href="#sources">Sources</a></li><li><a href="#how-it-works">How it works</a></li><li><a href="#how-hidden-rock-must-look">How hidden rock must look</a></li><li><a href="#gpu">GPU</a></li><li><a href="#minimap">Minimap</a></li><li><a href="#save-format">Save format</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Reveal grid</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">fog of war state with line of sight, save data, minimap, and GPU textures</p><table class="infobox"><caption>Reveal grid</caption><tr><th>Category</th><td><a href="category-world-and-simulation.html">World and simulation</a></td></tr><tr><th>Module</th><td><code>warp_sdk::world::reveal</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/world/reveal.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">31</a></td></tr></table><p><strong>Reveal grid</strong> is the Warp SDK structure that records what the player has seen and what the player sees now. It is the type <a class="sym" href="#sym-RevealGrid"><code>RevealGrid</code></a> in <a class="sym" href="world-reveal.html"><code>warp_sdk::world::reveal</code></a>, and it drives fog of war, a minimap, and cut-away rock. The grid covers a world rectangle with square cells, and each cell keeps two soft values from 0 to 1.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<h2 id="overview">Overview</h2>
+<p>The two values have different lives. <code>explored</code> means seen at any time, and it goes into the save file. <a class="sym" href="hostlink.html#sym-visible"><code>visible</code></a> means seen in this frame, and it is never saved. Each is one byte per cell, in row-major order with row 0 at <code>origin.y</code>.</p>
+<p>A <a class="sym" href="#sym-Source"><code>Source</code></a> reveals the cells in its radius that it has line of sight to. Line of sight goes through a closure <code>solid(p) -&gt; bool</code> that the game gives, so the grid works with any terrain. A game with a <a href="world-terrain.html" data-slug="world-terrain">Terrain</a> passes <code>|p| terrain.is_solid(p)</code>, or a function of its own.</p>
+<h2 id="usage">Usage</h2>
+<p>This sample is the module doc test. Call <a class="sym" href="#sym-RevealGrid-begin_frame"><code>RevealGrid::begin_frame</code></a> once per frame before the reveal calls.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::world::reveal::{<span class="t">RevealGrid</span>, <span class="t">Source</span>};
+<span class="k">use</span> warp_sdk::ultraviolet::<span class="t">Vec2</span>;
+
+<span class="k">let</span> <span class="k">mut</span> grid = <span class="t">RevealGrid</span>::<span class="f">new</span>(<span class="t">Vec2</span>::<span class="f">new</span>(<span class="n">0.0</span>, <span class="n">0.0</span>), <span class="n">1.0</span>, <span class="n">64</span>, <span class="n">64</span>);
+<span class="k">let</span> wall = |p: <span class="t">Vec2</span>| p.x &gt; <span class="n">40.0</span>;
+<span class="c">// once per frame:</span>
+grid.<span class="f">begin_frame</span>();
+grid.<span class="f">reveal</span>(&amp;<span class="t">Source</span>::<span class="f">light</span>(<span class="t">Vec2</span>::<span class="f">new</span>(<span class="n">32.0</span>, <span class="n">32.0</span>), <span class="n">12.0</span>), wall);
+assert!(grid.<span class="f">visible_at</span>(<span class="t">Vec2</span>::<span class="f">new</span>(<span class="n">33.0</span>, <span class="n">32.0</span>)) &gt; <span class="n">0.9</span>);
+assert!(grid.<span class="f">explored_at</span>(<span class="t">Vec2</span>::<span class="f">new</span>(<span class="n">60.0</span>, <span class="n">32.0</span>)) == <span class="n">0.0</span>);
+<span class="k">let</span> save: <span class="t">Vec</span>&lt;u8&gt; = grid.<span class="f">to_bytes</span>();
+<span class="k">let</span> back = <span class="t">RevealGrid</span>::<span class="f">from_bytes</span>(&amp;save).<span class="f">unwrap</span>();</code></pre></div>
+<h2 id="sources">Sources</h2>
+<p><a class="sym" href="#sym-Source-light"><code>Source::light</code></a> makes a source of kind SourceKind::Light, which sets <a class="sym" href="hostlink.html#sym-visible"><code>visible</code></a> and <code>explored</code>. <a class="sym" href="#sym-Source-sonar"><code>Source::sonar</code></a> makes a SourceKind::Sonar source, which sets <code>explored</code> only: the player learns the shape, not the present.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>eye</code></td>
+<td>given</td>
+<td>The position of the source</td>
+</tr>
+<tr>
+<td><code>radius</code></td>
+<td>given</td>
+<td>The reach, in world units</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Source-feather"><code>feather</code></a></td>
+<td>a quarter of the radius</td>
+<td>The width of the soft edge, inside <code>radius</code></td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Source-skin"><code>skin</code></a></td>
+<td>0</td>
+<td>How deep into solid cells the source sees</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Source-feather"><code>Source::feather</code></a> clamps its value to the radius, and <a class="sym" href="#sym-Source-skin"><code>Source::skin</code></a> clamps below at 0.</p>
+<h2 id="how-it-works">How it works</h2>
+<p><a class="sym" href="#sym-RevealGrid-reveal"><code>RevealGrid::reveal</code></a> visits each cell whose centre is inside the radius. The value of a cell is the product of a reach term and a line of sight term, stored as a byte. Values only go up, so several sources in one frame keep the brightest value.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<p>The reach term is 1 inside <code>radius - feather</code> and falls with a smoothstep to 0 at the radius. The line of sight term marches from the eye to the cell centre in half-cell steps and adds up the solid length on the way. The target cell does not count, so a rock face is seen.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup> The term is 1 with no solid and falls to 0 between <a class="sym" href="#sym-Source-skin"><code>skin</code></a> and <a class="sym" href="#sym-Source-skin"><code>skin</code></a> plus one step of solid length. With the default skin of 0, one solid sample on the way hides the cell.</p>
+<p>The doc comment gives the cost as one <code>solid</code> call per half cell along each ray, for each cell in the radius, or about 25,000 calls at a radius of 20 cells.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<p><a class="sym" href="#sym-RevealGrid-revision"><code>RevealGrid::revision</code></a> changes each time the grid changes. A game can use it to skip work, and <a class="sym" href="#sym-RevealGpu"><code>RevealGpu</code></a> uses it to skip uploads. <a class="sym" href="#sym-RevealGrid-clear"><code>RevealGrid::clear</code></a> resets both values for a new map.</p>
+<p><a class="sym" href="#sym-RevealGrid-explored_at"><code>RevealGrid::explored_at</code></a> and <a class="sym" href="#sym-RevealGrid-visible_at"><code>RevealGrid::visible_at</code></a> read bilinearly between cell centres. A sample outside the grid reads 0. <a class="sym" href="#sym-RevealGrid-cell"><code>RevealGrid::cell</code></a> gives the raw pair of a cell, and <a class="sym" href="#sym-RevealGrid-cell_of"><code>RevealGrid::cell_of</code></a> maps a point to a cell or <code>None</code>.</p>
+<h2 id="how-hidden-rock-must-look">How hidden rock must look</h2>
+<p>The module header sets a rule for the look. Hidden rock reads as unknown, never as broken geometry. A player who sees rock with holes, rock that pops in by cells, or rock drawn at low alpha reads a bug, not a secret.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup> The header gives four steps.</p>
+<ol>
+<li>Draw all rock always. Do not discard or skip the fragments of hidden rock. Change only its colour.</li>
+<li>Colour hidden rock with <code>terrain_cutaway</code> from <code>shaderlib/terrain/reveal.wgsl</code>: a flat ink fill, sparse hatching, and an edge line where the view stops. The surface line of the rock stays.</li>
+<li>Colour open space with <code>terrain_fog_of_war</code>: fog where never explored, and a grey memory where explored but not visible now.</li>
+<li>Sample the grid textures with a linear sampler. The cell values are already soft, so a linear sampler gives a smooth edge, not cell steps.</li>
+</ol>
+<h2 id="gpu">GPU</h2>
+<p><a class="sym" href="#sym-RevealGpu"><code>RevealGpu</code></a> holds two <code>R8Unorm</code> textures, <code>explored</code> and <a class="sym" href="hostlink.html#sym-visible"><code>visible</code></a>, sized like the grid. Call <a class="sym" href="#sym-RevealGpu-new"><code>RevealGpu::new</code></a> once, and call <a class="sym" href="#sym-RevealGpu-upload"><code>RevealGpu::upload</code></a> each frame after the reveal calls. The upload writes only when the grid changed since the last upload, and it returns true when it wrote.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup> A grid of a different size is not written. Make a new <a class="sym" href="#sym-RevealGpu"><code>RevealGpu</code></a> for it.</p>
+<p><a class="sym" href="#sym-RevealGrid-uv_rect"><code>RevealGrid::uv_rect</code></a> gives <code>[x, y, 1/width, 1/height]</code>. The fragment shader combines the pieces as follows.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">let</span> uv = (world_p - reveal_rect.xy) * reveal_rect.zw;
+<span class="k">let</span> seen = <span class="f">textureSample</span>(explored_tex, linear_samp, uv).r;
+<span class="k">let</span> now = <span class="f">textureSample</span>(visible_tex, linear_samp, uv).r;
+<span class="k">var</span> c = <span class="f">terrain_fog_of_war</span>(lit_colour, now, seen, fog_colour);
+c = <span class="f">terrain_cutaway</span>(c, world_p, rock_sd, <span class="f">max</span>(now, seen), <span class="n">0.1</span>, ink, edge);</code></pre></div>
+<p><code>rock_sd</code> comes from the terrain SDF. See <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> for the shader file.</p>
+<h2 id="minimap">Minimap</h2>
+<p><a class="sym" href="#sym-RevealGrid-minimap_rgba"><code>RevealGrid::minimap_rgba</code></a> gives one RGBA pixel per cell, row 0 first. Each pixel mixes the <code>unknown</code>, <code>remembered</code> and <code>seen</code> colours by the cell values. Give the result to <code>egui::ColorImage::from_rgba_unmultiplied</code>.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<h2 id="save-format">Save format</h2>
+<p><a class="sym" href="#sym-RevealGrid-to_bytes"><code>RevealGrid::to_bytes</code></a> writes a 24-byte header and a run-length body, so a large dark map is small. <a class="sym" href="hostlink.html#sym-visible"><code>visible</code></a> is not saved, because it is for one frame only.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Offset</th>
+<th>Size</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>4</td>
+<td>The tag <code>"WRV1"</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>4</td>
+<td>Width in cells, little-endian u32</td>
+</tr>
+<tr>
+<td>8</td>
+<td>4</td>
+<td>Height in cells, little-endian u32</td>
+</tr>
+<tr>
+<td>12</td>
+<td>8</td>
+<td>Origin x and y, little-endian f32</td>
+</tr>
+<tr>
+<td>20</td>
+<td>4</td>
+<td>Cell size, little-endian f32</td>
+</tr>
+<tr>
+<td>24</td>
+<td>rest</td>
+<td>Pairs of run length (1 to 255) and value</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-RevealGrid-from_bytes"><code>RevealGrid::from_bytes</code></a> returns a <a class="sym" href="#sym-RevealError"><code>RevealError</code></a>: RevealError::BadMagic for a wrong tag, RevealError::BadLength for data that stops early or runs long, and RevealError::BadHeader for a size of 0, a cell size that is not positive, or an origin that is not finite. A loaded grid has <a class="sym" href="hostlink.html#sym-visible"><code>visible</code></a> clear.</p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>The cost of <a class="sym" href="#sym-RevealGrid-reveal"><code>RevealGrid::reveal</code></a> grows with the source area and the ray length, and all of it runs on the CPU.</li>
+<li><a class="sym" href="#sym-RevealGrid-begin_frame"><code>RevealGrid::begin_frame</code></a> is the only call that clears <a class="sym" href="hostlink.html#sym-visible"><code>visible</code></a>. A game that skips it keeps the old values.</li>
+<li><a class="sym" href="#sym-RevealGpu"><code>RevealGpu</code></a> has no resize. A new grid size needs a new value.</li>
+</ul>
+<h2 id="history">History</h2>
+<p>Commit <code>ccc8f737</code> added the module on 2026-10-29, together with <a class="sym" href="world-biome.html"><code>world::biome</code></a>.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 31 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-world--reveal" class="modhead"><code>warp_sdk::world::reveal</code></h3><h4>Types</h4><div class="typeblock"><div class="item" id="sym-SourceKind" data-name="sourcekind"><div class="sig"><a class="anchor" href="#sym-SourceKind" aria-label="Link to SourceKind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">SourceKind</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Sets `visible` and `explored`. A lamp, a headlight, the sun.</span>
+<span class="t">Light</span>,
+<span class="c">/// Sets `explored` only. The player learns the shape, not the present.</span>
+<span class="t">Sonar</span>,</code></pre></div><div class="doc"><p>What a [<code>Source</code>] does to the grid.</p>
+<p><code>use warp_sdk::world::reveal::SourceKind;
+assert_ne!(SourceKind::Light, SourceKind::Sonar);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Source" data-name="source"><div class="sig"><a class="anchor" href="#sym-Source" aria-label="Link to Source">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Source</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> eye: <span class="t">Vec2</span>,
+<span class="k">pub</span> kind: <span class="t">SourceKind</span>,
+<span class="c">/// The reach, in world units.</span>
+<span class="k">pub</span> radius: f32,
+<span class="c">/// The width of the soft edge, inside `radius`, in world units.</span>
+<span class="k">pub</span> feather: f32,
+<span class="c">/// How deep into solid cells the source sees, in world units. The cell</span>
+<span class="c">/// that holds the rock face is always seen.</span>
+<span class="k">pub</span> skin: f32,</code></pre></div><div class="doc"><p>A thing that reveals cells: a light or a sonar ping.</p>
+<p><code>use warp_sdk::world::reveal::Source;
+use warp_sdk::ultraviolet::Vec2;
+let lamp = Source::light(Vec2::new(5.0, 5.0), 10.0).feather(3.0).skin(0.5);
+let ping = Source::sonar(Vec2::new(5.0, 5.0), 40.0);</code></p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-Source-light" data-name="source::light"><div class="sig"><a class="anchor" href="#sym-Source-light" aria-label="Link to Source::light">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">light</span>(eye: <span class="t">Vec2</span>, radius: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A light. Default feather is a quarter of the radius, skin 0.</p>
+<p><code>let s = warp_sdk::world::reveal::Source::light(warp_sdk::ultraviolet::Vec2::zero(), 8.0);
+assert_eq!(s.feather, 2.0);</code></p></div></div><div class="item" id="sym-Source-sonar" data-name="source::sonar"><div class="sig"><a class="anchor" href="#sym-Source-sonar" aria-label="Link to Source::sonar">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">sonar</span>(eye: <span class="t">Vec2</span>, radius: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A sonar ping. It marks cells as explored, not as visible.</p>
+<p><code>let s = warp_sdk::world::reveal::Source::sonar(warp_sdk::ultraviolet::Vec2::zero(), 30.0);</code></p></div></div><div class="item" id="sym-Source-feather" data-name="source::feather"><div class="sig"><a class="anchor" href="#sym-Source-feather" aria-label="Link to Source::feather">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">feather</span>(<span class="k">mut</span> <span class="k">self</span>, width: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the soft edge width.</p>
+<p><code>let s = warp_sdk::world::reveal::Source::light(warp_sdk::ultraviolet::Vec2::zero(), 8.0).feather(1.0);</code></p></div></div><div class="item" id="sym-Source-skin" data-name="source::skin"><div class="sig"><a class="anchor" href="#sym-Source-skin" aria-label="Link to Source::skin">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">skin</span>(<span class="k">mut</span> <span class="k">self</span>, depth: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set how far the source sees into rock.</p>
+<p><code>let s = warp_sdk::world::reveal::Source::light(warp_sdk::ultraviolet::Vec2::zero(), 8.0).skin(0.5);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-RevealError" data-name="revealerror"><div class="sig"><a class="anchor" href="#sym-RevealError" aria-label="Link to RevealError">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">RevealError</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The data does not start with the reveal grid tag.</span>
+<span class="t">BadMagic</span>,
+<span class="c">/// The data stops before the grid is complete, or has more data.</span>
+<span class="t">BadLength</span>,
+<span class="c">/// The header has a size of 0 or a cell size that is not positive.</span>
+<span class="t">BadHeader</span>,</code></pre></div><div class="doc"><p>Why [<code>RevealGrid::from_bytes</code>] refused the data.</p>
+<p><code>use warp_sdk::world::reveal::{RevealGrid, RevealError};
+assert_eq!(RevealGrid::from_bytes(b"nope").unwrap_err(), RevealError::BadMagic);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-RevealGrid" data-name="revealgrid"><div class="sig"><a class="anchor" href="#sym-RevealGrid" aria-label="Link to RevealGrid">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">RevealGrid</span></code></div><div class="doc"><p>The exploration grid. Row-major, row 0 at <code>origin.y</code>.</p>
+<p><code>use warp_sdk::world::reveal::RevealGrid;
+use warp_sdk::ultraviolet::Vec2;
+let grid = RevealGrid::new(Vec2::new(-100.0, 0.0), 2.0, 100, 50);
+assert_eq!(grid.size(), (100, 50));</code></p></div></div><details class="members"><summary>19 methods</summary><div class="item" id="sym-RevealGrid-new" data-name="revealgrid::new"><div class="sig"><a class="anchor" href="#sym-RevealGrid-new" aria-label="Link to RevealGrid::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(origin: <span class="t">Vec2</span>, cell: f32, w: u32, h: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A grid of <code>w</code> by <code>h</code> cells of size <code>cell</code>, with its corner at
+<code>origin</code>. Nothing is explored.</p>
+<p><code>let g = warp_sdk::world::reveal::RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 1.0, 8, 8);</code></p></div></div><div class="item" id="sym-RevealGrid-size" data-name="revealgrid::size"><div class="sig"><a class="anchor" href="#sym-RevealGrid-size" aria-label="Link to RevealGrid::size">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">size</span>(&amp;<span class="k">self</span>) -&gt; (u32, u32)</code></div><div class="doc"><p>The size in cells.</p>
+<p>```</p>
+<h1>let g = warp_sdk::world::reveal::RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 1.0, 8, 4);</h1>
+<p>assert_eq!(g.size(), (8, 4));
+```</p></div></div><div class="item" id="sym-RevealGrid-cell_size" data-name="revealgrid::cell_size"><div class="sig"><a class="anchor" href="#sym-RevealGrid-cell_size" aria-label="Link to RevealGrid::cell_size">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cell_size</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The world size of one cell.</p>
+<p>```</p>
+<h1>let g = warp_sdk::world::reveal::RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 0.5, 8, 4);</h1>
+<p>assert_eq!(g.cell_size(), 0.5);
+```</p></div></div><div class="item" id="sym-RevealGrid-rect" data-name="revealgrid::rect"><div class="sig"><a class="anchor" href="#sym-RevealGrid-rect" aria-label="Link to RevealGrid::rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">rect</span>(&amp;<span class="k">self</span>) -&gt; [f32; <span class="n">4</span>]</code></div><div class="doc"><p>The world rectangle <code>[x, y, width, height]</code>.</p>
+<p>```</p>
+<h1>let g = warp_sdk::world::reveal::RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 2.0, 8, 4);</h1>
+<p>assert_eq!(g.rect(), [0.0, 0.0, 16.0, 8.0]);
+```</p></div></div><div class="item" id="sym-RevealGrid-uv_rect" data-name="revealgrid::uv_rect"><div class="sig"><a class="anchor" href="#sym-RevealGrid-uv_rect" aria-label="Link to RevealGrid::uv_rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">uv_rect</span>(&amp;<span class="k">self</span>) -&gt; [f32; <span class="n">4</span>]</code></div><div class="doc"><p><code>[x, y, 1/width, 1/height]</code> for the shader: <code>uv = (p - r.xy) * r.zw</code>.</p>
+<p>```</p>
+<h1>let g = warp_sdk::world::reveal::RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 2.0, 8, 4);</h1>
+<p>assert_eq!(g.uv_rect(), [0.0, 0.0, 1.0 / 16.0, 1.0 / 8.0]);
+```</p></div></div><div class="item" id="sym-RevealGrid-revision" data-name="revealgrid::revision"><div class="sig"><a class="anchor" href="#sym-RevealGrid-revision" aria-label="Link to RevealGrid::revision">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">revision</span>(&amp;<span class="k">self</span>) -&gt; u64</code></div><div class="doc"><p>A number that changes each time the grid changes. Use it to skip
+work when nothing changed.</p>
+<p>```</p>
+<h1>let mut g = warp_sdk::world::reveal::RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 1.0, 8, 8);</h1>
+<p>let r = g.revision();
+g.clear();
+assert_ne!(g.revision(), r);
+```</p></div></div><div class="item" id="sym-RevealGrid-begin_frame" data-name="revealgrid::begin_frame"><div class="sig"><a class="anchor" href="#sym-RevealGrid-begin_frame" aria-label="Link to RevealGrid::begin_frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">begin_frame</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Clear <code>visible</code>. Call it once per frame before the <code>reveal</code> calls.</p>
+<p>```</p>
+<h1>let mut g = warp_sdk::world::reveal::RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 1.0, 8, 8);</h1>
+<p>g.begin_frame();
+```</p></div></div><div class="item" id="sym-RevealGrid-clear" data-name="revealgrid::clear"><div class="sig"><a class="anchor" href="#sym-RevealGrid-clear" aria-label="Link to RevealGrid::clear">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Clear <code>explored</code> and <code>visible</code>: a new map.</p>
+<p>```</p>
+<h1>let mut g = warp_sdk::world::reveal::RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 1.0, 8, 8);</h1>
+<p>g.clear();
+```</p></div></div><div class="item" id="sym-RevealGrid-cell_centre" data-name="revealgrid::cell_centre"><div class="sig"><a class="anchor" href="#sym-RevealGrid-cell_centre" aria-label="Link to RevealGrid::cell_centre">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cell_centre</span>(&amp;<span class="k">self</span>, cx: u32, cy: u32) -&gt; <span class="t">Vec2</span></code></div><div class="doc"><p>The centre of cell <code>(cx, cy)</code> in world units.</p>
+<p>```</p>
+<h1>let g = warp_sdk::world::reveal::RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 2.0, 8, 8);</h1>
+<p>assert_eq!(g.cell_centre(0, 0), warp_sdk::ultraviolet::Vec2::new(1.0, 1.0));
+```</p></div></div><div class="item" id="sym-RevealGrid-cell_of" data-name="revealgrid::cell_of"><div class="sig"><a class="anchor" href="#sym-RevealGrid-cell_of" aria-label="Link to RevealGrid::cell_of">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cell_of</span>(&amp;<span class="k">self</span>, p: <span class="t">Vec2</span>) -&gt; <span class="t">Option</span>&lt;(u32, u32)&gt;</code></div><div class="doc"><p>The cell that holds <code>p</code>, or <code>None</code> outside the grid.</p>
+<p>```</p>
+<h1>let g = warp_sdk::world::reveal::RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 2.0, 8, 8);</h1>
+<p>assert_eq!(g.cell_of(warp_sdk::ultraviolet::Vec2::new(3.0, 1.0)), Some((1, 0)));
+```</p></div></div><div class="item" id="sym-RevealGrid-cell" data-name="revealgrid::cell"><div class="sig"><a class="anchor" href="#sym-RevealGrid-cell" aria-label="Link to RevealGrid::cell">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cell</span>(&amp;<span class="k">self</span>, cx: u32, cy: u32) -&gt; (f32, f32)</code></div><div class="doc"><p>The <code>(explored, visible)</code> values of one cell, 0..1. Outside = <code>(0, 0)</code>.</p>
+<p>```</p>
+<h1>let g = warp_sdk::world::reveal::RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 1.0, 8, 8);</h1>
+<p>assert_eq!(g.cell(2, 3), (0.0, 0.0));
+```</p></div></div><div class="item" id="sym-RevealGrid-explored_at" data-name="revealgrid::explored_at"><div class="sig"><a class="anchor" href="#sym-RevealGrid-explored_at" aria-label="Link to RevealGrid::explored_at">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">explored_at</span>(&amp;<span class="k">self</span>, p: <span class="t">Vec2</span>) -&gt; f32</code></div><div class="doc"><p>The explored value at <code>p</code>, bilinear between cell centres.</p>
+<p>```</p>
+<h1>let g = warp_sdk::world::reveal::RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 1.0, 8, 8);</h1>
+<p>assert_eq!(g.explored_at(warp_sdk::ultraviolet::Vec2::new(4.0, 4.0)), 0.0);
+```</p></div></div><div class="item" id="sym-RevealGrid-visible_at" data-name="revealgrid::visible_at"><div class="sig"><a class="anchor" href="#sym-RevealGrid-visible_at" aria-label="Link to RevealGrid::visible_at">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">visible_at</span>(&amp;<span class="k">self</span>, p: <span class="t">Vec2</span>) -&gt; f32</code></div><div class="doc"><p>The visible-now value at <code>p</code>, bilinear between cell centres.</p>
+<p>```</p>
+<h1>let g = warp_sdk::world::reveal::RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 1.0, 8, 8);</h1>
+<p>assert_eq!(g.visible_at(warp_sdk::ultraviolet::Vec2::new(4.0, 4.0)), 0.0);
+```</p></div></div><div class="item" id="sym-RevealGrid-reveal" data-name="revealgrid::reveal"><div class="sig"><a class="anchor" href="#sym-RevealGrid-reveal" aria-label="Link to RevealGrid::reveal">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reveal</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, src: &amp;<span class="t">Source</span>, solid: <span class="k">impl</span> <span class="t">Fn</span>(<span class="t">Vec2</span>) -&gt; bool)</code></div><div class="doc"><p>Reveal the cells that <code>src</code> reaches and has line of sight to.
+<code>solid(p)</code> is true where <code>p</code> is rock or wall. Values only go up:
+several sources in one frame keep the brightest value.</p>
+<p>The cost is one <code>solid</code> call per half cell along each ray, for each
+cell in the radius. A radius of 20 cells is about 25 000 calls.</p>
+<p><code>use warp_sdk::world::reveal::{RevealGrid, Source};
+use warp_sdk::ultraviolet::Vec2;
+let mut g = RevealGrid::new(Vec2::zero(), 1.0, 32, 32);
+g.reveal(&amp;Source::sonar(Vec2::new(16.0, 16.0), 10.0), |_| false);
+assert!(g.explored_at(Vec2::new(16.0, 16.0)) &gt; 0.9);
+assert_eq!(g.visible_at(Vec2::new(16.0, 16.0)), 0.0);</code></p></div></div><div class="item" id="sym-RevealGrid-minimap_rgba" data-name="revealgrid::minimap_rgba"><div class="sig"><a class="anchor" href="#sym-RevealGrid-minimap_rgba" aria-label="Link to RevealGrid::minimap_rgba">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">minimap_rgba</span>(&amp;<span class="k">self</span>, unknown: [u8; <span class="n">4</span>], remembered: [u8; <span class="n">4</span>], seen: [u8; <span class="n">4</span>]) -&gt; <span class="t">Vec</span>&lt;u8&gt;</code></div><div class="doc"><p>One RGBA pixel per cell, row 0 first, for a minimap. Each pixel mixes
+<code>unknown</code>, <code>remembered</code> and <code>seen</code> by the cell values.</p>
+<p>```</p>
+<h1>let g = warp_sdk::world::reveal::RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 1.0, 8, 8);</h1>
+<p>let rgba = g.minimap_rgba([0, 0, 0, 255], [60, 70, 80, 255], [200, 220, 255, 255]);
+assert_eq!(rgba.len(), 8 * 8 * 4);
+```</p></div></div><div class="item" id="sym-RevealGrid-explored_r8" data-name="revealgrid::explored_r8"><div class="sig"><a class="anchor" href="#sym-RevealGrid-explored_r8" aria-label="Link to RevealGrid::explored_r8">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">explored_r8</span>(&amp;<span class="k">self</span>) -&gt; &amp;[u8]</code></div><div class="doc"><p>The explored values, one byte per cell, row 0 first. This is the
+data of the <code>explored</code> R8 texture.</p>
+<p>```</p>
+<h1>let g = warp_sdk::world::reveal::RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 1.0, 8, 8);</h1>
+<p>assert_eq!(g.explored_r8().len(), 64);
+```</p></div></div><div class="item" id="sym-RevealGrid-visible_r8" data-name="revealgrid::visible_r8"><div class="sig"><a class="anchor" href="#sym-RevealGrid-visible_r8" aria-label="Link to RevealGrid::visible_r8">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">visible_r8</span>(&amp;<span class="k">self</span>) -&gt; &amp;[u8]</code></div><div class="doc"><p>The visible-now values, one byte per cell, row 0 first.</p>
+<p>```</p>
+<h1>let g = warp_sdk::world::reveal::RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 1.0, 8, 8);</h1>
+<p>assert_eq!(g.visible_r8().len(), 64);
+```</p></div></div><div class="item" id="sym-RevealGrid-to_bytes" data-name="revealgrid::to_bytes"><div class="sig"><a class="anchor" href="#sym-RevealGrid-to_bytes" aria-label="Link to RevealGrid::to_bytes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">to_bytes</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;u8&gt;</code></div><div class="doc"><p>Save the grid. <code>visible</code> is not saved: it is for one frame only.
+The explored values are run-length coded, so a large dark map is small.</p>
+<p>```</p>
+<h1>let g = warp_sdk::world::reveal::RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 1.0, 64, 64);</h1>
+<p>assert!(g.to_bytes().len() &lt; 64);
+```</p></div></div><div class="item" id="sym-RevealGrid-from_bytes" data-name="revealgrid::from_bytes"><div class="sig"><a class="anchor" href="#sym-RevealGrid-from_bytes" aria-label="Link to RevealGrid::from_bytes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_bytes</span>(data: &amp;[u8]) -&gt; <span class="t">Result</span>&lt;<span class="k">Self</span>, <span class="t">RevealError</span>&gt;</code></div><div class="doc"><p>Load a grid that [<code>RevealGrid::to_bytes</code>] saved. <code>visible</code> is clear.</p>
+<p>```</p>
+<h1>use warp_sdk::world::reveal::RevealGrid;</h1>
+<h1>let g = RevealGrid::new(warp_sdk::ultraviolet::Vec2::zero(), 1.0, 8, 8);</h1>
+<p>let back = RevealGrid::from_bytes(&amp;g.to_bytes()).unwrap();
+assert_eq!(back.size(), (8, 8));
+```</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-RevealGpu" data-name="revealgpu"><div class="sig"><a class="anchor" href="#sym-RevealGpu" aria-label="Link to RevealGpu">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">RevealGpu</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> explored: wgpu::<span class="t">Texture</span>,
+<span class="k">pub</span> visible: wgpu::<span class="t">Texture</span>,
+<span class="k">pub</span> explored_view: wgpu::<span class="t">TextureView</span>,
+<span class="k">pub</span> visible_view: wgpu::<span class="t">TextureView</span>,</code></pre></div><div class="doc"><p>The two <code>R8Unorm</code> textures of a grid on the GPU, for
+<code>shaderlib/terrain/reveal.wgsl</code>. Bind both views with a linear sampler
+and pass [<code>RevealGrid::uv_rect</code>] in a uniform.</p>
+<p><code>ignore
+let mut gpu = RevealGpu::new(&amp;device, &amp;grid);
+// each frame, after the reveal calls:
+gpu.upload(&amp;queue, &amp;grid);
+let rect: [f32; 4] = grid.uv_rect();</code></p></div></div><details class="members"><summary>3 methods</summary><div class="item" id="sym-RevealGpu-new" data-name="revealgpu::new"><div class="sig"><a class="anchor" href="#sym-RevealGpu-new" aria-label="Link to RevealGpu::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(device: &amp;wgpu::<span class="t">Device</span>, grid: &amp;<span class="t">RevealGrid</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Make the two textures, sized like the grid. Call [<code>RevealGpu::upload</code>]
+to fill them.</p>
+<p><code>ignore
+let gpu = warp_sdk::world::reveal::RevealGpu::new(&amp;device, &amp;grid);</code></p></div></div><div class="item" id="sym-RevealGpu-upload" data-name="revealgpu::upload"><div class="sig"><a class="anchor" href="#sym-RevealGpu-upload" aria-label="Link to RevealGpu::upload">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">upload</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, queue: &amp;wgpu::<span class="t">Queue</span>, grid: &amp;<span class="t">RevealGrid</span>) -&gt; bool</code></div><div class="doc"><p>Write the grid into the textures when the grid changed since the
+last upload. Returns true when it wrote. A grid of a different size
+is not written; make a new <code>RevealGpu</code> for it.</p>
+<p><code>ignore
+if gpu.upload(&amp;queue, &amp;grid) { /* new data on the GPU */ }</code></p></div></div><div class="item" id="sym-RevealGpu-size" data-name="revealgpu::size"><div class="sig"><a class="anchor" href="#sym-RevealGpu-size" aria-label="Link to RevealGpu::size">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">size</span>(&amp;<span class="k">self</span>) -&gt; (u32, u32)</code></div><div class="doc"><p>The size in texels.</p>
+<p><code>ignore
+assert_eq!(gpu.size(), grid.size());</code></p></div></div></details></div><h2 id="see-also">See also</h2><ul><li><a href="world.html" data-slug="world">World kit</a></li><li><a href="world-terrain.html" data-slug="world-terrain">Terrain</a></li><li><a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a></li><li><a href="hud-minimap.html" data-slug="hud-minimap">HUD minimap</a></li><li><a href="world-biome.html" data-slug="world-biome">Biomes</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/reveal.rs</code> - <code>keeps two soft values, 0..1</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/reveal.rs</code> - <code>The player learns the shape, not the present.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/reveal.rs</code> - <code>several sources in one frame keep the brightest value</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/reveal.rs</code> - <code>The target cell does not count, so a rock face is seen.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/reveal.rs</code> - <code>A radius of 20 cells is about 25 000 calls.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/reveal.rs</code> - <code>Hidden rock reads as UNKNOWN, never as broken geometry.</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/reveal.rs</code> - <code>It writes only when the grid changed.</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/reveal.rs</code> - <code>from_rgba_unmultiplied</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/reveal.rs</code> - <code>is not saved: it is for one frame only.</code></li></ol><table class="navbox"><tr><th><a href="category-world-and-simulation.html">World and simulation</a></th></tr><tr><td><a href="world.html" data-slug="world">World kit</a> · <a href="world-terrain.html" data-slug="world-terrain">Terrain</a> · <a href="world-collide.html" data-slug="world-collide">Surface collision</a> · <a href="world-biome.html" data-slug="world-biome">Biomes</a> · <b>Reveal grid</b> · <a href="fluid.html" data-slug="fluid">Fluid kit</a> · <a href="fluid-solver.html" data-slug="fluid-solver">Fluid solver</a> · <a href="fluid-particles.html" data-slug="fluid-particles">Fluid particles</a> · <a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a> · <a href="procgen.html" data-slug="procgen">Procedural generation</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-world-and-simulation.html">World and simulation</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warp - Warp Wiki</title>
+<meta name="description" content="2D sprite engine on wgpu, its editor, and the SDK a game is written on">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="warp">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#crate-layout">Crate layout</a></li><li><a href="#the-sdk-as-a-boundary">The SDK as a boundary</a></li><li><a href="#what-a-game-is">What a game is</a></li><li><a href="#the-kits">The kits</a></li><li><a href="#platforms">Platforms</a></li><li><a href="#look">Look</a></li><li><a href="#history">History</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Warp</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">2D sprite engine on wgpu, its editor, and the SDK a game is written on</p><table class="infobox"><caption>Warp</caption><tr><th>Category</th><td><a href="category-introduction.html">Introduction</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example starter</code></td></tr></table><p><strong>Warp</strong> is a 2D sprite engine built on wgpu, together with an editor built on that engine and an SDK crate that games are written against. A game on Warp is a Rust crate that depends on <code>warp_sdk</code> and implements one trait, <a class="sym" href="renderer.html#sym-Renderer"><code>Renderer</code></a>. The engine owns the window, the GPU device and the frame loop, and it calls the game once per frame. The editor opens such a crate as a project and drives its panels from what the game publishes.</p>
+<h2 id="crate-layout">Crate layout</h2>
+<p>The repository is a Cargo workspace. Warp is not itself a game, and a game is a separate crate outside the workspace.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Crate</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>warp_core</code></td>
+<td>The engine: rendering, the frame loop, input, assets, and the subsystems behind the editor panels.</td>
+</tr>
+<tr>
+<td><code>warp_editor</code></td>
+<td>The project editor that hosts a game.</td>
+</tr>
+<tr>
+<td><code>warp_sdk</code></td>
+<td>The surface a game names: re-exports from <code>warp_core</code>, plus the kits.</td>
+</tr>
+<tr>
+<td><code>warp_net</code></td>
+<td>Secure peer-to-peer sessions. A game reaches it through <a class="sym" href="net.html"><code>warp_sdk::net</code></a>, behind a feature.</td>
+</tr>
+</tbody>
+</table>
+<p><code>warp_net</code> lets two or more copies of an application share one session with no server that the developer runs. One peer hosts and holds the canonical state, and the others join as guests.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup> Its code came from the multiplayer of Stella Nova, with each game type taken out.</p>
+<h2 id="the-sdk-as-a-boundary">The SDK as a boundary</h2>
+<p><code>warp_sdk</code> is one re-export list: everything an application needs, and nothing the editor keeps for itself. Its header gives the reason: every wrong path an author can take is a path that the surface offers.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> The terminal, the language server, the git graph and the agent panel are public modules of <code>warp_core</code>, and each is a plausible door into engine internals. The SDK leaves them out on purpose.</p>
+<p>Foreign crates follow the same rule. egui, wgpu, winit, <code>winit_input_helper</code> and ultraviolet are reached through <code>warp_sdk</code> and are not named again in a game's manifest, because two copies of egui in one build are two types called <code>Color32</code>.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup> For the same reason, <code>Vec2</code> from a second ultraviolet version would make every draw call a type error.</p>
+<p>Some choices at this boundary are single decisions with two halves:</p>
+<ul>
+<li><a class="sym" href="window.html"><code>window</code></a> is exported and <code>dock</code> is not. An author who wants a panel wants to name it and draw it, and <a class="sym" href="window.html"><code>window</code></a> is those two things. The dock adds a tree of rects and a drag protocol across processes.</li>
+<li>The chrome palette of the editor is not exported, and the interface scale beside it is, as <a class="sym" href="scale.html"><code>scale</code></a>. The palette belongs to a different program, and the scale fixes a problem that every game has.</li>
+<li><a class="sym" href="net.html"><code>net</code></a> is behind the <a class="sym" href="net.html"><code>net</code></a> feature, off by default, because its P2P transport pulls iroh, tokio and a QUIC stack.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup> It is also a curated list and not a blanket re-export, so a game cannot send a frame that no handshake protects.</li>
+</ul>
+<h2 id="what-a-game-is">What a game is</h2>
+<p>Three rules hold for an application on Warp: it is written in Rust on this engine, it names the one crate <code>warp_sdk</code>, and it connects the editor panels that it has data for.</p>
+<p>The game draws in <a class="sym" href="renderer.html#sym-Renderer-render"><code>Renderer::render</code></a>, reads input in <a class="sym" href="renderer.html#sym-Renderer-input"><code>Renderer::input</code></a>, and draws interface in <a class="sym" href="renderer.html#sym-Renderer-gui"><code>Renderer::gui</code></a>. <a class="sym" href="renderer.html#sym-run"><code>run</code></a> opens the window and calls those methods. A game that wants a title screen and pause menu without writing them implements <a class="sym" href="shell.html#sym-ShellGame"><code>ShellGame</code></a> and starts with <code>run_shell</code> instead. See <a href="renderer.html" data-slug="renderer">Renderer and run</a> and <a href="shell.html" data-slug="shell">Game shell</a>.</p>
+<p>The editor draws the panels and the game feeds them. Nothing in the editor reads a game's memory. A panel shows something about a game because the game published it over a channel that costs nothing when no panel listens, so the same binary runs inside the editor and on its own with no change. See <a href="building-a-game.html#the-rule-the-panels-follow" data-slug="building-a-game">the rule the panels follow</a>.</p>
+<p>Every application boots through <a class="sym" href="renderer.html#sym-run"><code>run</code></a>, which attaches to an editor when one launched it. That is why a project needs no code to be hostable.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup> The data half of a project is <code>warp_app.toml</code>, which holds the window, the asset roots, the atlas taxonomy and the build targets. See <a href="manifest.html" data-slug="manifest">App manifest</a>.</p>
+<h2 id="the-kits">The kits</h2>
+<p>Besides the engine re-exports, <code>warp_sdk</code> owns a set of kits. Each kit is one module with a header that lists its grep targets, and each need has one kit.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Group</th>
+<th>Kits</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Getting started</td>
+<td><a href="renderer.html" data-slug="renderer">run and Renderer</a>, <a href="shell.html" data-slug="shell">Game shell</a>, <a href="smoke.html" data-slug="smoke">Smoke test</a></td>
+</tr>
+<tr>
+<td>Front end</td>
+<td><a href="front.html" data-slug="front">Front end</a> (<a href="front-menu.html" data-slug="front-menu">menu</a>, <a href="front-save.html" data-slug="front-save">save</a>, <a href="front-settings.html" data-slug="front-settings">settings</a>), <a href="fonts.html" data-slug="fonts">Fonts</a>, <a href="cine.html" data-slug="cine">Cine</a>, <a href="icon.html" data-slug="icon">Application icon</a>, <a href="boot.html" data-slug="boot">Boot splash and screenshots</a></td>
+</tr>
+<tr>
+<td>Look</td>
+<td><a href="visual.html" data-slug="visual">Visual language</a>, <a href="semiotics.html" data-slug="semiotics">Semiotics</a>, <a href="palette-kit.html" data-slug="palette-kit">Palette kit</a>, <a href="post.html" data-slug="post">Post effects</a>, <a href="lit2d.html" data-slug="lit2d">Lit2d</a>, <a href="shaderlib.html" data-slug="shaderlib">Shader library</a>, <a href="camera.html" data-slug="camera">Camera</a>, <a href="juice.html" data-slug="juice">Juice</a></td>
+</tr>
+<tr>
+<td>Information</td>
+<td><a href="squircle.html" data-slug="squircle">Squircle kit</a>, <a href="hud.html" data-slug="hud">HUD</a> (<a href="hud-cues.html" data-slug="hud-cues">cues</a>, <a href="hud-markers.html" data-slug="hud-markers">markers</a>, <a href="hud-minimap.html" data-slug="hud-minimap">minimap</a>, <a href="hud-progress.html" data-slug="hud-progress">progress</a>), <a href="teach.html" data-slug="teach">Teach kit</a></td>
+</tr>
+<tr>
+<td>World and simulation</td>
+<td><a href="world.html" data-slug="world">World kit</a> (<a href="world-terrain.html" data-slug="world-terrain">terrain</a>, <a href="world-collide.html" data-slug="world-collide">collide</a>, <a href="world-biome.html" data-slug="world-biome">biome</a>, <a href="world-reveal.html" data-slug="world-reveal">reveal</a>), <a href="fluid.html" data-slug="fluid">Fluid kit</a> (<a href="fluid-solver.html" data-slug="fluid-solver">solver</a>, <a href="fluid-particles.html" data-slug="fluid-particles">particles</a>), <a href="procgen.html" data-slug="procgen">Procedural generation</a></td>
+</tr>
+<tr>
+<td>Game systems</td>
+<td><a href="challenge.html" data-slug="challenge">Challenge kit</a>, <a href="economy.html" data-slug="economy">Economy kit</a>, <a href="quest.html" data-slug="quest">Quest kit</a>, <a href="metaprog.html" data-slug="metaprog">Metaprogression</a>, <a href="gamepad.html" data-slug="gamepad">Gamepad</a>, <a href="soundtrack.html" data-slug="soundtrack">Soundtrack</a></td>
+</tr>
+<tr>
+<td>Engine</td>
+<td><a href="display-mode.html" data-slug="display-mode">Display mode</a>, <a href="perf.html" data-slug="perf">Perf</a>, <a href="scale.html" data-slug="scale">Interface scale</a>, <a href="widgets.html" data-slug="widgets">Panel widgets</a>, <a href="net.html" data-slug="net">Networking</a>, and the panel channels (<a href="census.html" data-slug="census">Census</a>, <a href="bindings.html" data-slug="bindings">Bindings</a>, <a href="devconsole.html" data-slug="devconsole">Dev console</a>, <a href="audio.html" data-slug="audio">Audio</a>, <a href="profile.html" data-slug="profile">Profiler</a>, <a href="window.html" data-slug="window">Custom windows</a>)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="platforms">Platforms</h2>
+<p><a class="sym" href="renderer.html#sym-run"><code>run</code></a> is the desktop event loop. The browser uses a separate loop in the <code>web</code> module of <code>warp_core</code>, and Android uses <code>run_android</code>.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup> Modules that spawn processes or open sockets are native only.</p>
+<h2 id="look">Look</h2>
+<p>A new project shows exactly what its <a class="sym" href="icon.html#sym-render"><code>render</code></a> submitted. The engine boots with every post effect off, and the CRT tube is one optional look among the effects and not a default.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup> The default interface of an application is the <a href="squircle.html" data-slug="squircle">squircle kit</a>: a small cluster of keys in a corner of the viewport, each of which unfolds a panel.</p>
+<h2 id="history">History</h2>
+<p>The repository history begins on 2026-05-06 with a commit that renamed the engine to WarpCore. <code>warp_sdk</code> was added on 2026-08-20 as a curated subset of the engine's modules. The headless boot harness in <a class="sym" href="smoke.html"><code>smoke</code></a> followed on 2026-09-06 and the game shell on 2026-09-08. Most of the kits date from late October 2026.</p><h2 id="see-also">See also</h2><ul><li><a href="getting-started.html" data-slug="getting-started">Getting started</a></li><li><a href="building-a-game.html" data-slug="building-a-game">Building a game</a></li><li><a href="renderer.html" data-slug="renderer">Renderer and run</a></li><li><a href="shell.html" data-slug="shell">Game shell</a></li><li><a href="smoke.html" data-slug="smoke">Smoke test</a></li><li><a href="net.html" data-slug="net">Networking</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/lib.rs</code> - <code>WarpCore - 2D sprite rendering engine built on wgpu.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_net/src/lib.rs</code> - <code>The code came from the LINK multiplayer of Stella Nova</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/lib.rs</code> - <code>Every wrong path an author can take is a path that the surface offers.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/lib.rs</code> - <code>Reached THROUGH this crate and not named again in a game&#x27;s manifest.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/Cargo.toml</code> - <code>Not in `default`: a game opts in.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_core/src/lib.rs</code> - <code>THIS IS WHY A PROJECT NEEDS NO CODE TO BE HOSTABLE.</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/lib.rs</code> - <code>Besides the engine re-exports, warp_sdk owns the kits below.</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_core/src/lib.rs</code> - <code>The desktop winit event loop. The browser uses `web::run_web` instead</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_core/src/types/display.rs</code> - <code>crt_enabled: false, crt_curvature: 0.035, crt_corner_radius: 30.0,</code></li></ol><table class="navbox"><tr><th><a href="category-introduction.html">Introduction</a></th></tr><tr><td><b>Warp</b> · <a href="getting-started.html" data-slug="getting-started">Getting started</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-introduction.html">Introduction</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

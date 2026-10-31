@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interface scale - Warp Wiki</title>
+<meta name="description" content="the design-unit scale, the zoom keys and px()">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="scale">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#why-a-game-needs-it">Why a game needs it</a></li><li><a href="#default-behaviour">Default behaviour</a></li><li><a href="#values">Values</a></li><li><a href="#the-three-terms">The three terms</a></li><li><a href="#zoom-keys">Zoom keys</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Interface scale</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">the design-unit scale, the zoom keys and px()</p><table class="infobox"><caption>Interface scale</caption><tr><th>Category</th><td><a href="category-engine.html">Engine</a></td></tr><tr><th>Module</th><td><code>warp_sdk::scale</code></td></tr><tr><th>Source</th><td><code>warp_core/src/ui/theme/mod.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">9</a></td></tr></table><p><strong>Interface scale</strong> is the factor by which Warp enlarges every interface measurement and font. The <a class="sym" href="scale.html"><code>scale</code></a> module of <code>warp_sdk</code> exposes nine items from the theme code of <code>warp_core</code>, and it is the one part of that theme code that a game receives. The scale is the fix for a problem that every game has, and the palette beside it stays behind.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<h2 id="why-a-game-needs-it">Why a game needs it</h2>
+<p>The engine locks egui to one point per physical pixel, on all platforms and displays. This lock is load-bearing, because pointer arithmetic, the camera and the CRT correction all count in physical pixels.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<p>So a retina panel draws a 14 point label at 14 physical pixels, which is half the requested size. An interface written at the default egui sizes looks too small, and no display setting corrects that. Setting pixels per point on the egui context does not help either, because the engine writes that value every frame from three places.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<p>Since the engine cannot give the lock up, the interface grows. Each measurement is a design unit, and <a class="sym" href="#sym-px"><code>px</code></a> turns it into a pixel count.</p>
+<h2 id="default-behaviour">Default behaviour</h2>
+<p>A game normally writes nothing. <a class="sym" href="renderer.html#sym-Renderer-auto_style"><code>Renderer::auto_style</code></a> is true by default. Once per frame, before <code>gui</code>, the engine then runs the zoom keys and installs the Style at the resulting scale. So a game with no styling code answers Command with +, - and 0 and draws at editor sizes.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<p>A game that returns false from <a class="sym" href="renderer.html#sym-Renderer-auto_style"><code>Renderer::auto_style</code></a> styles itself and calls the two functions directly. A host that runs its own zoom keys, such as the <a href="shell.html" data-slug="shell">Game shell</a>, returns false so that one press does not step the scale twice.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust">warp_sdk::scale::<span class="f">zoom_keys</span>(ctx, <span class="t">None</span>);   <span class="c">// Command with +, - and 0</span>
+warp_sdk::scale::<span class="f">apply</span>(ctx);             <span class="c">// the Style, at that scale</span></code></pre></div>
+<p><a class="sym" href="#sym-apply"><code>apply</code></a> installs the Style on a context once per frame, before drawing.</p>
+<h2 id="values">Values</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Constant</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-DEFAULT_UI_SCALE"><code>DEFAULT_UI_SCALE</code></a></td>
+<td>2.0</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-MIN_UI_SCALE"><code>MIN_UI_SCALE</code></a></td>
+<td>1.0</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-MAX_UI_SCALE"><code>MAX_UI_SCALE</code></a></td>
+<td>4.0</td>
+</tr>
+</tbody>
+</table>
+<p>The default of 2 matches a retina display, where the lock costs the most. <a class="sym" href="#sym-set_ui_scale"><code>set_ui_scale</code></a> clamps to the range.</p>
+<h2 id="the-three-terms">The three terms</h2>
+<p><a class="sym" href="#sym-px"><code>px</code></a> multiplies a design unit by <a class="sym" href="#sym-ui_scale"><code>ui_scale</code></a> and rounds to a whole pixel.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup> A game calls <a class="sym" href="#sym-px"><code>px</code></a> in place of a literal for anything that it measures itself, such as a window width. A literal holds one pixel count at each zoom step while the text beside it grows.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust">scale::<span class="f">px</span>(<span class="n">12.0</span>)</code></pre></div>
+<p>Three terms make up the scale:</p>
+<ol>
+<li>The stored setting, which <a class="sym" href="#sym-set_ui_scale"><code>set_ui_scale</code></a> writes and the zoom keys step.</li>
+<li>The window factor, measured per window. The source gives two failures that this corrects: a window on a 1x monitor drew at twice its size, and a torn-off window drew a third larger than the window it came from.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup> A retina window reports 1, so nothing moves on such a panel.</li>
+<li>The panel factor, a per-panel zoom in the editor. Panel zoom ranges from 0.4 to 2.5 against the chrome.</li>
+</ol>
+<p><a class="sym" href="#sym-chrome_scale"><code>chrome_scale</code></a> is the first two terms. <a class="sym" href="#sym-ui_scale"><code>ui_scale</code></a> is <a class="sym" href="#sym-chrome_scale"><code>chrome_scale</code></a> times the panel factor, and it equals <a class="sym" href="#sym-chrome_scale"><code>chrome_scale</code></a> outside a panel body. The two factors are thread-locals, because <a class="sym" href="#sym-px"><code>px</code></a> is reached from several hundred sites through constants, and a parameter would need the same change at each.</p>
+<h2 id="zoom-keys">Zoom keys</h2>
+<p><a class="sym" href="#sym-zoom_keys"><code>zoom_keys</code></a> reads Command with <code>+</code>, <code>-</code> and <code>0</code>. Command is the egui <code>command</code> modifier, which is Cmd on macOS and Ctrl elsewhere. One press scales by 1.25, a share and not a fixed step, so the keys still respond at 400 percent. The keys step the stored scale and not <a class="sym" href="#sym-chrome_scale"><code>chrome_scale</code></a>, because on a window that blits, the window factor is above the step, and stepping the combined value made the minus key grow the interface.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<p>The <a class="sym" href="shell.html#sym-panel"><code>panel</code></a> argument names the panel that receives keys. With a panel, the plain keys zoom that panel and Shift takes the chrome. With no panel, as in a game, the keys apply to the chrome.</p>
+<p>The function must run once per frame in each window, because each window owns an egui context and a key press reaches only the focused context.</p>
+<h2 id="limitations">Limitations</h2>
+<p><a class="sym" href="scale.html"><code>scale</code></a> does not include the panel zoom functions, <code>window_scope</code> or <code>panel_scope</code>, which stay in the theme code of the engine. The palette of the editor chrome is deliberately not exported. For game colours, see <a href="palette.html" data-slug="palette">Palette roles</a>, and for finished controls, see <a href="widgets.html" data-slug="widgets">Panel widgets</a>.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 9 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-scale" class="modhead"><code>warp_sdk::scale</code></h3><h4>Functions</h4><div class="item" id="sym-apply" data-name="apply"><div class="sig"><a class="anchor" href="#sym-apply" aria-label="Link to apply">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">apply</span>(ctx: &amp;egui::<span class="t">Context</span>)</code></div><div class="doc"><p>Install the palette on a context. Call once per frame, before drawing.</p>
+<p>Outside every panel scope, so the chrome — menu bar, transport, tab strips
+— is built at the chrome scale whatever any panel is zoomed to.</p></div></div><div class="item" id="sym-chrome_scale" data-name="chrome_scale"><div class="sig"><a class="anchor" href="#sym-chrome_scale" aria-label="Link to chrome_scale">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">chrome_scale</span>() -&gt; f32</code></div><div class="doc"><p>The scale of the chrome: menu bars, tab strips, dividers, and every panel
+that has not been zoomed on its own.</p>
+<p>The person's setting, times the factor of the window being drawn. See
+<code>window_factor</code> for what the second term corrects and why one number
+cannot serve two monitors.</p></div></div><div class="item" id="sym-px" data-name="px"><div class="sig"><a class="anchor" href="#sym-px" aria-label="Link to px">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">px</span>(v: f32) -&gt; f32</code></div><div class="doc"><p>Turn a design unit into a pixel count.</p></div></div><div class="item" id="sym-set_ui_scale" data-name="set_ui_scale"><div class="sig"><a class="anchor" href="#sym-set_ui_scale" aria-label="Link to set_ui_scale">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_ui_scale</span>(v: f32)</code></div></div><div class="item" id="sym-ui_scale" data-name="ui_scale"><div class="sig"><a class="anchor" href="#sym-ui_scale" aria-label="Link to ui_scale">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">ui_scale</span>() -&gt; f32</code></div><div class="doc"><p>The scale in force right now: the chrome's, times the factor of whatever
+panel is being drawn.</p>
+<p>This is what <code>px()</code> reads, and outside a panel body it is <code>chrome_scale</code>.</p></div></div><div class="item" id="sym-zoom_keys" data-name="zoom_keys"><div class="sig"><a class="anchor" href="#sym-zoom_keys" aria-label="Link to zoom_keys">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">zoom_keys</span>(ctx: &amp;egui::<span class="t">Context</span>, panel: <span class="t">Option</span>&lt;&amp;str&gt;)</code></div><div class="doc"><p>Read Command plus <code>+</code>, <code>-</code> and <code>0</code>, and set a scale from them.</p>
+<p>Call this once per frame PER WINDOW, before that window's panels. Per
+window and not once per process: each window owns an egui context, and a
+key press only ever reaches the context of the window that has focus. A
+call made in the primary window alone is a key that does nothing in every
+torn-off one, which is exactly what it used to do.</p>
+<p>The game does not call it: a zoom key inside a running game would resize
+the HUD and nothing else, and the game has its own key map.</p>
+<h2>WHICH THING GROWS</h2>
+<p><code>panel</code> is the panel the window would send a keystroke to — see
+<code>DockState::zoom_target</code>. It gets the plain keys, so Command and <code>-</code> inside
+a terminal shrinks that terminal and leaves the window around it alone.
+Shift takes the chrome instead, process-wide, which is what the key used to
+do for everything.</p>
+<p>Command is <code>command</code> in egui, which is Cmd on macOS and Ctrl elsewhere, so
+the keys are the ones the platform browser already uses.</p></div></div><h4>Constants</h4><div class="item" id="sym-DEFAULT_UI_SCALE" data-name="default_ui_scale"><div class="sig"><a class="anchor" href="#sym-DEFAULT_UI_SCALE" aria-label="Link to DEFAULT_UI_SCALE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">DEFAULT_UI_SCALE</span>: f32 = <span class="n">2.0</span></code></div><div class="doc"><p>Scale used until somebody sets one. Two matches a retina display, which is
+what the lock costs the most.</p></div></div><div class="item" id="sym-MAX_UI_SCALE" data-name="max_ui_scale"><div class="sig"><a class="anchor" href="#sym-MAX_UI_SCALE" aria-label="Link to MAX_UI_SCALE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MAX_UI_SCALE</span>: f32 = <span class="n">4.0</span></code></div></div><div class="item" id="sym-MIN_UI_SCALE" data-name="min_ui_scale"><div class="sig"><a class="anchor" href="#sym-MIN_UI_SCALE" aria-label="Link to MIN_UI_SCALE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MIN_UI_SCALE</span>: f32 = <span class="n">1.0</span></code></div><div class="doc"><p>Smallest and largest scale a person may pick.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="renderer.html" data-slug="renderer">Renderer and run</a></li><li><a href="widgets.html" data-slug="widgets">Panel widgets</a></li><li><a href="palette.html" data-slug="palette">Palette roles</a></li><li><a href="front-settings.html" data-slug="front-settings">Settings</a></li><li><a href="hud.html" data-slug="hud">HUD</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/lib.rs</code> - <code>the scale is the fix for a bug every game has.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_core/src/gui.rs</code> - <code>pixels_per_point = 1.0 on ALL platforms, ALL window sizes, ALL DPI</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/lib.rs</code> - <code>that value every frame, from three places, so a caller cannot keep it.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/ui/theme/style.rs</code> - <code>The default a hosted game gets, before its own `gui` draws.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_core/src/ui/theme/scale.rs</code> - <code>Turn a design unit into a pixel count.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_core/src/ui/theme/scale.rs</code> - <code>WHY ONE SCALE CANNOT SERVE TWO MONITORS</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_core/src/ui/theme/scale.rs</code> - <code>minus key grew the interface the same way the plus key did.</code></li></ol><table class="navbox"><tr><th><a href="category-engine.html">Engine</a></th></tr><tr><td><a href="display-mode.html" data-slug="display-mode">Display mode</a> · <a href="perf.html" data-slug="perf">Perf</a> · <a href="gpu.html" data-slug="gpu">GPU module</a> · <a href="render.html" data-slug="render">Render passes</a> · <a href="scene.html" data-slug="scene">Scene</a> · <a href="image.html" data-slug="image">Image atlases</a> · <a href="assets.html" data-slug="assets">Assets</a> · <a href="manifest.html" data-slug="manifest">App manifest</a> · <a href="project-settings.html" data-slug="project-settings">Project settings</a> · <b>Interface scale</b> · <a href="types.html" data-slug="types">Types</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-engine.html">Engine</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

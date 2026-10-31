@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lit2d - Warp Wiki</title>
+<meta name="description" content="Deferred 2D PBR lighting for material sprites">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="lit2d">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#how-it-works">How it works</a><ul><li><a href="#g-buffer">G-buffer</a></li><li><a href="#lighting">Lighting</a></li></ul></li><li><a href="#materials">Materials</a><ul><li><a href="#procedural-material">Procedural material</a></li><li><a href="#sprite-sheet">Sprite sheet</a></li></ul></li><li><a href="#instances">Instances</a></li><li><a href="#lifecycle">Lifecycle</a></li><li><a href="#configuration">Configuration</a><ul><li><a href="#contact-shadow">Contact shadow</a></li><li><a href="#debug-views">Debug views</a></li></ul></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#failure-modes">Failure modes</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#testing">Testing</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Lit2d</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">Deferred 2D PBR lighting for material sprites</p><table class="infobox"><caption>Lit2d</caption><tr><th>Category</th><td><a href="category-look.html">Look</a></td></tr><tr><th>Module</th><td><code>warp_sdk::lit2d</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/lit2d/mod.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">50</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example lit2d</code></td></tr></table><p><strong>Lit2d</strong> is the Warp deferred lighting renderer for 2D sprites, which shades each sprite as a surface with albedo, normal, roughness, metallic, height and emissive channels. It lives in <a class="sym" href="lit2d.html"><code>warp_sdk::lit2d</code></a> and its main type is <a class="sym" href="#sym-Lit2d"><code>Lit2d</code></a>. One key light, a hemisphere ambient term and up to <a class="sym" href="#sym-MAX_POINT_LIGHTS"><code>MAX_POINT_LIGHTS</code></a> (256) point lights shade the surfaces, so a flat scene shows the specular highlights and bevel shading of a 3D scene, as Stella Nova does.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> It is the code form of the <a href="art-direction.html#everything-is-a-lit-material" data-slug="art-direction">art direction rule</a> that every object is a lit material.</p>
+<h2 id="how-it-works">How it works</h2>
+<p>The renderer has two passes. The G-buffer pass draws each instance as a quad and stores its MaterialSample in four targets. The lighting pass reads the four targets once per pixel and writes HDR colour into the engine HDR target, and the engine bloom and tonemap then process that colour.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<h3 id="g-buffer">G-buffer</h3>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Target</th>
+<th>Format</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>albedo</td>
+<td><code>Rgba8UnormSrgb</code></td>
+<td>albedo, coverage in alpha</td>
+</tr>
+<tr>
+<td>normal</td>
+<td><code>Rgba8Unorm</code></td>
+<td>world normal encoded <code>n * 0.5 + 0.5</code>, coverage in alpha</td>
+</tr>
+<tr>
+<td>surface</td>
+<td><code>Rgba16Float</code></td>
+<td>roughness, metallic, height, coverage in alpha</td>
+</tr>
+<tr>
+<td>emissive</td>
+<td><code>Rgba16Float</code></td>
+<td>emissive, coverage in alpha</td>
+</tr>
+</tbody>
+</table>
+<p>Every target is premultiplied by coverage, so overlapping sprites blend with one blend state.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> The material normal is in sprite space. The fragment stage turns it by the instance rotation. A near-zero normal becomes a flat normal. The stored height is the instance <a class="sym" href="#sym-Lit2dInstance-z"><code>z</code></a> plus the material height times <code>height_scale</code>. Roughness has a floor of 0.02 and a fragment under coverage 0.002 is discarded.</p>
+<h3 id="lighting">Lighting</h3>
+<p>The lighting pass is one full-screen triangle. The viewer is straight above the plane, at direction (0, 0, 1).<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup> Each lit pixel sums these terms.</p>
+<ul>
+<li><strong>Key light.</strong> Lambert diffuse plus Cook-Torrance GGX specular in a metallic workflow, with Smith height-correlated visibility and Schlick Fresnel. The source notes that these are the same terms as the Stella Nova rock shader.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup> The result is scaled by pi, so intensity 1 on a white flat surface gives 1. The contact shadow multiplies this term only.</li>
+<li><strong>Ambient.</strong> A hemisphere term from the normal for diffuse, and a rough specular from the reflection vector.</li>
+<li><strong>Point lights.</strong> The same BRDF per light, with a windowed inverse-square falloff that reaches exactly zero at <code>radius</code>.</li>
+<li><strong>Emissive.</strong> Added last, so a value above 1 feeds bloom.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></li>
+</ul>
+<p>The result blends over the HDR target with the premultiplied blend state, with a load operation of <a class="sym" href="render.html#sym-Load"><code>Load</code></a>. The lit output does not replace what is already there, and the engine scene layers then draw on top.</p>
+<h2 id="materials">Materials</h2>
+<p>There are two ways to submit a surface.</p>
+<h3 id="procedural-material">Procedural material</h3>
+<p>A <a class="sym" href="#sym-Material"><code>Material</code></a> is game WGSL. The game writes one function, and <a class="sym" href="#sym-Lit2d"><code>Lit2d</code></a> splices it into the G-buffer template and makes one instanced pipeline for it. Thousands of instances cost one draw call for each run of the same material.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">lit2d_material</span>(uv: vec2&lt;f32&gt;, world: vec2&lt;f32&gt;, inst: <span class="t">Lit2dInstance</span>) -&gt; <span class="t">MaterialSample</span> {
+    <span class="k">var</span> m = <span class="f">material_default</span>();
+    <span class="c">// Sprite space, y up, -1..1.</span>
+    <span class="k">let</span> p = vec2&lt;f32&gt;(uv.x * <span class="n">2.0</span> - <span class="n">1.0</span>, <span class="n">1.0</span> - uv.y * <span class="n">2.0</span>);
+    <span class="c">// Lamp: a glass dome over a hot core.</span>
+    <span class="k">let</span> core = <span class="n">1.0</span> - <span class="f">smoothstep</span>(<span class="n">0.0</span>, <span class="n">0.55</span>, <span class="f">length</span>(p));
+    m.albedo = vec3&lt;f32&gt;(<span class="n">0.9</span>);
+    m.roughness = <span class="n">0.12</span>;
+    m.emissive = inst.tint.rgb * inst.params.x * (<span class="n">0.25</span> + core * core * <span class="n">2.0</span>);
+    m.alpha = <span class="n">1.0</span> - <span class="f">smoothstep</span>(<span class="n">0.95</span>, <span class="n">1.0</span>, <span class="f">length</span>(p));
+    <span class="k">return</span> m;
+}</code></pre></div>
+<p><code>uv</code> runs 0 to 1 across the sprite with y down, and <a class="sym" href="world.html"><code>world</code></a> is the world position. The normal is in sprite space: +x is the sprite right, +y is the sprite up and +z points to the camera. The <code>wgsl</code> string can hold more functions. <a class="sym" href="#sym-Material-with_shaderlib"><code>Material::with_shaderlib</code></a> adds <a href="shaderlib.html" data-slug="shaderlib">Shader library</a> paths that the material calls, and <code>core/material.wgsl</code> is always included, which is where MaterialSample and <code>material_default</code> come from. <a class="sym" href="#sym-Material-gbuffer_wgsl"><code>Material::gbuffer_wgsl</code></a> and <a class="sym" href="#sym-compose_gbuffer_wgsl"><code>compose_gbuffer_wgsl</code></a> return the complete shader, so a test can validate a material with naga before it reaches a device.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<p>The example puts four surface kinds in one material and branches on <a class="sym" href="#sym-Lit2dInstance-kind"><code>Lit2dInstance::kind</code></a>, so the whole scene is one instanced draw call.</p>
+<h3 id="sprite-sheet">Sprite sheet</h3>
+<p>A <a class="sym" href="#sym-SpriteSheet"><code>SpriteSheet</code></a> is three RGBA8 images of one size: <code>albedo</code> (sRGB colour and coverage), an optional <code>normal</code> (a tangent-space map encoded <code>n * 0.5 + 0.5</code>) and an optional <code>surface</code> (roughness, metallic, height and an emissive mask in rgba). A missing map gets a neutral value: a flat normal, roughness 0.8, metallic 0, height 0 and no emission.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup> The built-in material reads <a class="sym" href="#sym-Lit2dInstance-tint"><code>tint</code></a>, <a class="sym" href="#sym-Lit2dInstance-uv_rect"><code>uv_rect</code></a> and <code>params[3]</code>, which is the emissive gain.</p>
+<h2 id="instances">Instances</h2>
+<p><a class="sym" href="#sym-Lit2dInstance"><code>Lit2dInstance</code></a> is one sprite: <code>pos</code> and <code>size</code> in world units, <a class="sym" href="#sym-Lit2dInstance-rotation"><code>rotation</code></a>, a base height <a class="sym" href="#sym-Lit2dInstance-z"><code>z</code></a>, and the free values <a class="sym" href="#sym-Lit2dInstance-seed"><code>seed</code></a>, <a class="sym" href="#sym-Lit2dInstance-kind"><code>kind</code></a>, <a class="sym" href="#sym-Lit2dInstance-tint"><code>tint</code></a> and <a class="sym" href="#sym-Lit2dInstance-params"><code>params</code></a>, plus a texture sub-rectangle <a class="sym" href="#sym-Lit2dInstance-uv_rect"><code>uv_rect</code></a>. <a class="sym" href="#sym-Lit2dInstance-kind"><code>kind</code></a>, <a class="sym" href="#sym-Lit2dInstance-seed"><code>seed</code></a>, <a class="sym" href="#sym-Lit2dInstance-tint"><code>tint</code></a> and <a class="sym" href="#sym-Lit2dInstance-params"><code>params</code></a> have no fixed meaning, because the game material gives them one. <a class="sym" href="#sym-Lit2dInstance-new"><code>Lit2dInstance::new</code></a> gives no rotation and a white tint, and builder methods set the rest. One instance occupies <a class="sym" href="#sym-Lit2dInstance-STRIDE"><code>Lit2dInstance::STRIDE</code></a> (80) bytes.</p>
+<h2 id="lifecycle">Lifecycle</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::lit2d::{<span class="t">Lit2d</span>, <span class="t">Lit2dInstance</span>, <span class="t">Material</span>, <span class="t">PointLight</span>};
+
+<span class="c">// Renderer::new</span>
+<span class="k">let</span> <span class="k">mut</span> lit = <span class="t">Lit2d</span>::<span class="f">new</span>();
+<span class="k">let</span> stone = lit.<span class="f">add_material</span>(<span class="t">Material</span>::<span class="f">new</span>(<span class="s">"stone"</span>, <span class="t">STONE_WGSL</span>).<span class="f">with_shaderlib</span>(&amp;[<span class="s">"material/stone.wgsl"</span>]));
+<span class="c">// Renderer::render</span>
+lit.<span class="f">clear</span>();
+lit.<span class="f">submit</span>(stone, &amp;[<span class="t">Lit2dInstance</span>::<span class="f">new</span>([<span class="n">0.0</span>, <span class="n">0.0</span>], [<span class="n">4.0</span>, <span class="n">1.0</span>])]);
+lit.<span class="f">add_light</span>(<span class="t">PointLight</span>::<span class="f">new</span>([<span class="n">1.0</span>, <span class="n">1.5</span>], <span class="n">6.0</span>).<span class="f">color</span>([<span class="n">1.0</span>, <span class="n">0.8</span>, <span class="n">0.5</span>], <span class="n">3.0</span>));</code></pre></div>
+<p><a class="sym" href="#sym-Lit2d-encode"><code>Lit2d::encode</code></a> then runs from <a class="sym" href="renderer.html#sym-Renderer-scene_underlay"><code>Renderer::scene_underlay</code></a>, with the arguments that the engine gives:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">fn</span> <span class="f">scene_underlay</span>(
+    &amp;<span class="k">mut</span> <span class="k">self</span>,
+    shared: &amp;<span class="t">SharedGpu</span>,
+    encoder: &amp;<span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>,
+    hdr_view: &amp;wgpu::<span class="t">TextureView</span>,
+    _z_view: &amp;wgpu::<span class="t">TextureView</span>,
+    _coverage_view: &amp;wgpu::<span class="t">TextureView</span>,
+    view: &amp;warp_sdk::types::<span class="t">View</span>,
+    _surface_px: [u32; <span class="n">2</span>],
+) {
+    <span class="k">self</span>.lit.<span class="f">encode</span>(shared, encoder, hdr_view, view);
+}</code></pre></div>
+<ul>
+<li><a class="sym" href="#sym-Lit2d-new"><code>Lit2d::new</code></a> touches no device. The first <a class="sym" href="#sym-Lit2d-encode"><code>encode</code></a> makes the GPU resources.</li>
+<li>A material or sheet can be added at any time. The next <a class="sym" href="#sym-Lit2d-encode"><code>encode</code></a> makes its pipeline.</li>
+<li><a class="sym" href="#sym-Lit2d-clear"><code>Lit2d::clear</code></a> removes the instances and point lights of the last frame. The key light, the ambient and the materials stay.</li>
+<li><a class="sym" href="#sym-Lit2d-submit"><code>Lit2d::submit</code></a> and <a class="sym" href="#sym-Lit2d-submit_sprites"><code>Lit2d::submit_sprites</code></a> queue instances. Instances draw in call order, so a later call draws on top. Consecutive submits with the same material join one batch.<sup class="ref"><a href="#ref-10" id="cite-10">[10]</a></sup></li>
+<li><a class="sym" href="#sym-Lit2d-add_light"><code>Lit2d::add_light</code></a> returns false and ignores the light when the frame already holds <a class="sym" href="#sym-MAX_POINT_LIGHTS"><code>MAX_POINT_LIGHTS</code></a>.</li>
+</ul>
+<p><a class="sym" href="#sym-Lit2d-submit"><code>submit</code></a> stores bytes on the CPU and touches no device, so <a class="sym" href="smoke.html#sym-boot"><code>smoke::boot</code></a> runs a Lit2d game with no GPU.<sup class="ref"><a href="#ref-11" id="cite-11">[11]</a></sup> <a class="sym" href="#sym-Lit2d-encode_raw"><code>Lit2d::encode_raw</code></a> records both passes into any target, for a host with no <a class="sym" href="renderer.html#sym-SharedGpu"><code>SharedGpu</code></a>, for example a test. A change of target format rebuilds the GPU state. A camera with a zero-sized target records nothing.</p>
+<p>For bloom, the post chain must be on. The example calls <code>post::replace(Post::cinematic())</code> in <a class="sym" href="#sym-Lit2dInstance-new"><code>new</code></a>, which blooms only what is brighter than white, so lit surfaces stay crisp and the lamps glow. See <a href="post.html" data-slug="post">Post effects</a>.</p>
+<h2 id="configuration">Configuration</h2>
+<p><a class="sym" href="#sym-Lit2d"><code>Lit2d</code></a> has public fields for the light rig. A game changes them at any time.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="squircle.html#sym-key"><code>key</code></a></td>
+<td><a class="sym" href="#sym-KeyLight"><code>KeyLight</code></a></td>
+<td>azimuth 2.3, elevation 0.6, colour <code>[1.0, 0.96, 0.9]</code>, intensity 2.5</td>
+</tr>
+<tr>
+<td><code>ambient</code></td>
+<td><a class="sym" href="#sym-Ambient"><code>Ambient</code></a></td>
+<td>sky <code>[0.16, 0.2, 0.3]</code>, ground <code>[0.05, 0.04, 0.04]</code>, up <code>[0, 0, 1]</code>, intensity 1.0</td>
+</tr>
+<tr>
+<td><a class="sym" href="squircle.html#sym-shadow"><code>shadow</code></a></td>
+<td><a class="sym" href="#sym-ContactShadow"><code>ContactShadow</code></a></td>
+<td>strength 0.75, length 0.12, bias 0.002, softness 0.01, steps 12</td>
+</tr>
+<tr>
+<td><code>height_scale</code></td>
+<td><code>f32</code></td>
+<td>0.04</td>
+</tr>
+<tr>
+<td><code>debug</code></td>
+<td><a class="sym" href="#sym-DebugView"><code>DebugView</code></a></td>
+<td>Lit</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-KeyLight-from_angles"><code>KeyLight::from_angles</code></a> builds a key light from an azimuth and an elevation in radians, and <code>PI / 2</code> is straight above. The <code>up</code> field of <a class="sym" href="#sym-Ambient"><code>Ambient</code></a> is <code>[0, 0, 1]</code> for a top-down view and <code>[0, 1, 0]</code> for a side view. <a class="sym" href="#sym-PointLight-new"><code>PointLight::new</code></a> gives a white light at 0.1 units above the plane, and <a class="sym" href="#sym-PointLight-color"><code>PointLight::color</code></a> and <a class="sym" href="#sym-PointLight-z"><code>PointLight::z</code></a> change it. A higher light gives a softer gradient and a wider highlight.</p>
+<h3 id="contact-shadow">Contact shadow</h3>
+<p>The <a class="sym" href="#sym-ContactShadow"><code>ContactShadow</code></a> is screen-space. The lighting pass marches from each pixel toward the key light and compares the ray with the height channel.<sup class="ref"><a href="#ref-12" id="cite-12">[12]</a></sup> A strength or step count of zero turns it off, and so does a key light with no horizontal part or one at or below the plane.</p>
+<h3 id="debug-views">Debug views</h3>
+<p><a class="sym" href="#sym-DebugView"><code>DebugView</code></a> selects what the lighting pass writes: Lit, Albedo, Normal, RoughnessMetallic or Shadow. The example steps through them on the D key.</p>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<p><a class="sym" href="#sym-Camera"><code>Camera</code></a> holds the view of one encode. <a class="sym" href="#sym-Camera-from_view"><code>Camera::from_view</code></a> builds it from an engine <code>View</code> and adds the render origin back, so instances use plain world positions. <a class="sym" href="#sym-Lit2d-encode"><code>Lit2d::encode</code></a> does this itself. <a class="sym" href="camera.html#sym-Camera2d-lit2d"><code>Camera2d::lit2d</code></a> in <a href="camera.html" data-slug="camera">Camera</a> builds one for <a class="sym" href="#sym-Lit2d-encode_raw"><code>Lit2d::encode_raw</code></a>. Two world units fill the screen height at scale 1, the same as the engine scene shaders.<sup class="ref"><a href="#ref-13" id="cite-13">[13]</a></sup> A material reads the time as <code>frame.rot.z</code>.</p>
+<p><a class="sym" href="#sym-COMMON_WGSL"><code>COMMON_WGSL</code></a>, <a class="sym" href="#sym-GBUFFER_WGSL"><code>GBUFFER_WGSL</code></a>, <a class="sym" href="#sym-SPRITE_WGSL"><code>SPRITE_WGSL</code></a> and <a class="sym" href="#sym-LIGHT_WGSL"><code>LIGHT_WGSL</code></a> are public, and <a class="sym" href="#sym-sprite_gbuffer_wgsl"><code>sprite_gbuffer_wgsl</code></a> and <a class="sym" href="#sym-light_wgsl"><code>light_wgsl</code></a> return complete shaders.</p>
+<h2 id="failure-modes">Failure modes</h2>
+<p><a class="sym" href="#sym-Lit2d-add_sprite_sheet"><code>Lit2d::add_sprite_sheet</code></a> panics when an image does not hold <code>width * height * 4</code> bytes. <a class="sym" href="#sym-Lit2d-submit"><code>Lit2d::submit</code></a> and <a class="sym" href="#sym-Lit2d-submit_sprites"><code>Lit2d::submit_sprites</code></a> panic on a handle from another <a class="sym" href="#sym-Lit2d"><code>Lit2d</code></a>.</p>
+<h2 id="limitations">Limitations</h2>
+<p>The G-buffer has one layer. Overlapping sprites blend by coverage, so a half-transparent sprite mixes its normal with the normal below it. The contact shadow sees only what is on the screen. The lighting ignores the engine view <code>light_z</code> field and the occluder list.<sup class="ref"><a href="#ref-14" id="cite-14">[14]</a></sup></p>
+<h2 id="testing">Testing</h2>
+<p>The test file validates the G-buffer template and the sprite and lighting shaders, checks that instance bytes match the stride, that submissions batch by run and that lights stop at the cap. One test lights a disc on a real device.</p>
+<h2 id="history">History</h2>
+<p>The module was added on 2026-10-29 in the commit "sdk: add lit2d, deferred 2D PBR lighting for material sprites".</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 50 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-lit2d" class="modhead"><code>warp_sdk::lit2d</code></h3><h4>Functions</h4><div class="item" id="sym-compose_gbuffer_wgsl" data-name="compose_gbuffer_wgsl"><div class="sig"><a class="anchor" href="#sym-compose_gbuffer_wgsl" aria-label="Link to compose_gbuffer_wgsl">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">compose_gbuffer_wgsl</span>(shaderlib: &amp;[&amp;str], material_fn: &amp;str) -&gt; <span class="t">String</span></code></div><div class="doc"><p>One complete G-buffer shader: <code>common.wgsl</code>, the <code>shaderlib</code> files, the
+material function and the G-buffer template. Use it in a test to
+validate a material with naga before it reaches a device.</p></div></div><div class="item" id="sym-sprite_gbuffer_wgsl" data-name="sprite_gbuffer_wgsl"><div class="sig"><a class="anchor" href="#sym-sprite_gbuffer_wgsl" aria-label="Link to sprite_gbuffer_wgsl">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">sprite_gbuffer_wgsl</span>() -&gt; <span class="t">String</span></code></div><div class="doc"><p>The complete G-buffer shader of the sprite sheet path.</p></div></div><div class="item" id="sym-light_wgsl" data-name="light_wgsl"><div class="sig"><a class="anchor" href="#sym-light_wgsl" aria-label="Link to light_wgsl">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">light_wgsl</span>() -&gt; <span class="t">String</span></code></div><div class="doc"><p>The complete lighting pass shader.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Lit2dInstance" data-name="lit2dinstance"><div class="sig"><a class="anchor" href="#sym-Lit2dInstance" aria-label="Link to Lit2dInstance">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Lit2dInstance</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The centre, in world units.</span>
+<span class="k">pub</span> pos: [f32; <span class="n">2</span>],
+<span class="c">/// The full width and height, in world units.</span>
+<span class="k">pub</span> size: [f32; <span class="n">2</span>],
+<span class="c">/// The rotation in radians, counterclockwise. The normal turns with it.</span>
+<span class="k">pub</span> rotation: f32,
+<span class="c">/// The base height above the plane, in world units. The material height</span>
+<span class="c">/// adds to it. The contact shadow and the point lights use the sum.</span>
+<span class="k">pub</span> z: f32,
+<span class="c">/// A free value, for example a noise seed.</span>
+<span class="k">pub</span> seed: f32,
+<span class="c">/// A free value, for example a variant index.</span>
+<span class="k">pub</span> kind: u32,
+<span class="c">/// A free colour, linear RGBA. Default white.</span>
+<span class="k">pub</span> tint: [f32; <span class="n">4</span>],
+<span class="c">/// Four free values.</span>
+<span class="k">pub</span> params: [f32; <span class="n">4</span>],
+<span class="c">/// The texture sub-rectangle (u0, v0, u1, v1). Default the full texture.</span>
+<span class="k">pub</span> uv_rect: [f32; <span class="n">4</span>],</code></pre></div><div class="doc"><p>One sprite instance. The WGSL twin is <code>Lit2dInstance</code> in <code>common.wgsl</code>.</p>
+<p>The material function gets all of these fields. <code>kind</code>, <code>seed</code>, <code>tint</code>
+and <code>params</code> have no fixed meaning: the game material gives them one.
+The sprite sheet path reads <code>tint</code>, <code>uv_rect</code> and <code>params[3]</code> (emissive
+gain).</p></div></div><details class="members"><summary>9 methods</summary><div class="item" id="sym-Lit2dInstance-STRIDE" data-name="lit2dinstance::stride"><div class="sig"><a class="anchor" href="#sym-Lit2dInstance-STRIDE" aria-label="Link to Lit2dInstance::STRIDE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">STRIDE</span>: u64 = <span class="n">80</span></code></div><div class="doc"><p>The byte size of one instance in the vertex buffer.</p></div></div><div class="item" id="sym-Lit2dInstance-new" data-name="lit2dinstance::new"><div class="sig"><a class="anchor" href="#sym-Lit2dInstance-new" aria-label="Link to Lit2dInstance::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(pos: [f32; <span class="n">2</span>], size: [f32; <span class="n">2</span>]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>An instance at <code>pos</code> with <code>size</code>, no rotation and a white tint.</p></div></div><div class="item" id="sym-Lit2dInstance-rotation" data-name="lit2dinstance::rotation"><div class="sig"><a class="anchor" href="#sym-Lit2dInstance-rotation" aria-label="Link to Lit2dInstance::rotation">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">rotation</span>(<span class="k">mut</span> <span class="k">self</span>, r: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the rotation in radians.</p></div></div><div class="item" id="sym-Lit2dInstance-z" data-name="lit2dinstance::z"><div class="sig"><a class="anchor" href="#sym-Lit2dInstance-z" aria-label="Link to Lit2dInstance::z">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">z</span>(<span class="k">mut</span> <span class="k">self</span>, z: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the base height in world units.</p></div></div><div class="item" id="sym-Lit2dInstance-seed" data-name="lit2dinstance::seed"><div class="sig"><a class="anchor" href="#sym-Lit2dInstance-seed" aria-label="Link to Lit2dInstance::seed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">seed</span>(<span class="k">mut</span> <span class="k">self</span>, s: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the seed.</p></div></div><div class="item" id="sym-Lit2dInstance-kind" data-name="lit2dinstance::kind"><div class="sig"><a class="anchor" href="#sym-Lit2dInstance-kind" aria-label="Link to Lit2dInstance::kind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">kind</span>(<span class="k">mut</span> <span class="k">self</span>, k: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the kind.</p></div></div><div class="item" id="sym-Lit2dInstance-tint" data-name="lit2dinstance::tint"><div class="sig"><a class="anchor" href="#sym-Lit2dInstance-tint" aria-label="Link to Lit2dInstance::tint">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">tint</span>(<span class="k">mut</span> <span class="k">self</span>, t: [f32; <span class="n">4</span>]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the tint, linear RGBA.</p></div></div><div class="item" id="sym-Lit2dInstance-params" data-name="lit2dinstance::params"><div class="sig"><a class="anchor" href="#sym-Lit2dInstance-params" aria-label="Link to Lit2dInstance::params">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">params</span>(<span class="k">mut</span> <span class="k">self</span>, p: [f32; <span class="n">4</span>]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the four free values.</p></div></div><div class="item" id="sym-Lit2dInstance-uv_rect" data-name="lit2dinstance::uv_rect"><div class="sig"><a class="anchor" href="#sym-Lit2dInstance-uv_rect" aria-label="Link to Lit2dInstance::uv_rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">uv_rect</span>(<span class="k">mut</span> <span class="k">self</span>, r: [f32; <span class="n">4</span>]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the texture sub-rectangle.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-KeyLight" data-name="keylight"><div class="sig"><a class="anchor" href="#sym-KeyLight" aria-label="Link to KeyLight">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">KeyLight</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The direction from the surface to the light. +z points to the</span>
+<span class="c">/// camera. `Lit2d` normalizes it.</span>
+<span class="k">pub</span> direction: [f32; <span class="n">3</span>],
+<span class="c">/// Linear RGB.</span>
+<span class="k">pub</span> color: [f32; <span class="n">3</span>],
+<span class="c">/// Multiplies `color`.</span>
+<span class="k">pub</span> intensity: f32,</code></pre></div><div class="doc"><p>The one directional key light.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-KeyLight-from_angles" data-name="keylight::from_angles"><div class="sig"><a class="anchor" href="#sym-KeyLight-from_angles" aria-label="Link to KeyLight::from_angles">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_angles</span>(azimuth: f32, elevation: f32, color: [f32; <span class="n">3</span>], intensity: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A key light from an azimuth in the plane and an elevation above the
+plane, both in radians. Elevation <code>PI / 2</code> is straight above.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Ambient" data-name="ambient"><div class="sig"><a class="anchor" href="#sym-Ambient" aria-label="Link to Ambient">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Ambient</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> sky: [f32; <span class="n">3</span>],
+<span class="k">pub</span> ground: [f32; <span class="n">3</span>],
+<span class="c">/// The up axis. `[0, 0, 1]` is the camera side, for a top-down view.</span>
+<span class="c">/// `[0, 1, 0]` is the screen top, for a side view.</span>
+<span class="k">pub</span> up: [f32; <span class="n">3</span>],
+<span class="k">pub</span> intensity: f32,</code></pre></div><div class="doc"><p>The hemisphere ambient term. A normal that points along <code>up</code> gets <code>sky</code>.
+A normal that points against <code>up</code> gets <code>ground</code>.</p></div></div></div><div class="typeblock"><div class="item" id="sym-PointLight" data-name="pointlight"><div class="sig"><a class="anchor" href="#sym-PointLight" aria-label="Link to PointLight">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">PointLight</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The world position.</span>
+<span class="k">pub</span> pos: [f32; <span class="n">2</span>],
+<span class="c">/// The height above the plane, in world units. A higher light gives a</span>
+<span class="c">/// softer gradient and a wider highlight.</span>
+<span class="k">pub</span> z: f32,
+<span class="c">/// Linear RGB.</span>
+<span class="k">pub</span> color: [f32; <span class="n">3</span>],
+<span class="c">/// Multiplies `color`.</span>
+<span class="k">pub</span> intensity: f32,
+<span class="c">/// The distance at which the light reaches zero, in world units.</span>
+<span class="k">pub</span> radius: f32,</code></pre></div><div class="doc"><p>One point light.</p></div></div><details class="members"><summary>3 methods</summary><div class="item" id="sym-PointLight-new" data-name="pointlight::new"><div class="sig"><a class="anchor" href="#sym-PointLight-new" aria-label="Link to PointLight::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(pos: [f32; <span class="n">2</span>], radius: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A white point light at <code>pos</code> with <code>radius</code>, 0.1 units above the plane.</p></div></div><div class="item" id="sym-PointLight-color" data-name="pointlight::color"><div class="sig"><a class="anchor" href="#sym-PointLight-color" aria-label="Link to PointLight::color">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">color</span>(<span class="k">mut</span> <span class="k">self</span>, color: [f32; <span class="n">3</span>], intensity: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the colour and the intensity.</p></div></div><div class="item" id="sym-PointLight-z" data-name="pointlight::z"><div class="sig"><a class="anchor" href="#sym-PointLight-z" aria-label="Link to PointLight::z">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">z</span>(<span class="k">mut</span> <span class="k">self</span>, z: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the height above the plane.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-ContactShadow" data-name="contactshadow"><div class="sig"><a class="anchor" href="#sym-ContactShadow" aria-label="Link to ContactShadow">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">ContactShadow</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// 0 = off, 1 = full black.</span>
+<span class="k">pub</span> strength: f32,
+<span class="c">/// The march length, in world units.</span>
+<span class="k">pub</span> length: f32,
+<span class="c">/// The height that a sample must clear before it casts a shadow.</span>
+<span class="k">pub</span> bias: f32,
+<span class="c">/// The height difference from no shadow to full shadow.</span>
+<span class="k">pub</span> softness: f32,
+<span class="c">/// The samples per pixel. 0 turns the shadow off.</span>
+<span class="k">pub</span> steps: u32,</code></pre></div><div class="doc"><p>The screen-space contact shadow of the key light. The lighting pass
+marches from each pixel toward the key light and compares the ray with
+the height channel.</p></div></div></div><div class="typeblock"><div class="item" id="sym-DebugView" data-name="debugview"><div class="sig"><a class="anchor" href="#sym-DebugView" aria-label="Link to DebugView">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">DebugView</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Lit</span>,
+<span class="t">Albedo</span>,
+<span class="t">Normal</span>,
+<span class="t">RoughnessMetallic</span>,
+<span class="t">Shadow</span>,</code></pre></div><div class="doc"><p>What the lighting pass writes. Use a value other than <code>Lit</code> to examine
+one G-buffer channel.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Material" data-name="material"><div class="sig"><a class="anchor" href="#sym-Material" aria-label="Link to Material">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Material</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> label: <span class="t">String</span>,
+<span class="c">/// `shaderlib` paths that the material calls, for example</span>
+<span class="c">/// `"noise/hash.wgsl"`. `core/material.wgsl` is always included.</span>
+<span class="k">pub</span> shaderlib: <span class="t">Vec</span>&lt;&amp;<span class="a">'static</span> str&gt;,
+<span class="k">pub</span> wgsl: <span class="t">String</span>,</code></pre></div><div class="doc"><p>A procedural material: game WGSL that returns a <code>MaterialSample</code>.</p>
+<p><code>wgsl</code> must define
+<code>fn lit2d_material(uv: vec2&lt;f32&gt;, world: vec2&lt;f32&gt;, inst: Lit2dInstance) -&gt; MaterialSample</code>.
+<code>uv</code> is 0..1 across the sprite, y down. <code>world</code> is the world position.
+The normal is in sprite space: +x is the sprite right, +y is the sprite
+up, +z points to the camera. <code>wgsl</code> can hold more functions.</p></div></div><details class="members"><summary>3 methods</summary><div class="item" id="sym-Material-new" data-name="material::new"><div class="sig"><a class="anchor" href="#sym-Material-new" aria-label="Link to Material::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(label: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, wgsl: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A material from its label and its WGSL.</p></div></div><div class="item" id="sym-Material-with_shaderlib" data-name="material::with_shaderlib"><div class="sig"><a class="anchor" href="#sym-Material-with_shaderlib" aria-label="Link to Material::with_shaderlib">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_shaderlib</span>(<span class="k">mut</span> <span class="k">self</span>, paths: &amp;[&amp;<span class="a">'static</span> str]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Add <code>shaderlib</code> paths that the material calls.</p></div></div><div class="item" id="sym-Material-gbuffer_wgsl" data-name="material::gbuffer_wgsl"><div class="sig"><a class="anchor" href="#sym-Material-gbuffer_wgsl" aria-label="Link to Material::gbuffer_wgsl">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">gbuffer_wgsl</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">String</span></code></div><div class="doc"><p>The complete G-buffer shader for this material.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-SpriteSheet" data-name="spritesheet"><div class="sig"><a class="anchor" href="#sym-SpriteSheet" aria-label="Link to SpriteSheet">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">SpriteSheet</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> label: <span class="t">String</span>,
+<span class="k">pub</span> width: u32,
+<span class="k">pub</span> height: u32,
+<span class="k">pub</span> albedo: <span class="t">Vec</span>&lt;u8&gt;,
+<span class="k">pub</span> normal: <span class="t">Option</span>&lt;<span class="t">Vec</span>&lt;u8&gt;&gt;,
+<span class="k">pub</span> surface: <span class="t">Option</span>&lt;<span class="t">Vec</span>&lt;u8&gt;&gt;,</code></pre></div><div class="doc"><p>A textured material: RGBA8 images, all <code>width</code> x <code>height</code>.</p>
+<p><code>albedo</code> is sRGB colour and coverage. <code>normal</code> is a tangent-space normal
+map, encoded <code>n * 0.5 + 0.5</code>. <code>surface</code> holds roughness (r), metallic (g),
+height (b) and an emissive mask (a). A <code>None</code> map gets a neutral value:
+a flat normal, roughness 0.8, metallic 0, height 0, no emission.</p></div></div></div><div class="typeblock"><div class="item" id="sym-MaterialId" data-name="materialid"><div class="sig"><a class="anchor" href="#sym-MaterialId" aria-label="Link to MaterialId">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">MaterialId</span>(<span class="k">pub</span> usize)</code></div><div class="doc"><p>A handle from <code>Lit2d::add_material</code>.</p></div></div></div><div class="typeblock"><div class="item" id="sym-SheetId" data-name="sheetid"><div class="sig"><a class="anchor" href="#sym-SheetId" aria-label="Link to SheetId">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">SheetId</span>(<span class="k">pub</span> usize)</code></div><div class="doc"><p>A handle from <code>Lit2d::add_sprite_sheet</code>.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Lit2d" data-name="lit2d"><div class="sig"><a class="anchor" href="#sym-Lit2d" aria-label="Link to Lit2d">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Lit2d</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The key light.</span>
+<span class="k">pub</span> key: <span class="t">KeyLight</span>,
+<span class="c">/// The hemisphere ambient term.</span>
+<span class="k">pub</span> ambient: <span class="t">Ambient</span>,
+<span class="c">/// The contact shadow of the key light.</span>
+<span class="k">pub</span> shadow: <span class="t">ContactShadow</span>,
+<span class="c">/// The world height that a material height of 1 stands for.</span>
+<span class="k">pub</span> height_scale: f32,
+<span class="c">/// The channel that the lighting pass writes.</span>
+<span class="k">pub</span> debug: <span class="t">DebugView</span>,</code></pre></div><div class="doc"><p>The deferred 2D PBR renderer. See the module header.</p></div></div><details class="members"><summary>13 methods</summary><div class="item" id="sym-Lit2d-new" data-name="lit2d::new"><div class="sig"><a class="anchor" href="#sym-Lit2d-new" aria-label="Link to Lit2d::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>An empty renderer. This touches no device. The first <code>encode</code> makes
+the GPU resources.</p></div></div><div class="item" id="sym-Lit2d-add_material" data-name="lit2d::add_material"><div class="sig"><a class="anchor" href="#sym-Lit2d-add_material" aria-label="Link to Lit2d::add_material">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">add_material</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, material: <span class="t">Material</span>) -&gt; <span class="t">MaterialId</span></code></div><div class="doc"><p>Add a procedural material. You can add one at any time. The next
+<code>encode</code> makes its pipeline.</p></div></div><div class="item" id="sym-Lit2d-add_sprite_sheet" data-name="lit2d::add_sprite_sheet"><div class="sig"><a class="anchor" href="#sym-Lit2d-add_sprite_sheet" aria-label="Link to Lit2d::add_sprite_sheet">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">add_sprite_sheet</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, sheet: <span class="t">SpriteSheet</span>) -&gt; <span class="t">SheetId</span></code></div><div class="doc"><p>Add a sprite sheet. Each image must hold <code>width * height * 4</code> bytes.</p>
+<h1>Panics</h1>
+<p>Panics when an image has the wrong length.</p></div></div><div class="item" id="sym-Lit2d-clear" data-name="lit2d::clear"><div class="sig"><a class="anchor" href="#sym-Lit2d-clear" aria-label="Link to Lit2d::clear">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Start a frame: remove the instances and the point lights of the
+last frame. The lights, the ambient and the materials stay.</p></div></div><div class="item" id="sym-Lit2d-submit" data-name="lit2d::submit"><div class="sig"><a class="anchor" href="#sym-Lit2d-submit" aria-label="Link to Lit2d::submit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">submit</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, material: <span class="t">MaterialId</span>, instances: &amp;[<span class="t">Lit2dInstance</span>])</code></div><div class="doc"><p>Queue instances with a procedural material. Instances draw in the
+order of the calls, so a later call draws on top.</p>
+<h1>Panics</h1>
+<p>Panics when <code>material</code> is not from this <code>Lit2d</code>.</p></div></div><div class="item" id="sym-Lit2d-submit_sprites" data-name="lit2d::submit_sprites"><div class="sig"><a class="anchor" href="#sym-Lit2d-submit_sprites" aria-label="Link to Lit2d::submit_sprites">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">submit_sprites</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, sheet: <span class="t">SheetId</span>, instances: &amp;[<span class="t">Lit2dInstance</span>])</code></div><div class="doc"><p>Queue instances with a sprite sheet.</p>
+<h1>Panics</h1>
+<p>Panics when <code>sheet</code> is not from this <code>Lit2d</code>.</p></div></div><div class="item" id="sym-Lit2d-add_light" data-name="lit2d::add_light"><div class="sig"><a class="anchor" href="#sym-Lit2d-add_light" aria-label="Link to Lit2d::add_light">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">add_light</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, light: <span class="t">PointLight</span>) -&gt; bool</code></div><div class="doc"><p>Queue a point light for this frame. Returns false and ignores the
+light when the frame has <code>MAX_POINT_LIGHTS</code> already.</p></div></div><div class="item" id="sym-Lit2d-instance_count" data-name="lit2d::instance_count"><div class="sig"><a class="anchor" href="#sym-Lit2d-instance_count" aria-label="Link to Lit2d::instance_count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">instance_count</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>The instances queued this frame.</p></div></div><div class="item" id="sym-Lit2d-light_count" data-name="lit2d::light_count"><div class="sig"><a class="anchor" href="#sym-Lit2d-light_count" aria-label="Link to Lit2d::light_count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">light_count</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>The point lights queued this frame.</p></div></div><div class="item" id="sym-Lit2d-batch_count" data-name="lit2d::batch_count"><div class="sig"><a class="anchor" href="#sym-Lit2d-batch_count" aria-label="Link to Lit2d::batch_count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">batch_count</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>The G-buffer draw calls that this frame needs.</p></div></div><div class="item" id="sym-Lit2d-instance_bytes" data-name="lit2d::instance_bytes"><div class="sig"><a class="anchor" href="#sym-Lit2d-instance_bytes" aria-label="Link to Lit2d::instance_bytes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">instance_bytes</span>(&amp;<span class="k">self</span>) -&gt; &amp;[u8]</code></div><div class="doc"><p>The instance bytes queued this frame, <code>STRIDE</code> bytes each.</p></div></div><div class="item" id="sym-Lit2d-encode" data-name="lit2d::encode"><div class="sig"><a class="anchor" href="#sym-Lit2d-encode" aria-label="Link to Lit2d::encode">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">encode</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, shared: &amp;<span class="t">SharedGpu</span>, encoder: &amp;<span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>, hdr_view: &amp;wgpu::<span class="t">TextureView</span>, view: &amp;<span class="k">crate</span>::types::<span class="t">View</span>, )</code></div><div class="doc"><p>Record the G-buffer pass and the lighting pass. Call it from
+<code>Renderer::scene_underlay</code> with the arguments that the engine gives.
+The lit result blends over <code>hdr_view</code>, and the engine scene layers
+then draw on top.</p></div></div><div class="item" id="sym-Lit2d-encode_raw" data-name="lit2d::encode_raw"><div class="sig"><a class="anchor" href="#sym-Lit2d-encode_raw" aria-label="Link to Lit2d::encode_raw">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">encode_raw</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, device: &amp;wgpu::<span class="t">Device</span>, queue: &amp;wgpu::<span class="t">Queue</span>, encoder: &amp;<span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>, target: &amp;wgpu::<span class="t">TextureView</span>, target_format: wgpu::<span class="t">TextureFormat</span>, camera: <span class="t">Camera</span>, )</code></div><div class="doc"><p>Record both passes into any target. <code>encode</code> calls this. A host with
+no <code>SharedGpu</code>, for example a test, calls it directly.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Camera" data-name="camera"><div class="sig"><a class="anchor" href="#sym-Camera" aria-label="Link to Camera">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Camera</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The world position at the screen centre.</span>
+<span class="k">pub</span> pos: [f32; <span class="n">2</span>],
+<span class="c">/// The view scale. A larger scale shows more world.</span>
+<span class="k">pub</span> scale: f32,
+<span class="c">/// The view rotation in radians, counterclockwise.</span>
+<span class="k">pub</span> rotation: f32,
+<span class="c">/// The target size in pixels.</span>
+<span class="k">pub</span> size: [u32; <span class="n">2</span>],
+<span class="c">/// The time in seconds. Materials can read it as `frame.rot.z`.</span>
+<span class="k">pub</span> time: f32,</code></pre></div><div class="doc"><p>The camera of one encode. Two world units fill the screen height at
+scale 1, the same as the engine scene shaders.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Camera-from_view" data-name="camera::from_view"><div class="sig"><a class="anchor" href="#sym-Camera-from_view" aria-label="Link to Camera::from_view">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_view</span>(v: &amp;<span class="k">crate</span>::types::<span class="t">View</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The camera of an engine <code>View</code>. The engine stores the position
+relative to the render origin, so this adds the origin back.
+Instances then use plain world positions.</p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-COMMON_WGSL" data-name="common_wgsl"><div class="sig"><a class="anchor" href="#sym-COMMON_WGSL" aria-label="Link to COMMON_WGSL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">COMMON_WGSL</span>: &amp;str = include_str!(<span class="s">"common.wgsl"</span>)</code></div><div class="doc"><p>The WGSL that both passes include: the frame uniform, the instance
+record and the camera transforms.</p></div></div><div class="item" id="sym-GBUFFER_WGSL" data-name="gbuffer_wgsl"><div class="sig"><a class="anchor" href="#sym-GBUFFER_WGSL" aria-label="Link to GBUFFER_WGSL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">GBUFFER_WGSL</span>: &amp;str = include_str!(<span class="s">"gbuffer.wgsl"</span>)</code></div><div class="doc"><p>The G-buffer pass template. <code>compose_gbuffer_wgsl</code> adds the material.</p></div></div><div class="item" id="sym-SPRITE_WGSL" data-name="sprite_wgsl"><div class="sig"><a class="anchor" href="#sym-SPRITE_WGSL" aria-label="Link to SPRITE_WGSL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SPRITE_WGSL</span>: &amp;str = include_str!(<span class="s">"sprite.wgsl"</span>)</code></div><div class="doc"><p>The material function of the sprite sheet path.</p></div></div><div class="item" id="sym-LIGHT_WGSL" data-name="light_wgsl"><div class="sig"><a class="anchor" href="#sym-LIGHT_WGSL" aria-label="Link to LIGHT_WGSL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">LIGHT_WGSL</span>: &amp;str = include_str!(<span class="s">"light.wgsl"</span>)</code></div><div class="doc"><p>The lighting pass.</p></div></div><div class="item" id="sym-MAX_POINT_LIGHTS" data-name="max_point_lights"><div class="sig"><a class="anchor" href="#sym-MAX_POINT_LIGHTS" aria-label="Link to MAX_POINT_LIGHTS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MAX_POINT_LIGHTS</span>: usize = <span class="n">256</span></code></div><div class="doc"><p>The most point lights that one frame shades. <code>add_light</code> ignores more.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></li><li><a href="shader-material.html" data-slug="shader-material">Material shaders</a></li><li><a href="post.html" data-slug="post">Post effects</a></li><li><a href="camera.html" data-slug="camera">Camera</a></li><li><a href="art-direction.html" data-slug="art-direction">Art direction</a></li><li><a href="gpu.html" data-slug="gpu">GPU module</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/lit2d/mod.rs</code> - <code>scene then shows the specular highlights and the bevel shading of a 3D</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/lit2d/mod.rs</code> - <code>The engine bloom and tonemap then process that colour.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/lit2d/gbuffer.wgsl</code> - <code>so overlapping sprites blend with one blend state.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/lit2d/light.wgsl</code> - <code>The viewer is straight above the plane: v = (0, 0, 1).</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/lit2d/light.wgsl</code> - <code>Fresnel. The same terms as the Stella Nova rock shader.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/lit2d/light.wgsl</code> - <code>added last, so a value above 1 feeds bloom</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/lit2d/mod.rs</code> - <code>Thousands of instances</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/src/lit2d/mod.rs</code> - <code>validate a material with naga before it reaches a device.</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_sdk/src/lit2d/mod.rs</code> - <code>a flat normal, roughness 0.8, metallic 0, height 0, no emission.</code></li><li id="ref-10"><a class="back" href="#cite-10" aria-label="Back to the text">^</a> <code>warp_sdk/src/lit2d/mod.rs</code> - <code>Some(b) if b.pipe == pipe =&gt; b.count += n,</code></li><li id="ref-11"><a class="back" href="#cite-11" aria-label="Back to the text">^</a> <code>warp_sdk/src/lit2d/mod.rs</code> - <code>`submit` stores bytes on the CPU and touches no device. Thus</code></li><li id="ref-12"><a class="back" href="#cite-12" aria-label="Back to the text">^</a> <code>warp_sdk/src/lit2d/mod.rs</code> - <code>marches from each pixel toward the key light and compares the ray with</code></li><li id="ref-13"><a class="back" href="#cite-13" aria-label="Back to the text">^</a> <code>warp_sdk/src/lit2d/gpu.rs</code> - <code>scale 1, the same as the engine scene shaders.</code></li><li id="ref-14"><a class="back" href="#cite-14" aria-label="Back to the text">^</a> <code>warp_sdk/src/lit2d/mod.rs</code> - <code>the engine `View::light_z` and the occluder list.</code></li></ol><table class="navbox"><tr><th><a href="category-look.html">Look</a></th></tr><tr><td><a href="visual.html" data-slug="visual">Visual language</a> · <a href="semiotics.html" data-slug="semiotics">Semiotics</a> · <a href="palette-kit.html" data-slug="palette-kit">Palette kit</a> · <a href="post.html" data-slug="post">Post effects</a> · <a href="camera.html" data-slug="camera">Camera</a> · <a href="juice.html" data-slug="juice">Juice</a> · <b>Lit2d</b></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-look.html">Look</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

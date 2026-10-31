@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Semiotics - Warp Wiki</title>
+<meta name="description" content="One functional standard for game icons, across fonts">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="semiotics">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#grounding">Grounding</a></li><li><a href="#meaning-classes">Meaning classes</a></li><li><a href="#action-vocabulary">Action vocabulary</a><ul><li><a href="#glyphs">Glyphs</a></li><li><a href="#negation">Negation</a></li><li><a href="#confusable-pairs">Confusable pairs</a></li></ul></li><li><a href="#modifiers">Modifiers</a></li><li><a href="#motion">Motion</a></li><li><a href="#typographic-harmony">Typographic harmony</a><ul><li><a href="#optical-sizes">Optical sizes</a></li><li><a href="#inline-with-text">Inline with text</a></li></ul></li><li><a href="#accessibility">Accessibility</a></li><li><a href="#usage">Usage</a></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Semiotics</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">One functional standard for game icons, across fonts</p><table class="infobox"><caption>Semiotics</caption><tr><th>Category</th><td><a href="category-look.html">Look</a></td></tr><tr><th>Module</th><td><code>warp_sdk::semiotics</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/semiotics.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">51</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example semiotics</code></td></tr></table><p><strong>Semiotics</strong> is the Warp standard for game iconography, a small visual language in which each action has one meaning class, and each class owns a frame shape, a colour role and a motion. Its code is <a class="sym" href="semiotics.html"><code>warp_sdk::semiotics</code></a> and its text is the document <code>docs/visual-semiotics.md</code>, which requires that a disagreement between the two is fixed in one commit.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> A one-shot game has almost no text, so its icons carry the rules of the game.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup> A player who learns one icon can read the next icon of the same class without help.</p>
+<h2 id="grounding">Grounding</h2>
+<p>The standard draws on several fields, and each gives it a concrete rule.</p>
+<p><strong>Peirce.</strong> An icon looks like its object, an index points to its object by a physical link, and a symbol has an agreed meaning only. The standard uses icons first and indexes for every direction and every cause. It uses symbols only where the player already knows them from other software, such as confirm, cancel, pause, menu and help. A new symbol costs a lesson, and the medium has no space for lessons, so the standard does not invent symbols.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<p><strong>Bertin.</strong> Each visual variable carries a different kind of data.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Variable</th>
+<th>Carries</th>
+<th>Use in the standard</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shape</td>
+<td>category</td>
+<td>the frame gives the class, the glyph the item</td>
+</tr>
+<tr>
+<td>Hue</td>
+<td>category</td>
+<td>the class colour role, same as the frame</td>
+</tr>
+<tr>
+<td>Value</td>
+<td>order</td>
+<td>disabled state, fill against outline</td>
+</tr>
+<tr>
+<td>Size</td>
+<td>rough quantity</td>
+<td>priority only, never a category</td>
+</tr>
+<tr>
+<td>Orientation</td>
+<td>direction</td>
+<td>arrows; up is gain, down is loss or descent</td>
+</tr>
+<tr>
+<td>Position</td>
+<td>relation</td>
+<td>modifier slots, inline place in text</td>
+</tr>
+<tr>
+<td>Texture</td>
+<td>weak category</td>
+<td>the dashed ring of Perception only</td>
+</tr>
+</tbody>
+</table>
+<p>Frame shape and hue both carry the class. This redundant coding lets a colour-blind player, or a player on a bad screen, read the class from the shape alone.</p>
+<p><strong>ISO 7001 and ISO 3864.</strong> Safety signs join one shape and one colour into one class: a triangle warns, a circle commands, a slashed ring prohibits and a square informs. The standard takes those shapes but not the red for prohibition. Here red means "this hurts you" and nothing else, which <a class="sym" href="visual.html#sym-Language"><code>Language</code></a> already enforces.</p>
+<p><strong>AIGA and US DOT.</strong> The 1974 set gives four rules: one idea per symbol, a consistent stroke and corner across the set, a silhouette readable at a distance, and a negation that is the base symbol with a slash and not a new drawing.</p>
+<p><strong>Game conventions.</strong> RTS and MOBA command cards put verbs in one fixed frame, show cooldown as a dark clockwise sweep and show charges as a count in a corner. Zelda and Hollow Knight show the minimum: vitals as a row of icons with no text, and motion only when a value changes. The standard keeps the modifiers of the first and the restraint of the second.</p>
+<p><strong>Gestalt and preattentive features.</strong> A player finds a different shape, hue, size or motion in a crowd in under 250 ms without a search. Thus each class owns one shape and one hue, and only states that need attention move. Similar frames group, so a row of hexagons reads as "my resources" before the player reads one glyph.</p>
+<h2 id="meaning-classes">Meaning classes</h2>
+<p><a class="sym" href="#sym-Class"><code>Class</code></a> has ten values. Each owns three fixed channels: a <a class="sym" href="#sym-Frame"><code>Frame</code></a>, a <a class="sym" href="visual.html#sym-Role"><code>visual::Role</code></a> and a <a class="sym" href="#sym-Motion"><code>Motion</code></a>. A game never changes them, and the glyph inside the frame names the item.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Class</th>
+<th>Frame</th>
+<th>Role</th>
+<th>Motion</th>
+<th>Meaning to the player</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Action</td>
+<td>circle</td>
+<td>Player</td>
+<td>breathe</td>
+<td>a verb available now in the world</td>
+</tr>
+<tr>
+<td>Exchange</td>
+<td>hexagon, flat top</td>
+<td>Resource</td>
+<td>rise</td>
+<td>things to get, carry and give</td>
+</tr>
+<tr>
+<td>Build</td>
+<td>house, peak up</td>
+<td>Upgrade</td>
+<td>spin</td>
+<td>making or changing the world</td>
+</tr>
+<tr>
+<td>Perception</td>
+<td>dashed ring</td>
+<td>Discovery</td>
+<td>flash</td>
+<td>sensing or finding something</td>
+</tr>
+<tr>
+<td>Command</td>
+<td>capsule</td>
+<td>Interactable</td>
+<td>still</td>
+<td>a menu or system button</td>
+</tr>
+<tr>
+<td>Information</td>
+<td>square</td>
+<td>UiAccent</td>
+<td>still</td>
+<td>a read-out that asks nothing</td>
+</tr>
+<tr>
+<td>Vital</td>
+<td>shield, point down</td>
+<td>Ally</td>
+<td>breathe</td>
+<td>the player's own body: hull and power</td>
+</tr>
+<tr>
+<td>Warning</td>
+<td>triangle, point up</td>
+<td>Danger</td>
+<td>pulse</td>
+<td>something will hurt the player soon</td>
+</tr>
+<tr>
+<td>Hazard</td>
+<td>diamond</td>
+<td>Hazard</td>
+<td>slow pulse</td>
+<td>the place hurts the player</td>
+</tr>
+<tr>
+<td>Prohibition</td>
+<td>slashed ring</td>
+<td>Neutral</td>
+<td>shake</td>
+<td>the player cannot do this</td>
+</tr>
+</tbody>
+</table>
+<p>Four rules govern classes.</p>
+<ul>
+<li>Only Warning and Hazard are red or orange, and a red icon always means harm.</li>
+<li>Prohibition is grey, because "you cannot" is not "you are hurt". The slash and the shake carry the meaning.</li>
+<li>A Prohibition glyph can be the glyph of another action. This is the negation rule. No other class reuses a glyph.</li>
+<li>The frame is the class. A glyph never moves to another frame for effect. A new meaning gets a new action in the right class.</li>
+</ul>
+<h2 id="action-vocabulary">Action vocabulary</h2>
+<p><a class="sym" href="#sym-Action"><code>Action</code></a> holds 62 actions in seven groups.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Group</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Navigation</td>
+<td>move, jump, dash, dive, surface, enter, exit, map</td>
+</tr>
+<tr>
+<td>Acquisition</td>
+<td>collect, carry, deliver, drop, store, trade, cargo full</td>
+</tr>
+<tr>
+<td>Construction</td>
+<td>build, plant, grow, upgrade, repair, demolish, growing</td>
+</tr>
+<tr>
+<td>Combat</td>
+<td>attack, defend, aim, fire, charge, stun, flee, interact</td>
+</tr>
+<tr>
+<td>Perception</td>
+<td>scan, sonar, look, reveal, track, hidden, new</td>
+</tr>
+<tr>
+<td>System</td>
+<td>confirm, cancel, back, pause, settings, save, load, menu, help</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>health, energy, low energy, starving, dying, danger, heat, pressure, time, depth, cooldown, complete, respawn, locked, failed, blocked</td>
+</tr>
+</tbody>
+</table>
+<p>The groups are not classes. <a class="sym" href="#sym-Action-class"><code>Action::class</code></a> gives the class: navigation and combat are the Action class, except that Map is a Command. Status splits across Vital, Warning, Hazard, Information and Prohibition. <a class="sym" href="#sym-Action-frame"><code>Action::frame</code></a>, <a class="sym" href="#sym-Action-role"><code>Action::role</code></a> and <a class="sym" href="#sym-Action-motion"><code>Action::motion</code></a> come from the class. <a class="sym" href="#sym-Action-meaning"><code>Action::meaning</code></a> gives two or three words for a tooltip or a developer, and is not for the screen of a game that shows no text.</p>
+<h3 id="glyphs">Glyphs</h3>
+<p><a class="sym" href="#sym-Action-glyph"><code>Action::glyph</code></a> returns a list of <a class="sym" href="#sym-Prim"><code>Prim</code></a> values in a unit box, with x right, y down and coordinates from -1 to 1. A primitive is an open stroke, a closed stroke, a convex fill, a disc, a stroked circle or an arrow with an open head. All share the stroke of the <a class="sym" href="#sym-Style"><code>Style</code></a>. Tests check that each glyph stays in the unit box, that every Fill is convex, and that glyphs differ within a class.</p>
+<p>Direction carries meaning where the standard says so. Down in Dive means deeper, and up in Jump means against gravity. The standard records such orientations action by action.</p>
+<h3 id="negation">Negation</h3>
+<p><a class="sym" href="#sym-Action-negates"><code>Action::negates</code></a> gives the base of a Prohibition action. Failed is Complete with a slash and Blocked is Move with a slash. A negation is the base glyph with a slash, not a new drawing.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<h3 id="confusable-pairs">Confusable pairs</h3>
+<p><a class="sym" href="#sym-Action-confusable_with"><code>Action::confusable_with</code></a> returns the actions that a player can take for this one, from one table of pairs. It serves as a review list: two confusable actions must never sit side by side in one HUD row without their frames.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup> A test requires that every action has at least one such pair.</p>
+<h2 id="modifiers">Modifiers</h2>
+<p>A <a class="sym" href="#sym-Modifier"><code>Modifier</code></a> is a small overlay on any icon. Each owns one <a class="sym" href="#sym-Slot"><code>Slot</code></a>, and two modifiers never share a slot.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Modifier</th>
+<th>Slot</th>
+<th>Drawing</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cooldown</td>
+<td>overlay</td>
+<td>dark clockwise sweep from 12 o'clock; the value is the part left</td>
+</tr>
+<tr>
+<td>Progress</td>
+<td>overlay</td>
+<td>arc on the frame edge, clockwise from 12 o'clock</td>
+</tr>
+<tr>
+<td>Hold</td>
+<td>bottom</td>
+<td>bar under the glyph that fills left to right</td>
+</tr>
+<tr>
+<td>New</td>
+<td>top right</td>
+<td>Discovery dot with a casing edge</td>
+</tr>
+<tr>
+<td>Count</td>
+<td>top right</td>
+<td>1 to 3 pips; from 4, a disc with the number</td>
+</tr>
+<tr>
+<td>Locked</td>
+<td>bottom right</td>
+<td>small padlock on a paper disc</td>
+</tr>
+<tr>
+<td>DangerCorner</td>
+<td>top left</td>
+<td>small red triangle</td>
+</tr>
+<tr>
+<td>Disabled</td>
+<td>whole</td>
+<td>grey luma colours at half opacity</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-stack"><code>stack</code></a> turns a list into the legal stack: at most <a class="sym" href="#sym-MAX_MODIFIERS"><code>MAX_MODIFIERS</code></a> (2), one per slot, and never Locked with Disabled, because locked already says "not now". The first in the list wins.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup> The paint functions apply <a class="sym" href="#sym-stack"><code>stack</code></a> themselves, so a game can pass any list. A count above 99 shows "99". The number of a count disc is text, so <a class="sym" href="#sym-shapes"><code>shapes</code></a> leaves it out and <a class="sym" href="#sym-paint_with"><code>paint_with</code></a> adds it.</p>
+<h2 id="motion">Motion</h2>
+<p><a class="sym" href="#sym-Motion"><code>Motion</code></a> gives each state a time curve and a meaning.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Motion</th>
+<th>Meaning</th>
+<th>Duration</th>
+<th>Amplitude</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Still</td>
+<td>nothing to do</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>Breathe</td>
+<td>idle, available</td>
+<td>3.2 s loop</td>
+<td>scale 2.5 percent either way, opacity 85 to 100 percent</td>
+</tr>
+<tr>
+<td>Pulse</td>
+<td>needs attention</td>
+<td>1.0 s loop</td>
+<td>scale +6 percent, flash 25 percent</td>
+</tr>
+<tr>
+<td>SlowPulse</td>
+<td>the place needs care</td>
+<td>2.0 s loop</td>
+<td>scale +4 percent, flash 15 percent</td>
+</tr>
+<tr>
+<td>Spin</td>
+<td>working</td>
+<td>1.6 s per turn</td>
+<td>a 70 degree arc turns on the frame</td>
+</tr>
+<tr>
+<td>Shake</td>
+<td>refused, blocked</td>
+<td>0.4 s once</td>
+<td>x 5 percent of half size, 3 cycles, quadratic decay</td>
+</tr>
+<tr>
+<td>Rise</td>
+<td>gained</td>
+<td>0.8 s once</td>
+<td>y -35 percent on a cubic-out curve, fades out</td>
+</tr>
+<tr>
+<td>Fall</td>
+<td>lost</td>
+<td>0.8 s once</td>
+<td>y +35 percent on a quadratic-in curve, fades out</td>
+</tr>
+<tr>
+<td>Flash</td>
+<td>hit, changed</td>
+<td>0.25 s once</td>
+<td>white mix from 100 percent to 0, scale +4 percent</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Motion-pose"><code>Motion::pose</code></a> returns a <a class="sym" href="#sym-Pose"><code>Pose</code></a> at a given time, and <a class="sym" href="#sym-Pose-amplitude"><code>Pose::amplitude</code></a> reports the distance from rest. The class motion is what an icon uses when it asks for attention. A game event such as a gain, a loss or a hit uses <a class="sym" href="#sym-paint_with"><code>paint_with</code></a> with the event motion. The standard gives two prohibitions: never loop a one-shot motion, and never move an icon that asks nothing, so Command and Information stay still.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<h2 id="typographic-harmony">Typographic harmony</h2>
+<p>Icons are type. Their stroke, ends, joins and corners come from the face next to them, so a pixel game gets pixel icons and a serif game gets modulated icons.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup> <a class="sym" href="#sym-Style-from_class"><code>Style::from_class</code></a> maps a <a class="sym" href="fonts.html#sym-Class"><code>fonts::Class</code></a> to a <a class="sym" href="#sym-Style"><code>Style</code></a>.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Font class</th>
+<th>Stroke</th>
+<th>Terminal</th>
+<th>Join</th>
+<th>Corner</th>
+<th>Contrast</th>
+<th>Fill</th>
+<th>Aspect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DisplaySerif</td>
+<td>0.075</td>
+<td>butt</td>
+<td>miter</td>
+<td>0.02</td>
+<td>0.60</td>
+<td>duotone</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>DisplaySans</td>
+<td>0.110</td>
+<td>square</td>
+<td>miter</td>
+<td>0.06</td>
+<td>0.00</td>
+<td>solid</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>Geometric</td>
+<td>0.080</td>
+<td>round</td>
+<td>miter</td>
+<td>0.06</td>
+<td>0.00</td>
+<td>outline</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>Humanist</td>
+<td>0.085</td>
+<td>round</td>
+<td>round</td>
+<td>0.14</td>
+<td>0.15</td>
+<td>duotone</td>
+<td>0.96</td>
+</tr>
+<tr>
+<td>Grotesque</td>
+<td>0.080</td>
+<td>butt</td>
+<td>miter</td>
+<td>0.08</td>
+<td>0.05</td>
+<td>outline</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>Slab</td>
+<td>0.100</td>
+<td>square</td>
+<td>miter</td>
+<td>0.03</td>
+<td>0.10</td>
+<td>solid</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>Condensed</td>
+<td>0.090</td>
+<td>butt</td>
+<td>miter</td>
+<td>0.05</td>
+<td>0.00</td>
+<td>solid</td>
+<td>0.84</td>
+</tr>
+<tr>
+<td>Rounded</td>
+<td>0.100</td>
+<td>round</td>
+<td>round</td>
+<td>0.30</td>
+<td>0.00</td>
+<td>solid</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>Techno</td>
+<td>0.080</td>
+<td>square</td>
+<td>bevel</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>outline</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>Handwritten</td>
+<td>0.090</td>
+<td>round</td>
+<td>round</td>
+<td>0.16</td>
+<td>0.35</td>
+<td>outline</td>
+<td>0.98</td>
+</tr>
+<tr>
+<td>Decorative</td>
+<td>0.100</td>
+<td>butt</td>
+<td>miter</td>
+<td>0.05</td>
+<td>0.50</td>
+<td>duotone</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>Pixel</td>
+<td>0.125</td>
+<td>square</td>
+<td>miter</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>solid</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>Mono</td>
+<td>0.080</td>
+<td>butt</td>
+<td>miter</td>
+<td>0.04</td>
+<td>0.00</td>
+<td>outline</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>TextSerif</td>
+<td>0.075</td>
+<td>butt</td>
+<td>miter</td>
+<td>0.04</td>
+<td>0.40</td>
+<td>outline</td>
+<td>1.00</td>
+</tr>
+</tbody>
+</table>
+<p>Contrast 0 is a uniform stroke. Above 0 the stroke is a broad nib at 30 degrees: segments across the nib are thick and segments along it are thin. <a class="sym" href="#sym-FillPolicy"><code>FillPolicy</code></a> decides how the frame and glyph take colour.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Policy</th>
+<th>Frame</th>
+<th>Edge</th>
+<th>Glyph</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Solid</td>
+<td>role</td>
+<td>casing</td>
+<td>casing</td>
+</tr>
+<tr>
+<td>Outline</td>
+<td>paper</td>
+<td>role</td>
+<td>role</td>
+</tr>
+<tr>
+<td>Duotone</td>
+<td>tint</td>
+<td>role</td>
+<td>role</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Style-from_face"><code>Style::from_face</code></a> reads the class of one face. <a class="sym" href="#sym-Style-from_pair"><code>Style::from_pair</code></a> takes the stroke, ends and joins from the text face, because icons sit next to labels, and the fill from the display face, which is the voice of the game. A loud display face (handwritten, decorative or pixel) also gives its ends, corners and pixel grid.<sup class="ref"><a href="#ref-10" id="cite-10">[10]</a></sup> <a class="sym" href="#sym-Style-weighted"><code>Style::weighted</code></a> scales the stroke by the square root of weight over 400. The default <a class="sym" href="#sym-Style"><code>Style</code></a> is the Humanist style.</p>
+<h3 id="optical-sizes">Optical sizes</h3>
+<p><a class="sym" href="#sym-optical"><code>optical</code></a> is the factor that small icons need for a heavier stroke: 1.35 at 12 px, 1.2 at 16 px, 1.0 at 24 px, 0.9 at 48 px and 0.85 at 128 px, linear between. <a class="sym" href="#sym-Style-stroke_px"><code>Style::stroke_px</code></a> applies it. The stroke is never under 1 px, and a pixel style rounds it to whole pixels and snaps points to the grid.</p>
+<h3 id="inline-with-text">Inline with text</h3>
+<p><a class="sym" href="#sym-inline_rect"><code>inline_rect</code></a> puts the frame on the text baseline and makes the frame height equal to the cap height of the face. <a class="sym" href="#sym-paint_inline"><code>paint_inline</code></a> paints there and returns the advance, which is the icon width plus 0.2 em. The cap and x-height ratios of a <a class="sym" href="#sym-Style"><code>Style</code></a> are class averages and not read from the font file, so a face that differs by more than 5 percent needs its own value.<sup class="ref"><a href="#ref-11" id="cite-11">[11]</a></sup></p>
+<h2 id="accessibility">Accessibility</h2>
+<ul>
+<li><strong>Never colour alone.</strong> Every class has its own frame and every action in a class has its own glyph.</li>
+<li><strong>Minimum size.</strong> The standard gives 16 px for a HUD icon that the player must read in play and 12 px only for an inline icon next to its label. Below 16 px the dashed ring reads as a plain ring.</li>
+<li><strong>Contrast.</strong> Role colours have a WCAG contrast of 3:1 or more on the paper, and the casing edge gives the frame its own edge on any background.</li>
+<li><strong>Reduce motion.</strong> <a class="sym" href="#sym-Style-reduced"><code>Style::reduced</code></a> gives every motion zero amplitude. The state then shows as a static <a class="sym" href="#sym-Mark"><code>Mark</code></a> from <a class="sym" href="#sym-Motion-static_mark"><code>Motion::static_mark</code></a>: pulse and flash give a doubled frame edge, spin a fixed quarter arc, rise an up chevron and fall a down chevron. Shake and breathe need no mark.<sup class="ref"><a href="#ref-12" id="cite-12">[12]</a></sup></li>
+</ul>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::{fonts, palette_kit::<span class="t">Mood</span>, visual::<span class="t">Language</span>};
+<span class="k">use</span> warp_sdk::semiotics::{<span class="k">self</span>, <span class="t">Action</span>, <span class="t">Modifier</span>, <span class="t">Motion</span>, <span class="t">Style</span>};
+
+<span class="k">let</span> lang = <span class="t">Language</span>::<span class="f">new</span>(<span class="s">"ocean calm"</span>, <span class="n">7</span>);
+<span class="k">let</span> style = <span class="t">Style</span>::<span class="f">from_pair</span>(&amp;fonts::<span class="f">pair</span>(<span class="t">Mood</span>::<span class="t">Oceanic</span>, <span class="n">7</span>));
+<span class="c">// In `gui`. `t` is the time in seconds since the state started.</span>
+semiotics::<span class="f">paint</span>(&amp;painter, <span class="t">Action</span>::<span class="t">LowEnergy</span>, rect, &amp;lang, &amp;style, &amp;[], <span class="t">Some</span>(t));
+semiotics::<span class="f">paint</span>(&amp;painter, <span class="t">Action</span>::<span class="t">Fire</span>, rect, &amp;lang, &amp;style, &amp;[<span class="t">Modifier</span>::<span class="t">Cooldown</span>(<span class="n">0.4</span>)], <span class="t">None</span>);
+semiotics::<span class="f">paint_with</span>(&amp;painter, <span class="t">Action</span>::<span class="t">Collect</span>, rect, &amp;lang, &amp;style, &amp;[], <span class="t">Motion</span>::<span class="t">Rise</span>, t);</code></pre></div>
+<p>Make one <a class="sym" href="visual.html#sym-Language"><code>Language</code></a> and one <a class="sym" href="#sym-Style"><code>Style</code></a> at start, from the same mood as the fonts. <a class="sym" href="#sym-paint"><code>paint</code></a> uses the class motion when given a time, and rests when given <code>None</code>. <a class="sym" href="#sym-shapes"><code>shapes</code></a> returns the egui shapes of one icon, with no text, for a layer of your own or to test bounds. The <a class="sym" href="semiotics.html"><code>semiotics</code></a> example shows a specimen sheet of five font pairs.</p>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<p><a class="sym" href="#sym-Class-role"><code>Class::role</code></a> returns a <a class="sym" href="visual.html#sym-Role"><code>visual::Role</code></a>, so an icon takes its colours from a <a class="sym" href="visual.html#sym-Language"><code>Language</code></a>. <a class="sym" href="visual.html#sym-action_icon"><code>action_icon</code></a> and <a class="sym" href="visual.html#sym-action_glyph"><code>action_glyph</code></a> in <a href="visual.html" data-slug="visual">Visual language</a> paint standard icons at rest for other kits, and <a href="hud-cues.html" data-slug="hud-cues">HUD cues</a> and <a href="teach.html" data-slug="teach">Teach kit</a> use them. Role shapes in <a href="visual.html" data-slug="visual">Visual language</a> are the class frames where the two overlap. <a class="sym" href="#sym-Style"><code>Style</code></a> reads <a class="sym" href="fonts.html#sym-Pair"><code>fonts::Pair</code></a> and <a class="sym" href="fonts.html#sym-Face"><code>fonts::Face</code></a> from <a href="fonts.html" data-slug="fonts">Fonts</a>.</p>
+<h2 id="history">History</h2>
+<p>The module and its document were added on 2026-10-29 in the commit "sdk: add semiotics, a functional standard for icons across fonts". When the standard appeared, <a class="sym" href="visual.html"><code>visual</code></a>, <a class="sym" href="hud-cues.html"><code>hud::cues</code></a> and <a class="sym" href="teach.html"><code>teach</code></a> disagreed with it in shapes, palettes and icon roles. The commit "sdk: align visual, hud cues and teach with the semiotic standard" resolved those differences, and section 8 of the document keeps the list as a record.<sup class="ref"><a href="#ref-13" id="cite-13">[13]</a></sup></p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 51 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-semiotics" class="modhead"><code>warp_sdk::semiotics</code></h3><h4>Functions</h4><div class="item" id="sym-stack" data-name="stack"><div class="sig"><a class="anchor" href="#sym-stack" aria-label="Link to stack">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stack</span>(mods: &amp;[<span class="t">Modifier</span>]) -&gt; <span class="t">Vec</span>&lt;<span class="t">Modifier</span>&gt;</code></div><div class="doc"><p>The legal stack of <code>mods</code>: at most [<code>MAX_MODIFIERS</code>], one per slot, and
+never Locked with Disabled. The first in the list wins.</p>
+<p><code>ignore
+assert_eq!(semiotics::stack(&amp;[Modifier::New, Modifier::Count(2)]), vec![Modifier::New]);</code></p></div></div><div class="item" id="sym-optical" data-name="optical"><div class="sig"><a class="anchor" href="#sym-optical" aria-label="Link to optical">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">optical</span>(size_px: f32) -&gt; f32</code></div><div class="doc"><p>The optical-size factor of the stroke: 1.35 at 12 px, 1.2 at 16 px,
+1.0 at 24 px, 0.9 at 48 px, 0.85 at 128 px, linear between.</p></div></div><div class="item" id="sym-paint" data-name="paint"><div class="sig"><a class="anchor" href="#sym-paint" aria-label="Link to paint">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">paint</span>( painter: &amp;<span class="t">Painter</span>, action: <span class="t">Action</span>, rect: <span class="t">Rect</span>, lang: &amp;<span class="t">Language</span>, style: &amp;<span class="t">Style</span>, mods: &amp;[<span class="t">Modifier</span>], motion_t: <span class="t">Option</span>&lt;f32&gt;, )</code></div><div class="doc"><p>Paint <code>action</code> in <code>rect</code> with its class motion. <code>motion_t</code> is the time
+in seconds since the state started; <code>None</code> paints it at rest.</p>
+<p><code>ignore
+semiotics::paint(&amp;painter, Action::Heat, rect, &amp;lang, &amp;style, &amp;[], Some(t));</code></p></div></div><div class="item" id="sym-paint_with" data-name="paint_with"><div class="sig"><a class="anchor" href="#sym-paint_with" aria-label="Link to paint_with">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">paint_with</span>( painter: &amp;<span class="t">Painter</span>, action: <span class="t">Action</span>, rect: <span class="t">Rect</span>, lang: &amp;<span class="t">Language</span>, style: &amp;<span class="t">Style</span>, mods: &amp;[<span class="t">Modifier</span>], motion: <span class="t">Motion</span>, t: f32, )</code></div><div class="doc"><p>Paint <code>action</code> with an event motion of your choice, for example
+<code>Motion::Rise</code> when the player gains it.</p></div></div><div class="item" id="sym-shapes" data-name="shapes"><div class="sig"><a class="anchor" href="#sym-shapes" aria-label="Link to shapes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">shapes</span>( action: <span class="t">Action</span>, rect: <span class="t">Rect</span>, lang: &amp;<span class="t">Language</span>, style: &amp;<span class="t">Style</span>, mods: &amp;[<span class="t">Modifier</span>], motion: <span class="t">Motion</span>, t: f32, ) -&gt; <span class="t">Vec</span>&lt;<span class="t">EShape</span>&gt;</code></div><div class="doc"><p>The egui shapes of one icon, with no text. Use it to paint on a layer
+of your own or to test bounds.</p></div></div><div class="item" id="sym-inline_rect" data-name="inline_rect"><div class="sig"><a class="anchor" href="#sym-inline_rect" aria-label="Link to inline_rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">inline_rect</span>(baseline_left: <span class="t">Pos2</span>, font_size: f32, style: &amp;<span class="t">Style</span>) -&gt; <span class="t">Rect</span></code></div><div class="doc"><p>The icon rect for a place in a line of text. <code>baseline_left</code> is the
+left end of the baseline, <code>font_size</code> the egui font size. The frame
+sits on the baseline and its height is the cap height.</p>
+<p><code>ignore
+let r = semiotics::inline_rect(pos2(x, baseline), 18.0, &amp;style);</code></p></div></div><div class="item" id="sym-paint_inline" data-name="paint_inline"><div class="sig"><a class="anchor" href="#sym-paint_inline" aria-label="Link to paint_inline">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">paint_inline</span>( painter: &amp;<span class="t">Painter</span>, action: <span class="t">Action</span>, baseline_left: <span class="t">Pos2</span>, font_size: f32, lang: &amp;<span class="t">Language</span>, style: &amp;<span class="t">Style</span>, mods: &amp;[<span class="t">Modifier</span>], ) -&gt; f32</code></div><div class="doc"><p>Paint an icon inline with text and give the advance in points: the icon
+width plus 0.2 em.</p>
+<p><code>ignore
+let x = x + semiotics::paint_inline(&amp;painter, Action::Energy, pos2(x, base), 18.0, &amp;lang, &amp;style, &amp;[]);
+painter.text(pos2(x, base), Align2::LEFT_BOTTOM, "42", fonts::text(18.0), col);</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Class" data-name="class"><div class="sig"><a class="anchor" href="#sym-Class" aria-label="Link to Class">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Class</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A verb the player can do now in the world. Circle, Player, breathe.</span>
+<span class="t">Action</span>,
+<span class="c">/// Things the player gets, carries and gives. Hexagon, Resource, rise.</span>
+<span class="t">Exchange</span>,
+<span class="c">/// The player makes or changes the world. House, Upgrade, spin.</span>
+<span class="t">Build</span>,
+<span class="c">/// The player senses or finds something. Dashed ring, Discovery, flash.</span>
+<span class="t">Perception</span>,
+<span class="c">/// A menu or system button. Capsule, Interactable, still.</span>
+<span class="t">Command</span>,
+<span class="c">/// A read-out that asks nothing. Square, UiAccent, still.</span>
+<span class="t">Information</span>,
+<span class="c">/// The player's own body: hull and power. Shield, Ally, breathe.</span>
+<span class="t">Vital</span>,
+<span class="c">/// Something will hurt the player soon. Triangle, Danger, pulse.</span>
+<span class="t">Warning</span>,
+<span class="c">/// The place hurts the player. Diamond, Hazard, slow pulse.</span>
+<span class="t">Hazard</span>,
+<span class="c">/// The player can not do this. Slashed ring, Neutral, shake.</span>
+<span class="t">Prohibition</span>,</code></pre></div><div class="doc"><p>A meaning class. The class owns the frame, the colour role and the motion.</p>
+<p><code>ignore
+assert_eq!(Class::Warning.frame(), Frame::Triangle);</code></p></div></div><details class="members"><summary>6 methods</summary><div class="item" id="sym-Class-ALL" data-name="class::all"><div class="sig"><a class="anchor" href="#sym-Class-ALL" aria-label="Link to Class::ALL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ALL</span>: [<span class="t">Class</span>; <span class="n">10</span>] = [ <span class="t">Class</span>::<span class="t">Action</span>, <span class="t">Class</span>::<span class="t">Exchange</span>, <span class="t">Class</span>::<span class="t">Build</span>, <span class="t">Class</span>::<span class="t">Perception</span>, <span class="t">Class</span>::<span class="t">Command</span>, <span class="t">Class</span>::<span class="t">Information</span>, <span class="t">Class</span>::<span class="t">Vital</span>, <span class="t">Class</span>::<span class="t">Warning</span>, <span class="t">Class</span>::<span class="t">Hazard</span>, <span class="t">Class</span>::<span class="t">Prohibition</span>, ]</code></div><div class="doc"><p>Every class.</p></div></div><div class="item" id="sym-Class-name" data-name="class::name"><div class="sig"><a class="anchor" href="#sym-Class-name" aria-label="Link to Class::name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">name</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>The lower-case name, for example <code>"warning"</code>.</p></div></div><div class="item" id="sym-Class-frame" data-name="class::frame"><div class="sig"><a class="anchor" href="#sym-Class-frame" aria-label="Link to Class::frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">frame</span>(<span class="k">self</span>) -&gt; <span class="t">Frame</span></code></div><div class="doc"><p>The frame of the class. Each class has a different frame.</p></div></div><div class="item" id="sym-Class-role" data-name="class::role"><div class="sig"><a class="anchor" href="#sym-Class-role" aria-label="Link to Class::role">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">role</span>(<span class="k">self</span>) -&gt; <span class="t">Role</span></code></div><div class="doc"><p>The colour role of the class. Only Warning and Hazard are red.</p></div></div><div class="item" id="sym-Class-motion" data-name="class::motion"><div class="sig"><a class="anchor" href="#sym-Class-motion" aria-label="Link to Class::motion">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">motion</span>(<span class="k">self</span>) -&gt; <span class="t">Motion</span></code></div><div class="doc"><p>The motion that an icon of the class uses when it asks for attention.</p></div></div><div class="item" id="sym-Class-loud" data-name="class::loud"><div class="sig"><a class="anchor" href="#sym-Class-loud" aria-label="Link to Class::loud">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">loud</span>(<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True for a class that draws attention. Two loud faces in one pair fight.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Frame" data-name="frame"><div class="sig"><a class="anchor" href="#sym-Frame" aria-label="Link to Frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Frame</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Circle</span>,
+<span class="c">/// Flat top and bottom.</span>
+<span class="t">Hexagon</span>,
+<span class="c">/// A pentagon with the peak up.</span>
+<span class="t">House</span>,
+<span class="c">/// A circle of ten dashes.</span>
+<span class="t">DashedRing</span>,
+<span class="c">/// A horizontal pill.</span>
+<span class="t">Capsule</span>,
+<span class="c">/// A square with style corners.</span>
+<span class="t">Square</span>,
+<span class="c">/// A flat top and a point at the bottom.</span>
+<span class="t">Shield</span>,
+<span class="c">/// A triangle with the point up.</span>
+<span class="t">Triangle</span>,
+<span class="c">/// A square on its point.</span>
+<span class="t">Diamond</span>,
+<span class="c">/// A circle with a slash from top left to bottom right.</span>
+<span class="t">SlashedRing</span>,</code></pre></div><div class="doc"><p>The frame around a glyph. The frame tells the class.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Frame-ALL" data-name="frame::all"><div class="sig"><a class="anchor" href="#sym-Frame-ALL" aria-label="Link to Frame::ALL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ALL</span>: [<span class="t">Frame</span>; <span class="n">10</span>] = [ <span class="t">Frame</span>::<span class="t">Circle</span>, <span class="t">Frame</span>::<span class="t">Hexagon</span>, <span class="t">Frame</span>::<span class="t">House</span>, <span class="t">Frame</span>::<span class="t">DashedRing</span>, <span class="t">Frame</span>::<span class="t">Capsule</span>, <span class="t">Frame</span>::<span class="t">Square</span>, <span class="t">Frame</span>::<span class="t">Shield</span>, <span class="t">Frame</span>::<span class="t">Triangle</span>, <span class="t">Frame</span>::<span class="t">Diamond</span>, <span class="t">Frame</span>::<span class="t">SlashedRing</span>, ]</code></div><div class="doc"><p>Every frame.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Action" data-name="action"><div class="sig"><a class="anchor" href="#sym-Action" aria-label="Link to Action">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Action</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Move</span>, <span class="t">Jump</span>, <span class="t">Dash</span>, <span class="t">Dive</span>, <span class="t">Surface</span>, <span class="t">Enter</span>, <span class="t">Exit</span>, <span class="t">Map</span>,
+<span class="t">Collect</span>, <span class="t">Carry</span>, <span class="t">Deliver</span>, <span class="t">Drop</span>, <span class="t">Store</span>, <span class="t">Trade</span>, <span class="t">CargoFull</span>,
+<span class="t">Build</span>, <span class="t">Plant</span>, <span class="t">Grow</span>, <span class="t">Upgrade</span>, <span class="t">Repair</span>, <span class="t">Demolish</span>, <span class="t">Growing</span>,
+<span class="t">Attack</span>, <span class="t">Defend</span>, <span class="t">Aim</span>, <span class="t">Fire</span>, <span class="t">Charge</span>, <span class="t">Stun</span>, <span class="t">Flee</span>, <span class="t">Interact</span>,
+<span class="t">Scan</span>, <span class="t">Sonar</span>, <span class="t">Look</span>, <span class="t">Reveal</span>, <span class="t">Track</span>, <span class="t">Hidden</span>, <span class="t">New</span>,
+<span class="t">Confirm</span>, <span class="t">Cancel</span>, <span class="t">Back</span>, <span class="t">Pause</span>, <span class="t">Settings</span>, <span class="t">Save</span>, <span class="t">Load</span>, <span class="t">Menu</span>, <span class="t">Help</span>,
+<span class="t">Health</span>, <span class="t">Energy</span>, <span class="t">LowEnergy</span>, <span class="t">Starving</span>, <span class="t">Dying</span>, <span class="t">Danger</span>, <span class="t">Heat</span>, <span class="t">Pressure</span>,
+<span class="t">Time</span>, <span class="t">Depth</span>, <span class="t">Cooldown</span>, <span class="t">Complete</span>, <span class="t">Respawn</span>, <span class="t">Locked</span>, <span class="t">Failed</span>, <span class="t">Blocked</span>,</code></pre></div><div class="doc"><p>A common game action or state. Each has one class and one glyph.</p>
+<p><code>ignore
+let a = Action::Dive;
+println!("{} is a {}", a.meaning(), a.class().name()); // "go deeper is a action"</code></p></div></div><details class="members"><summary>9 methods</summary><div class="item" id="sym-Action-ALL" data-name="action::all"><div class="sig"><a class="anchor" href="#sym-Action-ALL" aria-label="Link to Action::ALL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ALL</span>: [<span class="t">Action</span>; <span class="n">62</span>] =</code></div><div class="doc"><p>Every action, in vocabulary order.</p></div></div><div class="item" id="sym-Action-class" data-name="action::class"><div class="sig"><a class="anchor" href="#sym-Action-class" aria-label="Link to Action::class">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">class</span>(<span class="k">self</span>) -&gt; <span class="t">Class</span></code></div><div class="doc"><p>The meaning class.</p></div></div><div class="item" id="sym-Action-frame" data-name="action::frame"><div class="sig"><a class="anchor" href="#sym-Action-frame" aria-label="Link to Action::frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">frame</span>(<span class="k">self</span>) -&gt; <span class="t">Frame</span></code></div><div class="doc"><p>The frame (from the class).</p></div></div><div class="item" id="sym-Action-role" data-name="action::role"><div class="sig"><a class="anchor" href="#sym-Action-role" aria-label="Link to Action::role">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">role</span>(<span class="k">self</span>) -&gt; <span class="t">Role</span></code></div><div class="doc"><p>The colour role (from the class).</p></div></div><div class="item" id="sym-Action-motion" data-name="action::motion"><div class="sig"><a class="anchor" href="#sym-Action-motion" aria-label="Link to Action::motion">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">motion</span>(<span class="k">self</span>) -&gt; <span class="t">Motion</span></code></div><div class="doc"><p>The attention motion (from the class).</p></div></div><div class="item" id="sym-Action-meaning" data-name="action::meaning"><div class="sig"><a class="anchor" href="#sym-Action-meaning" aria-label="Link to Action::meaning">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">meaning</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>Two or three words for a tooltip or a developer. Not for the screen
+of a game that shows no text.</p></div></div><div class="item" id="sym-Action-negates" data-name="action::negates"><div class="sig"><a class="anchor" href="#sym-Action-negates" aria-label="Link to Action::negates">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">negates</span>(<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">Action</span>&gt;</code></div><div class="doc"><p>For a Prohibition action: the action whose glyph it shows under the
+slash. A negation is the base glyph with a slash, not a new drawing.</p></div></div><div class="item" id="sym-Action-confusable_with" data-name="action::confusable_with"><div class="sig"><a class="anchor" href="#sym-Action-confusable_with" aria-label="Link to Action::confusable_with">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">confusable_with</span>(<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">Action</span>&gt;</code></div><div class="doc"><p>The actions that a player can take for this one. Never show two of
+them side by side without their frames.</p></div></div><div class="item" id="sym-Action-glyph" data-name="action::glyph"><div class="sig"><a class="anchor" href="#sym-Action-glyph" aria-label="Link to Action::glyph">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">glyph</span>(<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">Prim</span>&gt;</code></div><div class="doc"><p>The glyph: primitives in the unit box (x right, y down, -1..1).
+Every <code>Fill</code> polygon is convex.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Prim" data-name="prim"><div class="sig"><a class="anchor" href="#sym-Prim" aria-label="Link to Prim">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Prim</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// An open stroke.</span>
+<span class="t">Line</span>(<span class="t">Vec</span>&lt;[f32; <span class="n">2</span>]&gt;),
+<span class="c">/// A closed stroke.</span>
+<span class="t">Loop</span>(<span class="t">Vec</span>&lt;[f32; <span class="n">2</span>]&gt;),
+<span class="c">/// A solid convex polygon.</span>
+<span class="t">Fill</span>(<span class="t">Vec</span>&lt;[f32; <span class="n">2</span>]&gt;),
+<span class="c">/// A solid disc: centre, radius.</span>
+<span class="t">Dot</span>([f32; <span class="n">2</span>], f32),
+<span class="c">/// A stroked circle: centre, radius.</span>
+<span class="t">Circle</span>([f32; <span class="n">2</span>], f32),
+<span class="c">/// A stroke from the first point to the second, with an open head.</span>
+<span class="t">Arrow</span>([f32; <span class="n">2</span>], [f32; <span class="n">2</span>]),</code></pre></div><div class="doc"><p>One drawing primitive of a glyph, in the unit box (x right, y down).
+All primitives share the stroke of the [<code>Style</code>].</p></div></div></div><div class="typeblock"><div class="item" id="sym-Modifier" data-name="modifier"><div class="sig"><a class="anchor" href="#sym-Modifier" aria-label="Link to Modifier">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Modifier</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The part of the wait that is left, 0..1. A dark clockwise sweep.</span>
+<span class="t">Cooldown</span>(f32),
+<span class="c">/// A small padlock at the bottom right.</span>
+<span class="t">Locked</span>,
+<span class="c">/// A Discovery dot at the top right.</span>
+<span class="t">New</span>,
+<span class="c">/// Charges or items: 1 to 3 pips, a number disc from 4.</span>
+<span class="t">Count</span>(u32),
+<span class="c">/// A small red triangle at the top left.</span>
+<span class="t">DangerCorner</span>,
+<span class="c">/// Grey colours at half opacity.</span>
+<span class="t">Disabled</span>,
+<span class="c">/// Done part, 0..1. An arc on the frame edge.</span>
+<span class="t">Progress</span>(f32),
+<span class="c">/// Press-and-hold part, 0..1. A bar under the glyph.</span>
+<span class="t">Hold</span>(f32),</code></pre></div><div class="doc"><p>A small overlay on any icon. Each modifier owns one [<code>Slot</code>].</p>
+<p><code>ignore
+semiotics::paint(&amp;p, Action::Fire, r, &amp;lang, &amp;style, &amp;[Modifier::Cooldown(0.3), Modifier::Count(2)], None);</code></p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Modifier-slot" data-name="modifier::slot"><div class="sig"><a class="anchor" href="#sym-Modifier-slot" aria-label="Link to Modifier::slot">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">slot</span>(<span class="k">self</span>) -&gt; <span class="t">Slot</span></code></div><div class="doc"><p>The slot of the modifier.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Slot" data-name="slot"><div class="sig"><a class="anchor" href="#sym-Slot" aria-label="Link to Slot">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Slot</span></code></div><div class="code body"><pre><code class="lang-rust"> <span class="t">Modifier</span> {
+<span class="c">/// The slot of the modifier.</span>
+<span class="k">pub</span> <span class="k">fn</span> <span class="f">slot</span>(<span class="k">self</span>) -&gt; <span class="t">Slot</span> {
+    <span class="k">match</span> <span class="k">self</span> {
+        <span class="t">Modifier</span>::<span class="t">Cooldown</span>(_) | <span class="t">Modifier</span>::<span class="t">Progress</span>(_) =&gt; <span class="t">Slot</span>::<span class="t">Overlay</span>,
+        <span class="t">Modifier</span>::<span class="t">New</span> | <span class="t">Modifier</span>::<span class="t">Count</span>(_) =&gt; <span class="t">Slot</span>::<span class="t">TopRight</span>,
+        <span class="t">Modifier</span>::<span class="t">Locked</span> =&gt; <span class="t">Slot</span>::<span class="t">BottomRight</span>,
+        <span class="t">Modifier</span>::<span class="t">DangerCorner</span> =&gt; <span class="t">Slot</span>::<span class="t">TopLeft</span>,
+        <span class="t">Modifier</span>::<span class="t">Hold</span>(_) =&gt; <span class="t">Slot</span>::<span class="t">Bottom</span>,
+        <span class="t">Modifier</span>::<span class="t">Disabled</span> =&gt; <span class="t">Slot</span>::<span class="t">Whole</span>,
+    }
+}</code></pre></div><div class="doc"><p>Where a modifier draws. Two modifiers never share a slot.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Motion" data-name="motion"><div class="sig"><a class="anchor" href="#sym-Motion" aria-label="Link to Motion">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Motion</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Nothing to do.</span>
+<span class="t">Still</span>,
+<span class="c">/// Idle, available. 3.2 s loop.</span>
+<span class="t">Breathe</span>,
+<span class="c">/// Needs attention. 1.0 s loop.</span>
+<span class="t">Pulse</span>,
+<span class="c">/// The place needs care. 2.0 s loop.</span>
+<span class="t">SlowPulse</span>,
+<span class="c">/// Working. One turn in 1.6 s.</span>
+<span class="t">Spin</span>,
+<span class="c">/// Refused or blocked. 0.4 s once.</span>
+<span class="t">Shake</span>,
+<span class="c">/// Gained. 0.8 s once, up and out.</span>
+<span class="t">Rise</span>,
+<span class="c">/// Lost. 0.8 s once, down and out.</span>
+<span class="t">Fall</span>,
+<span class="c">/// Hit or changed. 0.25 s once.</span>
+<span class="t">Flash</span>,</code></pre></div><div class="doc"><p>A motion and its meaning. See <code>docs/visual-semiotics.md</code>, section 5.</p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-Motion-duration" data-name="motion::duration"><div class="sig"><a class="anchor" href="#sym-Motion-duration" aria-label="Link to Motion::duration">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">duration</span>(<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The length of a one-shot motion, or the period of a loop, in seconds.</p></div></div><div class="item" id="sym-Motion-loops" data-name="motion::loops"><div class="sig"><a class="anchor" href="#sym-Motion-loops" aria-label="Link to Motion::loops">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">loops</span>(<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True for a motion that loops.</p></div></div><div class="item" id="sym-Motion-pose" data-name="motion::pose"><div class="sig"><a class="anchor" href="#sym-Motion-pose" aria-label="Link to Motion::pose">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pose</span>(<span class="k">self</span>, t: f32) -&gt; <span class="t">Pose</span></code></div><div class="doc"><p>The pose at <code>t</code> seconds after the state started.</p>
+<p><code>ignore
+let p = Motion::Pulse.pose(0.5);
+assert!(p.scale &gt; 1.0);</code></p></div></div><div class="item" id="sym-Motion-pose_for" data-name="motion::pose_for"><div class="sig"><a class="anchor" href="#sym-Motion-pose_for" aria-label="Link to Motion::pose_for">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pose_for</span>(<span class="k">self</span>, t: f32, reduce: bool) -&gt; <span class="t">Pose</span></code></div><div class="doc"><p>The pose with reduce-motion: rest when <code>reduce</code> is true.</p></div></div><div class="item" id="sym-Motion-static_mark" data-name="motion::static_mark"><div class="sig"><a class="anchor" href="#sym-Motion-static_mark" aria-label="Link to Motion::static_mark">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">static_mark</span>(<span class="k">self</span>) -&gt; <span class="t">Mark</span></code></div><div class="doc"><p>The static mark that shows this state when motion is reduced.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Pose" data-name="pose"><div class="sig"><a class="anchor" href="#sym-Pose" aria-label="Link to Pose">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Pose</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> scale: f32,
+<span class="k">pub</span> dx: f32,
+<span class="k">pub</span> dy: f32,
+<span class="c">/// Opacity, 0..1.</span>
+<span class="k">pub</span> alpha: f32,
+<span class="c">/// White mix, 0..1.</span>
+<span class="k">pub</span> flash: f32,
+<span class="c">/// The start angle, in radians, of the turning work arc.</span>
+<span class="k">pub</span> arc: <span class="t">Option</span>&lt;f32&gt;,</code></pre></div><div class="doc"><p>The state of an icon at one time. Offsets are parts of the half size.</p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-Pose-REST" data-name="pose::rest"><div class="sig"><a class="anchor" href="#sym-Pose-REST" aria-label="Link to Pose::REST">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">REST</span>: <span class="t">Pose</span> = <span class="t">Pose</span></code></div><div class="doc"><p>The pose with no motion.</p></div></div><div class="item" id="sym-Pose-amplitude" data-name="pose::amplitude"><div class="sig"><a class="anchor" href="#sym-Pose-amplitude" aria-label="Link to Pose::amplitude">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">amplitude</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>How far the pose is from rest. Zero means no motion.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Mark" data-name="mark"><div class="sig"><a class="anchor" href="#sym-Mark" aria-label="Link to Mark">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Mark</span></code></div><div class="code body"><pre><code class="lang-rust"> <span class="t">Motion</span> {
+<span class="c">/// The length of a one-shot motion, or the period of a loop, in seconds.</span>
+<span class="k">pub</span> <span class="k">fn</span> <span class="f">duration</span>(<span class="k">self</span>) -&gt; f32 {
+    <span class="k">match</span> <span class="k">self</span> {
+        <span class="t">Motion</span>::<span class="t">Still</span> =&gt; <span class="n">0.0</span>,
+        <span class="t">Motion</span>::<span class="t">Breathe</span> =&gt; <span class="n">3.2</span>,
+        <span class="t">Motion</span>::<span class="t">Pulse</span> =&gt; <span class="n">1.0</span>,
+        <span class="t">Motion</span>::<span class="t">SlowPulse</span> =&gt; <span class="n">2.0</span>,
+        <span class="t">Motion</span>::<span class="t">Spin</span> =&gt; <span class="n">1.6</span>,
+        <span class="t">Motion</span>::<span class="t">Shake</span> =&gt; <span class="n">0.4</span>,
+        <span class="t">Motion</span>::<span class="t">Rise</span> | <span class="t">Motion</span>::<span class="t">Fall</span> =&gt; <span class="n">0.8</span>,
+        <span class="t">Motion</span>::<span class="t">Flash</span> =&gt; <span class="n">0.25</span>,
+    }
+}
+<span class="c">/// True for a motion that loops.</span>
+<span class="k">pub</span> <span class="k">fn</span> <span class="f">loops</span>(<span class="k">self</span>) -&gt; bool {
+    matches!(<span class="k">self</span>, <span class="t">Motion</span>::<span class="t">Breathe</span> | <span class="t">Motion</span>::<span class="t">Pulse</span> | <span class="t">Motion</span>::<span class="t">SlowPulse</span> | <span class="t">Motion</span>::<span class="t">Spin</span>)
+}
+<span class="c">/// The pose at `t` seconds after the state started.</span>
+<span class="c">/// </span>
+<span class="c">/// ```ignore</span>
+<span class="c">/// let p = Motion::Pulse.pose(0.5);</span>
+<span class="c">/// assert!(p.scale &gt; 1.0);</span>
+<span class="c">/// ```</span>
+<span class="k">pub</span> <span class="k">fn</span> <span class="f">pose</span>(<span class="k">self</span>, t: f32) -&gt; <span class="t">Pose</span> {
+    <span class="k">let</span> t = t.<span class="f">max</span>(<span class="n">0.0</span>);
+    <span class="k">let</span> d = <span class="k">self</span>.<span class="f">duration</span>();
+    <span class="k">let</span> k = <span class="k">if</span> d &gt; <span class="n">0.0</span> { (t / d).<span class="f">min</span>(<span class="n">1.0</span>) } <span class="k">else</span> { <span class="n">1.0</span> };
+    <span class="k">let</span> wave = |p: f32| <span class="n">0.5</span> - <span class="n">0.5</span> * (<span class="t">TAU</span> * t / p).<span class="f">cos</span>();
+    <span class="k">let</span> <span class="k">mut</span> p = <span class="t">Pose</span>::<span class="t">REST</span>;
+    <span class="k">match</span> <span class="k">self</span> {
+        <span class="t">Motion</span>::<span class="t">Still</span> =&gt; {}
+        <span class="t">Motion</span>::<span class="t">Breathe</span> =&gt; {
+            <span class="k">let</span> s = (<span class="t">TAU</span> * t / d).<span class="f">sin</span>();
+            p.scale = <span class="n">1.0</span> + <span class="n">0.025</span> * s;
+            p.alpha = <span class="n">0.925</span> + <span class="n">0.075</span> * s;
+        }
+        <span class="t">Motion</span>::<span class="t">Pulse</span> =&gt; {
+            <span class="k">let</span> e = <span class="f">wave</span>(d);
+            p.scale = <span class="n">1.0</span> + <span class="n">0.06</span> * e;
+            p.flash = <span class="n">0.25</span> * e;
+        }
+        <span class="t">Motion</span>::<span class="t">SlowPulse</span> =&gt; {
+            <span class="k">let</span> e = <span class="f">wave</span>(d);
+            p.scale = <span class="n">1.0</span> + <span class="n">0.04</span> * e;
+            p.flash = <span class="n">0.15</span> * e;
+        }
+        <span class="t">Motion</span>::<span class="t">Spin</span> =&gt; p.arc = <span class="t">Some</span>(<span class="t">TAU</span> * (t / d).<span class="f">fract</span>()),
+        <span class="t">Motion</span>::<span class="t">Shake</span> =&gt; {
+            <span class="k">if</span> k &lt; <span class="n">1.0</span> {
+                p.dx = <span class="n">0.05</span> * (<span class="n">1.0</span> - k).<span class="f">powi</span>(<span class="n">2</span>) * (<span class="t">TAU</span> * <span class="n">3.0</span> * k).<span class="f">sin</span>();
+            }
+        }
+        <span class="t">Motion</span>::<span class="t">Rise</span> =&gt; {
+            p.dy = -<span class="n">0.35</span> * (<span class="n">1.0</span> - (<span class="n">1.0</span> - k).<span class="f">powi</span>(<span class="n">3</span>));
+            p.alpha = <span class="n">1.0</span> - k;
+        }
+        <span class="t">Motion</span>::<span class="t">Fall</span> =&gt; {
+            p.dy = <span class="n">0.35</span> * k * k;
+            p.alpha = <span class="n">1.0</span> - k;
+        }
+        <span class="t">Motion</span>::<span class="t">Flash</span> =&gt; {
+            p.flash = (<span class="n">1.0</span> - k).<span class="f">powi</span>(<span class="n">2</span>);
+            p.scale = <span class="n">1.0</span> + <span class="n">0.04</span> * (<span class="n">1.0</span> - k);
+        }
+    }
+    p
+}
+<span class="c">/// The pose with reduce-motion: rest when `reduce` is true.</span>
+<span class="k">pub</span> <span class="k">fn</span> <span class="f">pose_for</span>(<span class="k">self</span>, t: f32, reduce: bool) -&gt; <span class="t">Pose</span> {
+    <span class="k">if</span> reduce { <span class="t">Pose</span>::<span class="t">REST</span> } <span class="k">else</span> { <span class="k">self</span>.<span class="f">pose</span>(t) }
+}
+<span class="c">/// The static mark that shows this state when motion is reduced.</span>
+<span class="k">pub</span> <span class="k">fn</span> <span class="f">static_mark</span>(<span class="k">self</span>) -&gt; <span class="t">Mark</span> {
+    <span class="k">match</span> <span class="k">self</span> {
+        <span class="t">Motion</span>::<span class="t">Pulse</span> | <span class="t">Motion</span>::<span class="t">SlowPulse</span> | <span class="t">Motion</span>::<span class="t">Flash</span> =&gt; <span class="t">Mark</span>::<span class="t">DoubleEdge</span>,
+        <span class="t">Motion</span>::<span class="t">Spin</span> =&gt; <span class="t">Mark</span>::<span class="t">QuarterArc</span>,
+        <span class="t">Motion</span>::<span class="t">Rise</span> =&gt; <span class="t">Mark</span>::<span class="t">Up</span>,
+        <span class="t">Motion</span>::<span class="t">Fall</span> =&gt; <span class="t">Mark</span>::<span class="t">Down</span>,
+        <span class="t">Motion</span>::<span class="t">Still</span> | <span class="t">Motion</span>::<span class="t">Breathe</span> | <span class="t">Motion</span>::<span class="t">Shake</span> =&gt; <span class="t">Mark</span>::<span class="t">None</span>,
+    }
+}</code></pre></div><div class="doc"><p>The static mark that replaces a motion when motion is reduced.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Terminal" data-name="terminal"><div class="sig"><a class="anchor" href="#sym-Terminal" aria-label="Link to Terminal">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Terminal</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">enum</span> <span class="t">Join</span> { <span class="t">Round</span>, <span class="t">Miter</span>, <span class="t">Bevel</span> }
+<span class="k">enum</span> <span class="t">FillPolicy</span> {
+<span class="c">/// Paper frame, role edge, role glyph.</span>
+<span class="t">Outline</span>,
+<span class="c">/// Role frame, casing edge, casing glyph.</span>
+<span class="t">Solid</span>,
+<span class="c">/// Tinted frame, role edge, role glyph.</span>
+<span class="t">Duotone</span>,</code></pre></div><div class="doc"><p>The end of an open stroke.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Join" data-name="join"><div class="sig"><a class="anchor" href="#sym-Join" aria-label="Link to Join">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Join</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">enum</span> <span class="t">FillPolicy</span> {
+<span class="c">/// Paper frame, role edge, role glyph.</span>
+<span class="t">Outline</span>,
+<span class="c">/// Role frame, casing edge, casing glyph.</span>
+<span class="t">Solid</span>,
+<span class="c">/// Tinted frame, role edge, role glyph.</span>
+<span class="t">Duotone</span>,</code></pre></div><div class="doc"><p>The corner where two strokes meet.</p></div></div></div><div class="typeblock"><div class="item" id="sym-FillPolicy" data-name="fillpolicy"><div class="sig"><a class="anchor" href="#sym-FillPolicy" aria-label="Link to FillPolicy">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">FillPolicy</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Paper frame, role edge, role glyph.</span>
+<span class="t">Outline</span>,
+<span class="c">/// Role frame, casing edge, casing glyph.</span>
+<span class="t">Solid</span>,
+<span class="c">/// Tinted frame, role edge, role glyph.</span>
+<span class="t">Duotone</span>,</code></pre></div><div class="doc"><p>How the frame and the glyph take colour.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Style" data-name="style"><div class="sig"><a class="anchor" href="#sym-Style" aria-label="Link to Style">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Style</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Stroke width as a part of the icon size, at 24 px.</span>
+<span class="k">pub</span> stroke: f32,
+<span class="k">pub</span> terminal: <span class="t">Terminal</span>,
+<span class="k">pub</span> join: <span class="t">Join</span>,
+<span class="c">/// Frame corner radius, as a part of the half size (0..0.5).</span>
+<span class="k">pub</span> radius: f32,
+<span class="c">/// 0 is a uniform stroke; up to 1 is a broad nib at 30 degrees.</span>
+<span class="k">pub</span> contrast: f32,
+<span class="k">pub</span> fill: <span class="t">FillPolicy</span>,
+<span class="c">/// Horizontal scale of the glyph (a condensed face gives under 1).</span>
+<span class="k">pub</span> aspect: f32,
+<span class="c">/// Snap to whole pixels.</span>
+<span class="k">pub</span> pixel: bool,
+<span class="c">/// Cap height as a part of the font size.</span>
+<span class="k">pub</span> cap: f32,
+<span class="c">/// x-height as a part of the font size.</span>
+<span class="k">pub</span> x_height: f32,
+<span class="c">/// Reduce motion: no motion, static marks.</span>
+<span class="k">pub</span> reduce_motion: bool,</code></pre></div><div class="doc"><p>The drawing style of an icon set. Make it from the game's fonts.</p>
+<p><code>ignore
+let style = Style::from_pair(&amp;fonts::pair(Mood::Retro, 3)).reduced(settings.reduce_motion);</code></p></div></div><details class="members"><summary>6 methods</summary><div class="item" id="sym-Style-from_class" data-name="style::from_class"><div class="sig"><a class="anchor" href="#sym-Style-from_class" aria-label="Link to Style::from_class">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_class</span>(c: <span class="t">FontClass</span>) -&gt; <span class="t">Style</span></code></div><div class="doc"><p>The style that matches a font class. See the table in the standard.</p></div></div><div class="item" id="sym-Style-from_face" data-name="style::from_face"><div class="sig"><a class="anchor" href="#sym-Style-from_face" aria-label="Link to Style::from_face">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_face</span>(face: &amp;<span class="t">Face</span>) -&gt; <span class="t">Style</span></code></div><div class="doc"><p>The style of one face.</p>
+<p><code>ignore
+let s = Style::from_face(fonts::by_name("Press Start 2P").unwrap());</code></p></div></div><div class="item" id="sym-Style-from_pair" data-name="style::from_pair"><div class="sig"><a class="anchor" href="#sym-Style-from_pair" aria-label="Link to Style::from_pair">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_pair</span>(pair: &amp;<span class="t">Pair</span>) -&gt; <span class="t">Style</span></code></div><div class="doc"><p>The style of a font pair: stroke, ends and joins from the text face,
+fill from the display face. A loud display face also gives its ends,
+corners and pixel grid.</p></div></div><div class="item" id="sym-Style-weighted" data-name="style::weighted"><div class="sig"><a class="anchor" href="#sym-Style-weighted" aria-label="Link to Style::weighted">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">weighted</span>(<span class="k">mut</span> <span class="k">self</span>, weight: u16) -&gt; <span class="t">Style</span></code></div><div class="doc"><p>The same style at another font weight (400 is regular).</p></div></div><div class="item" id="sym-Style-reduced" data-name="style::reduced"><div class="sig"><a class="anchor" href="#sym-Style-reduced" aria-label="Link to Style::reduced">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reduced</span>(<span class="k">mut</span> <span class="k">self</span>, on: bool) -&gt; <span class="t">Style</span></code></div><div class="doc"><p>The same style with reduce-motion on or off.</p></div></div><div class="item" id="sym-Style-stroke_px" data-name="style::stroke_px"><div class="sig"><a class="anchor" href="#sym-Style-stroke_px" aria-label="Link to Style::stroke_px">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stroke_px</span>(&amp;<span class="k">self</span>, size_px: f32) -&gt; f32</code></div><div class="doc"><p>The stroke width in pixels for an icon <code>size_px</code> wide.</p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-MAX_MODIFIERS" data-name="max_modifiers"><div class="sig"><a class="anchor" href="#sym-MAX_MODIFIERS" aria-label="Link to MAX_MODIFIERS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MAX_MODIFIERS</span>: usize = <span class="n">2</span></code></div><div class="doc"><p>The most modifiers on one icon.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="visual.html" data-slug="visual">Visual language</a></li><li><a href="fonts.html" data-slug="fonts">Fonts</a></li><li><a href="hud-cues.html" data-slug="hud-cues">HUD cues</a></li><li><a href="teach.html" data-slug="teach">Teach kit</a></li><li><a href="palette-kit.html" data-slug="palette-kit">Palette kit</a></li><li><a href="art-direction.html" data-slug="art-direction">Art direction</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>docs/visual-semiotics.md</code> - <code>the two disagree, fix the code or change this document in the same commit.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/semiotics.rs</code> - <code>A one-shot game has almost no text. Its icons carry the rules.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>docs/visual-semiotics.md</code> - <code>lessons, so the standard does not invent symbols.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>docs/visual-semiotics.md</code> - <code>`visual::Role`, and a motion. A game never changes them. The glyph inside</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/semiotics.rs</code> - <code>slash. A negation is the base glyph with a slash, not a new drawing.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>docs/visual-semiotics.md</code> - <code>as a review list: two confusable actions must never sit side by side in one</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/semiotics.rs</code> - <code>never Locked with Disabled. The first in the list wins.</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>docs/visual-semiotics.md</code> - <code>motion. Never loop a one-shot motion. Never move an icon that asks</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>docs/visual-semiotics.md</code> - <code>next to them, so a pixel game gets pixel icons and a serif game gets</code></li><li id="ref-10"><a class="back" href="#cite-10" aria-label="Back to the text">^</a> <code>warp_sdk/src/semiotics.rs</code> - <code>fill from the display face. A loud display face also gives its ends,</code></li><li id="ref-11"><a class="back" href="#cite-11" aria-label="Back to the text">^</a> <code>docs/visual-semiotics.md</code> - <code>class averages, not read from the font file; a face that differs by more</code></li><li id="ref-12"><a class="back" href="#cite-12" aria-label="Back to the text">^</a> <code>docs/visual-semiotics.md</code> - <code>top, fall a down chevron at the bottom. Shake and breathe need no mark</code></li><li id="ref-13"><a class="back" href="#cite-13" aria-label="Back to the text">^</a> <code>docs/visual-semiotics.md</code> - <code>Where the existing kits disagree</code></li></ol><table class="navbox"><tr><th><a href="category-look.html">Look</a></th></tr><tr><td><a href="visual.html" data-slug="visual">Visual language</a> · <b>Semiotics</b> · <a href="palette-kit.html" data-slug="palette-kit">Palette kit</a> · <a href="post.html" data-slug="post">Post effects</a> · <a href="camera.html" data-slug="camera">Camera</a> · <a href="juice.html" data-slug="juice">Juice</a> · <a href="lit2d.html" data-slug="lit2d">Lit2d</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-look.html">Look</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

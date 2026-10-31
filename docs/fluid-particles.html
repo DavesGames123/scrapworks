@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fluid particles - Warp Wiki</title>
+<meta name="description" content="GPU particles that ride a velocity field and land on terrain">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="fluid-particles">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#overview">Overview</a></li><li><a href="#usage">Usage</a></li><li><a href="#fields">Fields</a></li><li><a href="#kinds">Kinds</a></li><li><a href="#emitters">Emitters</a></li><li><a href="#how-it-works">How it works</a><ul><li><a href="#the-slot-table">The slot table</a></li><li><a href="#the-compute-step">The compute step</a></li><li><a href="#terrain-contact">Terrain contact</a></li><li><a href="#the-draw">The draw</a></li></ul></li><li><a href="#configuration">Configuration</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Fluid particles</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">GPU particles that ride a velocity field and land on terrain</p><table class="infobox"><caption>Fluid particles</caption><tr><th>Category</th><td><a href="category-world-and-simulation.html">World and simulation</a></td></tr><tr><th>Module</th><td><code>warp_sdk::fluid::particles</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/fluid/particles.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">57</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example fluid</code></td></tr></table><p><strong>Fluid particles</strong> is a GPU particle system for small things that ride a velocity field and land on terrain. It is the type <a class="sym" href="#sym-Particles"><code>Particles</code></a> in <a class="sym" href="fluid-particles.html"><code>warp_sdk::fluid::particles</code></a>, and its presets are marine snow, bubbles, silt and glowing plankton. One compute pass moves all particles, and one instanced draw for each blend mode puts them into the HDR target.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> The kit works alone, and <a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a> also embeds one.</p>
+<h2 id="overview">Overview</h2>
+<p>The CPU only spawns particles and writes two small uniforms, so the cost does not grow with the count on the CPU side. A slot table on the CPU decides which GPU slot each new particle takes. The GPU buffer holds the true positions, and the CPU reads them only through <a class="sym" href="#sym-Particles-read_back"><code>Particles::read_back</code></a>.</p>
+<p><a class="sym" href="#sym-Particles-new"><code>Particles::new</code></a> touches no device, so warp_sdk::smoke::boot can build a game that owns one. The GPU state is made on the first <a class="sym" href="#sym-Particles-step"><code>Particles::step</code></a>.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<h2 id="usage">Usage</h2>
+<p>Add kinds and emitters in Renderer::new, and call <a class="sym" href="#sym-Particles-encode"><code>Particles::encode</code></a> from Renderer::scene_underlay. The encode call runs <a class="sym" href="#sym-Particles-step"><code>Particles::step</code></a>, then <a class="sym" href="#sym-Particles-draw"><code>Particles::draw</code></a> into the engine HDR target with the camera of the view.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::fluid::particles::{<span class="t">Emitter</span>, <span class="t">Fields</span>, <span class="t">Kind</span>, <span class="t">Particles</span>};
+<span class="c">// Renderer::new</span>
+<span class="k">let</span> <span class="k">mut</span> p = <span class="t">Particles</span>::<span class="f">new</span>(<span class="n">100_000</span>);
+<span class="k">let</span> snow = p.<span class="f">add_kind</span>(<span class="t">Kind</span>::<span class="f">marine_snow</span>());
+p.<span class="f">add_emitter</span>(<span class="t">Emitter</span>::<span class="f">area</span>(snow, [-<span class="n">2.0</span>, <span class="n">1.0</span>, <span class="n">2.0</span>, <span class="n">1.2</span>], <span class="n">300.0</span>).<span class="f">layers</span>(<span class="n">0.0</span>, <span class="n">1.0</span>));
+<span class="c">// Renderer::scene_underlay</span>
+<span class="k">let</span> fields = <span class="t">Fields</span>::<span class="f">none</span>().<span class="f">sdf</span>(&amp;<span class="k">self</span>.rock_sdf.view, <span class="k">self</span>.rock_sdf.rect);
+<span class="k">self</span>.particles.<span class="f">encode</span>(shared, encoder, hdr_view, view, <span class="k">self</span>.dt, &amp;fields);</code></pre></div>
+<p>A vent is a point emitter with a start velocity and a spread. Set its rate to 0 to turn it off.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> vent = <span class="t">Emitter</span>::<span class="f">point</span>(bubbles, [<span class="n">0.4</span>, -<span class="n">0.85</span>], <span class="n">30.0</span>).<span class="f">velocity</span>([<span class="n">0.0</span>, <span class="n">0.25</span>]).<span class="f">spread</span>(<span class="n">0.08</span>);
+<span class="k">let</span> id = particles.<span class="f">add_emitter</span>(vent);
+particles.<span class="f">emitter_mut</span>(id).rate = <span class="n">0.0</span>; <span class="c">// turn it off</span></code></pre></div>
+<h2 id="fields">Fields</h2>
+<p><a class="sym" href="#sym-Fields"><code>Fields</code></a> holds the two optional inputs of a step, and each is a texture view and a world rect <code>[min_x, min_y, max_x, max_y]</code>. <a class="sym" href="#sym-Fields-none"><code>Fields::none</code></a> gives neither, and particles then feel only gravity and jitter.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<ul>
+<li><strong>Velocity.</strong> Rgba16Float, <code>.xy</code> in world units per second. Outside its rect the fluid is still.</li>
+<li><strong>SDF.</strong> R16Float or R32Float signed distance in world units, negative inside solid. Outside its rect there is no solid.</li>
+</ul>
+<p><a class="sym" href="fluid-solver.html#sym-Solver-velocity_view"><code>Solver::velocity_view</code></a> and <a class="sym" href="world-terrain.html#sym-Terrain-sdf_texture"><code>Terrain::sdf_texture</code></a> supply these fields, after the rect conversion in <a href="fluid-ocean.html#rect-conventions" data-slug="fluid-ocean">Ocean</a>. With no solver or terrain, <a class="sym" href="#sym-sdf_texture"><code>sdf_texture</code></a> and <a class="sym" href="#sym-velocity_texture"><code>velocity_texture</code></a> in this module make a <a class="sym" href="#sym-FieldTexture"><code>FieldTexture</code></a> from a closure, sampled at texel centres, and <a class="sym" href="#sym-update_velocity_texture"><code>update_velocity_texture</code></a> changes a velocity texture later.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="c">// A floor at y = -0.8 and one round rock.</span>
+<span class="k">let</span> rock = <span class="f">sdf_texture</span>(&amp;device, &amp;queue, [<span class="n">256</span>, <span class="n">128</span>], [-<span class="n">2.0</span>, -<span class="n">1.0</span>, <span class="n">2.0</span>, <span class="n">1.0</span>], |x, y| {
+    (y + <span class="n">0.8</span>).<span class="f">min</span>(((x - <span class="n">0.3</span>).<span class="f">powi</span>(<span class="n">2</span>) + (y + <span class="n">0.6</span>).<span class="f">powi</span>(<span class="n">2</span>)).<span class="f">sqrt</span>() - <span class="n">0.25</span>)
+});</code></pre></div>
+<h2 id="kinds">Kinds</h2>
+<p>A <a class="sym" href="#sym-Kind"><code>Kind</code></a> sets the motion, the terrain contact and the look of a particle. All lengths are world units. Start from a preset and change what you need. <a class="sym" href="#sym-Particles-add_kind"><code>Particles::add_kind</code></a> returns a <a class="sym" href="#sym-KindId"><code>KindId</code></a>, and <a class="sym" href="#sym-Particles-kind_mut"><code>Particles::kind_mut</code></a> changes a kind, with the change showing in the next step.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th><a class="sym" href="#sym-Kind-marine_snow"><code>marine_snow</code></a></th>
+<th><a class="sym" href="#sym-Kind-bubbles"><code>bubbles</code></a></th>
+<th><a class="sym" href="#sym-Kind-silt"><code>silt</code></a></th>
+<th><a class="sym" href="#sym-Kind-glow_plankton"><code>glow_plankton</code></a></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Kind-color"><code>color</code></a></td>
+<td>0.78, 0.82, 0.86, 0.32</td>
+<td>0.7, 0.9, 1.0, 0.6</td>
+<td>0.55, 0.47, 0.36, 0.5</td>
+<td>0.3, 0.9, 1.0, 0.5</td>
+</tr>
+<tr>
+<td><code>drag</code></td>
+<td>1.5</td>
+<td>2.0</td>
+<td>3.0</td>
+<td>2.5</td>
+</tr>
+<tr>
+<td><code>gravity</code></td>
+<td>0, -0.035</td>
+<td>0, 0.25</td>
+<td>0, -0.15</td>
+<td>0, 0</td>
+</tr>
+<tr>
+<td><code>jitter</code></td>
+<td>0.04</td>
+<td>0.15</td>
+<td>0.02</td>
+<td>0.1</td>
+</tr>
+<tr>
+<td><code>radius</code></td>
+<td>0.004</td>
+<td>0.008</td>
+<td>0.003</td>
+<td>0.004</td>
+</tr>
+<tr>
+<td><code>friction</code></td>
+<td>0.6</td>
+<td>0.1</td>
+<td>0.8</td>
+<td>0.2</td>
+</tr>
+<tr>
+<td><code>restitution</code></td>
+<td>0.05</td>
+<td>0.0</td>
+<td>0.1</td>
+<td>0.3</td>
+</tr>
+<tr>
+<td><code>settle_speed</code></td>
+<td>0.05</td>
+<td>0.0</td>
+<td>0.08</td>
+<td>0.0</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Kind-size"><code>size</code></a></td>
+<td>0.004..0.009</td>
+<td>0.01..0.025</td>
+<td>0.003..0.006</td>
+<td>0.006..0.012</td>
+</tr>
+<tr>
+<td><code>streak</code></td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.02</td>
+<td>0.05</td>
+</tr>
+<tr>
+<td><code>emissive</code></td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>2.0</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Kind-life"><code>life</code></a></td>
+<td>8..14</td>
+<td>3..6</td>
+<td>4..8</td>
+<td>2..5</td>
+</tr>
+<tr>
+<td><code>far_scale</code></td>
+<td>0.5</td>
+<td>0.6</td>
+<td>0.6</td>
+<td>0.5</td>
+</tr>
+<tr>
+<td><code>far_alpha</code></td>
+<td>0.25</td>
+<td>0.3</td>
+<td>0.3</td>
+<td>0.3</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Kind-shape"><code>shape</code></a></td>
+<td>Shape::Flake</td>
+<td>Shape::Bubble</td>
+<td>Shape::Mote</td>
+<td>Shape::Glow</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Kind-blend"><code>blend</code></a></td>
+<td>Blend::Alpha</td>
+<td>Blend::Alpha</td>
+<td>Blend::Alpha</td>
+<td>Blend::Additive</td>
+</tr>
+</tbody>
+</table>
+<p><code>default()</code> for <a class="sym" href="#sym-Kind"><code>Kind</code></a> is the same as <a class="sym" href="#sym-Kind-marine_snow"><code>Kind::marine_snow</code></a>. <a class="sym" href="#sym-Kind-max_alive"><code>Kind::max_alive</code></a> caps the live particles of a kind, and spawns past it are dropped.</p>
+<p>The presets are quiet on purpose. A depth layer of 1 draws smaller and fainter, and the depth of field spreads a far particle over more pixels with the same light. Thus a dense field reads as texture, not as clutter in front of the play.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<h2 id="emitters">Emitters</h2>
+<p>An <a class="sym" href="#sym-Emitter"><code>Emitter</code></a> is a continuous source of one kind, with a rate in particles per second. <a class="sym" href="#sym-Emitter-point"><code>Emitter::point</code></a>, <a class="sym" href="#sym-Emitter-area"><code>Emitter::area</code></a> and <a class="sym" href="#sym-Emitter-line"><code>Emitter::line</code></a> choose the <a class="sym" href="#sym-Source"><code>Source</code></a>. The builder methods are <a class="sym" href="#sym-Emitter-velocity"><code>Emitter::velocity</code></a>, <a class="sym" href="#sym-Emitter-spread"><code>Emitter::spread</code></a> for a random start speed in any direction, <a class="sym" href="#sym-Emitter-layers"><code>Emitter::layers</code></a> for the depth layer range where 0 is the front and 1 is far back, and <a class="sym" href="#sym-Emitter-cap"><code>Emitter::cap</code></a> for the most live particles from this emitter.</p>
+<p><a class="sym" href="#sym-Particles-burst"><code>Particles::burst</code></a> sprays <a class="sym" href="window.html#sym-count"><code>count</code></a> particles from a point in all directions, up to <code>speed</code>. <a class="sym" href="#sym-Particles-burst_with"><code>Particles::burst_with</code></a> adds a layer range. The spawns go to the GPU in the next step, and a full system drops the rest. <a class="sym" href="#sym-Particles-clear"><code>Particles::clear</code></a> kills every particle, and the GPU buffer is cleared in the next step.</p>
+<h2 id="how-it-works">How it works</h2>
+<h3 id="the-slot-table">The slot table</h3>
+<p><a class="sym" href="#sym-Particles"><code>Particles</code></a> has <a class="sym" href="#sym-Particles-capacity"><code>capacity</code></a> slots. For each slot the CPU keeps the sim time at which the slot is free again. A spawn moves a cursor around the slots and takes the first free ones, and it sets the death time at once, so a slot is not taken twice.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup> Pending spawns go to the GPU buffer in runs of adjacent slots.</p>
+<p>The kind and system caps apply to emitters and bursts. The emitter cap applies only to emitters. Spawn positions and speeds come from a fixed-seed xorshift generator on the CPU.</p>
+<h3 id="the-compute-step">The compute step</h3>
+<p>The update shader does these things in this order for each live slot.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<ol>
+<li>It ages the particle. A particle past its life gets life 0, which marks a dead slot.</li>
+<li>It pulls the velocity toward the fluid velocity. The blend factor is <code>1 - exp(-drag * dt)</code>, which is stable for any <a class="sym" href="squircle.html#sym-dt"><code>dt</code></a>.</li>
+<li>It adds gravity and a small random jitter from a hash of the slot and the frame.</li>
+<li>It moves the particle in up to 8 substeps. The substep count aims for at most half a collision radius of travel per substep.</li>
+<li>After each substep, it collides with the SDF if the particle collides.</li>
+<li>It applies the settle rule, and it kills the particle if it left <code>bounds</code>.</li>
+</ol>
+<p><a class="sym" href="#sym-Particles-step"><code>Particles::step</code></a> clamps <a class="sym" href="squircle.html#sym-dt"><code>dt</code></a> to 0.1 s and treats a non-finite value as 0. Bilinear reads use <code>textureLoad</code>, because R32Float has no filtering sampler without a device feature.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<h3 id="terrain-contact">Terrain contact</h3>
+<p>A particle that is closer to the surface than its collision radius moves out along the SDF gradient, with up to four projections. Then the normal speed reflects with the restitution, and the tangent speed loses the friction.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<p>A particle settles (velocity 0) only when it touches the surface, is slow, and the surface faces up against the gravity. On an overhang or a steep wall it slides or falls. A settled particle gets gravity again in the next step, so it falls when the surface below it goes away.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup> In the shader, "faces up" means that the dot product of the normal and the anti-gravity direction is above 0.7. A <code>settle_speed</code> of 0 never settles.</p>
+<p>Particles never collide with each other, so they cannot stack into a shape that has no terrain under it.<sup class="ref"><a href="#ref-10" id="cite-10">[10]</a></sup> That rule answers a defect recorded in the commit message, in which particles built stiff overhangs where no geometry existed.</p>
+<p>Only particles with a depth layer up to <code>collide_layers</code> collide. Far layers pass in front of the terrain as background.</p>
+<h3 id="the-draw">The draw</h3>
+<p><a class="sym" href="#sym-Particles-draw"><code>Particles::draw</code></a> records the alpha kinds first, then the additive kinds. The pass loads the target and has no depth.<sup class="ref"><a href="#ref-11" id="cite-11">[11]</a></sup> Each pipeline draws all slots as instanced quads, and the vertex shader removes a slot that is dead or has the other blend mode.<sup class="ref"><a href="#ref-12" id="cite-12">[12]</a></sup></p>
+<p>The vertex shader fades each particle in and out over its life, so nothing pops. It applies the depth layer to size and alpha, then grows the disc by the depth of field blur and spreads the same light over more pixels. A particle below <code>min_px</code> draws at that size with less alpha, so a zoomed-out view keeps its light and does not flicker. A <code>streak</code> above 0 stretches the quad into a capsule along the velocity.</p>
+<p>The fragment shader draws the <a class="sym" href="#sym-Shape"><code>Shape</code></a>.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Shape</th>
+<th>Look</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shape::Mote</td>
+<td>A small lit sphere</td>
+</tr>
+<tr>
+<td>Shape::Flake</td>
+<td>A lumpy lit disc with its own outline for each particle</td>
+</tr>
+<tr>
+<td>Shape::Bubble</td>
+<td>A thin bright rim with one specular point</td>
+</tr>
+<tr>
+<td>Shape::Glow</td>
+<td>A soft gaussian spot. Use it with Blend::Additive and <code>emissive</code></td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Camera"><code>Camera</code></a> carries the view. <a class="sym" href="#sym-Camera-from_view"><code>Camera::from_view</code></a> adds the render origin back, so particles use plain world positions. Two world units fill the screen height at scale 1, the same as the engine scene shaders and <a href="lit2d.html" data-slug="lit2d">Lit2d</a>.<sup class="ref"><a href="#ref-13" id="cite-13">[13]</a></sup></p>
+<h2 id="configuration">Configuration</h2>
+<p>These public fields of <a class="sym" href="#sym-Particles"><code>Particles</code></a> set the system defaults.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bounds</code></td>
+<td>-1e4, -1e4, 1e4, 1e4</td>
+<td>A particle outside this world rect dies</td>
+</tr>
+<tr>
+<td><code>collide_layers</code></td>
+<td>0.35</td>
+<td>The deepest depth layer that collides</td>
+</tr>
+<tr>
+<td><code>velocity_scale</code></td>
+<td>1.0</td>
+<td>A multiplier on the velocity field</td>
+</tr>
+<tr>
+<td><code>light</code></td>
+<td>a cool light from above</td>
+<td>One key light and a flat ambient term</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td>1.0</td>
+<td>A multiplier on the alpha of every particle</td>
+</tr>
+<tr>
+<td><code>focus_layer</code></td>
+<td>0.0</td>
+<td>The depth layer in focus</td>
+</tr>
+<tr>
+<td><code>dof_px</code></td>
+<td>3.0</td>
+<td>Blur in pixels for one layer of distance from focus</td>
+</tr>
+<tr>
+<td><code>min_px</code></td>
+<td>1.5</td>
+<td>The smallest size in pixels</td>
+</tr>
+</tbody>
+</table>
+<p><code>default()</code> for <a class="sym" href="#sym-Light"><code>Light</code></a> is a cool light from above, for an underwater scene.</p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>A particle that the GPU kills early, because it left <code>bounds</code>, keeps its slot until its CPU death time. <a class="sym" href="#sym-Particles-alive"><code>Particles::alive</code></a> counts it until then.<sup class="ref"><a href="#ref-14" id="cite-14">[14]</a></sup></li>
+<li>Call <a class="sym" href="#sym-Particles-step"><code>Particles::step</code></a> once for each queue submit. The uniforms go through <code>Queue::write_buffer</code>, so two steps in one encoder share one uniform.</li>
+<li>A <a class="sym" href="#sym-Particles"><code>Particles</code></a> holds at most <a class="sym" href="#sym-MAX_KINDS"><code>MAX_KINDS</code></a> kinds, which is 16, and <a class="sym" href="#sym-Particles-add_kind"><code>Particles::add_kind</code></a> panics past that.</li>
+<li><a class="sym" href="#sym-Particles-read_back"><code>Particles::read_back</code></a> blocks until the GPU is done. Use it in tests and tools, not in a frame.</li>
+<li>The substep count clamps at 8. Beyond a travel of 4 collision radii in one frame, a substep is longer than half a radius.</li>
+<li>Particles report no GPU time. They have no timestamps, unlike <a href="fluid-solver.html" data-slug="fluid-solver">the solver</a>.</li>
+</ul>
+<h2 id="history">History</h2>
+<p>Commit <code>ec5776ad</code> added the module on 2026-10-29. That commit recorded about 4 ms on an integrated GPU in a debug build with a worst-case overdraw start, and it listed a 1 ms target as not met. Commit <code>a8c7f540</code> later measured 100,000 particles at about 0.32 ms of wall time per frame on an RTX 4060 Ti, in release, with a spread spawn. The commit marks the GPU part of that number as an estimate.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 57 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-fluid--particles" class="modhead"><code>warp_sdk::fluid::particles</code></h3><h4>Functions</h4><div class="item" id="sym-compose_update_wgsl" data-name="compose_update_wgsl"><div class="sig"><a class="anchor" href="#sym-compose_update_wgsl" aria-label="Link to compose_update_wgsl">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">compose_update_wgsl</span>() -&gt; <span class="t">String</span></code></div><div class="doc"><p>The full source of the compute step, as the device compiles it.</p>
+<p><code>ignore
+let src = warp_sdk::fluid::particles::compose_update_wgsl();
+assert!(src.contains("fn cs_main"));</code></p></div></div><div class="item" id="sym-compose_draw_wgsl" data-name="compose_draw_wgsl"><div class="sig"><a class="anchor" href="#sym-compose_draw_wgsl" aria-label="Link to compose_draw_wgsl">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">compose_draw_wgsl</span>() -&gt; <span class="t">String</span></code></div><div class="doc"><p>The full source of the draw pass, as the device compiles it.</p>
+<p><code>ignore
+let src = warp_sdk::fluid::particles::compose_draw_wgsl();
+assert!(src.contains("fn fs_main"));</code></p></div></div><div class="item" id="sym-sdf_texture" data-name="sdf_texture"><div class="sig"><a class="anchor" href="#sym-sdf_texture" aria-label="Link to sdf_texture">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">sdf_texture</span>( device: &amp;wgpu::<span class="t">Device</span>, queue: &amp;wgpu::<span class="t">Queue</span>, size: [u32; <span class="n">2</span>], rect: [f32; <span class="n">4</span>], f: <span class="k">impl</span> <span class="t">Fn</span>(f32, f32) -&gt; f32, ) -&gt; <span class="t">FieldTexture</span></code></div><div class="doc"><p>An R32Float SDF texture from a closure <code>f(x, y) -&gt; distance</code>, sampled at
+texel centres. Row 0 is <code>rect</code> min y. Negative inside solid.</p>
+<p><code>ignore
+// A floor at y = -0.8 and one round rock.
+let rock = sdf_texture(&amp;device, &amp;queue, [256, 128], [-2.0, -1.0, 2.0, 1.0], |x, y| {
+(y + 0.8).min(((x - 0.3).powi(2) + (y + 0.6).powi(2)).sqrt() - 0.25)
+});</code></p></div></div><div class="item" id="sym-velocity_texture" data-name="velocity_texture"><div class="sig"><a class="anchor" href="#sym-velocity_texture" aria-label="Link to velocity_texture">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">velocity_texture</span>( device: &amp;wgpu::<span class="t">Device</span>, queue: &amp;wgpu::<span class="t">Queue</span>, size: [u32; <span class="n">2</span>], rect: [f32; <span class="n">4</span>], f: <span class="k">impl</span> <span class="t">Fn</span>(f32, f32) -&gt; [f32; <span class="n">2</span>], ) -&gt; <span class="t">FieldTexture</span></code></div><div class="doc"><p>An Rgba16Float velocity texture from a closure <code>f(x, y) -&gt; [vx, vy]</code>.
+Call <code>update_velocity_texture</code> to change it each frame.</p>
+<p><code>ignore
+let swirl = velocity_texture(&amp;device, &amp;queue, [64, 32], rect, |x, y| [-y, x]);</code></p></div></div><div class="item" id="sym-update_velocity_texture" data-name="update_velocity_texture"><div class="sig"><a class="anchor" href="#sym-update_velocity_texture" aria-label="Link to update_velocity_texture">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">update_velocity_texture</span>(queue: &amp;wgpu::<span class="t">Queue</span>, tex: &amp;<span class="t">FieldTexture</span>, f: <span class="k">impl</span> <span class="t">Fn</span>(f32, f32) -&gt; [f32; <span class="n">2</span>])</code></div><div class="doc"><p>Write new values into a texture from <code>velocity_texture</code>.</p>
+<p><code>ignore
+update_velocity_texture(&amp;queue, &amp;swirl, |x, y| [-y * t.sin(), x]);</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Fields" data-name="fields"><div class="sig"><a class="anchor" href="#sym-Fields" aria-label="Link to Fields">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Fields</span>&lt;<span class="a">'a</span>&gt;</code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The fluid velocity texture and its world rect.</span>
+<span class="k">pub</span> velocity: <span class="t">Option</span>&lt;(&amp;<span class="a">'a</span> wgpu::<span class="t">TextureView</span>, [f32; <span class="n">4</span>])&gt;,
+<span class="c">/// The terrain signed distance texture and its world rect.</span>
+<span class="k">pub</span> sdf: <span class="t">Option</span>&lt;(&amp;<span class="a">'a</span> wgpu::<span class="t">TextureView</span>, [f32; <span class="n">4</span>])&gt;,</code></pre></div><div class="doc"><p>The two optional input fields of one step. Each is a texture view and
+the world rect <code>[min_x, min_y, max_x, max_y]</code> that it covers.</p>
+<p><code>velocity</code>: Rgba16Float, <code>.xy</code> = world units per second. Outside its
+rect the fluid is still.
+<code>sdf</code>: R16Float or R32Float signed distance in world units, negative
+inside solid. Outside its rect there is no solid.</p>
+<p><code>ignore
+let f = Fields::none().velocity(&amp;vel.view, vel.rect).sdf(&amp;rock.view, rock.rect);</code></p></div></div><details class="members"><summary>3 methods</summary><div class="item" id="sym-Fields-none" data-name="fields::none"><div class="sig"><a class="anchor" href="#sym-Fields-none" aria-label="Link to Fields::none">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">none</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>No fluid and no terrain. Particles feel only gravity and jitter.</p>
+<p><code>ignore
+p.encode(shared, encoder, hdr_view, view, dt, &amp;Fields::none());</code></p></div></div><div class="item" id="sym-Fields-velocity" data-name="fields::velocity"><div class="sig"><a class="anchor" href="#sym-Fields-velocity" aria-label="Link to Fields::velocity">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">velocity</span>(<span class="k">mut</span> <span class="k">self</span>, view: &amp;<span class="a">'a</span> wgpu::<span class="t">TextureView</span>, rect: [f32; <span class="n">4</span>]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the velocity field.</p>
+<p><code>ignore
+let f = Fields::none().velocity(&amp;tex.view, [-2.0, -1.0, 2.0, 1.0]);</code></p></div></div><div class="item" id="sym-Fields-sdf" data-name="fields::sdf"><div class="sig"><a class="anchor" href="#sym-Fields-sdf" aria-label="Link to Fields::sdf">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">sdf</span>(<span class="k">mut</span> <span class="k">self</span>, view: &amp;<span class="a">'a</span> wgpu::<span class="t">TextureView</span>, rect: [f32; <span class="n">4</span>]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the terrain SDF.</p>
+<p><code>ignore
+let f = Fields::none().sdf(&amp;rock.view, rock.rect);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Shape" data-name="shape"><div class="sig"><a class="anchor" href="#sym-Shape" aria-label="Link to Shape">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Shape</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A small lit sphere.</span>
+<span class="t">Mote</span> = <span class="n">0</span>,
+<span class="c">/// A lumpy lit disc. Each particle has its own outline.</span>
+<span class="t">Flake</span> = <span class="n">1</span>,
+<span class="c">/// A thin bright rim with one specular point.</span>
+<span class="t">Bubble</span> = <span class="n">2</span>,
+<span class="c">/// A soft gaussian spot. Use it with `Blend::Additive` and `emissive`.</span>
+<span class="t">Glow</span> = <span class="n">3</span>,</code></pre></div><div class="doc"><p>The outline of one particle.</p>
+<p><code>ignore
+let k = Kind::marine_snow().shape(Shape::Mote);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Blend" data-name="blend"><div class="sig"><a class="anchor" href="#sym-Blend" aria-label="Link to Blend">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Blend</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Over the scene, by alpha. Dark particles can hide the scene.</span>
+<span class="t">Alpha</span> = <span class="n">0</span>,
+<span class="c">/// Added to the scene. Use it for light: sparks, glow, plankton.</span>
+<span class="t">Additive</span> = <span class="n">1</span>,</code></pre></div><div class="doc"><p>How a particle mixes with the target.</p>
+<p><code>ignore
+let k = Kind::glow_plankton().blend(Blend::Additive);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Kind" data-name="kind"><div class="sig"><a class="anchor" href="#sym-Kind" aria-label="Link to Kind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Kind</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Linear RGBA. The alpha is the opacity at depth layer 0.</span>
+<span class="k">pub</span> color: [f32; <span class="n">4</span>],
+<span class="c">/// How fast the particle takes the fluid velocity, in 1/s. 0 ignores the fluid.</span>
+<span class="k">pub</span> drag: f32,
+<span class="c">/// Gravity or buoyancy, in world units per second squared.</span>
+<span class="k">pub</span> gravity: [f32; <span class="n">2</span>],
+<span class="c">/// A random push each step, in world units per second squared.</span>
+<span class="k">pub</span> jitter: f32,
+<span class="c">/// The collision radius. The particle stays this far above the surface.</span>
+<span class="k">pub</span> radius: f32,
+<span class="c">/// The part of the tangent speed that a contact removes, 0 to 1.</span>
+<span class="k">pub</span> friction: f32,
+<span class="c">/// The part of the normal speed that a contact gives back, 0 to 1.</span>
+<span class="k">pub</span> restitution: f32,
+<span class="c">/// Below this speed a particle on a floor stops. 0 = never settle.</span>
+<span class="k">pub</span> settle_speed: f32,
+<span class="c">/// The diameter range. Each particle takes a random value in it.</span>
+<span class="k">pub</span> size: [f32; <span class="n">2</span>],
+<span class="c">/// The streak length in seconds of travel. 0 = round.</span>
+<span class="k">pub</span> streak: f32,
+<span class="c">/// Light that the particle makes, added to the lit colour.</span>
+<span class="k">pub</span> emissive: f32,
+<span class="c">/// The life range in seconds.</span>
+<span class="k">pub</span> life: [f32; <span class="n">2</span>],
+<span class="c">/// The size multiplier at depth layer 1.</span>
+<span class="k">pub</span> far_scale: f32,
+<span class="c">/// The alpha multiplier at depth layer 1.</span>
+<span class="k">pub</span> far_alpha: f32,
+<span class="c">/// The outline.</span>
+<span class="k">pub</span> shape: <span class="t">Shape</span>,
+<span class="c">/// The blend mode.</span>
+<span class="k">pub</span> blend: <span class="t">Blend</span>,
+<span class="c">/// The most live particles of this kind. Spawns past it are dropped.</span>
+<span class="k">pub</span> max_alive: <span class="t">Option</span>&lt;u32&gt;,</code></pre></div><div class="doc"><p>One particle kind: its motion, its contact with the terrain and its look.
+All lengths are world units. Start from a preset and change what you need.</p>
+<p><code>ignore
+let mut snow = Kind::marine_snow();
+snow.gravity = [0.0, -0.05];
+let id = particles.add_kind(snow.color([0.9, 0.85, 0.8, 0.3]));</code></p></div></div><details class="members"><summary>10 methods</summary><div class="item" id="sym-Kind-marine_snow" data-name="kind::marine_snow"><div class="sig"><a class="anchor" href="#sym-Kind-marine_snow" aria-label="Link to Kind::marine_snow">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">marine_snow</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Pale organic flakes that sink slowly, ride the current and settle
+on floors. Faint, so a dense field stays in the background.</p>
+<p><code>ignore
+let snow = particles.add_kind(Kind::marine_snow());</code></p></div></div><div class="item" id="sym-Kind-bubbles" data-name="kind::bubbles"><div class="sig"><a class="anchor" href="#sym-Kind-bubbles" aria-label="Link to Kind::bubbles">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">bubbles</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Rising bubbles that follow the current, slide under rock and never settle.</p>
+<p><code>ignore
+let b = particles.add_kind(Kind::bubbles());
+particles.add_emitter(Emitter::point(b, [0.3, -0.8], 25.0).velocity([0.0, 0.2]));</code></p></div></div><div class="item" id="sym-Kind-silt" data-name="kind::silt"><div class="sig"><a class="anchor" href="#sym-Kind-silt" aria-label="Link to Kind::silt">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">silt</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Fine dark grains that a current lifts and that fall back fast.</p>
+<p><code>ignore
+let silt = particles.add_kind(Kind::silt());
+particles.burst(silt, [0.0, -0.9], 400, 0.4);</code></p></div></div><div class="item" id="sym-Kind-glow_plankton" data-name="kind::glow_plankton"><div class="sig"><a class="anchor" href="#sym-Kind-glow_plankton" aria-label="Link to Kind::glow_plankton">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">glow_plankton</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Small additive points of light that drift with the fluid and streak
+when it is fast.</p>
+<p><code>ignore
+let glow = particles.add_kind(Kind::glow_plankton());</code></p></div></div><div class="item" id="sym-Kind-color" data-name="kind::color"><div class="sig"><a class="anchor" href="#sym-Kind-color" aria-label="Link to Kind::color">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">color</span>(<span class="k">mut</span> <span class="k">self</span>, rgba: [f32; <span class="n">4</span>]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the colour.</p>
+<p><code>ignore
+let k = Kind::silt().color([0.4, 0.3, 0.2, 0.4]);</code></p></div></div><div class="item" id="sym-Kind-size" data-name="kind::size"><div class="sig"><a class="anchor" href="#sym-Kind-size" aria-label="Link to Kind::size">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">size</span>(<span class="k">mut</span> <span class="k">self</span>, min: f32, max: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the diameter range.</p>
+<p><code>ignore
+let k = Kind::bubbles().size(0.02, 0.05);</code></p></div></div><div class="item" id="sym-Kind-life" data-name="kind::life"><div class="sig"><a class="anchor" href="#sym-Kind-life" aria-label="Link to Kind::life">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">life</span>(<span class="k">mut</span> <span class="k">self</span>, min: f32, max: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the life range in seconds.</p>
+<p><code>ignore
+let k = Kind::silt().life(1.0, 2.0);</code></p></div></div><div class="item" id="sym-Kind-shape" data-name="kind::shape"><div class="sig"><a class="anchor" href="#sym-Kind-shape" aria-label="Link to Kind::shape">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">shape</span>(<span class="k">mut</span> <span class="k">self</span>, shape: <span class="t">Shape</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the outline.</p>
+<p><code>ignore
+let k = Kind::marine_snow().shape(Shape::Mote);</code></p></div></div><div class="item" id="sym-Kind-blend" data-name="kind::blend"><div class="sig"><a class="anchor" href="#sym-Kind-blend" aria-label="Link to Kind::blend">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">blend</span>(<span class="k">mut</span> <span class="k">self</span>, blend: <span class="t">Blend</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the blend mode.</p>
+<p><code>ignore
+let k = Kind::silt().blend(Blend::Additive);</code></p></div></div><div class="item" id="sym-Kind-max_alive" data-name="kind::max_alive"><div class="sig"><a class="anchor" href="#sym-Kind-max_alive" aria-label="Link to Kind::max_alive">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">max_alive</span>(<span class="k">mut</span> <span class="k">self</span>, n: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the most live particles of this kind.</p>
+<p><code>ignore
+let k = Kind::marine_snow().max_alive(20_000);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-KindId" data-name="kindid"><div class="sig"><a class="anchor" href="#sym-KindId" aria-label="Link to KindId">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">KindId</span>(<span class="k">pub</span> u8)</code></div><div class="doc"><p>The handle of a kind in one <code>Particles</code>.</p>
+<p><code>ignore
+let id: KindId = particles.add_kind(Kind::silt());</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Source" data-name="source"><div class="sig"><a class="anchor" href="#sym-Source" aria-label="Link to Source">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Source</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// One point. With `Emitter::velocity` and `spread` it is a plume.</span>
+<span class="t">Point</span> { pos: [f32; <span class="n">2</span>] },
+<span class="c">/// A random point in a rect `[min_x, min_y, max_x, max_y]`.</span>
+<span class="t">Area</span> { rect: [f32; <span class="n">4</span>] },
+<span class="c">/// A random point on a segment.</span>
+<span class="t">Line</span> { a: [f32; <span class="n">2</span>], b: [f32; <span class="n">2</span>] },</code></pre></div><div class="doc"><p>Where an emitter puts new particles.</p>
+<p><code>ignore
+let s = Source::Line { a: [-1.0, 0.0], b: [1.0, 0.0] };</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Emitter" data-name="emitter"><div class="sig"><a class="anchor" href="#sym-Emitter" aria-label="Link to Emitter">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Emitter</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The kind it makes.</span>
+<span class="k">pub</span> kind: <span class="t">KindId</span>,
+<span class="c">/// Where new particles start.</span>
+<span class="k">pub</span> source: <span class="t">Source</span>,
+<span class="c">/// New particles for each second.</span>
+<span class="k">pub</span> rate: f32,
+<span class="c">/// The start velocity, world units per second.</span>
+<span class="k">pub</span> velocity: [f32; <span class="n">2</span>],
+<span class="c">/// A random start speed in any direction, added to `velocity`.</span>
+<span class="k">pub</span> spread: f32,
+<span class="c">/// The depth layer range, 0 = front, 1 = far back.</span>
+<span class="k">pub</span> layers: [f32; <span class="n">2</span>],
+<span class="c">/// The most live particles from this emitter.</span>
+<span class="k">pub</span> max_alive: <span class="t">Option</span>&lt;u32&gt;,</code></pre></div><div class="doc"><p>A continuous source of one kind. The rate is in particles per second.</p>
+<p><code>ignore
+let vent = Emitter::point(bubbles, [0.4, -0.85], 30.0).velocity([0.0, 0.25]).spread(0.08);
+let id = particles.add_emitter(vent);
+particles.emitter_mut(id).rate = 0.0; // turn it off</code></p></div></div><details class="members"><summary>7 methods</summary><div class="item" id="sym-Emitter-point" data-name="emitter::point"><div class="sig"><a class="anchor" href="#sym-Emitter-point" aria-label="Link to Emitter::point">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">point</span>(kind: <span class="t">KindId</span>, pos: [f32; <span class="n">2</span>], rate: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A point source: a plume when you give it a velocity and a spread.</p>
+<p><code>ignore
+let e = Emitter::point(bubbles, [0.0, -0.9], 20.0).velocity([0.0, 0.3]);</code></p></div></div><div class="item" id="sym-Emitter-area" data-name="emitter::area"><div class="sig"><a class="anchor" href="#sym-Emitter-area" aria-label="Link to Emitter::area">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">area</span>(kind: <span class="t">KindId</span>, rect: [f32; <span class="n">4</span>], rate: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>An area source over a rect <code>[min_x, min_y, max_x, max_y]</code>.</p>
+<p><code>ignore
+let e = Emitter::area(snow, [-2.0, 1.0, 2.0, 1.1], 300.0);</code></p></div></div><div class="item" id="sym-Emitter-line" data-name="emitter::line"><div class="sig"><a class="anchor" href="#sym-Emitter-line" aria-label="Link to Emitter::line">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">line</span>(kind: <span class="t">KindId</span>, a: [f32; <span class="n">2</span>], b: [f32; <span class="n">2</span>], rate: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A line source from <code>a</code> to <code>b</code>.</p>
+<p><code>ignore
+let e = Emitter::line(silt, [-1.0, -0.9], [1.0, -0.9], 50.0);</code></p></div></div><div class="item" id="sym-Emitter-velocity" data-name="emitter::velocity"><div class="sig"><a class="anchor" href="#sym-Emitter-velocity" aria-label="Link to Emitter::velocity">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">velocity</span>(<span class="k">mut</span> <span class="k">self</span>, v: [f32; <span class="n">2</span>]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the start velocity.</p>
+<p><code>ignore
+let e = Emitter::point(k, [0.0, 0.0], 10.0).velocity([0.0, 0.5]);</code></p></div></div><div class="item" id="sym-Emitter-spread" data-name="emitter::spread"><div class="sig"><a class="anchor" href="#sym-Emitter-spread" aria-label="Link to Emitter::spread">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">spread</span>(<span class="k">mut</span> <span class="k">self</span>, s: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the random start speed.</p>
+<p><code>ignore
+let e = Emitter::point(k, [0.0, 0.0], 10.0).spread(0.1);</code></p></div></div><div class="item" id="sym-Emitter-layers" data-name="emitter::layers"><div class="sig"><a class="anchor" href="#sym-Emitter-layers" aria-label="Link to Emitter::layers">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">layers</span>(<span class="k">mut</span> <span class="k">self</span>, near: f32, far: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the depth layer range, 0 = front, 1 = far back.</p>
+<p><code>ignore
+let e = Emitter::area(snow, rect, 300.0).layers(0.0, 1.0);</code></p></div></div><div class="item" id="sym-Emitter-cap" data-name="emitter::cap"><div class="sig"><a class="anchor" href="#sym-Emitter-cap" aria-label="Link to Emitter::cap">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cap</span>(<span class="k">mut</span> <span class="k">self</span>, n: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the most live particles from this emitter.</p>
+<p><code>ignore
+let e = Emitter::area(snow, rect, 300.0).cap(5000);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-EmitterId" data-name="emitterid"><div class="sig"><a class="anchor" href="#sym-EmitterId" aria-label="Link to EmitterId">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">EmitterId</span>(<span class="k">pub</span> usize)</code></div><div class="doc"><p>The handle of an emitter in one <code>Particles</code>.</p>
+<p><code>ignore
+let id: EmitterId = particles.add_emitter(Emitter::point(k, [0.0, 0.0], 5.0));</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Light" data-name="light"><div class="sig"><a class="anchor" href="#sym-Light" aria-label="Link to Light">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Light</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// From the surface toward the light. +z points at the camera. It need not be unit length.</span>
+<span class="k">pub</span> dir: [f32; <span class="n">3</span>],
+<span class="c">/// The key light colour, linear.</span>
+<span class="k">pub</span> color: [f32; <span class="n">3</span>],
+<span class="c">/// The ambient colour, linear.</span>
+<span class="k">pub</span> ambient: [f32; <span class="n">3</span>],</code></pre></div><div class="doc"><p>The light of the draw pass: one key light and a flat ambient term.</p>
+<p><code>ignore
+particles.light = Light { dir: [0.3, 0.8, 0.5], color: [0.9, 0.95, 1.0], ambient: [0.1, 0.14, 0.18] };</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Camera" data-name="camera"><div class="sig"><a class="anchor" href="#sym-Camera" aria-label="Link to Camera">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Camera</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The world position at the screen centre.</span>
+<span class="k">pub</span> pos: [f32; <span class="n">2</span>],
+<span class="c">/// The view scale. A larger scale shows more world.</span>
+<span class="k">pub</span> scale: f32,
+<span class="c">/// The view rotation in radians, counterclockwise.</span>
+<span class="k">pub</span> rotation: f32,
+<span class="c">/// The target size in pixels.</span>
+<span class="k">pub</span> size: [u32; <span class="n">2</span>],
+<span class="c">/// The time in seconds.</span>
+<span class="k">pub</span> time: f32,</code></pre></div><div class="doc"><p>The camera of one draw. Two world units fill the screen height at scale 1,
+the same as the engine scene shaders and <code>lit2d</code>.</p>
+<p><code>ignore
+let cam = Camera::from_view(view);</code></p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Camera-from_view" data-name="camera::from_view"><div class="sig"><a class="anchor" href="#sym-Camera-from_view" aria-label="Link to Camera::from_view">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_view</span>(v: &amp;<span class="k">crate</span>::types::<span class="t">View</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The camera of an engine <code>View</code>, with the render origin added back,
+so particles use plain world positions.</p>
+<p><code>ignore
+let cam = Camera::from_view(view);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Particle" data-name="particle"><div class="sig"><a class="anchor" href="#sym-Particle" aria-label="Link to Particle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Particle</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The world position.</span>
+<span class="k">pub</span> pos: [f32; <span class="n">2</span>],
+<span class="c">/// The velocity, world units per second.</span>
+<span class="k">pub</span> vel: [f32; <span class="n">2</span>],
+<span class="c">/// Seconds since the spawn.</span>
+<span class="k">pub</span> age: f32,
+<span class="c">/// The life in seconds. 0 = a dead slot.</span>
+<span class="k">pub</span> life: f32,
+<span class="c">/// The depth layer, 0 = front, 1 = far back.</span>
+<span class="k">pub</span> layer: f32,
+<span class="c">/// The kind index.</span>
+<span class="k">pub</span> kind: u8,
+<span class="c">/// True when the particle touched the surface in the last step.</span>
+<span class="k">pub</span> contact: bool,
+<span class="c">/// A random value for the look.</span>
+<span class="k">pub</span> seed: u16,</code></pre></div><div class="doc"><p>One particle as the GPU stores it. <code>read_back</code> returns these.</p>
+<p><code>ignore
+for p in particles.read_back(&amp;device, &amp;queue).iter().filter(|p| p.alive()) {
+println!("{:?}", p.pos);
+}</code></p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Particle-alive" data-name="particle::alive"><div class="sig"><a class="anchor" href="#sym-Particle-alive" aria-label="Link to Particle::alive">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">alive</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True when the slot holds a live particle.</p>
+<p><code>ignore
+let n = particles.read_back(&amp;d, &amp;q).iter().filter(|p| p.alive()).count();</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Particles" data-name="particles"><div class="sig"><a class="anchor" href="#sym-Particles" aria-label="Link to Particles">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Particles</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A particle outside this world rect dies. `[min_x, min_y, max_x, max_y]`.</span>
+<span class="k">pub</span> bounds: [f32; <span class="n">4</span>],
+<span class="c">/// Particles with a depth layer up to this value collide with the SDF.</span>
+<span class="c">/// Far layers pass in front of the terrain as background.</span>
+<span class="k">pub</span> collide_layers: f32,
+<span class="c">/// A multiplier on the velocity field.</span>
+<span class="k">pub</span> velocity_scale: f32,
+<span class="c">/// The draw light.</span>
+<span class="k">pub</span> light: <span class="t">Light</span>,
+<span class="c">/// A multiplier on the alpha of every particle.</span>
+<span class="k">pub</span> opacity: f32,
+<span class="c">/// The depth layer that is in focus.</span>
+<span class="k">pub</span> focus_layer: f32,
+<span class="c">/// The blur in pixels for one layer of distance from `focus_layer`.</span>
+<span class="k">pub</span> dof_px: f32,
+<span class="c">/// The smallest size in pixels. A smaller particle draws this size with</span>
+<span class="c">/// less alpha, so a zoomed-out view keeps its light and does not flicker.</span>
+<span class="k">pub</span> min_px: f32,</code></pre></div><div class="doc"><p>The particle system. It owns the kinds, the emitters, the CPU slot table
+and, after the first <code>step</code>, the GPU buffers and pipelines.</p>
+<p><code>ignore
+let mut p = Particles::new(50_000);
+let snow = p.add_kind(Kind::marine_snow());
+p.add_emitter(Emitter::area(snow, [-2.0, 1.0, 2.0, 1.2], 200.0).layers(0.0, 1.0));
+// each frame, in scene_underlay:
+p.encode(shared, encoder, hdr_view, view, dt, &amp;Fields::none());</code></p></div></div><details class="members"><summary>15 methods</summary><div class="item" id="sym-Particles-new" data-name="particles::new"><div class="sig"><a class="anchor" href="#sym-Particles-new" aria-label="Link to Particles::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(capacity: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A system with room for <code>capacity</code> live particles. It touches no device.</p>
+<p><code>ignore
+let p = Particles::new(100_000);
+assert_eq!(p.capacity(), 100_000);</code></p></div></div><div class="item" id="sym-Particles-capacity" data-name="particles::capacity"><div class="sig"><a class="anchor" href="#sym-Particles-capacity" aria-label="Link to Particles::capacity">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">capacity</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div><div class="doc"><p>The number of slots.</p>
+<p><code>ignore
+let n = particles.capacity();</code></p></div></div><div class="item" id="sym-Particles-add_kind" data-name="particles::add_kind"><div class="sig"><a class="anchor" href="#sym-Particles-add_kind" aria-label="Link to Particles::add_kind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">add_kind</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, kind: <span class="t">Kind</span>) -&gt; <span class="t">KindId</span></code></div><div class="doc"><p>Add a kind. At most [<code>MAX_KINDS</code>]; past that the call panics.</p>
+<p><code>ignore
+let snow = particles.add_kind(Kind::marine_snow());</code></p></div></div><div class="item" id="sym-Particles-kind_mut" data-name="particles::kind_mut"><div class="sig"><a class="anchor" href="#sym-Particles-kind_mut" aria-label="Link to Particles::kind_mut">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">kind_mut</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, id: <span class="t">KindId</span>) -&gt; &amp;<span class="k">mut</span> <span class="t">Kind</span></code></div><div class="doc"><p>Change a kind. The change shows in the next step.</p>
+<p><code>ignore
+particles.kind_mut(snow).gravity = [0.0, -0.1];</code></p></div></div><div class="item" id="sym-Particles-add_emitter" data-name="particles::add_emitter"><div class="sig"><a class="anchor" href="#sym-Particles-add_emitter" aria-label="Link to Particles::add_emitter">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">add_emitter</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, e: <span class="t">Emitter</span>) -&gt; <span class="t">EmitterId</span></code></div><div class="doc"><p>Add an emitter.</p>
+<p><code>ignore
+let vent = particles.add_emitter(Emitter::point(bubbles, [0.0, -0.9], 30.0));</code></p></div></div><div class="item" id="sym-Particles-emitter_mut" data-name="particles::emitter_mut"><div class="sig"><a class="anchor" href="#sym-Particles-emitter_mut" aria-label="Link to Particles::emitter_mut">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">emitter_mut</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, id: <span class="t">EmitterId</span>) -&gt; &amp;<span class="k">mut</span> <span class="t">Emitter</span></code></div><div class="doc"><p>Change an emitter: move it, set its rate, and so on.</p>
+<p><code>ignore
+particles.emitter_mut(vent).source = Source::Point { pos: mouse };</code></p></div></div><div class="item" id="sym-Particles-burst" data-name="particles::burst"><div class="sig"><a class="anchor" href="#sym-Particles-burst" aria-label="Link to Particles::burst">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">burst</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, kind: <span class="t">KindId</span>, pos: [f32; <span class="n">2</span>], count: u32, speed: f32)</code></div><div class="doc"><p>Spray <code>count</code> particles from <code>pos</code> in all directions, up to <code>speed</code>.
+They go to the GPU in the next step. A full system drops the rest.</p>
+<p><code>ignore
+particles.burst(silt, [0.0, -0.9], 300, 0.5);</code></p></div></div><div class="item" id="sym-Particles-burst_with" data-name="particles::burst_with"><div class="sig"><a class="anchor" href="#sym-Particles-burst_with" aria-label="Link to Particles::burst_with">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">burst_with</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, kind: <span class="t">KindId</span>, pos: [f32; <span class="n">2</span>], count: u32, speed: f32, layers: [f32; <span class="n">2</span>])</code></div><div class="doc"><p><code>burst</code> with a depth layer range.</p>
+<p><code>ignore
+particles.burst_with(silt, [0.0, -0.9], 300, 0.5, [0.0, 0.3]);</code></p></div></div><div class="item" id="sym-Particles-clear" data-name="particles::clear"><div class="sig"><a class="anchor" href="#sym-Particles-clear" aria-label="Link to Particles::clear">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Kill every particle. The GPU buffer is cleared in the next step.</p>
+<p><code>ignore
+particles.clear();</code></p></div></div><div class="item" id="sym-Particles-alive" data-name="particles::alive"><div class="sig"><a class="anchor" href="#sym-Particles-alive" aria-label="Link to Particles::alive">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">alive</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div><div class="doc"><p>The live particles, as the CPU slot table counts them. A particle
+that left <code>bounds</code> counts until its life ends.</p>
+<p><code>ignore
+let n = particles.alive();</code></p></div></div><div class="item" id="sym-Particles-time" data-name="particles::time"><div class="sig"><a class="anchor" href="#sym-Particles-time" aria-label="Link to Particles::time">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">time</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The sim time in seconds: the sum of every <code>dt</code> that <code>step</code> took.</p>
+<p><code>ignore
+let t = particles.time();</code></p></div></div><div class="item" id="sym-Particles-step" data-name="particles::step"><div class="sig"><a class="anchor" href="#sym-Particles-step" aria-label="Link to Particles::step">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">step</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, device: &amp;wgpu::<span class="t">Device</span>, queue: &amp;wgpu::<span class="t">Queue</span>, encoder: &amp;<span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>, dt: f32, fields: &amp;<span class="t">Fields</span>, )</code></div><div class="doc"><p>Record one update: spawn from the emitters, then one compute pass
+over every slot. <code>dt</code> is clamped to 0.1 s.</p>
+<p><code>ignore
+particles.step(&amp;device, &amp;queue, &amp;mut encoder, 1.0 / 60.0, &amp;Fields::none().sdf(&amp;rock.view, rock.rect));
+queue.submit([encoder.finish()]);</code></p></div></div><div class="item" id="sym-Particles-draw" data-name="particles::draw"><div class="sig"><a class="anchor" href="#sym-Particles-draw" aria-label="Link to Particles::draw">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, device: &amp;wgpu::<span class="t">Device</span>, queue: &amp;wgpu::<span class="t">Queue</span>, encoder: &amp;<span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>, target: &amp;wgpu::<span class="t">TextureView</span>, format: wgpu::<span class="t">TextureFormat</span>, cam: <span class="t">Camera</span>, )</code></div><div class="doc"><p>Record the instanced draw into <code>target</code>: the alpha kinds first, then
+the additive kinds. The pass loads the target and has no depth.
+Call <code>step</code> at least once before; with no GPU state this does nothing.</p>
+<p><code>ignore
+particles.draw(&amp;device, &amp;queue, &amp;mut encoder, &amp;hdr_view, wgpu::TextureFormat::Rgba16Float, cam);</code></p></div></div><div class="item" id="sym-Particles-encode" data-name="particles::encode"><div class="sig"><a class="anchor" href="#sym-Particles-encode" aria-label="Link to Particles::encode">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">encode</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, shared: &amp;<span class="t">SharedGpu</span>, encoder: &amp;<span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>, hdr_view: &amp;wgpu::<span class="t">TextureView</span>, view: &amp;<span class="k">crate</span>::types::<span class="t">View</span>, dt: f32, fields: &amp;<span class="t">Fields</span>, )</code></div><div class="doc"><p>The one call for a game: <code>step</code> with <code>dt</code>, then <code>draw</code> into the
+engine HDR target with the camera of <code>view</code>. Call it from
+<code>Renderer::scene_underlay</code>.</p>
+<p><code>ignore
+fn scene_underlay(&amp;mut self, shared: &amp;SharedGpu, encoder: &amp;mut wgpu::CommandEncoder,
+hdr_view: &amp;wgpu::TextureView, _z: &amp;wgpu::TextureView, _c: &amp;wgpu::TextureView,
+view: &amp;warp_sdk::types::View, _px: [u32; 2]) {
+self.particles.encode(shared, encoder, hdr_view, view, self.dt, &amp;Fields::none());
+}</code></p></div></div><div class="item" id="sym-Particles-read_back" data-name="particles::read_back"><div class="sig"><a class="anchor" href="#sym-Particles-read_back" aria-label="Link to Particles::read_back">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">read_back</span>(&amp;<span class="k">self</span>, device: &amp;wgpu::<span class="t">Device</span>, queue: &amp;wgpu::<span class="t">Queue</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">Particle</span>&gt;</code></div><div class="doc"><p>Copy every slot back to the CPU. This blocks until the GPU is done,
+so use it in tests and tools, not in a frame. Empty before the first step.</p>
+<p><code>ignore
+let live: Vec&lt;Particle&gt; = particles.read_back(&amp;device, &amp;queue).into_iter().filter(|p| p.alive()).collect();</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-FieldTexture" data-name="fieldtexture"><div class="sig"><a class="anchor" href="#sym-FieldTexture" aria-label="Link to FieldTexture">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">FieldTexture</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The texture.</span>
+<span class="k">pub</span> texture: wgpu::<span class="t">Texture</span>,
+<span class="c">/// A view of the whole texture.</span>
+<span class="k">pub</span> view: wgpu::<span class="t">TextureView</span>,
+<span class="c">/// The world rect `[min_x, min_y, max_x, max_y]`.</span>
+<span class="k">pub</span> rect: [f32; <span class="n">4</span>],
+<span class="c">/// The size in texels.</span>
+<span class="k">pub</span> size: [u32; <span class="n">2</span>],</code></pre></div><div class="doc"><p>A field texture and the world rect it covers. <code>sdf_texture</code> and
+<code>velocity_texture</code> make one; <code>Fields</code> takes <code>&amp;tex.view</code> and <code>tex.rect</code>.</p>
+<p><code>ignore
+let rock = sdf_texture(&amp;device, &amp;queue, [256, 128], [-2.0, -1.0, 2.0, 1.0], |x, y| y + 0.8);
+let f = Fields::none().sdf(&amp;rock.view, rock.rect);</code></p></div></div></div><h4>Constants</h4><div class="item" id="sym-MAX_KINDS" data-name="max_kinds"><div class="sig"><a class="anchor" href="#sym-MAX_KINDS" aria-label="Link to MAX_KINDS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MAX_KINDS</span>: usize = <span class="n">16</span></code></div><div class="doc"><p>The number of kinds one <code>Particles</code> can hold.</p></div></div><div class="item" id="sym-COMMON_WGSL" data-name="common_wgsl"><div class="sig"><a class="anchor" href="#sym-COMMON_WGSL" aria-label="Link to COMMON_WGSL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">COMMON_WGSL</span>: &amp;str = include_str!(<span class="s">"particles_common.wgsl"</span>)</code></div><div class="doc"><p>The WGSL that both passes include. The update and draw shaders follow it.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="fluid.html" data-slug="fluid">Fluid kit</a></li><li><a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a></li><li><a href="fluid-solver.html" data-slug="fluid-solver">Fluid solver</a></li><li><a href="world-terrain.html" data-slug="world-terrain">Terrain</a></li><li><a href="world-biome.html" data-slug="world-biome">Biomes</a></li><li><a href="post.html" data-slug="post">Post effects</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/particles.rs</code> - <code>glowing plankton. One compute pass moves all of them.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/particles.rs</code> - <code>The GPU state is made on the first</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/particles.rs</code> - <code>No fluid and no terrain. Particles feel only gravity and jitter.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/particles.rs</code> - <code>same light. Thus a dense field reads as texture, not as clutter in front</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/particles.rs</code> - <code>The death time is set now, so the slot is not taken twice.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/particles_update.wgsl</code> - <code>The step does these things in this order:</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/particles_update.wgsl</code> - <code>with textureLoad, because R32Float has no filtering sampler without a</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/particles.rs</code> - <code>collision radius moves out along the SDF gradient.</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/particles_update.wgsl</code> - <code>settled particle gets gravity again in the next step, so it falls when</code></li><li id="ref-10"><a class="back" href="#cite-10" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/particles.rs</code> - <code>so they cannot stack into a shape that has no terrain under it.</code></li><li id="ref-11"><a class="back" href="#cite-11" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/particles.rs</code> - <code>The pass loads the target and has no depth.</code></li><li id="ref-12"><a class="back" href="#cite-12" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/particles_draw.wgsl</code> - <code>dead or that has the other blend mode, so each kind draws once.</code></li><li id="ref-13"><a class="back" href="#cite-13" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/particles.rs</code> - <code>the same as the engine scene shaders and `lit2d`.</code></li><li id="ref-14"><a class="back" href="#cite-14" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/particles.rs</code> - <code>the GPU kills before that (it left `bounds`) keeps its slot until then.</code></li></ol><table class="navbox"><tr><th><a href="category-world-and-simulation.html">World and simulation</a></th></tr><tr><td><a href="world.html" data-slug="world">World kit</a> · <a href="world-terrain.html" data-slug="world-terrain">Terrain</a> · <a href="world-collide.html" data-slug="world-collide">Surface collision</a> · <a href="world-biome.html" data-slug="world-biome">Biomes</a> · <a href="world-reveal.html" data-slug="world-reveal">Reveal grid</a> · <a href="fluid.html" data-slug="fluid">Fluid kit</a> · <a href="fluid-solver.html" data-slug="fluid-solver">Fluid solver</a> · <b>Fluid particles</b> · <a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a> · <a href="procgen.html" data-slug="procgen">Procedural generation</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-world-and-simulation.html">World and simulation</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

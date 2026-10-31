@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Renderer and run - Warp Wiki</title>
+<meta name="description" content="The entry point, the frame loop, RenderContext, viewports, and DisplaySettings">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="renderer">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#starting-a-game">Starting a game</a><ul><li><a href="#config">Config</a></li><li><a href="#windowmode">WindowMode</a></li></ul></li><li><a href="#the-renderer-trait">The Renderer trait</a><ul><li><a href="#required">Required</a></li><li><a href="#provided-drawing">Provided: drawing</a></li><li><a href="#provided-input-and-viewports">Provided: input and viewports</a></li><li><a href="#provided-lifecycle">Provided: lifecycle</a></li></ul></li><li><a href="#frame-order">Frame order</a></li><li><a href="#rendercontext">RenderContext</a><ul><li><a href="#view">View</a></li><li><a href="#shapes">Shapes</a></li><li><a href="#overlay-rows">Overlay rows</a></li><li><a href="#images">Images</a></li><li><a href="#scene-layers">Scene layers</a></li><li><a href="#game-named-calls">Game-named calls</a></li><li><a href="#counting-a-frame">Counting a frame</a></li></ul></li><li><a href="#gpu-hooks">GPU hooks</a></li><li><a href="#viewports">Viewports</a></li><li><a href="#displaysettings">DisplaySettings</a></li><li><a href="#sharedgpu">SharedGpu</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Renderer and run</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">The entry point, the frame loop, RenderContext, viewports, and DisplaySettings</p><table class="infobox"><caption>Renderer and run</caption><tr><th>Category</th><td><a href="category-getting-started.html">Getting started</a></td></tr><tr><th>Module</th><td><code>warp_sdk</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/lib.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">113</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example starter</code><br><code>cargo run -p warp_sdk --example pong</code></td></tr></table><p><strong>Renderer and run</strong> are the entry point of a Warp game: <a class="sym" href="#sym-Renderer"><code>Renderer</code></a> is the trait that a game implements, and <a class="sym" href="#sym-run"><code>run</code></a> is the function that opens the window and calls it once per frame. Both are re-exported at the root of <code>warp_sdk</code>, with <a class="sym" href="#sym-Config"><code>Config</code></a>, <a class="sym" href="#sym-RenderContext"><code>RenderContext</code></a>, <a class="sym" href="#sym-DisplaySettings"><code>DisplaySettings</code></a> and <a class="sym" href="#sym-SharedGpu"><code>SharedGpu</code></a>. A game is one type that implements <a class="sym" href="#sym-Renderer"><code>Renderer</code></a>. For a game with title and pause screens, <a href="shell.html" data-slug="shell">Game shell</a> offers <a class="sym" href="#sym-run_shell"><code>run_shell</code></a> as an alternative to writing those screens.</p>
+<h2 id="starting-a-game">Starting a game</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">fn</span> <span class="f">main</span>() { run::&lt;<span class="t">Game</span>&gt;(<span class="t">Config</span> { window_title: <span class="s">"Game"</span>, ..<span class="t">Default</span>::<span class="f">default</span>() }); }</code></pre></div>
+<p><a class="sym" href="#sym-run"><code>run</code></a> does a fixed series of steps before the first frame. It sets the application name before any window or GPU work, so that a failure dialog raised during startup can name the product.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> It installs boot crash reporting, then loads the project's settings. The settings load before the editor link, because the link reports the display settings to the editor as its first message. Then <a class="sym" href="#sym-run"><code>run</code></a> attaches to an editor if one launched the process. Every application boots through this function, so a project needs no code to be hostable.</p>
+<h3 id="config">Config</h3>
+<p><a class="sym" href="#sym-Config"><code>Config</code></a> is <code>Copy</code>, and every string in it is supplied by the application, because the engine must not name any product.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>window_mode</code></td>
+<td>WindowMode::Windowed(1280, 720)</td>
+<td>How the primary window opens</td>
+</tr>
+<tr>
+<td><code>window_title</code></td>
+<td><code>"Application"</code></td>
+<td>Title of the primary window, also stored as the application name</td>
+</tr>
+<tr>
+<td><code>secondary_window_title</code></td>
+<td><code>"Application — Secondary View"</code></td>
+<td>Title of the secondary window, opened on request</td>
+</tr>
+</tbody>
+</table>
+<p>The window icon is not a field. More than twenty call sites write <a class="sym" href="#sym-Config"><code>Config</code></a> as a full struct literal, and a winit icon is not <code>Copy</code>, so the icon is a process-wide setting instead. See <a href="icon.html" data-slug="icon">Application icon</a>.</p>
+<h3 id="windowmode">WindowMode</h3>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Variant</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Windowed(w, h)</td>
+<td>A window of this many physical pixels, centred on the primary monitor</td>
+</tr>
+<tr>
+<td>Maximized</td>
+<td>Fills the work area. The title bar, the menu bar and the dock stay visible</td>
+</tr>
+<tr>
+<td>Fullscreen</td>
+<td>Takes a space of its own and hides all three</td>
+</tr>
+</tbody>
+</table>
+<p>The request for a windowed size goes in as logical units. A physical size at window creation is divided by the scale factor of whichever screen the window server last called main, so a desk with a retina laptop and a 1x monitor would open the same request at two sizes.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> Runtime changes to the mode, vsync and the frame cap belong to <a href="display-mode.html" data-slug="display-mode">Display mode</a>.</p>
+<h2 id="the-renderer-trait">The Renderer trait</h2>
+<p>Four methods are required. The rest have default bodies, and a game overrides only what it needs.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<h3 id="required">Required</h3>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-RenderContext-new"><code>new()</code></a></td>
+<td>Construct the game. It takes no arguments and receives no GPU or egui context</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Renderer-input"><code>input(viewport, input, width, height)</code></a></td>
+<td>Read input for this frame. <code>width</code> and <code>height</code> are the render size</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Renderer-render"><code>render(viewport, ctx)</code></a></td>
+<td>Record draw calls into the <a class="sym" href="#sym-RenderContext"><code>RenderContext</code></a>. A game usually steps its world here too</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Renderer-gui"><code>gui(viewport, ctx, display)</code></a></td>
+<td>Draw egui in window space. <a class="sym" href="fonts.html#sym-display"><code>display</code></a> is a borrow of the global <a class="sym" href="#sym-DisplaySettings"><code>DisplaySettings</code></a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="provided-drawing">Provided: drawing</h3>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Method</th>
+<th>Default</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Renderer-scene_underlay"><code>scene_underlay</code></a></td>
+<td>No-op</td>
+<td>GPU passes into the HDR scene, before the scene pass</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Renderer-scene_overlay"><code>scene_overlay</code></a></td>
+<td>No-op</td>
+<td>GPU passes into the HDR scene, after the scene pass and before post-processing</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Renderer-game_gui"><code>game_gui</code></a></td>
+<td>No-op</td>
+<td>egui inside the game image, on a second context. Called only in embedded mode</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Renderer-frame_reset"><code>frame_reset</code></a></td>
+<td>Calls <a class="sym" href="#sym-RenderContext-clear_frame"><code>clear_frame</code></a></td>
+<td>Reset the draw buffers for a new frame</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Renderer-auto_style"><code>auto_style</code></a></td>
+<td><code>true</code></td>
+<td>Whether the engine styles the chrome egui of this game</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provided-input-and-viewports">Provided: input and viewports</h3>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Method</th>
+<th>Default</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Renderer-touch"><code>touch</code></a></td>
+<td>No-op</td>
+<td>Platform-neutral multitouch contacts. The Android host calls it</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Renderer-set_crt_params"><code>set_crt_params</code></a></td>
+<td>No-op</td>
+<td>Curvature and resolution, for mouse correction through the CRT distortion</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Renderer-set_mouse_scale"><code>set_mouse_scale</code></a></td>
+<td>No-op</td>
+<td>Remap factors from window pixels to render pixels</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Renderer-set_active_viewport"><code>set_active_viewport</code></a></td>
+<td>No-op</td>
+<td>Which viewport has input focus</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Renderer-set_secondary_camera"><code>set_secondary_camera</code></a></td>
+<td>No-op</td>
+<td>Initial camera of the secondary viewport, when its window is first created</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Renderer-scroll_secondary_camera"><code>scroll_secondary_camera</code></a></td>
+<td>No-op</td>
+<td>Scroll-zoom for the secondary camera</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Renderer-pan_secondary_camera"><code>pan_secondary_camera</code></a></td>
+<td>No-op</td>
+<td>Pan offset for the secondary camera</td>
+</tr>
+</tbody>
+</table>
+<h3 id="provided-lifecycle">Provided: lifecycle</h3>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Method</th>
+<th>Default</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Renderer-on_close_requested"><code>on_close_requested</code></a></td>
+<td>No-op</td>
+<td>Called once when the process is about to end. This is where a game saves</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Renderer-on_transport_stop"><code>on_transport_stop</code></a></td>
+<td>No-op</td>
+<td>Called once on the edge where the editor's transport moves to Stopped</td>
+</tr>
+</tbody>
+</table>
+<p>Every quit gesture reaches <a class="sym" href="#sym-Renderer-on_close_requested"><code>on_close_requested</code></a>: the X button, Alt+F4, and the menu or Cmd+Q, which sends no close event to any window. It runs first in the engine's teardown, because the event loop of winit 0.28 ends in <code>process::exit</code> and no destructor runs.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<p><a class="sym" href="#sym-Renderer-on_transport_stop"><code>on_transport_stop</code></a> exists because a host stops a game by no longer calling <a class="sym" href="#sym-Renderer-render"><code>render</code></a>, <a class="sym" href="#sym-Renderer-input"><code>input</code></a> and <a class="sym" href="#sym-Renderer-game_gui"><code>game_gui</code></a>. That suppresses the frame and releases nothing: an audio sink plays on its own thread and keeps playing. A host cannot tear down through hooks that it just stopped calling, so the application gets this edge. It runs before the host clears its running flag.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<h2 id="frame-order">Frame order</h2>
+<p>One primary frame on the desktop loop runs in this order:</p>
+<ol>
+<li><a class="sym" href="#sym-Renderer-set_crt_params"><code>set_crt_params</code></a>. The curvature is zero while the CRT is off.</li>
+<li><a class="sym" href="#sym-Renderer-set_mouse_scale"><code>set_mouse_scale</code></a>.</li>
+<li><a class="sym" href="#sym-Renderer-input"><code>input</code></a>.</li>
+<li><a class="sym" href="#sym-Renderer-frame_reset"><code>frame_reset</code></a>.</li>
+<li><a class="sym" href="#sym-Renderer-render"><code>render</code></a>.</li>
+<li>Upload of the draw buffers to the GPU.</li>
+<li><a class="sym" href="#sym-Renderer-gui"><code>gui</code></a>, after the engine style when <a class="sym" href="#sym-Renderer-auto_style"><code>auto_style</code></a> is true.</li>
+<li><a class="sym" href="#sym-Renderer-game_gui"><code>game_gui</code></a>, in embedded mode only.</li>
+<li><a class="sym" href="#sym-Renderer-scene_underlay"><code>scene_underlay</code></a>.</li>
+<li>The scene pass, which loads the underlay and draws the submitted layers over it.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></li>
+<li><a class="sym" href="#sym-Renderer-scene_overlay"><code>scene_overlay</code></a>, which therefore inherits the post chain.</li>
+<li>The post-process chain and the present.</li>
+</ol>
+<p><a class="sym" href="#sym-Renderer-gui"><code>gui</code></a> runs after <a class="sym" href="#sym-Renderer-render"><code>render</code></a> in the same frame and before the GPU hooks. Both GPU hooks are skipped while a debug buffer channel is active.</p>
+<p>The engine paces frames against a budget. The default is about 60 Hz, 16,667 microseconds, and <code>window.frame_cap_hz</code> in the manifest moves it.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup> A hosted game whose panel is not on screen drops to 5 Hz. It is a throttle and not a stop, because the Storyboard reads the last published frame and a resize must still reach the window.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup></p>
+<h2 id="rendercontext">RenderContext</h2>
+<p><a class="sym" href="#sym-RenderContext"><code>RenderContext</code></a> collects draw commands during a frame and batches them for GPU submission. It holds CPU-side buffers and touches no device, which is why <a href="smoke.html" data-slug="smoke">Smoke test</a> can drive <a class="sym" href="#sym-Renderer-render"><code>render</code></a> with no GPU.<sup class="ref"><a href="#ref-10" id="cite-10">[10]</a></sup></p>
+<h3 id="view">View</h3>
+<p><a class="sym" href="#sym-RenderContext-set_view_pos"><code>set_view_pos</code></a>, <a class="sym" href="#sym-RenderContext-set_view_scale"><code>set_view_scale</code></a> and <a class="sym" href="#sym-RenderContext-set_view_rotation"><code>set_view_rotation</code></a> set the camera. A scale of 1.0 makes the window two units tall. Rotation is in radians, counter-clockwise positive, and zero is north up. <a class="sym" href="#sym-RenderContext-set_render_origin"><code>set_render_origin</code></a> sets a floating origin, subtracted from the view position, so that the world-to-screen subtraction in the shaders runs on small numbers. The world-space draw helpers apply it to each position that they store. A caller that emits its own instance positions must subtract the same origin.<sup class="ref"><a href="#ref-11" id="cite-11">[11]</a></sup></p>
+<h3 id="shapes">Shapes</h3>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Call</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-RenderContext-draw_rect"><code>draw_rect(min, max, color)</code></a></td>
+<td>Axis-aligned filled rectangle</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-RenderContext-draw_rotated_rect"><code>draw_rotated_rect(center, half_extent, rotation, color)</code></a></td>
+<td>Rectangle rotated in the vertex shader</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-RenderContext-draw_line"><code>draw_line(src, dst, color)</code></a></td>
+<td>Line</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-RenderContext-draw_circle"><code>draw_circle(position, radius, color)</code></a></td>
+<td>Disc shaded as a sphere</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-RenderContext-draw_flat_circle"><code>draw_flat_circle(position, radius, color)</code></a></td>
+<td>Disc in the instance colour, flat to the edge</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-RenderContext-draw_glow_circle"><code>draw_glow_circle(position, radius, color)</code></a></td>
+<td>Disc with a soft edge</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-RenderContext-draw_circle"><code>draw_circle</code></a> pushes a texture index that the fragment shader answers with a planet path, so a bullet or a spark comes out as a small ball. <a class="sym" href="#sym-RenderContext-draw_flat_circle"><code>draw_flat_circle</code></a> takes the sentinel that the shader reads as flat, so no normal is built and no light term is added.<sup class="ref"><a href="#ref-12" id="cite-12">[12]</a></sup></p>
+<h3 id="overlay-rows">Overlay rows</h3>
+<p>The <code>draw_overlay_*</code> calls draw the same shapes on a higher world-space row. <a class="sym" href="#sym-RenderContext-draw_screen_overlay_line"><code>draw_screen_overlay_line</code></a>, <a class="sym" href="#sym-RenderContext-draw_screen_overlay_rect"><code>draw_screen_overlay_rect</code></a> and <a class="sym" href="#sym-RenderContext-draw_screen_overlay_circle"><code>draw_screen_overlay_circle</code></a> take normalized screen coordinates, independent of the world camera, and use the size from <a class="sym" href="#sym-RenderContext-set_surface_size"><code>set_surface_size</code></a>.<sup class="ref"><a href="#ref-13" id="cite-13">[13]</a></sup></p>
+<h3 id="images">Images</h3>
+<p><a class="sym" href="#sym-RenderContext-draw_image_simple"><code>draw_image_simple(position, size, texture_index)</code></a> draws one sprite at one size. <a class="sym" href="#sym-RenderContext-draw_image"><code>draw_image</code></a> adds a <code>Vec2</code> size, a rotation, a tint and flags. <a class="sym" href="#sym-RenderContext-draw_mega_atlas_image"><code>draw_mega_atlas_image</code></a> is the low-level form for the unified mega-atlas system, and <a class="sym" href="#sym-RenderContext-draw_scene"><code>draw_scene</code></a> walks a whole <a href="scene.html" data-slug="scene">Scene</a> store and pushes one instance per visible object. The render path allocates four mega-atlas slots, and an application decides what fills each one through its atlas set descriptor.<sup class="ref"><a href="#ref-14" id="cite-14">[14]</a></sup> <a class="sym" href="#sym-RenderContext-set_draw_z"><code>set_draw_z</code></a> sets the depth of later image calls, and the caller must reset it to zero. See <a href="image.html" data-slug="image">Image atlases</a>.</p>
+<h3 id="scene-layers">Scene layers</h3>
+<p><a class="sym" href="#sym-RenderContext-push_scene_layer"><code>push_scene_layer</code></a> appends instances to a layer that the application registered. The list holds bytes, because the type belongs to the application. An instance type that does not match the descriptor gives a wrong picture and not a crash, and an unknown index appends nothing.<sup class="ref"><a href="#ref-15" id="cite-15">[15]</a></sup> See <a href="render.html" data-slug="render">Render passes</a>.</p>
+<h3 id="game-named-calls">Game-named calls</h3>
+<p>A set of verbs, such as <a class="sym" href="#sym-RenderContext-draw_planet_circle"><code>draw_planet_circle</code></a>, comes from Stella Nova. Other verbs of this kind have moved out of the engine, and a new game should not use the remainder.</p>
+<h3 id="counting-a-frame">Counting a frame</h3>
+<p><a class="sym" href="#sym-RenderContext-drawn_count"><code>drawn_count</code></a> gives the number of world-space rects, lines, circles and sprites recorded in the frame. <a class="sym" href="#sym-RenderContext-frame_fingerprint"><code>frame_fingerprint</code></a> gives one count per bucket, in a fixed order, with the sum as the last entry. Both exist because the draw buffers are private to the crate. See <a href="building-a-game.html#proving-what-is-drawn" data-slug="building-a-game">proving what is drawn</a>.</p>
+<h2 id="gpu-hooks">GPU hooks</h2>
+<p><a class="sym" href="#sym-Renderer-scene_underlay"><code>scene_underlay</code></a> and <a class="sym" href="#sym-Renderer-scene_overlay"><code>scene_overlay</code></a> receive a <a class="sym" href="#sym-SharedGpu"><code>SharedGpu</code></a>, a live command encoder and the HDR targets. The underlay draws a background, such as a sky, terrain or the fluid surface, and the scene layers draw over it. <a href="lit2d.html" data-slug="lit2d">Lit2d</a> and <a href="fluid.html" data-slug="fluid">Fluid kit</a> draw here.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">fn</span> <span class="f">scene_underlay</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, shared: &amp;<span class="t">SharedGpu</span>, encoder: &amp;<span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>,
+    hdr: &amp;wgpu::<span class="t">TextureView</span>, _z: &amp;wgpu::<span class="t">TextureView</span>, _cov: &amp;wgpu::<span class="t">TextureView</span>,
+    view: &amp;<span class="t">View</span>, _px: [u32; <span class="n">2</span>]) {
+    <span class="k">self</span>.sky.<span class="f">draw</span>(shared, encoder, hdr, view.<span class="f">width</span>(), view.<span class="f">height</span>());
+}</code></pre></div>
+<p><code>surface_px</code> is the window size in physical pixels and not the size of the HDR view. The HDR chain runs at a fixed internal resolution, and the final blit scales it to the window. A pass that needs the target size reads the view.<sup class="ref"><a href="#ref-16" id="cite-16">[16]</a></sup> <code>coverage_view</code> is a single-channel shadow target, and a pass that casts no shadow ignores it.</p>
+<h2 id="viewports">Viewports</h2>
+<p><a class="sym" href="#sym-ViewportId"><code>ViewportId</code></a> is a <code>u32</code>, and <a class="sym" href="#sym-PRIMARY_VIEWPORT"><code>PRIMARY_VIEWPORT</code></a> is 0. The secondary window is viewport 1. It runs its own input, <a class="sym" href="#sym-Renderer-frame_reset"><code>frame_reset</code></a> and <a class="sym" href="#sym-Renderer-render"><code>render</code></a> against a separate <a class="sym" href="#sym-RenderContext"><code>RenderContext</code></a>, so <a class="sym" href="#sym-Renderer-render"><code>render</code></a> must use its <code>viewport</code> argument when the two views differ.<sup class="ref"><a href="#ref-17" id="cite-17">[17]</a></sup> The secondary window opens when the application asks for it.</p>
+<p>A second split runs between chrome and the game image. <a class="sym" href="#sym-Renderer-gui"><code>gui</code></a> lands on the surface in window space. <a class="sym" href="#sym-Renderer-game_gui"><code>game_gui</code></a> draws in game-image space onto the LDR image before the CRT pass, so a HUD drawn there carries the same filter as the scene. Two egui contexts are needed, because one context lays out at one screen rect, and a HUD would paint over the toolbar.<sup class="ref"><a href="#ref-18" id="cite-18">[18]</a></sup></p>
+<h2 id="displaysettings">DisplaySettings</h2>
+<p><a class="sym" href="#sym-DisplaySettings"><code>DisplaySettings</code></a> holds every post-processing attribute: FXAA, motion blur, depth of field, the bloom and grade values, and the CRT tube. There is one global block for the whole process and not one per window, because a copy per viewport let a second window render the game with different settings and nothing reported the divergence.<sup class="ref"><a href="#ref-19" id="cite-19">[19]</a></sup></p>
+<p><a class="sym" href="#sym-DisplaySettings-DEFAULT"><code>DisplaySettings::DEFAULT</code></a> has every effect off. The bloom and grade sub-switches default to on, under <code>pp_enabled</code>, so a project saved before those switches existed keeps its picture. The struct is serialisable because the game can be a second process and the editor pushes the block to it over a socket. On disk, the table holds only the keys that differ from the default, and <a class="sym" href="#sym-DisplaySettings-copy_crt_tuning_from"><code>copy_crt_tuning_from</code></a> copies the tuning of the tube as one block.</p>
+<p>The <a class="sym" href="fonts.html#sym-display"><code>display</code></a> argument of <a class="sym" href="#sym-Renderer-gui"><code>gui</code></a> is a borrow of the global, taken for the frame.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">fn</span> <span class="f">gui</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _v: <span class="t">ViewportId</span>, _ctx: &amp;egui::<span class="t">Context</span>, display: &amp;<span class="k">mut</span> <span class="t">DisplaySettings</span>) {
+    display.crt_enabled = <span class="k">true</span>;
+}</code></pre></div>
+<p>The lock is held across the whole of <a class="sym" href="#sym-Renderer-gui"><code>gui</code></a>, so code inside the frame must not read the global a second time. Re-entering it would deadlock the process with no panic and no log.<sup class="ref"><a href="#ref-20" id="cite-20">[20]</a></sup> <a href="post.html" data-slug="post">Post effects</a> is the one-line interface to the same settings, callable from any thread.</p>
+<h2 id="sharedgpu">SharedGpu</h2>
+<p><a class="sym" href="#sym-SharedGpu"><code>SharedGpu</code></a> holds every GPU resource that is identical across viewports: the device, the queue, compiled pipelines, atlases and bind group layouts. It is created once at startup, and secondary viewports borrow from it. The device and the queue are <code>Arc</code>-wrapped because the background asset loader shares them. Pipelines and atlases belong to the render thread.<sup class="ref"><a href="#ref-21" id="cite-21">[21]</a></sup> Per-viewport state, such as the surface, buffers, post-processing and the view uniform, lives elsewhere. <a class="sym" href="#sym-SharedGpu-mega_atlas_mapping"><code>mega_atlas_mapping</code></a> gives the texture mapping for one slot, and <a class="sym" href="#sym-RenderContext-scene_texture_count"><code>scene_texture_count</code></a> gives the layer count of the loaded scene textures.</p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li><a class="sym" href="#sym-Renderer-render"><code>render</code></a> receives no delta time, so a game keeps its own clock.</li>
+<li><a class="sym" href="#sym-Renderer-set_crt_params"><code>set_crt_params</code></a> carries the horizontal curvature only. A cylindrical tube bows one axis, and the one-scalar hook cannot carry the vertical one.<sup class="ref"><a href="#ref-22" id="cite-22">[22]</a></sup></li>
+<li><a class="sym" href="#sym-RenderContext-new"><code>new</code></a> receives no context, so anything that needs an <code>egui::Context</code>, such as installing fonts, waits for the first <a class="sym" href="#sym-Renderer-gui"><code>gui</code></a>.</li>
+<li>The desktop event loop does not call <a class="sym" href="#sym-Renderer-scroll_secondary_camera"><code>scroll_secondary_camera</code></a> or <a class="sym" href="#sym-Renderer-pan_secondary_camera"><code>pan_secondary_camera</code></a>.</li>
+</ul><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 113 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod--root-" class="modhead"><code>warp_sdk</code></h3><h4>Functions</h4><div class="item" id="sym-run" data-name="run"><div class="sig"><a class="anchor" href="#sym-run" aria-label="Link to run">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> run&lt;<span class="t">R</span>&gt;(config: <span class="t">Config</span>) <span class="k">where</span> <span class="t">R</span>: <span class="t">Renderer</span> + <span class="a">'static</span>,</code></div></div><div class="item" id="sym-run_shell" data-name="run_shell"><div class="sig"><a class="anchor" href="#sym-run_shell" aria-label="Link to run_shell">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> run_shell&lt;<span class="t">G</span>: <span class="t">ShellGame</span>&gt;(config: <span class="k">crate</span>::<span class="t">Config</span>)</code></div><div class="doc"><p>Run a game with the shell. Wraps the game in <code>Chrome</code> and hands it to the
+engine, so the game gets the title, pause, settings, tutorial and HUD.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Config" data-name="config"><div class="sig"><a class="anchor" href="#sym-Config" aria-label="Link to Config">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Config</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> window_mode: <span class="t">WindowMode</span>,
+<span class="c">/// Title of the primary window. Also stored as the application name, so</span>
+<span class="c">/// the GPU failure dialog can name the product.</span>
+<span class="k">pub</span> window_title: &amp;<span class="a">'static</span> str,
+<span class="c">/// Title of the secondary window, which the event loop opens on request.</span>
+<span class="k">pub</span> secondary_window_title: &amp;<span class="a">'static</span> str,</code></pre></div><div class="doc"><p>Startup configuration. Every string here is app-supplied, because the
+engine must not name any product.</p>
+<p>THE WINDOW ICON IS NOT HERE. Every window gets an icon by default: the
+engine draws one from <code>window_title</code> ([<code>default_window_icon</code>]). To use
+your own icon, call [<code>set_window_icon</code>] before <code>run</code>. A warp_sdk game
+calls <code>warp_sdk::icon::set_window_icon(&amp;spec)</code>:</p>
+<p><code>ignore
+warp_sdk::icon::set_window_icon(&amp;warp_sdk::icon::IconSpec::from_name("Reef", 0));
+warp_sdk::run::&lt;Game&gt;(warp_sdk::Config { window_title: "Reef", ..Default::default() });</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-WindowMode" data-name="windowmode"><div class="sig"><a class="anchor" href="#sym-WindowMode" aria-label="Link to WindowMode">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">WindowMode</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A window of this many PHYSICAL pixels, centred on the primary monitor.</span>
+<span class="t">Windowed</span>(u32, u32),
+<span class="c">/// A window that fills the monitor's work area. The title bar, the menu</span>
+<span class="c">/// bar and the dock stay visible, and the window opens on the desktop it</span>
+<span class="c">/// was started from — that is what separates it from `Fullscreen`, which</span>
+<span class="c">/// takes a space of its own and hides all three.</span>
+<span class="t">Maximized</span>,
+<span class="t">Fullscreen</span>,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-RenderContext" data-name="rendercontext"><div class="sig"><a class="anchor" href="#sym-RenderContext" aria-label="Link to RenderContext">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">RenderContext</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Current z-depth for image draw calls (set per-object, reset to 0.0).</span>
+<span class="k">pub</span> draw_z: f32,</code></pre></div></div><details class="members"><summary>77 methods</summary><div class="item" id="sym-RenderContext-new" data-name="rendercontext::new"><div class="sig"><a class="anchor" href="#sym-RenderContext-new" aria-label="Link to RenderContext::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-RenderContext-set_view_pos" data-name="rendercontext::set_view_pos"><div class="sig"><a class="anchor" href="#sym-RenderContext-set_view_pos" aria-label="Link to RenderContext::set_view_pos">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_view_pos</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, pos: <span class="t">Vec2</span>)</code></div></div><div class="item" id="sym-RenderContext-set_render_origin" data-name="rendercontext::set_render_origin"><div class="sig"><a class="anchor" href="#sym-RenderContext-set_render_origin" aria-label="Link to RenderContext::set_render_origin">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_render_origin</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, origin: <span class="t">Vec2</span>)</code></div><div class="doc"><p>Set the floating render origin. The caller passes a point near the
+camera; the view position is then stored relative to it, and the caller
+must emit its own world instance positions relative to the same origin.
+Pass zero to disable (the default).</p></div></div><div class="item" id="sym-RenderContext-render_origin" data-name="rendercontext::render_origin"><div class="sig"><a class="anchor" href="#sym-RenderContext-render_origin" aria-label="Link to RenderContext::render_origin">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">render_origin</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec2</span></code></div><div class="doc"><p>The floating render origin the caller must subtract from its own world
+instance positions to match the view.</p></div></div><div class="item" id="sym-RenderContext-set_surface_size" data-name="rendercontext::set_surface_size"><div class="sig"><a class="anchor" href="#sym-RenderContext-set_surface_size" aria-label="Link to RenderContext::set_surface_size">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_surface_size</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, width: u32, height: u32)</code></div><div class="doc"><p>Set the physical surface dimensions used by screen-space draw helpers.</p></div></div><div class="item" id="sym-RenderContext-set_view_scale" data-name="rendercontext::set_view_scale"><div class="sig"><a class="anchor" href="#sym-RenderContext-set_view_scale" aria-label="Link to RenderContext::set_view_scale">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_view_scale</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, scale: f32)</code></div></div><div class="item" id="sym-RenderContext-set_view_rotation" data-name="rendercontext::set_view_rotation"><div class="sig"><a class="anchor" href="#sym-RenderContext-set_view_rotation" aria-label="Link to RenderContext::set_view_rotation">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_view_rotation</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, r: f32)</code></div><div class="doc"><p>Set the view azimuth the scene shaders spin the frame by, radians, CCW
+positive. Zero is north up. Mirrors set_view_scale.</p></div></div><div class="item" id="sym-RenderContext-set_star_pos" data-name="rendercontext::set_star_pos"><div class="sig"><a class="anchor" href="#sym-RenderContext-set_star_pos" aria-label="Link to RenderContext::set_star_pos">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_star_pos</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, pos: <span class="t">Vec2</span>)</code></div></div><div class="item" id="sym-RenderContext-set_star_radius" data-name="rendercontext::set_star_radius"><div class="sig"><a class="anchor" href="#sym-RenderContext-set_star_radius" aria-label="Link to RenderContext::set_star_radius">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_star_radius</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, radius: f32)</code></div></div><div class="item" id="sym-RenderContext-set_occluders" data-name="rendercontext::set_occluders"><div class="sig"><a class="anchor" href="#sym-RenderContext-set_occluders" aria-label="Link to RenderContext::set_occluders">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_occluders</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, occ: &amp;[[f32; <span class="n">4</span>]])</code></div><div class="doc"><p>Publish the cast-shadow occluders for this frame. Each occluder is
+<code>[center_x, center_y, radius, caster_alpha]</code> in world space, in the
+same frame as <code>set_star_pos</code>. The setter copies the list, caps it at
+32, and the scene shaders read it through <code>cast_shadow_factor</code>.</p></div></div><div class="item" id="sym-RenderContext-set_sim_time" data-name="rendercontext::set_sim_time"><div class="sig"><a class="anchor" href="#sym-RenderContext-set_sim_time" aria-label="Link to RenderContext::set_sim_time">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_sim_time</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, time: f32)</code></div></div><div class="item" id="sym-RenderContext-get_sim_time" data-name="rendercontext::get_sim_time"><div class="sig"><a class="anchor" href="#sym-RenderContext-get_sim_time" aria-label="Link to RenderContext::get_sim_time">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">get_sim_time</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div></div><div class="item" id="sym-RenderContext-set_focal_z" data-name="rendercontext::set_focal_z"><div class="sig"><a class="anchor" href="#sym-RenderContext-set_focal_z" aria-label="Link to RenderContext::set_focal_z">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_focal_z</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, z: f32)</code></div></div><div class="item" id="sym-RenderContext-set_dof_aperture" data-name="rendercontext::set_dof_aperture"><div class="sig"><a class="anchor" href="#sym-RenderContext-set_dof_aperture" aria-label="Link to RenderContext::set_dof_aperture">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_dof_aperture</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, a: f32)</code></div></div><div class="item" id="sym-RenderContext-get_focal_z" data-name="rendercontext::get_focal_z"><div class="sig"><a class="anchor" href="#sym-RenderContext-get_focal_z" aria-label="Link to RenderContext::get_focal_z">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">get_focal_z</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div></div><div class="item" id="sym-RenderContext-get_scale" data-name="rendercontext::get_scale"><div class="sig"><a class="anchor" href="#sym-RenderContext-get_scale" aria-label="Link to RenderContext::get_scale">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">get_scale</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div></div><div class="item" id="sym-RenderContext-set_draw_z" data-name="rendercontext::set_draw_z"><div class="sig"><a class="anchor" href="#sym-RenderContext-set_draw_z" aria-label="Link to RenderContext::set_draw_z">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_draw_z</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, z: f32)</code></div><div class="doc"><p>Set z-depth for subsequent image draw calls.
+Callers must reset to 0.0 after drawing non-default-z objects.</p></div></div><div class="item" id="sym-RenderContext-get_draw_z" data-name="rendercontext::get_draw_z"><div class="sig"><a class="anchor" href="#sym-RenderContext-get_draw_z" aria-label="Link to RenderContext::get_draw_z">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">get_draw_z</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div></div><div class="item" id="sym-RenderContext-set_texture_mappings" data-name="rendercontext::set_texture_mappings"><div class="sig"><a class="anchor" href="#sym-RenderContext-set_texture_mappings" aria-label="Link to RenderContext::set_texture_mappings">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_texture_mappings</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, <span class="k">mut</span> mappings: <span class="t">Vec</span>&lt;<span class="t">TextureMapping</span>&gt;)</code></div><div class="doc"><p>Replace every slot's texture mapping. The list is in slot order, and
+short lists pad with empty mappings so the slot count stays fixed.
+An empty mapping resolves every lookup to layer 0, which draws the
+wrong sprite rather than panicking mid-frame.</p></div></div><div class="item" id="sym-RenderContext-texture_mapping" data-name="rendercontext::texture_mapping"><div class="sig"><a class="anchor" href="#sym-RenderContext-texture_mapping" aria-label="Link to RenderContext::texture_mapping">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">texture_mapping</span>(&amp;<span class="k">self</span>, slot: usize) -&gt; &amp;<span class="t">TextureMapping</span></code></div><div class="doc"><p>Texture mapping of one slot. An out-of-range slot answers with the
+last one, for the same reason the setter pads.</p></div></div><div class="item" id="sym-RenderContext-mega_atlas_buffer" data-name="rendercontext::mega_atlas_buffer"><div class="sig"><a class="anchor" href="#sym-RenderContext-mega_atlas_buffer" aria-label="Link to RenderContext::mega_atlas_buffer">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">mega_atlas_buffer</span>(&amp;<span class="k">self</span>, slot: usize) -&gt; &amp;[<span class="t">ImageInstance</span>]</code></div></div><div class="item" id="sym-RenderContext-mega_atlas_count" data-name="rendercontext::mega_atlas_count"><div class="sig"><a class="anchor" href="#sym-RenderContext-mega_atlas_count" aria-label="Link to RenderContext::mega_atlas_count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">mega_atlas_count</span>(&amp;<span class="k">self</span>, slot: usize) -&gt; usize</code></div></div><div class="item" id="sym-RenderContext-resources_overlay_buffer" data-name="rendercontext::resources_overlay_buffer"><div class="sig"><a class="anchor" href="#sym-RenderContext-resources_overlay_buffer" aria-label="Link to RenderContext::resources_overlay_buffer">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">resources_overlay_buffer</span>(&amp;<span class="k">self</span>) -&gt; &amp;[<span class="t">ImageInstance</span>]</code></div><div class="doc"><p>Instance buffer for stored resources rendered above station floors.
+Uses the Resources mega-atlas bind group at Layer 6.75.</p></div></div><div class="item" id="sym-RenderContext-resources_overlay_count" data-name="rendercontext::resources_overlay_count"><div class="sig"><a class="anchor" href="#sym-RenderContext-resources_overlay_count" aria-label="Link to RenderContext::resources_overlay_count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">resources_overlay_count</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div></div><div class="item" id="sym-RenderContext-resources_hull_buffer" data-name="rendercontext::resources_hull_buffer"><div class="sig"><a class="anchor" href="#sym-RenderContext-resources_hull_buffer" aria-label="Link to RenderContext::resources_hull_buffer">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">resources_hull_buffer</span>(&amp;<span class="k">self</span>) -&gt; &amp;[<span class="t">ImageInstance</span>]</code></div><div class="doc"><p>Instance buffer for resources rendered above station modules.
+Uses the Resources mega-atlas bind group at Layer 7.25.</p></div></div><div class="item" id="sym-RenderContext-resources_hull_count" data-name="rendercontext::resources_hull_count"><div class="sig"><a class="anchor" href="#sym-RenderContext-resources_hull_count" aria-label="Link to RenderContext::resources_hull_count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">resources_hull_count</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div></div><div class="item" id="sym-RenderContext-clear_circles" data-name="rendercontext::clear_circles"><div class="sig"><a class="anchor" href="#sym-RenderContext-clear_circles" aria-label="Link to RenderContext::clear_circles">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear_circles</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div></div><div class="item" id="sym-RenderContext-clear_images" data-name="rendercontext::clear_images"><div class="sig"><a class="anchor" href="#sym-RenderContext-clear_images" aria-label="Link to RenderContext::clear_images">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear_images</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div></div><div class="item" id="sym-RenderContext-clear_mega_atlas_images" data-name="rendercontext::clear_mega_atlas_images"><div class="sig"><a class="anchor" href="#sym-RenderContext-clear_mega_atlas_images" aria-label="Link to RenderContext::clear_mega_atlas_images">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear_mega_atlas_images</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Clear every per-slot instance buffer, and the overlay buffer that
+shares a bind group with slot 0.</p></div></div><div class="item" id="sym-RenderContext-clear_rects" data-name="rendercontext::clear_rects"><div class="sig"><a class="anchor" href="#sym-RenderContext-clear_rects" aria-label="Link to RenderContext::clear_rects">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear_rects</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div></div><div class="item" id="sym-RenderContext-clear_lines" data-name="rendercontext::clear_lines"><div class="sig"><a class="anchor" href="#sym-RenderContext-clear_lines" aria-label="Link to RenderContext::clear_lines">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear_lines</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div></div><div class="item" id="sym-RenderContext-push_scene_layer" data-name="rendercontext::push_scene_layer"><div class="sig"><a class="anchor" href="#sym-RenderContext-push_scene_layer" aria-label="Link to RenderContext::push_scene_layer">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> push_scene_layer&lt;<span class="t">T</span>: bytemuck::<span class="t">Pod</span>&gt;(&amp;<span class="k">mut</span> <span class="k">self</span>, layer: usize, instances: &amp;[<span class="t">T</span>])</code></div><div class="doc"><p>Append instances to a registered layer.</p>
+<p><code>T</code> must be the instance type the layer's descriptor described. A
+mismatch is a wrong picture and not a crash, the same way a wrong
+vertex layout has always been.</p>
+<p>An unknown index appends nothing. That is the same answer an
+unregistered layer gives, and it keeps a game that lost its registry
+drawing the rest of the frame.</p></div></div><div class="item" id="sym-RenderContext-scene_layer_bytes" data-name="rendercontext::scene_layer_bytes"><div class="sig"><a class="anchor" href="#sym-RenderContext-scene_layer_bytes" aria-label="Link to RenderContext::scene_layer_bytes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">scene_layer_bytes</span>(&amp;<span class="k">self</span>, layer: usize) -&gt; &amp;[u8]</code></div><div class="doc"><p>The raw instance bytes of one registered layer.</p></div></div><div class="item" id="sym-RenderContext-scene_layer_count" data-name="rendercontext::scene_layer_count"><div class="sig"><a class="anchor" href="#sym-RenderContext-scene_layer_count" aria-label="Link to RenderContext::scene_layer_count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">scene_layer_count</span>(&amp;<span class="k">self</span>, layer: usize) -&gt; usize</code></div><div class="doc"><p>How many instances one registered layer holds.</p>
+<p>Zero where the stride is zero, which validation already refused.</p></div></div><div class="item" id="sym-RenderContext-clear_scene_layers" data-name="rendercontext::clear_scene_layers"><div class="sig"><a class="anchor" href="#sym-RenderContext-clear_scene_layers" aria-label="Link to RenderContext::clear_scene_layers">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear_scene_layers</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Empty every registered layer, keeping the allocation.</p></div></div><div class="item" id="sym-RenderContext-set_scene_texture_count" data-name="rendercontext::set_scene_texture_count"><div class="sig"><a class="anchor" href="#sym-RenderContext-set_scene_texture_count" aria-label="Link to RenderContext::set_scene_texture_count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_scene_texture_count</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, count: u32)</code></div><div class="doc"><p>Set the number of valid layers in the scene D2Array textures.
+Call once after the loader runs and again after apply_loaded_assets.
+Sampling past the last written layer returns white on most drivers.</p></div></div><div class="item" id="sym-RenderContext-scene_texture_count" data-name="rendercontext::scene_texture_count"><div class="sig"><a class="anchor" href="#sym-RenderContext-scene_texture_count" aria-label="Link to RenderContext::scene_texture_count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">scene_texture_count</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div><div class="doc"><p>Number of valid scene texture layers. Always at least 1.</p></div></div><div class="item" id="sym-RenderContext-clear_frame" data-name="rendercontext::clear_frame"><div class="sig"><a class="anchor" href="#sym-RenderContext-clear_frame" aria-label="Link to RenderContext::clear_frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear_frame</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Clear every draw buffer for a new frame.</p>
+<p>This is the one clear list. Both frame loops used to hold their own,
+and the two had already drifted: the browser loop never cleared lines
+or rects. Renderer::frame_reset calls this by default, so an
+application that wants a different reset overrides one method.</p></div></div><div class="item" id="sym-RenderContext-clear_effects" data-name="rendercontext::clear_effects"><div class="sig"><a class="anchor" href="#sym-RenderContext-clear_effects" aria-label="Link to RenderContext::clear_effects">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear_effects</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Clear every effect buffer.</p></div></div><div class="item" id="sym-RenderContext-drawn_count" data-name="rendercontext::drawn_count"><div class="sig"><a class="anchor" href="#sym-RenderContext-drawn_count" aria-label="Link to RenderContext::drawn_count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drawn_count</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>How many world-space rects, lines, circles and sprites this frame
+recorded. For a headless smoke test to assert a game DREW something,
+not only that it did not panic — the draw buffers are otherwise
+crate-private, so a game crate cannot count its own frame.</p></div></div><div class="item" id="sym-RenderContext-clear_overlays" data-name="rendercontext::clear_overlays"><div class="sig"><a class="anchor" href="#sym-RenderContext-clear_overlays" aria-label="Link to RenderContext::clear_overlays">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear_overlays</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div></div><div class="item" id="sym-RenderContext-overlay_rects_buffer" data-name="rendercontext::overlay_rects_buffer"><div class="sig"><a class="anchor" href="#sym-RenderContext-overlay_rects_buffer" aria-label="Link to RenderContext::overlay_rects_buffer">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">overlay_rects_buffer</span>(&amp;<span class="k">self</span>) -&gt; &amp;[<span class="k">crate</span>::types::<span class="t">Rect</span>]</code></div></div><div class="item" id="sym-RenderContext-overlay_lines_buffer" data-name="rendercontext::overlay_lines_buffer"><div class="sig"><a class="anchor" href="#sym-RenderContext-overlay_lines_buffer" aria-label="Link to RenderContext::overlay_lines_buffer">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">overlay_lines_buffer</span>(&amp;<span class="k">self</span>) -&gt; &amp;[<span class="k">crate</span>::types::<span class="t">Vertex</span>]</code></div></div><div class="item" id="sym-RenderContext-overlay_circles_buffer" data-name="rendercontext::overlay_circles_buffer"><div class="sig"><a class="anchor" href="#sym-RenderContext-overlay_circles_buffer" aria-label="Link to RenderContext::overlay_circles_buffer">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">overlay_circles_buffer</span>(&amp;<span class="k">self</span>) -&gt; &amp;[<span class="k">crate</span>::types::<span class="t">Instance</span>]</code></div></div><div class="item" id="sym-RenderContext-screen_overlay_rects_buffer" data-name="rendercontext::screen_overlay_rects_buffer"><div class="sig"><a class="anchor" href="#sym-RenderContext-screen_overlay_rects_buffer" aria-label="Link to RenderContext::screen_overlay_rects_buffer">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">screen_overlay_rects_buffer</span>(&amp;<span class="k">self</span>) -&gt; &amp;[<span class="k">crate</span>::types::<span class="t">Rect</span>]</code></div></div><div class="item" id="sym-RenderContext-screen_overlay_lines_buffer" data-name="rendercontext::screen_overlay_lines_buffer"><div class="sig"><a class="anchor" href="#sym-RenderContext-screen_overlay_lines_buffer" aria-label="Link to RenderContext::screen_overlay_lines_buffer">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">screen_overlay_lines_buffer</span>(&amp;<span class="k">self</span>) -&gt; &amp;[<span class="k">crate</span>::types::<span class="t">Vertex</span>]</code></div></div><div class="item" id="sym-RenderContext-screen_overlay_circles_buffer" data-name="rendercontext::screen_overlay_circles_buffer"><div class="sig"><a class="anchor" href="#sym-RenderContext-screen_overlay_circles_buffer" aria-label="Link to RenderContext::screen_overlay_circles_buffer">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">screen_overlay_circles_buffer</span>(&amp;<span class="k">self</span>) -&gt; &amp;[<span class="k">crate</span>::types::<span class="t">Instance</span>]</code></div></div><div class="item" id="sym-RenderContext-draw_image" data-name="rendercontext::draw_image"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_image" aria-label="Link to RenderContext::draw_image">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_image</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, position: <span class="t">Vec2</span>, size: <span class="t">Vec2</span>, rotation: f32, texture_index: i32, tint: [u8; <span class="n">4</span>], flags: u32, )</code></div></div><div class="item" id="sym-RenderContext-draw_image_simple" data-name="rendercontext::draw_image_simple"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_image_simple" aria-label="Link to RenderContext::draw_image_simple">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_image_simple</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, position: <span class="t">Vec2</span>, size: f32, texture_index: i32)</code></div></div><div class="item" id="sym-RenderContext-draw_resource_overlay" data-name="rendercontext::draw_resource_overlay"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_resource_overlay" aria-label="Link to RenderContext::draw_resource_overlay">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_resource_overlay</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, position: <span class="t">Vec2</span>, size: f32, rotation: f32, resource_kind: i32, variant: u32, extra_flags: u32, )</code></div><div class="doc"><p>Draw a stored resource above station floors using the overlay buffer.</p>
+<p>Same textures as draw_resource() but renders at Layer 6.75 (after
+floor rects at 6.5, before structures at 7). Used for resources
+stored in station storage cells.</p></div></div><div class="item" id="sym-RenderContext-draw_resource_above_hull" data-name="rendercontext::draw_resource_above_hull"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_resource_above_hull" aria-label="Link to RenderContext::draw_resource_above_hull">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_resource_above_hull</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, position: <span class="t">Vec2</span>, size: f32, rotation: f32, resource_kind: i32, variant: u32, )</code></div><div class="doc"><p>Draw a resource above station modules using the hull buffer.</p>
+<p>Same textures as draw_resource_overlay() but one row later, at Layer
+7.25 (after structures at 7, before the overlay primitives at 7.5).
+Used for a unit that must stay visible while it crosses a machine —
+the overlay row at 6.75 puts it under the module texture instead.</p></div></div><div class="item" id="sym-RenderContext-draw_structure_prop" data-name="rendercontext::draw_structure_prop"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_structure_prop" aria-label="Link to RenderContext::draw_structure_prop">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_structure_prop</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, position: <span class="t">Vec2</span>, size: f32, rotation: f32, type_id: u32, variant: u32, tint: [u8; <span class="n">4</span>], extra_flags: u32, )</code></div><div class="doc"><p>Draw a structure prop using the Structures mega-atlas by an arbitrary
+type id. Unlike <code>draw_station_module</code>, this is not gated to the module
+index range, so a group the application declares past the module type
+ids (a research bench, say) can draw a lit sprite. The type id must name
+a group the structures atlas registered, or the mapping answers layer 0.</p>
+<h1>Arguments</h1>
+<ul>
+<li><code>type_id</code> - Structures-atlas type id of the prop group</li>
+<li><code>variant</code> - Texture variant, wrapped to the group's loaded count</li>
+<li><code>tint</code> - Color tint [R,G,B,A]. Use [255,255,255,255] for no tint.</li>
+</ul></div></div><div class="item" id="sym-RenderContext-draw_mega_atlas_image" data-name="rendercontext::draw_mega_atlas_image"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_mega_atlas_image" aria-label="Link to RenderContext::draw_mega_atlas_image">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_mega_atlas_image</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, slot: usize, global_index: i32, position: <span class="t">Vec2</span>, size: f32, rotation: f32, tint: [u8; <span class="n">4</span>], flags: u32, )</code></div><div class="doc"><p>Draw a textured sprite using the unified mega-atlas system (low-level).</p></div></div><div class="item" id="sym-RenderContext-draw_scene" data-name="rendercontext::draw_scene"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_scene" aria-label="Link to RenderContext::draw_scene">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_scene</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, scene: &amp;<span class="t">Scene</span>) -&gt; usize</code></div><div class="doc"><p>Draw every visible object in <code>scene</code>, each at its world transform.</p>
+<p>Objects with no <code>Visual</code> are skipped and still compose for their
+children — a group is a transform with a name, and that is a thing
+worth having in a scene.</p>
+<p>Returns how many instances were pushed, which is what a panel shows
+when a person asks why they are looking at an empty viewport.</p></div></div><div class="item" id="sym-RenderContext-mega_atlas_index" data-name="rendercontext::mega_atlas_index"><div class="sig"><a class="anchor" href="#sym-RenderContext-mega_atlas_index" aria-label="Link to RenderContext::mega_atlas_index">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">mega_atlas_index</span>(&amp;<span class="k">self</span>, slot: usize, type_id: u32, variant: u32) -&gt; <span class="t">Option</span>&lt;i32&gt;</code></div><div class="doc"><p>The global texture index for one atlas entry, or <code>None</code> when the slot
+does not exist.</p>
+<p>This is the neutral resolver under the game-shaped <code>draw_*</code> helpers. It
+names no game noun: a caller gives a slot, a type id and a variant, and
+gets back the index <code>draw_mega_atlas_image</code> takes. <code>None</code> says the slot
+is not there, so the scene loop skips the object and a fixed-slot helper
+falls back to layer 0. It is <code>pub</code> because a game writing its own
+<code>draw_resource</code>-style helper resolves through this, not through an
+engine method that knows the game's nouns.</p></div></div><div class="item" id="sym-RenderContext-atlas_has" data-name="rendercontext::atlas_has"><div class="sig"><a class="anchor" href="#sym-RenderContext-atlas_has" aria-label="Link to RenderContext::atlas_has">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">atlas_has</span>(&amp;<span class="k">self</span>, slot: usize, type_id: u32) -&gt; bool</code></div><div class="doc"><p>Whether an object's picture is actually registered.</p>
+<p>For a panel that has to answer "why is my scene invisible". An
+unregistered pair does not fail: <code>get_index</code> returns 0, so the object
+draws SOME texture rather than none, which is worse to diagnose than a
+blank — it looks like the store put the wrong art on the object.</p>
+<p>A slot past the end of the mapping list answers false, which is the
+case <code>draw_scene</code> skips outright.</p></div></div><div class="item" id="sym-RenderContext-frame_fingerprint" data-name="rendercontext::frame_fingerprint"><div class="sig"><a class="anchor" href="#sym-RenderContext-frame_fingerprint" aria-label="Link to RenderContext::frame_fingerprint">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">frame_fingerprint</span>(&amp;<span class="k">self</span>) -&gt; [u32; <span class="t">FRAME_BUCKET_COUNT</span>]</code></div><div class="doc"><p>A stable per-bucket count of one submitted frame, in <code>FRAME_BUCKETS</code>
+order. The last entry is the sum of the first thirteen. The counts are
+<code>u32</code>, so a golden value is a plain array literal with no engine type to
+import.</p></div></div><div class="item" id="sym-RenderContext-draw_circle" data-name="rendercontext::draw_circle"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_circle" aria-label="Link to RenderContext::draw_circle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_circle</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, position: <span class="t">Vec2</span>, radius: f32, color: [u8; <span class="n">4</span>])</code></div></div><div class="item" id="sym-RenderContext-draw_flat_circle" data-name="rendercontext::draw_flat_circle"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_flat_circle" aria-label="Link to RenderContext::draw_flat_circle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_flat_circle</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, position: <span class="t">Vec2</span>, radius: f32, color: [u8; <span class="n">4</span>])</code></div><div class="doc"><p>A disc in the instance colour, flat from the middle to the edge.</p>
+<p><code>draw_circle</code> pushes <code>texture_index: -1</code>, and the fragment shader
+answers that with the planet path: it builds a unit-sphere normal
+out of the fragment position and shades the fill against it. A
+bullet, a spark and a pickup all come out as little balls, and
+<code>lighting_wrap</code> only flattens the diffuse half of it — the Blinn
+lobe stays. This one takes the sentinel the shader reads as FLAT,
+so no normal is built and no light term is added at all.</p></div></div><div class="item" id="sym-RenderContext-draw_planet_circle" data-name="rendercontext::draw_planet_circle"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_planet_circle" aria-label="Link to RenderContext::draw_planet_circle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_planet_circle</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, position: <span class="t">Vec2</span>, radius: f32, color: [u8; <span class="n">4</span>])</code></div></div><div class="item" id="sym-RenderContext-draw_textured_circle" data-name="rendercontext::draw_textured_circle"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_textured_circle" aria-label="Link to RenderContext::draw_textured_circle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_textured_circle</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, position: <span class="t">Vec2</span>, radius: f32, texture_index: i32)</code></div></div><div class="item" id="sym-RenderContext-draw_textured_circle_rotated" data-name="rendercontext::draw_textured_circle_rotated"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_textured_circle_rotated" aria-label="Link to RenderContext::draw_textured_circle_rotated">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_textured_circle_rotated</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, position: <span class="t">Vec2</span>, radius: f32, texture_index: i32, rotation: [f32; <span class="n">4</span>], )</code></div></div><div class="item" id="sym-RenderContext-draw_star_textured_circle_rotated" data-name="rendercontext::draw_star_textured_circle_rotated"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_star_textured_circle_rotated" aria-label="Link to RenderContext::draw_star_textured_circle_rotated">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_star_textured_circle_rotated</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, position: <span class="t">Vec2</span>, radius: f32, texture_index: i32, rotation: [f32; <span class="n">4</span>], )</code></div></div><div class="item" id="sym-RenderContext-draw_glow_circle" data-name="rendercontext::draw_glow_circle"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_glow_circle" aria-label="Link to RenderContext::draw_glow_circle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_glow_circle</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, position: <span class="t">Vec2</span>, radius: f32, color: [u8; <span class="n">4</span>])</code></div></div><div class="item" id="sym-RenderContext-draw_cosmic_dust_field" data-name="rendercontext::draw_cosmic_dust_field"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_cosmic_dust_field" aria-label="Link to RenderContext::draw_cosmic_dust_field">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_cosmic_dust_field</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, position: <span class="t">Vec2</span>, radius: f32)</code></div></div><div class="item" id="sym-RenderContext-draw_line" data-name="rendercontext::draw_line"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_line" aria-label="Link to RenderContext::draw_line">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_line</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, src: <span class="t">Vec2</span>, dst: <span class="t">Vec2</span>, color: [u8; <span class="n">4</span>])</code></div></div><div class="item" id="sym-RenderContext-draw_rect" data-name="rendercontext::draw_rect"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_rect" aria-label="Link to RenderContext::draw_rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_rect</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, min: <span class="t">Vec2</span>, max: <span class="t">Vec2</span>, color: [u8; <span class="n">4</span>])</code></div></div><div class="item" id="sym-RenderContext-draw_rotated_rect" data-name="rendercontext::draw_rotated_rect"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_rotated_rect" aria-label="Link to RenderContext::draw_rotated_rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_rotated_rect</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, center: <span class="t">Vec2</span>, half_extent: <span class="t">Vec2</span>, rotation: f32, color: [u8; <span class="n">4</span>], )</code></div><div class="doc"><p>Draw a filled rectangle rotated around its center.
+GPU vertex shader rotates quad corners — no CPU tessellation needed.
+When rotation == 0.0, identical to draw_rect.</p></div></div><div class="item" id="sym-RenderContext-draw_overlay_line" data-name="rendercontext::draw_overlay_line"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_overlay_line" aria-label="Link to RenderContext::draw_overlay_line">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_overlay_line</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, src: <span class="t">Vec2</span>, dst: <span class="t">Vec2</span>, color: [u8; <span class="n">4</span>])</code></div><div class="doc"><p>Line above the hull.</p></div></div><div class="item" id="sym-RenderContext-draw_overlay_rect" data-name="rendercontext::draw_overlay_rect"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_overlay_rect" aria-label="Link to RenderContext::draw_overlay_rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_overlay_rect</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, min: <span class="t">Vec2</span>, max: <span class="t">Vec2</span>, color: [u8; <span class="n">4</span>])</code></div><div class="doc"><p>Axis-aligned filled rect above the hull.</p></div></div><div class="item" id="sym-RenderContext-draw_overlay_rotated_rect" data-name="rendercontext::draw_overlay_rotated_rect"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_overlay_rotated_rect" aria-label="Link to RenderContext::draw_overlay_rotated_rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_overlay_rotated_rect</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, center: <span class="t">Vec2</span>, half_extent: <span class="t">Vec2</span>, rotation: f32, color: [u8; <span class="n">4</span>], )</code></div><div class="doc"><p>Filled rect rotated about its centre, above the hull. Pass the
+station's rotation and it rides the plating.</p></div></div><div class="item" id="sym-RenderContext-draw_overlay_rotated_rect_flagged" data-name="rendercontext::draw_overlay_rotated_rect_flagged"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_overlay_rotated_rect_flagged" aria-label="Link to RenderContext::draw_overlay_rotated_rect_flagged">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_overlay_rotated_rect_flagged</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, center: <span class="t">Vec2</span>, half_extent: <span class="t">Vec2</span>, rotation: f32, color: [u8; <span class="n">4</span>], flags: u32, )</code></div><div class="doc"><p>The same overlay rect, with per-instance render flags.</p>
+<p><code>RECT_FLAG_RECEIVE_SHADOW</code> makes the rect darken under a station shadow.
+The overlay row shares one buffer and one pipeline, so the flag is how
+the shader tells a shadow-receiving rect from a plain one. The plain
+verb above passes zero, which reproduces every overlay rect written
+before the flag.</p></div></div><div class="item" id="sym-RenderContext-draw_overlay_circle" data-name="rendercontext::draw_overlay_circle"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_overlay_circle" aria-label="Link to RenderContext::draw_overlay_circle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_overlay_circle</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, position: <span class="t">Vec2</span>, radius: f32, color: [u8; <span class="n">4</span>])</code></div><div class="doc"><p>Filled circle above the hull.</p></div></div><div class="item" id="sym-RenderContext-draw_overlay_flat_circle" data-name="rendercontext::draw_overlay_flat_circle"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_overlay_flat_circle" aria-label="Link to RenderContext::draw_overlay_flat_circle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_overlay_flat_circle</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, position: <span class="t">Vec2</span>, radius: f32, color: [u8; <span class="n">4</span>])</code></div><div class="doc"><p>The same disc as <code>draw_flat_circle</code>, on the overlay row.</p>
+<p>The overlay circles go through the one circle pipeline as well, so
+the sentinel means the same thing here.</p></div></div><div class="item" id="sym-RenderContext-draw_screen_overlay_line" data-name="rendercontext::draw_screen_overlay_line"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_screen_overlay_line" aria-label="Link to RenderContext::draw_screen_overlay_line">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_screen_overlay_line</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, src: <span class="t">Vec2</span>, dst: <span class="t">Vec2</span>, color: [u8; <span class="n">4</span>])</code></div><div class="doc"><p>Draw a normalized screen-space line, independent of the world camera.</p></div></div><div class="item" id="sym-RenderContext-draw_screen_overlay_rect" data-name="rendercontext::draw_screen_overlay_rect"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_screen_overlay_rect" aria-label="Link to RenderContext::draw_screen_overlay_rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_screen_overlay_rect</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, min: <span class="t">Vec2</span>, max: <span class="t">Vec2</span>, color: [u8; <span class="n">4</span>])</code></div><div class="doc"><p>Draw a normalized screen-space rectangle, independent of the world camera.</p></div></div><div class="item" id="sym-RenderContext-draw_screen_overlay_circle" data-name="rendercontext::draw_screen_overlay_circle"><div class="sig"><a class="anchor" href="#sym-RenderContext-draw_screen_overlay_circle" aria-label="Link to RenderContext::draw_screen_overlay_circle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw_screen_overlay_circle</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, position: <span class="t">Vec2</span>, radius: f32, color: [u8; <span class="n">4</span>])</code></div><div class="doc"><p>Draw a normalized screen-space circle, independent of the world camera.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Renderer" data-name="renderer"><div class="sig"><a class="anchor" href="#sym-Renderer" aria-label="Link to Renderer">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">trait</span> <span class="t">Renderer</span></code></div></div><details class="members"><summary>18 methods</summary><div class="item" id="sym-Renderer-new" data-name="renderer::new"><div class="sig"><a class="anchor" href="#sym-Renderer-new" aria-label="Link to Renderer::new">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Renderer-input" data-name="renderer::input"><div class="sig"><a class="anchor" href="#sym-Renderer-input" aria-label="Link to Renderer::input">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">input</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, viewport: <span class="t">ViewportId</span>, input: &amp;<span class="t">WinitInputHelper</span>, width: u16, height: u16)</code></div></div><div class="item" id="sym-Renderer-touch" data-name="renderer::touch"><div class="sig"><a class="anchor" href="#sym-Renderer-touch" aria-label="Link to Renderer::touch">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">touch</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _frame: &amp;<span class="k">crate</span>::input::<span class="t">TouchFrame</span>)</code></div><div class="doc"><p>Receive platform-neutral multitouch contacts. The default keeps
+existing projects source-compatible; projects interpret contacts.</p></div></div><div class="item" id="sym-Renderer-render" data-name="renderer::render"><div class="sig"><a class="anchor" href="#sym-Renderer-render" aria-label="Link to Renderer::render">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">render</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, viewport: <span class="t">ViewportId</span>, ctx: &amp;<span class="k">mut</span> <span class="t">RenderContext</span>)</code></div></div><div class="item" id="sym-Renderer-gui" data-name="renderer::gui"><div class="sig"><a class="anchor" href="#sym-Renderer-gui" aria-label="Link to Renderer::gui">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">gui</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, viewport: <span class="t">ViewportId</span>, ctx: &amp;egui::<span class="t">Context</span>, display: &amp;<span class="k">mut</span> <span class="k">crate</span>::types::<span class="t">DisplaySettings</span>)</code></div></div><div class="item" id="sym-Renderer-auto_style" data-name="renderer::auto_style"><div class="sig"><a class="anchor" href="#sym-Renderer-auto_style" aria-label="Link to Renderer::auto_style">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">auto_style</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>Whether the engine styles this game's chrome GUI for it.</p>
+<p>True by default. Before <code>gui</code>, the engine installs the editor Style and
+the zoom keys, so a game that writes no styling draws at the editor
+sizes and answers Command with +, - and 0. The pixels-per-point lock
+leaves egui default sizes at half scale on a retina panel, so a bare
+context looks too small and its zoom keys do nothing; this default
+answers both.</p>
+<p>Return false to keep a raw egui context, or to install a style of your
+own. A host that runs its own zoom keys, like the shell, returns false
+so the engine does not step the scale a second time on one press.</p></div></div><div class="item" id="sym-Renderer-game_gui" data-name="renderer::game_gui"><div class="sig"><a class="anchor" href="#sym-Renderer-game_gui" aria-label="Link to Renderer::game_gui">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">game_gui</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, _viewport: <span class="t">ViewportId</span>, _ctx: &amp;egui::<span class="t">Context</span>, _display: &amp;<span class="k">mut</span> <span class="k">crate</span>::types::<span class="t">DisplaySettings</span>, )</code></div><div class="doc"><p>The GUI that belongs INSIDE the game image, on a second egui context.</p>
+<p><code>gui</code> above draws in window space and lands on the surface. This one
+draws in game-image space and lands on the LDR image, before the CRT
+pass, so a HUD drawn here sits inside the game view panel and carries
+the same filter the scene does.</p>
+<p>Two contexts, because one cannot serve both. A single context lays out
+at one screen rect, so a chrome panel and a HUD would share coordinates
+and the HUD would paint over the toolbar.</p>
+<p>Called only while embedded mode is on. A host that draws no chrome puts
+everything in <code>gui</code> and leaves this alone, which is the shipped game.</p></div></div><div class="item" id="sym-Renderer-set_crt_params" data-name="renderer::set_crt_params"><div class="sig"><a class="anchor" href="#sym-Renderer-set_crt_params" aria-label="Link to Renderer::set_crt_params">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">set_crt_params</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _viewport: <span class="t">ViewportId</span>, _curvature: f32, _resolution: [f32; <span class="n">2</span>])</code></div><div class="doc"><p>Receive CRT distortion parameters for mouse coordinate correction.
+Called each frame before input() so game-side mouse transforms match
+the barrel distortion applied by the CRT post-process shader.</p></div></div><div class="item" id="sym-Renderer-set_active_viewport" data-name="renderer::set_active_viewport"><div class="sig"><a class="anchor" href="#sym-Renderer-set_active_viewport" aria-label="Link to Renderer::set_active_viewport">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">set_active_viewport</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _viewport: <span class="t">ViewportId</span>)</code></div><div class="doc"><p>Notify the renderer which viewport currently has input focus.
+Called on CursorEntered / Focused events so camera controls
+route to the correct viewport.</p></div></div><div class="item" id="sym-Renderer-set_secondary_camera" data-name="renderer::set_secondary_camera"><div class="sig"><a class="anchor" href="#sym-Renderer-set_secondary_camera" aria-label="Link to Renderer::set_secondary_camera">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">set_secondary_camera</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _pos: ultraviolet::<span class="t">Vec2</span>, _scale: f32)</code></div><div class="doc"><p>Initialize the secondary viewport camera position and scale.
+Called when the secondary window is first created.</p></div></div><div class="item" id="sym-Renderer-scroll_secondary_camera" data-name="renderer::scroll_secondary_camera"><div class="sig"><a class="anchor" href="#sym-Renderer-scroll_secondary_camera" aria-label="Link to Renderer::scroll_secondary_camera">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">scroll_secondary_camera</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _delta: f32)</code></div><div class="doc"><p>Apply scroll-zoom to the secondary viewport camera.</p></div></div><div class="item" id="sym-Renderer-pan_secondary_camera" data-name="renderer::pan_secondary_camera"><div class="sig"><a class="anchor" href="#sym-Renderer-pan_secondary_camera" aria-label="Link to Renderer::pan_secondary_camera">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">pan_secondary_camera</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _dx: f32, _dy: f32)</code></div><div class="doc"><p>Apply pan offset to the secondary viewport camera.</p></div></div><div class="item" id="sym-Renderer-set_mouse_scale" data-name="renderer::set_mouse_scale"><div class="sig"><a class="anchor" href="#sym-Renderer-set_mouse_scale" aria-label="Link to Renderer::set_mouse_scale">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">set_mouse_scale</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _sx: f32, _sy: f32)</code></div><div class="doc"><p>Set mouse coordinate remap factors (render_size / window_size).</p></div></div><div class="item" id="sym-Renderer-scene_underlay" data-name="renderer::scene_underlay"><div class="sig"><a class="anchor" href="#sym-Renderer-scene_underlay" aria-label="Link to Renderer::scene_underlay">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">scene_underlay</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, _shared: &amp;<span class="t">SharedGpu</span>, _encoder: &amp;<span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>, _hdr_view: &amp;wgpu::<span class="t">TextureView</span>, _z_view: &amp;wgpu::<span class="t">TextureView</span>, _coverage_view: &amp;wgpu::<span class="t">TextureView</span>, _view: &amp;<span class="t">View</span>, _surface_px: [u32; <span class="n">2</span>],</code></div><div class="doc"><p>Draw an optional UNDERLAY into the HDR scene. The engine encodes it
+after the HDR clear and BEFORE the scene pass. The scene layers
+(planets, ships, stations, stars) then draw over it. Use it for a
+background: sky, terrain, a far field. Default: no-op.
+For a pass that draws AFTER the scene layers, use <code>scene_overlay</code>.</p>
+<p><code>ignore
+fn scene_underlay(&amp;mut self, shared: &amp;SharedGpu, encoder: &amp;mut wgpu::CommandEncoder,
+hdr: &amp;wgpu::TextureView, _z: &amp;wgpu::TextureView, _cov: &amp;wgpu::TextureView,
+view: &amp;View, _px: [u32; 2]) {
+self.sky.draw(shared, encoder, hdr, view.width(), view.height());
+}</code></p>
+<p><code>surface_px</code> is the window size in physical pixels. It is NOT the size
+of <code>hdr_view</code>: the HDR chain runs at a fixed internal resolution and
+the final blit scales it to the window. A pass that needs the target
+size reads <code>view.width()</code> and <code>view.height()</code> (packed in
+<code>view.xy</code>); a pass that needs the window reads this.</p>
+<p><code>coverage_view</code> is the shadow coverage buffer, a single-channel target
+the application draws shadow quads into with a Max blend. A composite
+scene layer reads it after the scene pass. A pass that casts no shadow
+ignores it.</p></div></div><div class="item" id="sym-Renderer-scene_overlay" data-name="renderer::scene_overlay"><div class="sig"><a class="anchor" href="#sym-Renderer-scene_overlay" aria-label="Link to Renderer::scene_overlay">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">scene_overlay</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, _shared: &amp;<span class="t">SharedGpu</span>, _encoder: &amp;<span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>, _hdr_view: &amp;wgpu::<span class="t">TextureView</span>, _z_view: &amp;wgpu::<span class="t">TextureView</span>, _view: &amp;<span class="t">View</span>, _surface_px: [u32; <span class="n">2</span>],</code></div><div class="doc"><p>Draw an optional OVERLAY into the HDR scene. The engine encodes it
+AFTER the scene pass and before the post-process, so it gets bloom
+and CRT. It gets the live encoder, the [hdr_view, z_view] targets, the
+primary View (camera) and the window size. Default: no-op.
+For a pass that draws BEFORE the scene layers, use <code>scene_underlay</code>.</p>
+<p><code>ignore
+fn scene_overlay(&amp;mut self, shared: &amp;SharedGpu, encoder: &amp;mut wgpu::CommandEncoder,
+hdr: &amp;wgpu::TextureView, _z: &amp;wgpu::TextureView, view: &amp;View, _px: [u32; 2]) {
+self.debug_lines.draw(shared, encoder, hdr, view);
+}</code></p></div></div><div class="item" id="sym-Renderer-frame_reset" data-name="renderer::frame_reset"><div class="sig"><a class="anchor" href="#sym-Renderer-frame_reset" aria-label="Link to Renderer::frame_reset">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">frame_reset</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _viewport: <span class="t">ViewportId</span>, ctx: &amp;<span class="k">mut</span> <span class="t">RenderContext</span>)</code></div><div class="doc"><p>Reset the draw buffers for a new frame.</p>
+<p>Every buffer RenderContext holds is filled by the application, so what
+a new frame resets is the application's decision. The default clears
+all of them, which is what every frame loop did by hand.</p></div></div><div class="item" id="sym-Renderer-on_close_requested" data-name="renderer::on_close_requested"><div class="sig"><a class="anchor" href="#sym-Renderer-on_close_requested" aria-label="Link to Renderer::on_close_requested">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">on_close_requested</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Called once, when this process is about to end.
+Implement to trigger save-and-exit before process termination.</p>
+<p>Every quit gesture reaches it — the X button, Alt+F4, and the menu or
+Cmd+Q, which sends no close event to any window. <code>reclaim</code> is what
+calls it, and <code>reclaim</code> runs its body once.</p></div></div><div class="item" id="sym-Renderer-on_transport_stop" data-name="renderer::on_transport_stop"><div class="sig"><a class="anchor" href="#sym-Renderer-on_transport_stop" aria-label="Link to Renderer::on_transport_stop">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">on_transport_stop</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Called once, on the edge where the transport moves to Stopped.</p>
+<p>A host stops the game by no longer calling <code>render</code>, <code>input</code> and
+<code>game_gui</code>. That suppresses the frame, and it releases nothing: an
+audio sink plays on its own thread and keeps playing, and every
+render-side mirror of the dropped world stays in memory. So a host
+cannot tear down through the hooks it just stopped calling, and the
+application gets this edge instead.</p>
+<p>Called before the host clears its running flag, so the implementation
+still owns everything it did while playing.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-ViewportId" data-name="viewportid"><div class="sig"><a class="anchor" href="#sym-ViewportId" aria-label="Link to ViewportId">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">type</span> <span class="t">ViewportId</span> = u32</code></div><div class="doc"><p>Unique identifier for a render viewport.</p>
+<p>Each viewport corresponds to one OS window with its own wgpu surface,
+postprocess chain, egui context, and camera state. The simulation
+thread is shared — all viewports read the same frame's entity data.</p></div></div></div><div class="typeblock"><div class="item" id="sym-DisplaySettings" data-name="displaysettings"><div class="sig"><a class="anchor" href="#sym-DisplaySettings" aria-label="Link to DisplaySettings">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">DisplaySettings</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> fxaa_enabled: bool,
+<span class="k">pub</span> fxaa_subpix: f32,
+<span class="k">pub</span> fxaa_edge_threshold: f32,
+<span class="k">pub</span> motion_blur_enabled: bool,
+<span class="k">pub</span> motion_blur_intensity: f32,
+<span class="k">pub</span> z_dof_enabled: bool,
+<span class="k">pub</span> z_dof_aperture: f32,
+<span class="k">pub</span> z_dof_max_blur: f32,
+<span class="k">pub</span> dof_enabled: bool,
+<span class="k">pub</span> dof_aperture: f32,
+<span class="k">pub</span> dof_focal_radius: f32,
+<span class="k">pub</span> dof_max_blur: f32,
+<span class="k">pub</span> pp_enabled: bool,
+<span class="k">pub</span> pp_exposure: f32,
+<span class="c">/// The bloom switch, under `pp_enabled`. False skips the extract, the</span>
+<span class="c">/// four downsample and the four upsample passes, and the composite adds</span>
+<span class="c">/// zero bloom. True by default, so a project saved before the switch</span>
+<span class="c">/// existed keeps its picture.</span>
+<span class="k">pub</span> pp_bloom_enabled: bool,
+<span class="k">pub</span> pp_bloom_threshold: f32,
+<span class="k">pub</span> pp_bloom_intensity: f32,
+<span class="k">pub</span> pp_bloom_radius: f32,
+<span class="c">/// The grade switch, under `pp_enabled`. False sends the identity grade</span>
+<span class="c">/// (saturation 1, contrast 1, temperature 0, brightness 0) to the</span>
+<span class="c">/// tonemap pass and keeps the four values below. True by default, for</span>
+<span class="c">/// the same reason as `pp_bloom_enabled`.</span>
+<span class="k">pub</span> pp_grade_enabled: bool,
+<span class="k">pub</span> pp_saturation: f32,
+<span class="k">pub</span> pp_contrast: f32,
+<span class="k">pub</span> pp_temperature: f32,
+<span class="k">pub</span> pp_brightness: f32,
+<span class="k">pub</span> crt_enabled: bool,
+<span class="k">pub</span> crt_curvature: f32,
+<span class="k">pub</span> crt_corner_radius: f32,
+<span class="k">pub</span> crt_scanline_intensity: f32,
+<span class="k">pub</span> crt_vignette_intensity: f32,
+<span class="k">pub</span> crt_aberration_amount: f32,
+<span class="k">pub</span> crt_flicker_intensity: f32,
+<span class="k">pub</span> crt_jitter_intensity: f32,
+<span class="k">pub</span> crt_hsync_intensity: f32,
+<span class="k">pub</span> crt_grain_intensity: f32,
+<span class="k">pub</span> crt_grain_size: f32,
+<span class="k">pub</span> crt_grain_speed: f32,
+<span class="k">pub</span> crt_grain_color: f32,
+<span class="c">/// 1.0 is spherical, 0.0 is cylindrical. `curve_y = crt_curvature * this`.</span>
+<span class="k">pub</span> crt_curve_aspect: f32,
+<span class="c">/// Faceplate thickness, in units of half the screen width.</span>
+<span class="k">pub</span> crt_glass_thickness: f32,
+<span class="c">/// Refractive index of the faceplate. Soda-lime glass is about 1.52.</span>
+<span class="k">pub</span> crt_glass_ior: f32,
+<span class="c">/// Mask-to-phosphor spacing, same units as `crt_glass_thickness`.</span>
+<span class="k">pub</span> crt_mask_gap: f32,
+<span class="c">/// Virtual viewer position, screen widths from centre.</span>
+<span class="k">pub</span> crt_eye_x: f32,
+<span class="k">pub</span> crt_eye_y: f32,
+<span class="c">/// Viewer distance. Larger is more orthographic and flattens the parallax.</span>
+<span class="k">pub</span> crt_eye_dist: f32,
+<span class="c">/// Master scale on the parallax offset. Zero pins the mask to the image.</span>
+<span class="k">pub</span> crt_parallax_strength: f32,
+<span class="k">pub</span> crt_conv_r_x: f32,
+<span class="k">pub</span> crt_conv_r_y: f32,
+<span class="k">pub</span> crt_conv_b_x: f32,
+<span class="k">pub</span> crt_conv_b_y: f32,
+<span class="c">/// Radial divergence — the bow that grows toward the corners.</span>
+<span class="k">pub</span> crt_conv_radial_r: f32,
+<span class="k">pub</span> crt_conv_radial_b: f32,
+<span class="c">/// 0 none, 1 aperture grille, 2 shadow mask, 3 slot mask, 4 Trinitron.</span>
+<span class="k">pub</span> crt_mask_type: u32,
+<span class="c">/// Destination pixels per full RGB triad, measured at screen centre.</span>
+<span class="k">pub</span> crt_mask_triad_px: f32,
+<span class="k">pub</span> crt_mask_strength: f32,
+<span class="c">/// Brightness compensation. A mask eats most of the light.</span>
+<span class="k">pub</span> crt_mask_boost: f32,
+<span class="c">/// Slot mask only: vertical slot period in destination pixels.</span>
+<span class="k">pub</span> crt_slot_height_px: f32,
+<span class="c">/// Trinitron only: how many damper wires cross the screen.</span>
+<span class="k">pub</span> crt_damper_count: f32,
+<span class="k">pub</span> crt_damper_strength: f32,
+<span class="c">/// How much the mask parallax biases each channel's aperture separately.</span>
+<span class="k">pub</span> crt_parallax_coupling: f32,
+<span class="c">/// The destination height the three COUNTS below were chosen for, or</span>
+<span class="c">/// zero to leave them alone.</span>
+<span class="c">/// </span>
+<span class="c">/// WHY A COUNT LOSES ITS DENSITY ON A BIGGER SCREEN. `crt_mask_triad_px`</span>
+<span class="c">/// is a pitch in destination pixels, so the continuous mask holds its</span>
+<span class="c">/// fineness on any surface. `crt_scanline_count`, `crt_phosphor_triads_x`</span>
+<span class="c">/// and `crt_phosphor_rows` are counts across the whole picture, so every</span>
+<span class="c">/// feature they describe grows with the surface: a window at twice the</span>
+<span class="c">/// height draws the same number of cells at twice the size, which is half</span>
+<span class="c">/// the density in pixels, and the mask and the cells stop agreeing.</span>
+<span class="c">/// </span>
+<span class="c">/// A project that sets this states the height its counts were tuned at.</span>
+<span class="c">/// The three are then multiplied by `output_h / crt_density_ref_h` before</span>
+<span class="c">/// they reach the GPU, so the pitch in pixels is what carries across</span>
+<span class="c">/// screens and the count is what follows them.</span>
+<span class="c">/// </span>
+<span class="c">/// THE HORIZONTAL FOLLOWS THE VERTICAL, and one number is why. A cell</span>
+<span class="c">/// keeps its shape on any surface of the reference ASPECT and stretches</span>
+<span class="c">/// on any other, which is what a tube fed a signal of the wrong shape</span>
+<span class="c">/// does. Two reference numbers would fix the shape and would also let a</span>
+<span class="c">/// project set an aspect it never renders at.</span>
+<span class="c">/// </span>
+<span class="c">/// Zero is the default and is off, so a project that never heard of this</span>
+<span class="c">/// gets the tube it got yesterday at every size.</span>
+<span class="k">pub</span> crt_density_ref_h: f32,
+<span class="c">/// Lines across the tube. 240 is an arcade signal, 480 a broadcast field.</span>
+<span class="c">/// A count, and `crt_density_ref_h` decides whether it holds across</span>
+<span class="c">/// surfaces or scales with them.</span>
+<span class="k">pub</span> crt_scanline_count: f32,
+<span class="c">/// Beam width as a fraction of the line pitch.</span>
+<span class="k">pub</span> crt_scanline_thickness: f32,
+<span class="c">/// How much a bright beam widens.</span>
+<span class="k">pub</span> crt_beam_bloom: f32,
+<span class="c">/// True alternates the field every frame.</span>
+<span class="k">pub</span> crt_interlace: bool,
+<span class="c">/// 0 off, 1 warp grid, 2 displacement, 3 convergence, 4 mask only,</span>
+<span class="c">/// 5 magnifier.</span>
+<span class="k">pub</span> crt_viz_mode: u32,
+<span class="c">/// Loupe centre, in normalized destination coordinates.</span>
+<span class="k">pub</span> crt_viz_probe_x: f32,
+<span class="k">pub</span> crt_viz_probe_y: f32,
+<span class="k">pub</span> crt_viz_zoom: f32,
+<span class="k">pub</span> crt_viz_grid_div: f32,
+<span class="c">/// False is the shipped state, because the cells are an ADDITIONAL</span>
+<span class="c">/// effect. An existing project must get the tube it got yesterday.</span>
+<span class="k">pub</span> crt_phosphor_on: bool,
+<span class="c">/// How many RGB triads fit across the screen. A COUNT, not a pitch:</span>
+<span class="c">/// "how many are there" is the question a person asks, and a pitch in</span>
+<span class="c">/// pixels answers it only after a division. `crt_density_ref_h` is what</span>
+<span class="c">/// keeps that count from meaning a different pitch on a bigger surface.</span>
+<span class="k">pub</span> crt_phosphor_triads_x: f32,
+<span class="c">/// How many phosphor rows fit down the screen.</span>
+<span class="k">pub</span> crt_phosphor_rows: f32,
+<span class="c">/// The black matrix: the fraction of a cell that is the gap around it.</span>
+<span class="k">pub</span> crt_phosphor_gap: f32,
+<span class="c">/// Beam spot radius, in cells. How many cells the beam averages over.</span>
+<span class="k">pub</span> crt_phosphor_beam: f32,
+<span class="c">/// Cell shape, 0 rectangular through 1 elliptical.</span>
+<span class="k">pub</span> crt_phosphor_round: f32,
+<span class="c">/// How much a lit cell spills into the dark matrix around it.</span>
+<span class="k">pub</span> crt_phosphor_bleed: f32,
+<span class="c">/// How hard a phosphor cell's edge is, 0 analytic through 1 square.</span>
+<span class="c">/// </span>
+<span class="c">/// At zero the edge is one destination pixel wide. That width is the</span>
+<span class="c">/// correct one, and it is not always the wanted one: a cell at the default</span>
+<span class="c">/// density is under three pixels across, so a one-pixel edge is a third of</span>
+<span class="c">/// the cell and the grid reads as soft. Toward one the width goes to</span>
+<span class="c">/// nothing, which trades aliasing for an edge a person can see.</span>
+<span class="k">pub</span> crt_phosphor_sharp: f32,
+<span class="c">/// The three emission colours, each as linear RGB.</span>
+<span class="c">/// </span>
+<span class="c">/// An array and not nine scalars, because `DEFAULT` has to stay readable</span>
+<span class="c">/// and a colour picker takes a `[f32; 3]`. The uniform block holds nine</span>
+<span class="c">/// separate `ph_*_*` scalars, and `sync_display_to_gpu` unpacks these</span>
+<span class="c">/// into them.</span>
+<span class="c">/// </span>
+<span class="c">/// Pure primaries by default: a red cell emits red and nothing else.</span>
+<span class="c">/// </span>
+<span class="c">/// A real tube's phosphors are not the primaries — P22 red is an</span>
+<span class="c">/// orange-red and P22 green is a yellow-green — and these shipped at</span>
+<span class="c">/// those values first. The measured set is the wrong default at the size</span>
+<span class="c">/// a cell actually is: the three desaturate each other and the grid reads</span>
+<span class="c">/// as a haze rather than as a tube. The measured values remain one drag</span>
+<span class="c">/// away for anybody who wants them. The rest of</span>
+<span class="c">/// what makes a photographed CRT look like a CRT, so it is a control.</span>
+<span class="k">pub</span> crt_ph_r: [f32; <span class="n">3</span>],
+<span class="k">pub</span> crt_ph_g: [f32; <span class="n">3</span>],
+<span class="k">pub</span> crt_ph_b: [f32; <span class="n">3</span>],
+<span class="c">/// DORMANT. Nothing reads it, and no slider drives it.</span>
+<span class="c">/// </span>
+<span class="c">/// A partial exemption from the phosphor grid was never a real choice.</span>
+<span class="c">/// The grid is a NEIGHBOURHOOD operator — nine taps around a cell centre</span>
+<span class="c">/// quantised to the cell — and the exemption was a per-fragment blend, so</span>
+<span class="c">/// any value between the ends drew the menu twice: sharp over a combed</span>
+<span class="c">/// copy of itself. The chrome has its own render target now and the</span>
+<span class="c">/// question is gone with it.</span>
+<span class="c">/// </span>
+<span class="c">/// The field is KEPT so a saved settings file keeps round-tripping, and</span>
+<span class="c">/// because the uniform block it feeds is a fixed 304 bytes that the</span>
+<span class="c">/// Shader Lab reflects one slider per member off.</span>
+<span class="k">pub</span> crt_phosphor_gui_exempt: f32,
+<span class="c">/// The GUI's share of the raster, the mask and the grain, 0 none through</span>
+<span class="c">/// 1 whole. Read by `fs_gui`, which composites the chrome layer over the</span>
+<span class="c">/// finished tube.</span>
+<span class="c">/// </span>
+<span class="c">/// WHY THE LIST STOPS AT THREE</span>
+<span class="c">/// </span>
+<span class="c">/// Only an effect that MULTIPLIES the emitted light can be exempted this</span>
+<span class="c">/// way, and these are all of them. The warp, the convergence and the</span>
+<span class="c">/// h-sync shift decide WHERE the composite samples; the chrome takes them</span>
+<span class="c">/// on purpose, because a menu that stays flat over a picture that bends</span>
+<span class="c">/// stops pointing at what it labels. The phosphor cells and the mask</span>
+<span class="c">/// parallax are absent for the opposite reason — the chrome never gets</span>
+<span class="c">/// them at all.</span>
+<span class="k">pub</span> crt_gui_exempt_scan: f32,
+<span class="k">pub</span> crt_gui_exempt_mask: f32,
+<span class="k">pub</span> crt_gui_exempt_grain: f32,
+<span class="c">/// Output gain, spent after the mask and the cells.</span>
+<span class="k">pub</span> crt_pic_brightness: f32,
+<span class="c">/// Contrast around sRGB mid grey. One leaves the picture alone.</span>
+<span class="k">pub</span> crt_pic_contrast: f32,
+<span class="c">/// The exponent on the graded picture. Below one lifts the mid tones.</span>
+<span class="k">pub</span> crt_pic_gamma: f32,
+<span class="c">/// Where the output ceiling starts to compress. One is a hard clamp.</span>
+<span class="k">pub</span> crt_pic_knee: f32,
+<span class="k">pub</span> lighting_wrap: f32,
+<span class="k">pub</span> light_z: f32,</code></pre></div><div class="doc"><p>Serialisable because the game is a second process now. The Post-processing
+section edits the copy in the EDITOR, and the picture is composed by the
+child — so the struct has to cross a socket or the panel writes a global
+nobody with a framebuffer is reading.</p>
+<p><code>PartialEq</code> for the same reason: the editor sends this on the change and
+not on the frame, so something has to answer whether it changed.
+<code>serde(default)</code> is the contract with <code>project_settings</code>. The table on disk
+holds ONLY the keys that differ from <code>DEFAULT</code>, so every absent field must
+fall back to it rather than fail the whole block for being incomplete.</p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-DisplaySettings-DEFAULT" data-name="displaysettings::default"><div class="sig"><a class="anchor" href="#sym-DisplaySettings-DEFAULT" aria-label="Link to DisplaySettings::DEFAULT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">DEFAULT</span>: <span class="t">DisplaySettings</span> = <span class="t">DisplaySettings</span></code></div><div class="doc"><p>What a game gets before it asks for anything, as a const so a
+<code>static Mutex</code> can hold it.</p>
+<p><code>Default::default()</code> is not callable in a const initializer, and the
+settings are one global now — so the values live here and <code>Default</code>
+returns this rather than the other way round.</p>
+<h2>EVERY EFFECT IS OFF, AND THE VALUES BESIDE THE SWITCHES ARE NOT</h2>
+<p>A new project draws what it drew: the rects and lines its <code>render</code>
+method submits, at the colours it chose. It used to draw those through
+an HDR chain and a barrel-distorted CRT filter, because this const held
+the look of one game — so the first picture anybody made in this engine
+came out bloomed, saturated and bent, and nothing in the project said
+where that came from.</p>
+<p>The tuned numbers stay. They are the look those two passes had, and a
+game that wants it sets <code>pp_enabled</code> and <code>crt_enabled</code> and gets it back
+whole; a game that wants its own moves the fields beside them. What
+changed is which of the two states costs a line of code.</p>
+<h2>AND THE TUBE GREW THIRTY-ONE MORE FIELDS WITHOUT MOVING THE PICTURE</h2>
+<p>The CRT filter gained a phosphor mask, a parallax model, a per-channel
+convergence block and a set of visualisation modes. A project that sets
+only <code>crt_enabled = true</code> today must get exactly the picture it got
+before them, so every one of those features is off in this const:
+<code>crt_mask_type</code> 0, <code>crt_mask_strength</code> 0, <code>crt_parallax_strength</code> 0,
+all six <code>crt_conv_*</code> 0, <code>crt_viz_mode</code> 0, and <code>crt_phosphor_on</code> false.
+<code>crt_curve_aspect</code> is 1.0, which makes the two-axis barrel equal to the
+single scalar it replaced.</p>
+<p>The fields those switches multiply keep real values rather than zero —
+<code>crt_mask_triad_px</code>, <code>crt_slot_height_px</code>, <code>crt_eye_dist</code>, <code>crt_glass_ior</code>
+and <code>crt_mask_boost</code> are divisors, periods or a gain of one, where zero
+is a divide or a black screen and not a no-op.</p>
+<p><code>crt_phosphor_gui_exempt</code> defaults to 1.0 and is dormant. The default
+is left where it was because the field is only carried, never read;
+changing it would rewrite every saved project for no visible effect.</p></div></div><div class="item" id="sym-DisplaySettings-copy_crt_tuning_from" data-name="displaysettings::copy_crt_tuning_from"><div class="sig"><a class="anchor" href="#sym-DisplaySettings-copy_crt_tuning_from" aria-label="Link to DisplaySettings::copy_crt_tuning_from">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">copy_crt_tuning_from</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, src: &amp;<span class="t">DisplaySettings</span>)</code></div><div class="doc"><p>Copy every <code>crt_*</code> field except <code>crt_enabled</code> from <code>src</code>.</p>
+<p>The tube's tuning is sixty-odd fields that a game sets as one block,
+so <code>warp_sdk::post::CrtTuning</code> carries them in a <code>DisplaySettings</code>
+and moves them with this. The list is in ONE place: a field added to
+the struct and not here is a field the SDK drops, and the test below
+fails on it: it changes every <code>crt_*</code> key the struct serialises.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-RawKey" data-name="rawkey"><div class="sig"><a class="anchor" href="#sym-RawKey" aria-label="Link to RawKey">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">type</span> <span class="t">RawKey</span> = winit::event::<span class="t">VirtualKeyCode</span></code></div><div class="doc"><p>A physical key, as winit reports it.</p></div></div></div><div class="typeblock"><div class="item" id="sym-SharedGpu" data-name="sharedgpu"><div class="sig"><a class="anchor" href="#sym-SharedGpu" aria-label="Link to SharedGpu">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">SharedGpu</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> device: <span class="t">Arc</span>&lt;wgpu::<span class="t">Device</span>&gt;,
+<span class="k">pub</span> queue: <span class="t">Arc</span>&lt;wgpu::<span class="t">Queue</span>&gt;,
+<span class="k">pub</span> surface_format: wgpu::<span class="t">TextureFormat</span>,
+<span class="k">pub</span> pipelines: <span class="t">Pipelines</span>,
+<span class="k">pub</span> view_bgl: wgpu::<span class="t">BindGroupLayout</span>,
+<span class="k">pub</span> scene_texture_bgl: wgpu::<span class="t">BindGroupLayout</span>,
+<span class="k">pub</span> image_bgl: wgpu::<span class="t">BindGroupLayout</span>,
+<span class="k">pub</span> mega_atlases: <span class="t">MegaAtlasSet</span>,
+<span class="k">pub</span> ship_atlas: <span class="t">ImageAtlas</span>,
+<span class="c">/// The group 1 material set. The application's loader builds it; the</span>
+<span class="c">/// engine only holds the layout and the placeholder.</span>
+<span class="k">pub</span> scene_textures: <span class="t">SceneTextures</span>,</code></pre></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-SharedGpu-new" data-name="sharedgpu::new"><div class="sig"><a class="anchor" href="#sym-SharedGpu-new" aria-label="Link to SharedGpu::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(gpu: &amp;<span class="t">GpuContext</span>, surface_format: wgpu::<span class="t">TextureFormat</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Build from an existing GpuContext. Textures are placeholders.</p></div></div><div class="item" id="sym-SharedGpu-apply_loaded_assets" data-name="sharedgpu::apply_loaded_assets"><div class="sig"><a class="anchor" href="#sym-SharedGpu-apply_loaded_assets" aria-label="Link to SharedGpu::apply_loaded_assets">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">apply_loaded_assets</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, assets: <span class="t">LoadedAssets</span>)</code></div></div><div class="item" id="sym-SharedGpu-scene_texture_count" data-name="sharedgpu::scene_texture_count"><div class="sig"><a class="anchor" href="#sym-SharedGpu-scene_texture_count" aria-label="Link to SharedGpu::scene_texture_count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">scene_texture_count</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div><div class="doc"><p>Layer count of the loaded material set. Always at least 1.</p></div></div><div class="item" id="sym-SharedGpu-mega_atlas_mapping" data-name="sharedgpu::mega_atlas_mapping"><div class="sig"><a class="anchor" href="#sym-SharedGpu-mega_atlas_mapping" aria-label="Link to SharedGpu::mega_atlas_mapping">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">mega_atlas_mapping</span>(&amp;<span class="k">self</span>, slot: usize) -&gt; &amp;<span class="t">TextureMapping</span></code></div><div class="doc"><p>Texture mapping of one atlas slot. The slot number is the index the
+application gave that atlas in its descriptor.</p></div></div><div class="item" id="sym-SharedGpu-mega_atlas_mappings" data-name="sharedgpu::mega_atlas_mappings"><div class="sig"><a class="anchor" href="#sym-SharedGpu-mega_atlas_mappings" aria-label="Link to SharedGpu::mega_atlas_mappings">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">mega_atlas_mappings</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">TextureMapping</span>&gt;</code></div><div class="doc"><p>Every slot's texture mapping, in slot order.</p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-PRIMARY_VIEWPORT" data-name="primary_viewport"><div class="sig"><a class="anchor" href="#sym-PRIMARY_VIEWPORT" aria-label="Link to PRIMARY_VIEWPORT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">PRIMARY_VIEWPORT</span>: <span class="t">ViewportId</span> = <span class="n">0</span></code></div><div class="doc"><p>The main game window. Always exists. Created first during startup.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="warp.html" data-slug="warp">Warp</a></li><li><a href="getting-started.html" data-slug="getting-started">Getting started</a></li><li><a href="shell.html" data-slug="shell">Game shell</a></li><li><a href="smoke.html" data-slug="smoke">Smoke test</a></li><li><a href="post.html" data-slug="post">Post effects</a></li><li><a href="display-mode.html" data-slug="display-mode">Display mode</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/lib.rs</code> - <code>Store the app name before any window or GPU work, so a failure dialog</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_core/src/lib.rs</code> - <code>/// Startup configuration. Every string here is app-supplied, because the</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/lib.rs</code> - <code>/// WHY THE REQUEST GOES IN AS LOGICAL UNITS</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/lib.rs</code> - <code>pub trait Renderer {</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_core/src/lib.rs</code> - <code>winit 0.28&#x27;s event loop ends in `process::exit`, so no destructor runs.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_core/src/lib.rs</code> - <code>So a host</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_core/src/viewport/frame.rs</code> - <code>// Scene pass (HDR + Z MRT) — LoadOp::Load preserves the underlay</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_core/src/lib.rs</code> - <code>/// This was a constant at 16_667 us, so 60 Hz was the ceiling every</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_core/src/lib.rs</code> - <code>/// A THROTTLE AND NOT A STOP, WHICH IS THE WHOLE CHOICE HERE</code></li><li id="ref-10"><a class="back" href="#cite-10" aria-label="Back to the text">^</a> <code>warp_core/src/context/mod.rs</code> - <code>RenderContext collects draw commands during a frame and batches them for</code></li><li id="ref-11"><a class="back" href="#cite-11" aria-label="Back to the text">^</a> <code>warp_core/src/context/mod.rs</code> - <code>/// A floating render origin, subtracted from the view position so the</code></li><li id="ref-12"><a class="back" href="#cite-12" aria-label="Back to the text">^</a> <code>warp_core/src/context/draw/primitives.rs</code> - <code>/// A disc in the instance colour, flat from the middle to the edge.</code></li><li id="ref-13"><a class="back" href="#cite-13" aria-label="Back to the text">^</a> <code>warp_core/src/context/draw/primitives.rs</code> - <code>/// Draw a normalized screen-space rectangle, independent of the world camera.</code></li><li id="ref-14"><a class="back" href="#cite-14" aria-label="Back to the text">^</a> <code>warp_core/src/context/mod.rs</code> - <code>pub const NUM_MEGA_ATLASES: usize = 4;</code></li><li id="ref-15"><a class="back" href="#cite-15" aria-label="Back to the text">^</a> <code>warp_core/src/context/mod.rs</code> - <code>/// mismatch is a wrong picture and not a crash, the same way a wrong</code></li><li id="ref-16"><a class="back" href="#cite-16" aria-label="Back to the text">^</a> <code>warp_core/src/lib.rs</code> - <code>/// `surface_px` is the window size in physical pixels. It is NOT the size</code></li><li id="ref-17"><a class="back" href="#cite-17" aria-label="Back to the text">^</a> <code>warp_core/src/lib.rs</code> - <code>renderer.input(1, &amp;secondary_input, sw, sh);</code></li><li id="ref-18"><a class="back" href="#cite-18" aria-label="Back to the text">^</a> <code>warp_core/src/lib.rs</code> - <code>/// Two contexts, because one cannot serve both. A single context lays out</code></li><li id="ref-19"><a class="back" href="#cite-19" aria-label="Back to the text">^</a> <code>warp_core/src/types/display.rs</code> - <code>//  One global instead. Every viewport reads the same values, the Display</code></li><li id="ref-20"><a class="back" href="#cite-20" aria-label="Back to the text">^</a> <code>warp_core/src/types/display.rs</code> - <code>/// lock is held across a whole GUI frame, so anything the frame calls that</code></li><li id="ref-21"><a class="back" href="#cite-21" aria-label="Back to the text">^</a> <code>warp_core/src/shared.rs</code> - <code>Device/Queue are Arc-wrapped (shared with background asset loader).</code></li><li id="ref-22"><a class="back" href="#cite-22" aria-label="Back to the text">^</a> <code>warp_core/src/lib.rs</code> - <code>// tube bows one axis only, and this one-scalar hook cannot</code></li></ol><table class="navbox"><tr><th><a href="category-getting-started.html">Getting started</a></th></tr><tr><td><b>Renderer and run</b> · <a href="shell.html" data-slug="shell">Game shell</a> · <a href="smoke.html" data-slug="smoke">Smoke test</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-getting-started.html">Getting started</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

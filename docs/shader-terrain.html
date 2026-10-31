@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terrain shaders - Warp Wiki</title>
+<meta name="description" content="WGSL caves, DLA ridges, heightfields, strata, reveal and map shading">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="shader-terrain">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#files">Files</a></li><li><a href="#conventions">Conventions</a></li><li><a href="#caves">Caves</a></li><li><a href="#dla-ridges">DLA ridges</a></li><li><a href="#heightfields">Heightfields</a></li><li><a href="#strata-and-shading">Strata and shading</a></li><li><a href="#reveal">Reveal</a></li><li><a href="#map-shading">Map shading</a></li><li><a href="#usage">Usage</a></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Terrain shaders</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">WGSL caves, DLA ridges, heightfields, strata, reveal and map shading</p><p><strong>Terrain shaders</strong> are the <code>terrain/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL functions for side-view caves, top-down heightfields and the shading of ground. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::terrain</code></a>. It gives solid and empty fields with signed distance, a per-pixel DLA ridge height, rock strata, line of sight and fog of war, and map colours. All functions start with <code>terrain_</code>. The CPU world kits are separate. See <a href="world-terrain.html" data-slug="world-terrain">Terrain</a> and <a href="world-reveal.html" data-slug="world-reveal">Reveal grid</a>.</p>
+<h2 id="files">Files</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>File</th>
+<th>Provides</th>
+<th>Requires</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>terrain/cave.wgsl</code></td>
+<td>Side-view solid field, signed distance, normal, ambient occlusion, soft shadow</td>
+<td><code>noise/fbm.wgsl</code></td>
+</tr>
+<tr>
+<td><code>terrain/dla.wgsl</code></td>
+<td>Branching ridge height as a function of position</td>
+<td><code>noise/fbm.wgsl</code></td>
+</tr>
+<tr>
+<td><code>terrain/heightfield.wgsl</code></td>
+<td>Height texture as terrain: normal, horizon occlusion, sun shadow</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>terrain/strata.wgsl</code></td>
+<td>Rock layer phase and sedimentary colour</td>
+<td><code>noise/fbm.wgsl</code></td>
+</tr>
+<tr>
+<td><code>terrain/shade.wgsl</code></td>
+<td>Surface choice for side and top views, rim light, outline</td>
+<td><code>terrain/strata.wgsl</code>, <code>material/rock.wgsl</code>, <code>material/ground.wgsl</code>, <code>material/layer.wgsl</code></td>
+</tr>
+<tr>
+<td><code>terrain/reveal.wgsl</code></td>
+<td>Line of sight, reach circle, fog of war, cut-away</td>
+<td><code>terrain/cave.wgsl</code></td>
+</tr>
+<tr>
+<td><code>terrain/map.wgsl</code></td>
+<td>Hypsometric tint, hillshade, contours, sea depth</td>
+<td>None</td>
+</tr>
+</tbody>
+</table>
+<h2 id="conventions">Conventions</h2>
+<p>World positions have y up in side views. Seeds are <code>u32</code>. Files that read a height texture take <code>tex</code> and <code>samp</code> as arguments, with height in the <code>r</code> channel at 0..1. No file expects a uniform.</p>
+<h2 id="caves">Caves</h2>
+<p><code>struct TerrainCave</code> holds the parameters of one world, all in world units with y up:<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ground</code></td>
+<td>Mean surface height</td>
+</tr>
+<tr>
+<td><code>relief</code></td>
+<td>Height of hills above and below ground</td>
+</tr>
+<tr>
+<td><a class="sym" href="scale.html"><code>scale</code></a></td>
+<td>Hills per world unit, about</td>
+</tr>
+<tr>
+<td><code>overhang</code></td>
+<td>0..1, lean of cliffs. Above 0.6 gives floating rock</td>
+</tr>
+<tr>
+<td><code>cave</code></td>
+<td>0..1, how much rock the tunnels remove</td>
+</tr>
+<tr>
+<td><code>cave_width</code></td>
+<td>0.02..0.3, tunnel width in noise units</td>
+</tr>
+<tr>
+<td><code>cave_depth</code></td>
+<td>Depth under the surface where tunnels start</td>
+</tr>
+<tr>
+<td><code>seed</code></td>
+<td>Any <code>u32</code></td>
+</tr>
+</tbody>
+</table>
+<p>The surface line is 1D fBm over x. A domain warp of x by y makes cliffs lean out, so overhangs are true geometry. Ridged tunnel noise cuts caves below <code>cave_depth</code>.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">terrain_cave_density</span>(p: vec2&lt;f32&gt;, c: <span class="t">TerrainCave</span>) -&gt; f32
+<span class="k">fn</span> <span class="f">terrain_cave_sdf</span>(p: vec2&lt;f32&gt;, c: <span class="t">TerrainCave</span>) -&gt; f32
+<span class="k">fn</span> <span class="f">terrain_cave_normal</span>(p: vec2&lt;f32&gt;, c: <span class="t">TerrainCave</span>) -&gt; vec2&lt;f32&gt;
+<span class="k">fn</span> <span class="f">terrain_cave_ao</span>(p: vec2&lt;f32&gt;, n: vec2&lt;f32&gt;, c: <span class="t">TerrainCave</span>, radius: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">terrain_cave_shadow</span>(p: vec2&lt;f32&gt;, light_dir: vec2&lt;f32&gt;, c: <span class="t">TerrainCave</span>, max_dist: f32, k: f32) -&gt; f32</code></pre></div>
+<p><code>terrain_cave_density</code> is positive in solid rock and is not a distance. <code>terrain_cave_sdf</code> is negative inside rock. <code>terrain_cave_normal</code> is a unit vector out of the rock. For <code>terrain_cave_shadow</code>, <code>k</code> is 4 for soft and 32 for hard.</p>
+<p>Physics must use the same function on the CPU. The header says to keep a Rust twin of <code>terrain_cave_density</code>, or to bake the distance into a texture and read it back.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<h2 id="dla-ridges">DLA ridges</h2>
+<p>The source grows a true diffusion-limited aggregation tree on the CPU. <code>terrain/dla.wgsl</code> instead makes a tree that can be evaluated per pixel. Level 0 is a lattice of peaks. Each node of level k sits in a cell of size <code>0.5^k</code> and connects to the node of its parent cell, and a segment stays inside its parent cell, so a 3x3 search of parent cells finds every segment near <code>p</code>.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">terrain_dla</span>(p: vec2&lt;f32&gt;, levels: i32, blur: f32, seed: u32) -&gt; <span class="t">TerrainDla</span>
+<span class="k">fn</span> <span class="f">terrain_dla_height</span>(p: vec2&lt;f32&gt;, levels: i32, blur: f32, seed: u32) -&gt; f32
+<span class="k">fn</span> <span class="f">terrain_dla_detail</span>(p: vec2&lt;f32&gt;, levels: i32, blur: f32, detail: f32, erosion: f32, seed: u32) -&gt; f32
+<span class="k">fn</span> <span class="f">terrain_dla_normal</span>(p: vec2&lt;f32&gt;, levels: i32, blur: f32, detail: f32, erosion: f32, relief: f32, seed: u32) -&gt; vec3&lt;f32&gt;</code></pre></div>
+<p>Peaks are about 1 unit apart. <code>levels</code> is 1..7, and each level costs 45 hashes. <code>blur</code> 0 gives thin sharp ridges, and 1 gives broad round mountains. <code>terrain_dla_height</code> is about 0..1. <code>terrain_dla_detail</code> adds eroded fBm, strong on high ground and weak in valley floors, with <code>detail</code> 0..0.5 and <code>erosion</code> 0..4. <code>terrain_dla</code> returns all of height, ridge, distance and level.</p>
+<p>The cost is high, so the header advises baking <code>terrain_dla_detail</code> into a texture once for a large map, then using <code>terrain/heightfield.wgsl</code> on that texture.</p>
+<h2 id="heightfields">Heightfields</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">terrain_hf_height</span>(tex: texture_2d&lt;f32&gt;, samp: sampler, uv: vec2&lt;f32&gt;) -&gt; f32
+<span class="k">fn</span> <span class="f">terrain_hf_normal</span>(tex: texture_2d&lt;f32&gt;, samp: sampler, uv: vec2&lt;f32&gt;, texel: f32, height_scale: f32, world_size: f32) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">terrain_hf_horizon_ao</span>(tex: texture_2d&lt;f32&gt;, samp: sampler, uv: vec2&lt;f32&gt;, texel: f32, height_scale: f32, world_size: f32, strength: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">terrain_hf_shadow</span>(tex: texture_2d&lt;f32&gt;, samp: sampler, uv: vec2&lt;f32&gt;, sun: vec3&lt;f32&gt;, texel: f32, height_scale: f32, world_size: f32, light_size: f32) -&gt; f32</code></pre></div>
+<p><code>uv</code> runs 0..1 over the map, <code>texel</code> is 1 over the texture size, <code>height_scale</code> is the world height of <code>r = 1</code>, and <code>world_size</code> is the world width of the map. A linear sampler is required. <code>terrain_hf_horizon_ao</code> walks 8 directions of 6 steps. <code>terrain_hf_shadow</code> marches toward the sun with steps that grow by 1.12, and <code>light_size</code> is the tan of the sun disc radius, with 0.012 soft and 0.003 hard. Shadow and occlusion each cost 48 texture reads, so the header advises baking both when the sun does not move.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<h2 id="strata-and-shading">Strata and shading</h2>
+<p><code>terrain_strata</code> returns (phase, hard 0..1, layer index), for a <code>thickness</code> that is the world height of one hard and soft layer pair, a <code>dip</code> that is dy/dx, and a <code>warp</code> 0..2. <code>terrain_strata_color</code> gives linear colour with <code>granite</code> 0 for a sandstone palette and 1 for grey bands. Albedo is about 0.07..0.55.</p>
+<p><code>terrain/shade.wgsl</code> picks a surface. The side-view function gives strata rock with a soil cap on ground that faces up. The top-down function gives beach, silt, rock on steep ground and snow above a line.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">terrain_material_side</span>(p: vec2&lt;f32&gt;, n: vec2&lt;f32&gt;, depth: f32, scale: f32, thickness: f32, soil: f32, granite: f32, seed: u32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">terrain_material_top</span>(p: vec2&lt;f32&gt;, h: f32, slope: f32, sea: f32, snow: f32, scale: f32, seed: u32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">terrain_rim</span>(sd: f32, n: vec2&lt;f32&gt;, light_dir: vec2&lt;f32&gt;, width: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">terrain_outline</span>(sd: f32, px: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">terrain_body_dark</span>(depth: f32, falloff: f32) -&gt; f32</code></pre></div>
+<p>In <code>terrain_material_side</code>, <code>n</code> comes from <code>terrain_cave_normal</code> and <code>depth</code> is <code>-terrain_cave_sdf</code>. In <code>terrain_material_top</code>, <code>h</code> is 0..1 and <code>slope</code> is <code>1 - normal.z</code>. A <code>snow</code> above 1 means no snow. <code>terrain_rim</code> is added after lighting, and <code>terrain_body_dark</code> is a 0.25..1 multiplier that darkens deep rock.</p>
+<h2 id="reveal">Reveal</h2>
+<p><code>terrain/reveal.wgsl</code> gives a reveal value 0..1 per pixel and never a hard cut.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Function</th>
+<th>Output and inputs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>terrain_reveal_los(p, eye, c, skin, k)</code></td>
+<td>1 where the eye sees <code>p</code>. <code>skin</code> is the rock depth seen past the surface, 0.05..0.5</td>
+</tr>
+<tr>
+<td><code>terrain_reveal_los_tex(mask, samp, uv, eye_uv, skin, density)</code></td>
+<td>The same through a mask texture with <code>r &gt; 0</code> solid</td>
+</tr>
+<tr>
+<td><code>terrain_reveal_reach(p, eye, radius, feather, wobble, seed)</code></td>
+<td>A circle with a soft, wavy edge</td>
+</tr>
+<tr>
+<td><code>terrain_reveal_ease(t, duration)</code></td>
+<td>A smoothstep fade in time</td>
+</tr>
+<tr>
+<td><code>terrain_fog_of_war(colour, visible, explored, fog)</code></td>
+<td>Linear RGB</td>
+</tr>
+<tr>
+<td><code>terrain_cutaway(colour, p, sd, reveal, band, ink, edge)</code></td>
+<td>Linear RGB, with hidden rock as flat ink</td>
+</tr>
+</tbody>
+</table>
+<p>Hidden rock has a flat ink fill with sparse hatching and keeps its surface line, so it reads as solid and hidden and not as a missing texture.</p>
+<h2 id="map-shading">Map shading</h2>
+<p><code>terrain/map.wgsl</code> shades a height as a map. <code>terrain_map</code> combines the parts:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">terrain_hypsometric</span>(t: f32) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">terrain_hillshade</span>(n: vec3&lt;f32&gt;, light: vec3&lt;f32&gt;) -&gt; f32
+<span class="k">fn</span> <span class="f">terrain_contour</span>(h: f32, step: f32, px: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">terrain_contour_step</span>(span: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">terrain_map</span>(h: f32, n: vec3&lt;f32&gt;, sea: f32, hi: f32, px: f32, contours: bool) -&gt; vec3&lt;f32&gt;</code></pre></div>
+<p><code>terrain_contour</code> draws a darker line every fifth contour, with <a class="sym" href="scale.html#sym-px"><code>px</code></a> the height change across one pixel. <code>terrain_contour_step</code> picks a round step that gives about 12 lines. <code>terrain_hillshade</code> returns a 0.28..1.15 multiplier.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<h2 id="usage">Usage</h2>
+<p>The sample below draws a DLA height from <code>terrain/dla.wgsl</code>, which also brings <code>noise/fbm.wgsl</code>:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">let</span> h = <span class="f">terrain_dla_height</span>(uv * <span class="n">3.0</span>, <span class="n">4</span>, <span class="n">0.5</span>, <span class="n">1u</span>);</code></pre></div>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<ul>
+<li><code>terrain/shade.wgsl</code> depends on <a href="shader-material.html" data-slug="shader-material">Material shaders</a> and <code>terrain/cave.wgsl</code> depends on <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a>.</li>
+<li><code>water_sim_terrain</code> in <a href="shader-water.html" data-slug="shader-water">Water shaders</a> is a separate map colour for a simulation height.</li>
+<li><code>organic_encrust</code> in <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> accepts a host distance from <code>terrain_cave_sdf</code>.</li>
+</ul><h2 id="see-also">See also</h2><ul><li><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></li><li><a href="world-terrain.html" data-slug="world-terrain">Terrain</a></li><li><a href="world-reveal.html" data-slug="world-reveal">Reveal grid</a></li><li><a href="shader-material.html" data-slug="shader-material">Material shaders</a></li><li><a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a></li><li><a href="hud-minimap.html" data-slug="hud-minimap">HUD minimap</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/terrain/cave.wgsl</code> - <code>//   TerrainCave fields (world units, y up):</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/terrain/cave.wgsl</code> - <code>// Physics must use the same function on the CPU. Keep a Rust twin of</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/terrain/dla.wgsl</code> - <code>// 3x3 search of parent cells finds every segment near p. A node near the</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/terrain/heightfield.wgsl</code> - <code>// Shadow cost: 48 texture reads. AO cost: 48 texture reads. Bake both into</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/terrain/shade.wgsl</code> - <code>// terrain/shade.wgsl — terrain surface choice and edge light. Side view:</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/terrain/reveal.wgsl</code> - <code>// fade in space: a reveal value 0..1 per pixel, never a hard cut.</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/terrain/map.wgsl</code> - <code>//   terrain_hillshade(n, light) -&gt; 0.28..1.15 multiplier</code></li></ol><table class="navbox"><tr><th><a href="category-shader-library.html">Shader library</a></th></tr><tr><td><a href="shaderlib.html" data-slug="shaderlib">Shader library</a> · <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a> · <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> · <a href="shader-material.html" data-slug="shader-material">Material shaders</a> · <a href="shader-water.html" data-slug="shader-water">Water shaders</a> · <a href="shader-post.html" data-slug="shader-post">Post shaders</a> · <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> · <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> · <b>Terrain shaders</b> · <a href="shader-pattern.html" data-slug="shader-pattern">Pattern shaders</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-shader-library.html">Shader library</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

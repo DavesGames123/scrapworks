@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fluid kit - Warp Wiki</title>
+<meta name="description" content="GPU stable fluids and the particles that ride them">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="fluid">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#parts">Parts</a></li><li><a href="#design">Design</a></li><li><a href="#usage">Usage</a></li><li><a href="#requirements">Requirements</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Fluid kit</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">GPU stable fluids and the particles that ride them</p><table class="infobox"><caption>Fluid kit</caption><tr><th>Category</th><td><a href="category-world-and-simulation.html">World and simulation</a></td></tr><tr><th>Module</th><td><code>warp_sdk::fluid</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/fluid/mod.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">18</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example fluid</code></td></tr></table><p><strong>Fluid kit</strong> is the family of Warp SDK modules that simulates moving water and the particles that ride it on the GPU. It lives in <a class="sym" href="fluid.html"><code>warp_sdk::fluid</code></a>, which has three submodules and re-exports <a class="sym" href="#sym-Ocean"><code>Ocean</code></a> and <a class="sym" href="#sym-OceanConfig"><code>OceanConfig</code></a>. The one call path for a game is <a class="sym" href="#sym-Ocean"><code>Ocean</code></a>: the solver, the particles and an optional terrain in one value, with a <a class="sym" href="perf.html"><code>perf</code></a> budget.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<h2 id="parts">Parts</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Module</th>
+<th>Article</th>
+<th>What it holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="fluid-ocean.html"><code>fluid::ocean</code></a></td>
+<td><a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a></td>
+<td><a class="sym" href="#sym-Ocean"><code>Ocean</code></a>, the one value that wires the others each frame</td>
+</tr>
+<tr>
+<td><a class="sym" href="fluid-solver.html"><code>fluid::solver</code></a></td>
+<td><a href="fluid-solver.html" data-slug="fluid-solver">Fluid solver</a></td>
+<td>A stable-fluids velocity and dye simulation in wgpu compute</td>
+</tr>
+<tr>
+<td><a class="sym" href="fluid-particles.html"><code>fluid::particles</code></a></td>
+<td><a href="fluid-particles.html" data-slug="fluid-particles">Fluid particles</a></td>
+<td>GPU particles that ride a velocity field and land on terrain</td>
+</tr>
+</tbody>
+</table>
+<h2 id="design">Design</h2>
+<p>All of the simulation state stays on the GPU. The solver records its work into the encoder of the game, and the CPU never reads the fields back.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup> The CPU side of the particles only spawns particles and writes two small uniforms, so the CPU cost does not grow with the count.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<p>The parts meet through textures and rects. The solver publishes a velocity texture. The terrain publishes a signed distance texture. The water treats that distance as obstacles, and the particles treat the same texture as a floor, so the water and the particles hit the same rock.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<h2 id="usage">Usage</h2>
+<p>Use <a class="sym" href="#sym-Ocean"><code>Ocean</code></a> unless a game needs to wire the parts itself. The two samples in the SDK reference show the shape of a game.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::fluid::{<span class="t">Ocean</span>, <span class="t">OceanConfig</span>};
+<span class="k">use</span> warp_sdk::fluid::particles::{<span class="t">Emitter</span>, <span class="t">Kind</span>};
+<span class="k">use</span> warp_sdk::world::terrain::{<span class="t">Terrain</span>, <span class="t">TerrainConfig</span>};
+
+<span class="c">// Renderer::new</span>
+<span class="k">let</span> <span class="k">mut</span> ocean = <span class="t">Ocean</span>::<span class="f">new</span>(<span class="t">OceanConfig</span>::<span class="f">new</span>([-<span class="n">8.0</span>, -<span class="n">4.5</span>, <span class="n">8.0</span>, <span class="n">4.5</span>]))
+    .<span class="f">with_terrain</span>(<span class="t">Terrain</span>::<span class="f">generate</span>(<span class="t">TerrainConfig</span>::<span class="f">side</span>(<span class="n">7</span>)));
+<span class="k">let</span> snow = ocean.particles.<span class="f">add_kind</span>(<span class="t">Kind</span>::<span class="f">marine_snow</span>());
+ocean.particles.<span class="f">add_emitter</span>(<span class="t">Emitter</span>::<span class="f">area</span>(snow, [-<span class="n">8.0</span>, <span class="n">4.0</span>, <span class="n">8.0</span>, <span class="n">4.5</span>], <span class="n">800.0</span>));
+<span class="c">// Renderer::render</span>
+ocean.<span class="f">splat</span>(sub_pos, sub_vel, <span class="n">0.6</span>);
+<span class="c">// Renderer::scene_underlay</span>
+ocean.<span class="f">encode</span>(shared, encoder, hdr_view, view, dt);</code></pre></div>
+<p>The <a class="sym" href="fluid.html"><code>fluid</code></a> example runs one <a class="sym" href="#sym-Ocean"><code>Ocean</code></a> over a seeded cave, 64 x 32 world units, with snow, bubbles, plankton and silt. The left button pushes the water, D or the right button digs the rock, and B throws a cloud of silt.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-bash">cargo run -p warp_sdk --example fluid</code></pre></div>
+<h2 id="requirements">Requirements</h2>
+<p>The solver needs compute shaders and at least two storage textures per stage. <a class="sym" href="fluid-solver.html#sym-Solver-new"><code>Solver::new</code></a> returns SolverError::NoCompute on a device without them, for example GLES or WebGL2. <a class="sym" href="#sym-Ocean"><code>Ocean</code></a> handles that error, and the particles then run with no water. See <a href="fluid-solver.html#errors" data-slug="fluid-solver">solver errors</a>.</p>
+<h2 id="history">History</h2>
+<p>Commits on 2026-10-29 added the solver (<code>d905e000</code>), the particles (<code>ec5776ad</code>) and <a class="sym" href="#sym-Ocean"><code>Ocean</code></a> (<code>a8c7f540</code>). Before the last of these the parts were not connected, and the particle example used an analytic swirl.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 18 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-fluid" class="modhead"><code>warp_sdk::fluid</code></h3><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Ocean" data-name="ocean"><div class="sig"><a class="anchor" href="#sym-Ocean" aria-label="Link to Ocean">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Ocean</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The particle system. Add kinds and emitters to it directly.</span>
+<span class="k">pub</span> particles: <span class="t">Particles</span>,</code></pre></div><div class="doc"><p>The water, the particles that ride it and the terrain they both hit.
+<code>new</code> touches no device, so <code>warp_sdk::smoke::boot</code> can build a game
+that owns one. The solver is made in the first <code>step</code>.</p>
+<p><code>ignore
+let mut ocean = Ocean::new(OceanConfig::new([-2.0, -1.1, 2.0, 1.1]));
+ocean.splat(pos, vel, 0.3);
+ocean.encode(shared, encoder, hdr_view, view, dt);</code></p></div></div><details class="members"><summary>14 methods</summary><div class="item" id="sym-Ocean-new" data-name="ocean::new"><div class="sig"><a class="anchor" href="#sym-Ocean-new" aria-label="Link to Ocean::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(cfg: <span class="t">OceanConfig</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>An ocean with no terrain. It registers its two <code>perf</code> budgets.</p>
+<p><code>ignore
+let ocean = Ocean::new(OceanConfig::new([-8.0, -4.5, 8.0, 4.5]));</code></p></div></div><div class="item" id="sym-Ocean-with_terrain" data-name="ocean::with_terrain"><div class="sig"><a class="anchor" href="#sym-Ocean-with_terrain" aria-label="Link to Ocean::with_terrain">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_terrain</span>(<span class="k">mut</span> <span class="k">self</span>, terrain: <span class="t">Terrain</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Give the ocean a terrain. Its SDF becomes the solver obstacle field
+and the particle collision field.</p>
+<p><code>ignore
+let ocean = Ocean::new(cfg).with_terrain(Terrain::generate(TerrainConfig::side(7)));</code></p></div></div><div class="item" id="sym-Ocean-config" data-name="ocean::config"><div class="sig"><a class="anchor" href="#sym-Ocean-config" aria-label="Link to Ocean::config">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">config</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="t">OceanConfig</span></code></div><div class="doc"><p>The config.</p>
+<p><code>ignore
+let rect = ocean.config().world_rect;</code></p></div></div><div class="item" id="sym-Ocean-terrain" data-name="ocean::terrain"><div class="sig"><a class="anchor" href="#sym-Ocean-terrain" aria-label="Link to Ocean::terrain">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">terrain</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Terrain</span>&gt;</code></div><div class="doc"><p>The terrain, if any.</p>
+<p><code>ignore
+if let Some(t) = ocean.terrain() { let solid = t.is_solid(p.into()); }</code></p></div></div><div class="item" id="sym-Ocean-terrain_mut" data-name="ocean::terrain_mut"><div class="sig"><a class="anchor" href="#sym-Ocean-terrain_mut" aria-label="Link to Ocean::terrain_mut">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">terrain_mut</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="k">mut</span> <span class="t">Terrain</span>&gt;</code></div><div class="doc"><p>The terrain, to dig or fill. The next <code>step</code> bakes the changed
+chunks, and the water and the particles see the change.</p>
+<p><code>ignore
+if let Some(t) = ocean.terrain_mut() { t.dig(p.into(), 1.5); }</code></p></div></div><div class="item" id="sym-Ocean-solver" data-name="ocean::solver"><div class="sig"><a class="anchor" href="#sym-Ocean-solver" aria-label="Link to Ocean::solver">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">solver</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Solver</span>&gt;</code></div><div class="doc"><p>The solver, after the first <code>step</code>. Use it for the velocity view, the
+dye views and the stats.</p>
+<p><code>ignore
+if let Some(s) = ocean.solver() { let v = s.velocity_view(); }</code></p></div></div><div class="item" id="sym-Ocean-solver_error" data-name="ocean::solver_error"><div class="sig"><a class="anchor" href="#sym-Ocean-solver_error" aria-label="Link to Ocean::solver_error">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">solver_error</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">SolverError</span>&gt;</code></div><div class="doc"><p>The error from the solver creation, for example a device with no
+compute. With an error the particles still run, with no water.</p>
+<p><code>ignore
+if let Some(e) = ocean.solver_error() { eprintln!("{e}"); }</code></p></div></div><div class="item" id="sym-Ocean-splat" data-name="ocean::splat"><div class="sig"><a class="anchor" href="#sym-Ocean-splat" aria-label="Link to Ocean::splat">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">splat</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, pos: [f32; <span class="n">2</span>], velocity: [f32; <span class="n">2</span>], radius: f32)</code></div><div class="doc"><p>Push the water: add <code>velocity</code> around world point <code>pos</code>, with a
+Gaussian of world <code>radius</code>. Call it each frame while a body moves.</p>
+<p><code>ignore
+ocean.splat(sub.pos, sub.vel, 0.6);</code></p></div></div><div class="item" id="sym-Ocean-splat_dye" data-name="ocean::splat_dye"><div class="sig"><a class="anchor" href="#sym-Ocean-splat_dye" aria-label="Link to Ocean::splat_dye">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">splat_dye</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, channel: u32, pos: [f32; <span class="n">2</span>], amount: f32, radius: f32)</code></div><div class="doc"><p>Add dye to one solver channel. The default config has no dye
+channels; set <code>solver_config().dye_channels</code> to use dye.</p>
+<p><code>ignore
+ocean.splat_dye(0, vent, 1.0, 0.3);</code></p></div></div><div class="item" id="sym-Ocean-emit" data-name="ocean::emit"><div class="sig"><a class="anchor" href="#sym-Ocean-emit" aria-label="Link to Ocean::emit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">emit</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, kind: <span class="t">KindId</span>, pos: [f32; <span class="n">2</span>], count: u32, speed: f32)</code></div><div class="doc"><p>Spray <code>count</code> particles of <code>kind</code> from <code>pos</code>, up to <code>speed</code>.</p>
+<p><code>ignore
+ocean.emit(silt, hit_pos, 300, 0.5);</code></p></div></div><div class="item" id="sym-Ocean-step" data-name="ocean::step"><div class="sig"><a class="anchor" href="#sym-Ocean-step" aria-label="Link to Ocean::step">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">step</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, device: &amp;<span class="t">Arc</span>&lt;wgpu::<span class="t">Device</span>&gt;, queue: &amp;wgpu::<span class="t">Queue</span>, encoder: &amp;<span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>, dt: f32)</code></div><div class="doc"><p>Record one frame of simulation: bake the terrain, step the solver,
+then step the particles in the new water. It draws nothing.</p>
+<p><code>ignore
+ocean.step(&amp;device, &amp;queue, &amp;mut encoder, dt);</code></p></div></div><div class="item" id="sym-Ocean-draw" data-name="ocean::draw"><div class="sig"><a class="anchor" href="#sym-Ocean-draw" aria-label="Link to Ocean::draw">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, device: &amp;wgpu::<span class="t">Device</span>, queue: &amp;wgpu::<span class="t">Queue</span>, encoder: &amp;<span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>, target: &amp;wgpu::<span class="t">TextureView</span>, format: wgpu::<span class="t">TextureFormat</span>, cam: <span class="t">Camera</span>, )</code></div><div class="doc"><p>Record the particle draw into <code>target</code>. Call <code>step</code> before.</p>
+<p><code>ignore
+ocean.draw(&amp;device, &amp;queue, &amp;mut encoder, &amp;hdr_view, warp_sdk::gpu::HDR_FORMAT, Camera::from_view(view));</code></p></div></div><div class="item" id="sym-Ocean-encode" data-name="ocean::encode"><div class="sig"><a class="anchor" href="#sym-Ocean-encode" aria-label="Link to Ocean::encode">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">encode</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, shared: &amp;<span class="t">SharedGpu</span>, encoder: &amp;<span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>, hdr_view: &amp;wgpu::<span class="t">TextureView</span>, view: &amp;<span class="k">crate</span>::types::<span class="t">View</span>, dt: f32, )</code></div><div class="doc"><p>The one call for a game: <code>step</code>, then <code>draw</code> into the engine HDR
+target with the camera of <code>view</code>. Call it from
+<code>Renderer::scene_underlay</code>.</p>
+<p><code>ignore
+self.ocean.encode(shared, encoder, hdr_view, view, self.dt);</code></p></div></div><div class="item" id="sym-Ocean-over_budget" data-name="ocean::over_budget"><div class="sig"><a class="anchor" href="#sym-Ocean-over_budget" aria-label="Link to Ocean::over_budget">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">over_budget</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True when the solver GPU time is over its half of the budget.
+Always false with no timestamps. A game then makes a new ocean
+with a lower <code>quality</code>.</p>
+<p><code>ignore
+if ocean.over_budget() { /* rebuild with Quality::Low */ }</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-OceanConfig" data-name="oceanconfig"><div class="sig"><a class="anchor" href="#sym-OceanConfig" aria-label="Link to OceanConfig">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">OceanConfig</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The world rect of the water, `[min_x, min_y, max_x, max_y]`.</span>
+<span class="k">pub</span> world_rect: [f32; <span class="n">4</span>],
+<span class="c">/// The solver quality. `Medium` is 256 cells on the long side.</span>
+<span class="k">pub</span> quality: <span class="t">Quality</span>,
+<span class="c">/// The particle capacity.</span>
+<span class="k">pub</span> particles: u32,
+<span class="c">/// The vorticity of the water. 0 turns it off.</span>
+<span class="k">pub</span> vorticity: f32,
+<span class="c">/// The velocity loss per second. Water that a body pushed comes to</span>
+<span class="c">/// rest in about `1 / velocity_dissipation` seconds.</span>
+<span class="k">pub</span> velocity_dissipation: f32,
+<span class="c">/// The GPU budget in ms for the solver and the particles together.</span>
+<span class="k">pub</span> gpu_budget_ms: f32,
+<span class="c">/// The CPU budget in ms for the record work of `encode`.</span>
+<span class="k">pub</span> cpu_budget_ms: f32,</code></pre></div><div class="doc"><p>The settings of an [<code>Ocean</code>]. Start from <code>new</code> and change fields.</p>
+<p><code>ignore
+let mut cfg = OceanConfig::new([-8.0, -4.5, 8.0, 4.5]);
+cfg.quality = Quality::Low;
+cfg.particles = 50_000;</code></p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-OceanConfig-new" data-name="oceanconfig::new"><div class="sig"><a class="anchor" href="#sym-OceanConfig-new" aria-label="Link to OceanConfig::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(world_rect: [f32; <span class="n">4</span>]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Medium water over <code>world_rect</code>, 100k particles, a GPU budget of
+2 ms (1 ms solver, 1 ms particles) and a CPU budget of 0.5 ms.</p>
+<p><code>ignore
+let cfg = OceanConfig::new([-8.0, -4.5, 8.0, 4.5]);</code></p></div></div><div class="item" id="sym-OceanConfig-solver_config" data-name="oceanconfig::solver_config"><div class="sig"><a class="anchor" href="#sym-OceanConfig-solver_config" aria-label="Link to OceanConfig::solver_config">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">solver_config</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">SolverConfig</span></code></div><div class="doc"><p>The solver config that this ocean config makes. The solver gets
+half of the GPU budget.</p>
+<p><code>ignore
+let s = OceanConfig::new(rect).solver_config();</code></p></div></div></details></div><h2 id="see-also">See also</h2><ul><li><a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a></li><li><a href="fluid-solver.html" data-slug="fluid-solver">Fluid solver</a></li><li><a href="fluid-particles.html" data-slug="fluid-particles">Fluid particles</a></li><li><a href="world-terrain.html" data-slug="world-terrain">Terrain</a></li><li><a href="perf.html" data-slug="perf">Perf</a></li><li><a href="post.html" data-slug="post">Post effects</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/mod.rs</code> - <code>The one call path for a game is</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/solver.rs</code> - <code>The CPU never reads the fields back.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/particles.rs</code> - <code>The CPU only spawns</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/examples/fluid.rs</code> - <code>The water and the particles hit</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/examples/fluid.rs</code> - <code>real water in a seeded cave, with snow and bubbles</code></li></ol><table class="navbox"><tr><th><a href="category-world-and-simulation.html">World and simulation</a></th></tr><tr><td><a href="world.html" data-slug="world">World kit</a> · <a href="world-terrain.html" data-slug="world-terrain">Terrain</a> · <a href="world-collide.html" data-slug="world-collide">Surface collision</a> · <a href="world-biome.html" data-slug="world-biome">Biomes</a> · <a href="world-reveal.html" data-slug="world-reveal">Reveal grid</a> · <b>Fluid kit</b> · <a href="fluid-solver.html" data-slug="fluid-solver">Fluid solver</a> · <a href="fluid-particles.html" data-slug="fluid-particles">Fluid particles</a> · <a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a> · <a href="procgen.html" data-slug="procgen">Procedural generation</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-world-and-simulation.html">World and simulation</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

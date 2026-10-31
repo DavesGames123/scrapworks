@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HUD minimap - Warp Wiki</title>
+<meta name="description" content="corner map with fog of war that unfolds to a full-screen map">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="hud-minimap">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#how-it-works">How it works</a><ul><li><a href="#draw-order">Draw order</a></li><li><a href="#known-and-unknown">Known and unknown</a></li><li><a href="#the-texture-cache">The texture cache</a></li><li><a href="#unfold-and-retract">Unfold and retract</a></li></ul></li><li><a href="#configuration">Configuration</a></li><li><a href="#trail-and-response">Trail and response</a></li><li><a href="#usage">Usage</a></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">HUD minimap</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">corner map with fog of war that unfolds to a full-screen map</p><table class="infobox"><caption>HUD minimap</caption><tr><th>Category</th><td><a href="category-information.html">Information</a></td></tr><tr><th>Module</th><td><code>warp_sdk::hud::minimap</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/hud/minimap.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">32</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example hud_map</code></td></tr></table><p><strong>The HUD minimap</strong> is a corner map in a squircle frame that unfolds to a full-screen map on a click or a key. It lives in <a class="sym" href="hud-minimap.html"><code>warp_sdk::hud::minimap</code></a>. The compact map follows the player from under the key row of a <a href="squircle.html" data-slug="squircle">squircle deck</a>. The full map pans with a drag and zooms with the wheel. The map key, Escape, or the close key in its corner retracts it <sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup>.</p>
+<h2 id="how-it-works">How it works</h2>
+<p>A game keeps one <a class="sym" href="#sym-Minimap"><code>Minimap</code></a> in its state, because that value owns the terrain cache. It samples the terrain once with <a class="sym" href="#sym-Minimap-paint_terrain"><code>Minimap::paint_terrain</code></a>, calls <a class="sym" href="#sym-Minimap-reveal"><code>Minimap::reveal</code></a> each frame with the player position and its sight radius, and calls <a class="sym" href="#sym-Minimap-show"><code>Minimap::show</code></a> each frame with a <a class="sym" href="#sym-MapFrame"><code>MapFrame</code></a>. <a class="sym" href="#sym-MapFrame"><code>MapFrame</code></a> holds what changes every frame, and every field but <code>player</code> can stay empty.</p>
+<h3 id="draw-order">Draw order</h3>
+<p>The map draws in a fixed order.</p>
+<ol>
+<li>The squircle frame and its shadow, from the context <a class="sym" href="squircle.html#sym-Look"><code>Look</code></a>.</li>
+<li>The terrain texture: open space and a solid silhouette with a soft lit rim.</li>
+<li>The trail, the points of interest, the threats, the objectives with a pulse, and the heading arrow of the player on top.</li>
+</ol>
+<h3 id="known-and-unknown">Known and unknown</h3>
+<p>The map never claims what the player has not seen. A cell the player has not seen draws as hatched unknown, never as open water, so the map never says "empty" where it does not know <sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup>. Space outside the world bounds draws as plain unknown.</p>
+<p><a class="sym" href="#sym-Minimap-reveal"><code>Minimap::reveal</code></a> makes the cells near a point known, with a soft edge over the outer 30 percent of the radius, and a known cell stays known. <a class="sym" href="#sym-Minimap-is_known"><code>Minimap::is_known</code></a> treats a cell as known past half. <a class="sym" href="#sym-Minimap-set_known"><code>Minimap::set_known</code></a> replaces the whole mask from a closure, which suits a loaded save.</p>
+<p>The marks obey the same rule. A <a class="sym" href="#sym-Poi"><code>Poi</code></a> shows only on a known cell, unless <a class="sym" href="#sym-Poi-always"><code>Poi::always</code></a> is set. <code>MapFrame.threats</code> also need a known cell, and they draw as triangles in the bad hue. <code>MapFrame.objectives</code> always draw, with a pulse. In the compact map an objective out of view draws as a tick on the frame edge, placed with <a class="sym" href="hud-markers.html#sym-edge_point"><code>markers::edge_point</code></a>.</p>
+<h3 id="the-texture-cache">The texture cache</h3>
+<p>The terrain and the revealed mask live in one egui texture, one texel per cell, with a one-texel border of unknown. <a class="sym" href="#sym-Minimap-paint_terrain"><code>Minimap::paint_terrain</code></a> and <a class="sym" href="#sym-Minimap-paint_region"><code>Minimap::paint_region</code></a> sample the terrain closure, where 0 is open, 1 is solid, and the edge is at 0.5. <a class="sym" href="#sym-Minimap-reveal"><code>Minimap::reveal</code></a> and <a class="sym" href="#sym-Minimap-set_known"><code>Minimap::set_known</code></a> change the mask.</p>
+<p>Each change grows a dirty box, and <a class="sym" href="#sym-Minimap-show"><code>Minimap::show</code></a> uploads only that box with <code>TextureHandle::set_partial</code>. A frame with no change uploads nothing <sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup>. <a class="sym" href="#sym-Minimap-paint_region"><code>Minimap::paint_region</code></a> resamples only one world rect, for example after a dug tunnel. <a class="sym" href="#sym-Minimap-dirty_region"><code>Minimap::dirty_region</code></a> reports the pending box, and <a class="sym" href="#sym-Minimap-pixel"><code>Minimap::pixel</code></a> gives the colour of one cell.</p>
+<h3 id="unfold-and-retract">Unfold and retract</h3>
+<p>A click on the compact map, or the map key, opens the full map. Opening through either of these centres the pan on the player. <a class="sym" href="#sym-Minimap-set_expanded"><code>Minimap::set_expanded</code></a> opens or closes it from code, and it resets the zoom to the whole world on an open but does not move the pan.</p>
+<p>The move runs along Curve::EaseInOut over the Motion::Structural token, and it uses the squircle motion rules, so reduced motion snaps it. The view blends between following the player and the pan and zoom of the full map as the unfold runs. The corner radius also blends from a key radius to twice <code>Look.radius</code>.</p>
+<p>The full map pans only once the unfold has finished. The wheel zooms about the pointer, so the world point under the pointer stays still <sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup>. The span is limited to between a quarter of <a class="sym" href="#sym-Minimap-compact_span"><code>compact_span</code></a> and 1.5 times the larger world side, and the pan stays inside the world bounds.</p>
+<h2 id="configuration">Configuration</h2>
+<p><a class="sym" href="#sym-Minimap-new"><code>Minimap::new</code></a> sets these defaults. <a class="sym" href="#sym-Minimap-grid"><code>Minimap::grid</code></a>, <a class="sym" href="#sym-Minimap-corner"><code>Minimap::corner</code></a>, <a class="sym" href="#sym-Minimap-compact_span"><code>Minimap::compact_span</code></a> and <a class="sym" href="#sym-Minimap-key"><code>Minimap::key</code></a> are builder forms, and the public fields can also be set directly.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grid</td>
+<td>128 x 128</td>
+<td>Cells; each side clamps to 2 through 2046, and <a class="sym" href="#sym-Minimap-grid"><code>Minimap::grid</code></a> clears the cache</td>
+</tr>
+<tr>
+<td><code>y_up</code></td>
+<td>true</td>
+<td>World y grows up, as in the Warp 2D view</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Minimap-corner"><code>corner</code></a></td>
+<td>Corner::TopRight</td>
+<td>Corner of the compact map</td>
+</tr>
+<tr>
+<td><code>below_keys</code></td>
+<td>true</td>
+<td>Sit below the key row of a deck in the same corner</td>
+</tr>
+<tr>
+<td><code>side</code></td>
+<td>0.0</td>
+<td>Side of the compact map; zero takes three deck keys wide</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Minimap-compact_span"><code>compact_span</code></a></td>
+<td>0.3 of the shorter world side</td>
+<td>World units across the compact map</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Minimap-key"><code>key</code></a></td>
+<td><code>Key::M</code></td>
+<td>Key that unfolds and retracts the map; <code>None</code> leaves only the click</td>
+</tr>
+<tr>
+<td><code>colors</code></td>
+<td><a class="sym" href="#sym-MapColors"><code>MapColors</code></a></td>
+<td>A dark sea</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-MapColors"><code>MapColors</code></a> sets the known open space, the solid terrain, the lit rim, the unknown cells and the hatch lines. The marks take their hues from the context <a class="sym" href="squircle.html#sym-Look"><code>Look</code></a>.</p>
+<h2 id="trail-and-response">Trail and response</h2>
+<p><a class="sym" href="#sym-Trail"><code>Trail</code></a> samples the past path of the player. <a class="sym" href="#sym-Trail-push"><code>Trail::push</code></a> keeps a point only when it is at least <code>spacing</code> world units from the last one, and the oldest point goes first past <code>max</code>. <a class="sym" href="#sym-Trail-points"><code>Trail::points</code></a> feeds <code>MapFrame.trail</code>, and older segments draw fainter.</p>
+<p><a class="sym" href="#sym-Minimap-show"><code>Minimap::show</code></a> returns a <a class="sym" href="#sym-MapResponse"><code>MapResponse</code></a>. Its <code>hovered</code> field should stop viewport picking under the map. <code>hover_world</code> gives the world point under the pointer, and <code>hovered_poi</code> gives the index in <code>MapFrame.pois</code> of the point under the pointer, so that a game can show detail for it. <code>Poi.kind</code> is the game's own tag. <a class="sym" href="#sym-Minimap-expansion"><code>Minimap::expansion</code></a> gives the linear unfold, and <a class="sym" href="#sym-Minimap-is_expanded"><code>Minimap::is_expanded</code></a> is true while the map is open or opening.</p>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::egui::{pos2, <span class="t">Color32</span>, <span class="t">Rect</span>};
+<span class="k">use</span> warp_sdk::hud::markers::<span class="t">MarkIcon</span>;
+<span class="k">use</span> warp_sdk::hud::minimap::{<span class="t">MapFrame</span>, <span class="t">Minimap</span>, <span class="t">Poi</span>};
+
+<span class="c">// In `new`: the world bounds and a terrain sampler (0 open, 1 solid).</span>
+<span class="k">let</span> <span class="k">mut</span> map = <span class="t">Minimap</span>::<span class="f">new</span>(<span class="s">"map"</span>, <span class="t">Rect</span>::<span class="f">from_min_max</span>(<span class="f">pos2</span>(-<span class="n">100.0</span>, -<span class="n">100.0</span>), <span class="f">pos2</span>(<span class="n">100.0</span>, <span class="n">100.0</span>)));
+map.<span class="f">paint_terrain</span>(|p| world.<span class="f">solidity</span>(p));
+<span class="c">// In `gui`, every frame:</span>
+map.<span class="f">reveal</span>(player, <span class="n">18.0</span>);
+<span class="k">let</span> pois = [<span class="t">Poi</span>::<span class="f">new</span>(<span class="n">0</span>, <span class="f">pos2</span>(<span class="n">20.0</span>, <span class="n">5.0</span>)).<span class="f">icon</span>(<span class="t">MarkIcon</span>::<span class="t">Diamond</span>)];
+map.<span class="f">show</span>(ctx, &amp;<span class="t">MapFrame</span> { player, heading, pois: &amp;pois, objectives: &amp;[goal], ..<span class="t">Default</span>::<span class="f">default</span>() });</code></pre></div>
+<p><code>MapFrame.heading</code> is in radians. Zero points along world +x, and a positive angle turns toward world +y.</p>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<p>The compact map reads <code>Look.key</code>, <code>Look.gap</code> and <code>Look.margin</code> to sit under a deck in the same corner, and it draws on the middle layer, so deck panels pass over it. Once the unfold begins it moves to the foreground layer. The <a href="hud-markers.html" data-slug="hud-markers">HUD markers</a> kit supplies <a class="sym" href="hud-markers.html#sym-MarkIcon"><code>MarkIcon</code></a> and <a class="sym" href="hud-markers.html#sym-edge_point"><code>markers::edge_point</code></a>.</p>
+<p>The map key is ignored while a text field has keyboard focus. The kit reads the map key and Escape without consuming them, so another surface can also see the same press.</p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>The compact rect and the mark sizes use the <a class="sym" href="squircle.html#sym-Look"><code>Look</code></a> tokens raw and do not pass through <a class="sym" href="squircle.html#sym-Look-s"><code>Look::s</code></a>, so they do not follow the interface scale.</li>
+<li>A map with objectives asks for a repaint every frame, because the objective pulse never settles <sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup>.</li>
+<li><a class="sym" href="#sym-Minimap-grid"><code>Minimap::grid</code></a> clears the terrain and the known mask, so it belongs before the first <a class="sym" href="#sym-Minimap-paint_terrain"><code>Minimap::paint_terrain</code></a>.</li>
+<li>A click on the full map outside its close key does not retract it.</li>
+</ul><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 32 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-hud--minimap" class="modhead"><code>warp_sdk::hud::minimap</code></h3><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Poi" data-name="poi"><div class="sig"><a class="anchor" href="#sym-Poi" aria-label="Link to Poi">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Poi</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The game's own tag for the thing. `MapResponse::hovered_poi` gives the</span>
+<span class="c">/// index back, so the game can show detail for the kind.</span>
+<span class="k">pub</span> kind: u32,
+<span class="k">pub</span> pos: <span class="t">Pos2</span>,
+<span class="k">pub</span> color: <span class="t">Color32</span>,
+<span class="k">pub</span> icon: <span class="t">MarkIcon</span>,
+<span class="c">/// Show the point also in unknown cells. Off by default: the map does not</span>
+<span class="c">/// show what the player has not seen.</span>
+<span class="k">pub</span> always: bool,</code></pre></div><div class="doc"><p>A point of interest on the map.</p>
+<p><code>ignore
+Poi::new(KIND_WRECK, pos2(12.0, -4.0)).icon(MarkIcon::Square).color(Color32::GOLD)</code></p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-Poi-new" data-name="poi::new"><div class="sig"><a class="anchor" href="#sym-Poi-new" aria-label="Link to Poi::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(kind: u32, pos: <span class="t">Pos2</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A white dot of <code>kind</code> at <code>pos</code>, hidden until its cell is known.</p></div></div><div class="item" id="sym-Poi-icon" data-name="poi::icon"><div class="sig"><a class="anchor" href="#sym-Poi-icon" aria-label="Link to Poi::icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">icon</span>(<span class="k">mut</span> <span class="k">self</span>, icon: <span class="t">MarkIcon</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the icon.</p></div></div><div class="item" id="sym-Poi-color" data-name="poi::color"><div class="sig"><a class="anchor" href="#sym-Poi-color" aria-label="Link to Poi::color">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">color</span>(<span class="k">mut</span> <span class="k">self</span>, color: <span class="t">Color32</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the colour.</p></div></div><div class="item" id="sym-Poi-always" data-name="poi::always"><div class="sig"><a class="anchor" href="#sym-Poi-always" aria-label="Link to Poi::always">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">always</span>(<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Show the point in unknown cells too.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-MapFrame" data-name="mapframe"><div class="sig"><a class="anchor" href="#sym-MapFrame" aria-label="Link to MapFrame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">MapFrame</span>&lt;<span class="a">'a</span>&gt;</code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The player, in world units.</span>
+<span class="k">pub</span> player: <span class="t">Pos2</span>,
+<span class="c">/// The heading of the player in radians. Zero points along world +x,</span>
+<span class="c">/// and a positive angle turns toward world +y.</span>
+<span class="k">pub</span> heading: f32,
+<span class="k">pub</span> pois: &amp;<span class="a">'a</span> [<span class="t">Poi</span>],
+<span class="c">/// Danger points. They draw as triangles in the bad hue, when known.</span>
+<span class="k">pub</span> threats: &amp;<span class="a">'a</span> [<span class="t">Pos2</span>],
+<span class="c">/// Goals. They always draw, with a pulse. In the compact map an objective</span>
+<span class="c">/// out of view draws as a tick on the frame edge, toward the goal.</span>
+<span class="k">pub</span> objectives: &amp;<span class="a">'a</span> [<span class="t">Pos2</span>],
+<span class="c">/// The past path of the player, oldest first.</span>
+<span class="k">pub</span> trail: &amp;<span class="a">'a</span> [<span class="t">Pos2</span>],</code></pre></div><div class="doc"><p>What changes every frame. Every field but <code>player</code> can stay empty.</p>
+<p><code>ignore
+map.show(ctx, &amp;MapFrame { player, heading, trail: trail.points(), ..Default::default() });</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Trail" data-name="trail"><div class="sig"><a class="anchor" href="#sym-Trail" aria-label="Link to Trail">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Trail</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The least world distance between two kept points.</span>
+<span class="k">pub</span> spacing: f32,
+<span class="c">/// The most points kept. The oldest goes first.</span>
+<span class="k">pub</span> max: usize,</code></pre></div><div class="doc"><p>The past path of the player, sampled every <code>spacing</code> world units.</p>
+<p><code>ignore
+let mut trail = Trail::new(2.0, 200);   // in `new`
+trail.push(player);                     // every frame
+map.show(ctx, &amp;MapFrame { player, trail: trail.points(), ..Default::default() });</code></p></div></div><details class="members"><summary>3 methods</summary><div class="item" id="sym-Trail-new" data-name="trail::new"><div class="sig"><a class="anchor" href="#sym-Trail-new" aria-label="Link to Trail::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(spacing: f32, max: usize) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>An empty trail.</p></div></div><div class="item" id="sym-Trail-push" data-name="trail::push"><div class="sig"><a class="anchor" href="#sym-Trail-push" aria-label="Link to Trail::push">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">push</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, p: <span class="t">Pos2</span>)</code></div><div class="doc"><p>Add the player position. A point nearer than <code>spacing</code> to the last
+point is not kept.</p></div></div><div class="item" id="sym-Trail-points" data-name="trail::points"><div class="sig"><a class="anchor" href="#sym-Trail-points" aria-label="Link to Trail::points">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">points</span>(&amp;<span class="k">self</span>) -&gt; &amp;[<span class="t">Pos2</span>]</code></div><div class="doc"><p>The kept points, oldest first.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-MapResponse" data-name="mapresponse"><div class="sig"><a class="anchor" href="#sym-MapResponse" aria-label="Link to MapResponse">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">MapResponse</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The frame on screen this frame.</span>
+<span class="k">pub</span> rect: <span class="t">Rect</span>,
+<span class="c">/// 0 compact, 1 full screen. The value is eased.</span>
+<span class="k">pub</span> expansion: f32,
+<span class="c">/// True while the map is open or opening.</span>
+<span class="k">pub</span> expanded: bool,
+<span class="c">/// True while the pointer is over the map. Skip viewport picking then.</span>
+<span class="k">pub</span> hovered: bool,
+<span class="c">/// The world point under the pointer.</span>
+<span class="k">pub</span> hover_world: <span class="t">Option</span>&lt;<span class="t">Pos2</span>&gt;,
+<span class="c">/// The index in `MapFrame::pois` of the point under the pointer.</span>
+<span class="k">pub</span> hovered_poi: <span class="t">Option</span>&lt;usize&gt;,</code></pre></div><div class="doc"><p>What <code>show</code> reports.</p></div></div></div><div class="typeblock"><div class="item" id="sym-MapColors" data-name="mapcolors"><div class="sig"><a class="anchor" href="#sym-MapColors" aria-label="Link to MapColors">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">MapColors</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Known open space.</span>
+<span class="k">pub</span> open: <span class="t">Color32</span>,
+<span class="c">/// Known solid terrain.</span>
+<span class="k">pub</span> solid: <span class="t">Color32</span>,
+<span class="c">/// The lit rim at the edge of solid terrain.</span>
+<span class="k">pub</span> rim: <span class="t">Color32</span>,
+<span class="c">/// Unknown cells and space outside the world.</span>
+<span class="k">pub</span> unknown: <span class="t">Color32</span>,
+<span class="c">/// The hatch lines on unknown cells.</span>
+<span class="k">pub</span> hatch: <span class="t">Color32</span>,</code></pre></div><div class="doc"><p>The map colours. <code>MapColors::default()</code> is a dark sea. The marks take
+their hues from the context <code>Look</code>.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Minimap" data-name="minimap"><div class="sig"><a class="anchor" href="#sym-Minimap" aria-label="Link to Minimap">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Minimap</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// World y grows up (the warp 2D view). True by default.</span>
+<span class="k">pub</span> y_up: bool,
+<span class="c">/// The corner of the compact map.</span>
+<span class="k">pub</span> corner: <span class="t">Corner</span>,
+<span class="c">/// Put the compact map below the key row of a deck in the same corner.</span>
+<span class="k">pub</span> below_keys: bool,
+<span class="c">/// Side of the compact map in points. Zero takes three deck keys wide.</span>
+<span class="k">pub</span> side: f32,
+<span class="c">/// World units across the compact map.</span>
+<span class="k">pub</span> compact_span: f32,
+<span class="c">/// The key that unfolds and retracts the map.</span>
+<span class="k">pub</span> key: <span class="t">Option</span>&lt;<span class="t">Key</span>&gt;,
+<span class="k">pub</span> colors: <span class="t">MapColors</span>,</code></pre></div><div class="doc"><p>The minimap. Keep one in the game state: it owns the terrain cache.</p>
+<p><code>ignore
+let map = Minimap::new("map", bounds).grid(160, 160).corner(Corner::TopRight);</code></p></div></div><details class="members"><summary>19 methods</summary><div class="item" id="sym-Minimap-new" data-name="minimap::new"><div class="sig"><a class="anchor" href="#sym-Minimap-new" aria-label="Link to Minimap::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(id: <span class="k">impl</span> std::hash::<span class="t">Hash</span>, bounds: <span class="t">Rect</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A map of the world rect <code>bounds</code> (world units), on a 128 x 128 grid.
+Every cell starts unknown and open.</p></div></div><div class="item" id="sym-Minimap-grid" data-name="minimap::grid"><div class="sig"><a class="anchor" href="#sym-Minimap-grid" aria-label="Link to Minimap::grid">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">grid</span>(<span class="k">mut</span> <span class="k">self</span>, w: usize, h: usize) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the grid size in cells. It clears the cache.</p></div></div><div class="item" id="sym-Minimap-corner" data-name="minimap::corner"><div class="sig"><a class="anchor" href="#sym-Minimap-corner" aria-label="Link to Minimap::corner">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">corner</span>(<span class="k">mut</span> <span class="k">self</span>, c: <span class="t">Corner</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the corner of the compact map.</p></div></div><div class="item" id="sym-Minimap-compact_span" data-name="minimap::compact_span"><div class="sig"><a class="anchor" href="#sym-Minimap-compact_span" aria-label="Link to Minimap::compact_span">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">compact_span</span>(<span class="k">mut</span> <span class="k">self</span>, span: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the world span across the compact map.</p></div></div><div class="item" id="sym-Minimap-key" data-name="minimap::key"><div class="sig"><a class="anchor" href="#sym-Minimap-key" aria-label="Link to Minimap::key">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">key</span>(<span class="k">mut</span> <span class="k">self</span>, key: <span class="t">Option</span>&lt;<span class="t">Key</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the map key. <code>None</code> leaves only the click.</p></div></div><div class="item" id="sym-Minimap-grid_size" data-name="minimap::grid_size"><div class="sig"><a class="anchor" href="#sym-Minimap-grid_size" aria-label="Link to Minimap::grid_size">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">grid_size</span>(&amp;<span class="k">self</span>) -&gt; [usize; <span class="n">2</span>]</code></div><div class="doc"><p>The grid size in cells.</p></div></div><div class="item" id="sym-Minimap-bounds" data-name="minimap::bounds"><div class="sig"><a class="anchor" href="#sym-Minimap-bounds" aria-label="Link to Minimap::bounds">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">bounds</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Rect</span></code></div><div class="doc"><p>The world bounds.</p></div></div><div class="item" id="sym-Minimap-cell_center" data-name="minimap::cell_center"><div class="sig"><a class="anchor" href="#sym-Minimap-cell_center" aria-label="Link to Minimap::cell_center">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cell_center</span>(&amp;<span class="k">self</span>, cx: usize, cy: usize) -&gt; <span class="t">Pos2</span></code></div><div class="doc"><p>The world point at the centre of cell <code>(cx, cy)</code>. Row 0 is the top row.</p></div></div><div class="item" id="sym-Minimap-is_known" data-name="minimap::is_known"><div class="sig"><a class="anchor" href="#sym-Minimap-is_known" aria-label="Link to Minimap::is_known">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_known</span>(&amp;<span class="k">self</span>, p: <span class="t">Pos2</span>) -&gt; bool</code></div><div class="doc"><p>True when the cell under <code>p</code> is known (revealed past half).</p></div></div><div class="item" id="sym-Minimap-dirty_region" data-name="minimap::dirty_region"><div class="sig"><a class="anchor" href="#sym-Minimap-dirty_region" aria-label="Link to Minimap::dirty_region">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">dirty_region</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;[usize; <span class="n">4</span>]&gt;</code></div><div class="doc"><p>The cell box that the next <code>show</code> uploads, as <code>[x0, y0, x1, y1]</code>
+inclusive. <code>None</code> when nothing changed.</p></div></div><div class="item" id="sym-Minimap-paint_terrain" data-name="minimap::paint_terrain"><div class="sig"><a class="anchor" href="#sym-Minimap-paint_terrain" aria-label="Link to Minimap::paint_terrain">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">paint_terrain</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, solidity: <span class="k">impl</span> <span class="t">Fn</span>(<span class="t">Pos2</span>) -&gt; f32)</code></div><div class="doc"><p>Sample the terrain for every cell. <code>solidity(p)</code> gives 0 for open space
+and 1 for solid terrain at the world point <code>p</code>. The edge is at 0.5.</p></div></div><div class="item" id="sym-Minimap-paint_region" data-name="minimap::paint_region"><div class="sig"><a class="anchor" href="#sym-Minimap-paint_region" aria-label="Link to Minimap::paint_region">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">paint_region</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, area: <span class="t">Rect</span>, solidity: <span class="k">impl</span> <span class="t">Fn</span>(<span class="t">Pos2</span>) -&gt; f32)</code></div><div class="doc"><p>Sample the terrain again only inside the world rect <code>area</code>. Use it
+after the terrain changes in one place, for example a dug tunnel.</p></div></div><div class="item" id="sym-Minimap-reveal" data-name="minimap::reveal"><div class="sig"><a class="anchor" href="#sym-Minimap-reveal" aria-label="Link to Minimap::reveal">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reveal</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, center: <span class="t">Pos2</span>, radius: f32)</code></div><div class="doc"><p>Make the cells near <code>center</code> known, with a soft edge. Call it every
+frame with the player position and its sight radius. A known cell
+stays known.</p></div></div><div class="item" id="sym-Minimap-set_known" data-name="minimap::set_known"><div class="sig"><a class="anchor" href="#sym-Minimap-set_known" aria-label="Link to Minimap::set_known">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_known</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, known: <span class="k">impl</span> <span class="t">Fn</span>(<span class="t">Pos2</span>) -&gt; bool)</code></div><div class="doc"><p>Set the whole known mask from the game: <code>known(p)</code> is true for a known
+world point. Use it to load a save.</p></div></div><div class="item" id="sym-Minimap-pixel" data-name="minimap::pixel"><div class="sig"><a class="anchor" href="#sym-Minimap-pixel" aria-label="Link to Minimap::pixel">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pixel</span>(&amp;<span class="k">self</span>, cx: usize, cy: usize) -&gt; <span class="t">Color32</span></code></div><div class="doc"><p>The colour of cell <code>(cx, cy)</code> in the texture. Unknown cells are hatched
+unknown, never open space.</p></div></div><div class="item" id="sym-Minimap-set_expanded" data-name="minimap::set_expanded"><div class="sig"><a class="anchor" href="#sym-Minimap-set_expanded" aria-label="Link to Minimap::set_expanded">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_expanded</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, open: bool)</code></div><div class="doc"><p>Open (true) or close (false) the full map. The move animates.</p></div></div><div class="item" id="sym-Minimap-is_expanded" data-name="minimap::is_expanded"><div class="sig"><a class="anchor" href="#sym-Minimap-is_expanded" aria-label="Link to Minimap::is_expanded">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_expanded</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True while the map is open or opening.</p></div></div><div class="item" id="sym-Minimap-expansion" data-name="minimap::expansion"><div class="sig"><a class="anchor" href="#sym-Minimap-expansion" aria-label="Link to Minimap::expansion">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">expansion</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The linear unfold, 0 compact and 1 full screen.</p></div></div><div class="item" id="sym-Minimap-show" data-name="minimap::show"><div class="sig"><a class="anchor" href="#sym-Minimap-show" aria-label="Link to Minimap::show">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">show</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ctx: &amp;egui::<span class="t">Context</span>, f: &amp;<span class="t">MapFrame</span>) -&gt; <span class="t">MapResponse</span></code></div><div class="doc"><p>Draw the map for one frame and handle its input.</p>
+<p><code>ignore
+let r = map.show(ctx, &amp;MapFrame { player, heading, ..Default::default() });
+if r.hovered { /* do not pick in the viewport */ }</code></p></div></div></details></div><h2 id="see-also">See also</h2><ul><li><a href="hud.html" data-slug="hud">HUD</a></li><li><a href="hud-markers.html" data-slug="hud-markers">HUD markers</a></li><li><a href="squircle.html" data-slug="squircle">Squircle kit</a></li><li><a href="world-reveal.html" data-slug="world-reveal">Reveal grid</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/minimap.rs</code> - <code>with the wheel. The map key, Esc, or the close key in its corner retracts</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/minimap.rs</code> - <code>draws as open water, so the map never says &quot;empty&quot; where it does not</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/minimap.rs</code> - <code>with `TextureHandle::set_partial`. A frame with no change uploads nothing.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/minimap.rs</code> - <code>// Keep the world point under the pointer still.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/minimap.rs</code> - <code>if !self.prog.settled() || self.hover != h_target || !f.objectives.is_empty() {</code></li></ol><table class="navbox"><tr><th><a href="category-information.html">Information</a></th></tr><tr><td><a href="squircle.html" data-slug="squircle">Squircle kit</a> · <a href="hud.html" data-slug="hud">HUD</a> · <a href="hud-cues.html" data-slug="hud-cues">HUD cues</a> · <a href="hud-markers.html" data-slug="hud-markers">HUD markers</a> · <b>HUD minimap</b> · <a href="hud-progress.html" data-slug="hud-progress">HUD progress</a> · <a href="teach.html" data-slug="teach">Teach kit</a> · <a href="widgets.html" data-slug="widgets">Panel widgets</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-information.html">Information</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

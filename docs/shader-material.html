@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Material shaders - Warp Wiki</title>
+<meta name="description" content="WGSL procedural surfaces that return a MaterialSample">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="shader-material">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#files">Files</a></li><li><a href="#conventions">Conventions</a></li><li><a href="#structure-of-a-material">Structure of a material</a></li><li><a href="#signatures">Signatures</a></li><li><a href="#parameter-ranges">Parameter ranges</a></li><li><a href="#layer-tools">Layer tools</a></li><li><a href="#usage">Usage</a></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Material shaders</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">WGSL procedural surfaces that return a MaterialSample</p><p><strong>Material shaders</strong> are the <code>material/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL functions that compute a lit surface at a world position and return it as a MaterialSample. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::material</code></a>. It covers rock, loose ground, metal, wood, ice, flesh and volcanic surfaces, and it adds tools that blend, wet and wear those samples. The main consumer is the <a href="lit2d.html" data-slug="lit2d">Lit2d</a> kit, whose material function has the same return type.</p>
+<h2 id="files">Files</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>File</th>
+<th>Central functions</th>
+<th>Surface</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>material/common.wgsl</code></td>
+<td><code>material_fbm</code>, <code>material_cell</code>, <code>material_normal_slope</code>, <code>material_sample</code></td>
+<td>Private noise and normal tools</td>
+</tr>
+<tr>
+<td><code>material/rock.wgsl</code></td>
+<td><code>material_rock</code>, <code>material_rock_field</code></td>
+<td>Sedimentary stone with strata and block cracks</td>
+</tr>
+<tr>
+<td><code>material/ground.wgsl</code></td>
+<td><code>material_sand</code>, <code>material_sediment</code>, <code>material_mud</code></td>
+<td>Rippled sand, silt with pebbles, cracked or wet mud</td>
+</tr>
+<tr>
+<td><code>material/metal.wgsl</code></td>
+<td><code>material_metal_brushed</code>, <code>material_metal_rusted</code>, <code>material_metal_painted</code>, <code>material_rust_ramp</code></td>
+<td>Brushed, rusted and chipped metal</td>
+</tr>
+<tr>
+<td><code>material/wood.wgsl</code></td>
+<td><code>material_wood</code>, <code>material_wood_planks</code></td>
+<td>Grain with growth rings; plank floors and walls</td>
+</tr>
+<tr>
+<td><code>material/ice.wgsl</code></td>
+<td><code>material_ice</code></td>
+<td>Fractured lake or glacier ice</td>
+</tr>
+<tr>
+<td><code>material/flesh.wgsl</code></td>
+<td><code>material_flesh</code></td>
+<td>Skin with wrinkles, pores and veins</td>
+</tr>
+<tr>
+<td><code>material/volcanic.wgsl</code></td>
+<td><code>material_basalt</code>, <code>material_lava</code></td>
+<td>Basalt columns; lava crust with glowing cracks</td>
+</tr>
+<tr>
+<td><code>material/layer.wgsl</code></td>
+<td><code>material_mix</code>, <code>material_blend_height</code>, <code>material_wet</code>, <code>material_moss_overlay</code>, <code>material_edge_wear</code></td>
+<td>Tools that act on MaterialSample values</td>
+</tr>
+</tbody>
+</table>
+<p>Each file requires <code>material/common.wgsl</code>, which requires <code>core/material.wgsl</code> and <code>noise/hash.wgsl</code>. Composing one material file thus brings the record and its tools with it.</p>
+<h2 id="conventions">Conventions</h2>
+<p>All material files share one set of inputs:<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>p</code></td>
+<td>World position, in world units</td>
+</tr>
+<tr>
+<td><a class="sym" href="scale.html"><code>scale</code></a></td>
+<td>Pattern cells per world unit. The pattern space is <code>q = p * scale</code></td>
+</tr>
+<tr>
+<td><code>seed</code></td>
+<td>Any float. Different seeds give different but similar surfaces</td>
+</tr>
+</tbody>
+</table>
+<p>Control parameters such as <code>strata</code>, <code>crack</code>, <code>rust</code>, <code>frost</code> and <code>wetness</code> are 0..1. Colours such as <code>tone</code> and <code>tint</code> are linear. A normal comes from the slope of the height in pattern space, so the relief keeps its look at every scale. No file reads a texture or a uniform.</p>
+<h2 id="structure-of-a-material">Structure of a material</h2>
+<p>Most materials split into two functions. A <code>_field</code> function takes the pattern point <code>q</code> and returns a <code>vec4&lt;f32&gt;</code> of masks, and the public function shades those masks. For example, <code>material_rock_field</code> returns (height, crack mask, layer random, detail). The file says that the field exists so that a game can apply its own colour to the same relief.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<p>The public function usually evaluates the field three times, at <code>q</code>, <code>q + (e, 0)</code> and <code>q + (0, e)</code>, and passes the heights to <code>material_normal_fd</code>. A material call therefore costs about three field evaluations.</p>
+<h2 id="signatures">Signatures</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">material_rock</span>(p: vec2&lt;f32&gt;, scale: f32, strata: f32, crack: f32, tint: vec3&lt;f32&gt;, seed: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">material_sand</span>(p: vec2&lt;f32&gt;, scale: f32, wind: vec2&lt;f32&gt;, ripple: f32, seed: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">material_sediment</span>(p: vec2&lt;f32&gt;, scale: f32, pebbles: f32, seed: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">material_mud</span>(p: vec2&lt;f32&gt;, scale: f32, wetness: f32, seed: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">material_metal_brushed</span>(p: vec2&lt;f32&gt;, scale: f32, angle: f32, base: vec3&lt;f32&gt;, seed: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">material_metal_rusted</span>(p: vec2&lt;f32&gt;, scale: f32, rust: f32, seed: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">material_metal_painted</span>(p: vec2&lt;f32&gt;, scale: f32, paint: vec3&lt;f32&gt;, chip: f32, seed: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">material_wood</span>(p: vec2&lt;f32&gt;, scale: f32, rings: f32, tone: vec3&lt;f32&gt;, seed: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">material_wood_planks</span>(p: vec2&lt;f32&gt;, scale: f32, plank: vec2&lt;f32&gt;, tone: vec3&lt;f32&gt;, seed: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">material_ice</span>(p: vec2&lt;f32&gt;, scale: f32, frost: f32, seed: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">material_flesh</span>(p: vec2&lt;f32&gt;, scale: f32, tone: vec3&lt;f32&gt;, sss: f32, wetness: f32, seed: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">material_basalt</span>(p: vec2&lt;f32&gt;, scale: f32, vesicles: f32, seed: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">material_lava</span>(p: vec2&lt;f32&gt;, scale: f32, heat: f32, time: f32, seed: f32) -&gt; <span class="t">MaterialSample</span></code></pre></div>
+<h2 id="parameter-ranges">Parameter ranges</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Function</th>
+<th>Parameter</th>
+<th>Range and values, from the file header</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>material_rock</code></td>
+<td><a class="sym" href="scale.html"><code>scale</code></a></td>
+<td>One block is about 1.4 cells. Albedo about 0.18..0.3, roughness 0.75..0.95</td>
+</tr>
+<tr>
+<td><code>material_sand</code></td>
+<td><code>wind</code></td>
+<td>Any length. Ripple crests lie across it</td>
+</tr>
+<tr>
+<td><code>material_mud</code></td>
+<td><code>wetness</code></td>
+<td>0 is dry plates, 0.5 is damp, 1 is puddles</td>
+</tr>
+<tr>
+<td><code>material_metal_brushed</code></td>
+<td><code>base</code></td>
+<td>Linear F0. Steel (0.56, 0.57, 0.58), copper (0.95, 0.64, 0.54), gold (1.0, 0.78, 0.34)</td>
+</tr>
+<tr>
+<td><code>material_wood</code></td>
+<td><code>rings</code></td>
+<td>2..12 per pattern cell. The grain runs along x</td>
+</tr>
+<tr>
+<td><code>material_wood_planks</code></td>
+<td><code>plank</code></td>
+<td>Board (length, width) in cells, for example (6.0, 1.0)</td>
+</tr>
+<tr>
+<td><code>material_ice</code></td>
+<td><code>frost</code></td>
+<td>0 is clear black ice, 1 is a white crust. Roughness 0.04..0.6</td>
+</tr>
+<tr>
+<td><code>material_flesh</code></td>
+<td><code>tone</code></td>
+<td>Pale skin (0.62, 0.42, 0.34), raw flesh (0.5, 0.12, 0.1), reptile green (0.25, 0.3, 0.12)</td>
+</tr>
+<tr>
+<td><code>material_lava</code></td>
+<td><code>heat</code></td>
+<td>0 is cold black crust, 1 is wide white-hot cracks</td>
+</tr>
+<tr>
+<td><code>material_lava</code></td>
+<td><code>time</code></td>
+<td>Seconds. 0.0 gives a still image</td>
+</tr>
+</tbody>
+</table>
+<p><code>material_lava</code> is the one material with a time input. Its emissive output goes above 1, so it feeds bloom.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<p>MaterialSample has no subsurface slot, so <code>material_flesh</code> places its subsurface tint in the albedo, making creases redder and more saturated.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<h2 id="layer-tools">Layer tools</h2>
+<p><code>material/layer.wgsl</code> acts on finished samples, so a game can stack surfaces.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Function</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>material_mix(a, b, t)</code></td>
+<td>Linear blend</td>
+</tr>
+<tr>
+<td><code>material_blend_height(a, b, t, sharp)</code></td>
+<td>The sample with more height wins, so low <code>b</code> fills the crevices of <code>a</code> first. <code>sharp</code> is 0.02..0.3</td>
+</tr>
+<tr>
+<td><code>material_wet(s, wetness, porosity)</code></td>
+<td>Darkens porous albedo, lowers roughness, and fills low areas with flat water above wetness 0.5</td>
+</tr>
+<tr>
+<td><code>material_moss(p, scale, slime, seed)</code></td>
+<td>Moss clumps. <code>slime</code> gives darker, flatter, glossy algae</td>
+</tr>
+<tr>
+<td><code>material_moss_overlay(base, p, scale, amount, slime, seed)</code></td>
+<td>Moss that grows in the crevices of <code>base</code> first</td>
+</tr>
+<tr>
+<td><code>material_detail_normal(base, detail)</code></td>
+<td>Reoriented normal mapping of two normals</td>
+</tr>
+<tr>
+<td><code>material_add_detail(s, detail, strength)</code></td>
+<td>Applies a detail normal to a sample</td>
+</tr>
+<tr>
+<td><code>material_edge_wear(s, p, dist, grad, width, chip, under, under_metal)</code></td>
+<td>Wear and chips along an SDF edge, with <code>dist</code> negative inside</td>
+</tr>
+</tbody>
+</table>
+<h2 id="usage">Usage</h2>
+<p>The sample below is a <a href="lit2d.html" data-slug="lit2d">Lit2d</a> material. It composes through <a class="sym" href="lit2d.html#sym-Material-with_shaderlib"><code>Material::with_shaderlib</code></a>, which is given <code>"material/layer.wgsl"</code> and <code>"material/rock.wgsl"</code>.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">lit2d_material</span>(uv: vec2&lt;f32&gt;, world: vec2&lt;f32&gt;, inst: <span class="t">Lit2dInstance</span>) -&gt; <span class="t">MaterialSample</span> {
+    <span class="k">let</span> rock = <span class="f">material_rock</span>(world, <span class="n">2.0</span>, <span class="n">0.6</span>, <span class="n">0.4</span>, vec3&lt;f32&gt;(<span class="n">1.0</span>), inst.seed);
+    <span class="k">return</span> <span class="f">material_moss_overlay</span>(rock, world, <span class="n">3.0</span>, <span class="n">0.3</span>, <span class="n">0.0</span>, inst.seed);
+}</code></pre></div>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<ul>
+<li><code>terrain/shade.wgsl</code> in <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> requires the rock, ground and layer files.</li>
+<li>The surfaces in <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> and <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> return the same record but have their own noise.</li>
+<li><code>sdf_relief_material</code> in <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> builds a sample from a distance profile.</li>
+<li>Emissive values feed the engine bloom through the HDR target. See <a href="post.html" data-slug="post">Post effects</a>.</li>
+</ul>
+<h2 id="limitations">Limitations</h2>
+<p>The header of <code>material/common.wgsl</code> calls its noise tools private to the material files. Materials therefore do not share random fields with the <code>noise_</code> functions. A float <code>seed</code> is not interchangeable with the <code>u32</code> seeds of the noise files.</p><h2 id="see-also">See also</h2><ul><li><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></li><li><a href="lit2d.html" data-slug="lit2d">Lit2d</a></li><li><a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a></li><li><a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a></li><li><a href="art-direction.html" data-slug="art-direction">Art direction</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/material/common.wgsl</code> - <code>// Conventions for all material files:</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/material/rock.wgsl</code> - <code>layer random, detail). Use it for your own colour on the same relief.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/material/volcanic.wgsl</code> - <code>// Basalt albedo is 0.04..0.1 linear. Lava emissive goes above 1 (feeds bloom).</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/material/flesh.wgsl</code> - <code>// MaterialSample has no subsurface slot. This file puts the subsurface tint</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/material/layer.wgsl</code> - <code>// material/layer.wgsl — tools that act on MaterialSample values: linear</code></li></ol><table class="navbox"><tr><th><a href="category-shader-library.html">Shader library</a></th></tr><tr><td><a href="shaderlib.html" data-slug="shaderlib">Shader library</a> · <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a> · <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> · <b>Material shaders</b> · <a href="shader-water.html" data-slug="shader-water">Water shaders</a> · <a href="shader-post.html" data-slug="shader-post">Post shaders</a> · <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> · <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> · <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> · <a href="shader-pattern.html" data-slug="shader-pattern">Pattern shaders</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-shader-library.html">Shader library</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

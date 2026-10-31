@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game shell - Warp Wiki</title>
+<meta name="description" content="Ready title, pause, settings, tutorial and HUD around any game">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="shell">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#design">Design</a></li><li><a href="#shellgame">ShellGame</a></li><li><a href="#screens">Screens</a></li><li><a href="#tutor">Tutor</a></li><li><a href="#theme">Theme</a></li><li><a href="#widgets">Widgets</a></li><li><a href="#testing">Testing</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Game shell</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">Ready title, pause, settings, tutorial and HUD around any game</p><table class="infobox"><caption>Game shell</caption><tr><th>Category</th><td><a href="category-getting-started.html">Getting started</a></td></tr><tr><th>Modules</th><td><code>warp_sdk::shell</code><br><code>warp_sdk::shell::theme</code><br><code>warp_sdk::shell::tutor</code><br><code>warp_sdk::shell::widgets</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/shell/mod.rs</code><br><code>warp_sdk/src/shell/theme.rs</code><br><code>warp_sdk/src/shell/tutor.rs</code><br><code>warp_sdk/src/shell/widgets.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">76</a></td></tr></table><p><strong>The game shell</strong> is a ready player-facing layer that wraps a game in a title screen, a pause menu, a settings screen, a guided tutorial and a HUD at the correct scale. It lives in the <a class="sym" href="shell.html"><code>warp_sdk::shell</code></a> module. A game implements <a class="sym" href="#sym-ShellGame"><code>ShellGame</code></a> in place of <a class="sym" href="renderer.html#sym-Renderer"><code>Renderer</code></a>, starts with <a class="sym" href="#sym-run_shell"><code>run_shell</code></a> in place of <a class="sym" href="renderer.html#sym-run"><code>run</code></a>, and supplies content and no styling. The shell suits a game that wants those screens with no further design. The <a href="front.html" data-slug="front">Front end</a> kits are the parts for a game that builds its own.</p>
+<h2 id="design">Design</h2>
+<p><a class="sym" href="#sym-ShellGame"><code>ShellGame</code></a> splits the render method of <a class="sym" href="renderer.html#sym-Renderer"><code>Renderer</code></a> into <a class="sym" href="#sym-ShellGame-update"><code>update</code></a> (the step) and <a class="sym" href="#sym-ShellGame-draw"><code>draw</code></a> (the paint), so a menu can freeze the world and cover it.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> <a class="sym" href="#sym-Chrome"><code>Chrome&lt;G&gt;</code></a> is the <a class="sym" href="renderer.html#sym-Renderer"><code>Renderer</code></a> that the engine drives. It owns the screen state and runs the game only in play and tutorial.</p>
+<p>The look is in <a class="sym" href="shell.html"><code>shell::theme</code></a> (tokens) and <a class="sym" href="shell.html"><code>shell::widgets</code></a> (components), and the tutorial is in <a class="sym" href="shell.html"><code>shell::tutor</code></a>. The curve of each menu comes from the shared <a href="squircle.html" data-slug="squircle">squircle kit</a>, so a shell button and a deck key have the same corner.</p>
+<h2 id="shellgame">ShellGame</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Method</th>
+<th>Default</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-ShellGame-new"><code>new()</code></a></td>
+<td>Required</td>
+<td>Construct the game</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-ShellGame-about"><code>about()</code></a></td>
+<td>Required</td>
+<td>The <a class="sym" href="#sym-About"><code>About</code></a> name and tagline on the title</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-ShellGame-actions"><code>actions()</code></a></td>
+<td>Required</td>
+<td>The static <a href="bindings.html" data-slug="bindings">Bindings</a> table. The shell registers it</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-ShellGame-input"><code>input(input, width, height)</code></a></td>
+<td>Required</td>
+<td>Read input, in play and tutorial only</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-ShellGame-update"><code>update()</code></a></td>
+<td>Required</td>
+<td>Step the rules, in play and tutorial only</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-ShellGame-draw"><code>draw(ctx)</code></a></td>
+<td>Required</td>
+<td>Paint the world, on every screen</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-ShellGame-hud"><code>hud(ui)</code></a></td>
+<td>Required</td>
+<td>Draw the HUD, in play and tutorial</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-ShellGame-reset"><code>reset()</code></a></td>
+<td>Required</td>
+<td>Start a clean game</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-ShellGame-tutorial"><code>tutorial()</code></a></td>
+<td>Empty slice</td>
+<td>The lessons, in order. Empty skips the tutorial</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-ShellGame-begin_tutorial"><code>begin_tutorial()</code></a></td>
+<td>Calls <a class="sym" href="#sym-ShellGame-reset"><code>reset</code></a></td>
+<td>Arrange a safe teaching scenario</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-ShellGame-milestone"><code>milestone(flag)</code></a></td>
+<td><code>false</code></td>
+<td>Report a named teaching milestone</td>
+</tr>
+</tbody>
+</table>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::shell::{<span class="t">About</span>, <span class="t">ShellGame</span>};
+
+<span class="k">struct</span> <span class="t">Game</span> { <span class="c">/* rules */</span> }
+<span class="k">impl</span> <span class="t">ShellGame</span> <span class="k">for</span> <span class="t">Game</span> {
+    <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="k">Self</span> { <span class="t">Game</span> {} }
+    <span class="k">fn</span> <span class="f">about</span>() -&gt; <span class="t">About</span> { <span class="t">About</span> { title: <span class="s">"REEF"</span>, tagline: <span class="s">"Grow the colony"</span> } }
+    <span class="k">fn</span> <span class="f">actions</span>() -&gt; &amp;<span class="a">'static</span> [warp_sdk::bindings::<span class="t">Action</span>] { &amp;[] }
+    <span class="k">fn</span> <span class="f">input</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _: &amp;warp_sdk::winit_input_helper::<span class="t">WinitInputHelper</span>, _: u16, _: u16) {}
+    <span class="k">fn</span> <span class="f">update</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) {}
+    <span class="k">fn</span> <span class="f">draw</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _ctx: &amp;<span class="k">mut</span> warp_sdk::<span class="t">RenderContext</span>) {}
+    <span class="k">fn</span> <span class="f">hud</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _ui: &amp;<span class="k">mut</span> warp_sdk::egui::<span class="t">Ui</span>) {}
+    <span class="k">fn</span> <span class="f">reset</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) {}
+}
+<span class="k">fn</span> <span class="f">main</span>() { warp_sdk::run_shell::&lt;<span class="t">Game</span>&gt;(warp_sdk::<span class="t">Config</span>::<span class="f">default</span>()); }</code></pre></div>
+<h2 id="screens">Screens</h2>
+<p><a class="sym" href="#sym-Chrome"><code>Chrome</code></a> moves between five modes, and each reports a screen name to the editor's Storyboard.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Mode</th>
+<th>Screen name</th>
+<th>Reached from</th>
+<th>Game runs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Title</td>
+<td><code>title</code></td>
+<td>Start, or Quit to title</td>
+<td><a class="sym" href="#sym-ShellGame-draw"><code>draw</code></a> only</td>
+</tr>
+<tr>
+<td>Tutorial</td>
+<td><a class="sym" href="#sym-ShellGame-tutorial"><code>tutorial</code></a></td>
+<td>Play, when lessons exist</td>
+<td><a class="sym" href="#sym-ShellGame-input"><code>input</code></a>, <a class="sym" href="#sym-ShellGame-update"><code>update</code></a>, <a class="sym" href="#sym-ShellGame-draw"><code>draw</code></a>, <a class="sym" href="#sym-ShellGame-hud"><code>hud</code></a></td>
+</tr>
+<tr>
+<td>Play</td>
+<td><a class="sym" href="smoke.html#sym-play"><code>play</code></a></td>
+<td>Play, Resume, Restart, or the end of the tutorial</td>
+<td><a class="sym" href="#sym-ShellGame-input"><code>input</code></a>, <a class="sym" href="#sym-ShellGame-update"><code>update</code></a>, <a class="sym" href="#sym-ShellGame-draw"><code>draw</code></a>, <a class="sym" href="#sym-ShellGame-hud"><code>hud</code></a></td>
+</tr>
+<tr>
+<td>Paused</td>
+<td><code>pause</code></td>
+<td>Escape in play</td>
+<td><a class="sym" href="#sym-ShellGame-draw"><code>draw</code></a> only</td>
+</tr>
+<tr>
+<td>Settings</td>
+<td><code>settings</code></td>
+<td>Title or Pause</td>
+<td><a class="sym" href="#sym-ShellGame-draw"><code>draw</code></a> only</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-ShellGame-update"><code>update</code></a> runs inside the <a class="sym" href="icon.html#sym-render"><code>render</code></a> of <a class="sym" href="#sym-Chrome"><code>Chrome</code></a>, on the primary viewport only. <a class="sym" href="#sym-ShellGame-draw"><code>draw</code></a> runs for every viewport, in every mode, so the world shows behind each menu.</p>
+<p>Escape has one meaning per mode. In play it pauses, and in pause it resumes. In settings it returns to the screen that opened settings. In the tutorial it drops the sandbox, calls <a class="sym" href="#sym-ShellGame-reset"><code>reset</code></a> and starts a clean game. On the title it does nothing.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> The tutorial starts each time the player presses Play on the title, because no flag records that it was seen. Restart in the pause menu calls <a class="sym" href="#sym-ShellGame-reset"><code>reset</code></a> and returns to play.</p>
+<p>The settings screen has Master, Music and Sound sliders and an interface scale. The values go in a plain <code>key=value</code> file named after the title, in the current directory, and each change saves the file.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<h2 id="tutor">Tutor</h2>
+<p><a class="sym" href="shell.html"><code>shell::tutor</code></a> is a tutorial that walks the player through play by making them do it. The game runs live under the lesson. A lesson names a goal that the shell can watch, and it does not advance until the player reaches that goal.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<p>A <a class="sym" href="#sym-Lesson"><code>Lesson</code></a> has a title, a body, a <a class="sym" href="#sym-Goal"><code>Goal</code></a> and a <a class="sym" href="#sym-Spotlight"><code>Spotlight</code></a>. The body may hold <code>[Key]</code> tokens, which draw as pulsing key-caps.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Goal</th>
+<th>Advances when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Goal::Press { actions, times }</code></td>
+<td>Any of these actions was pressed <code>times</code> times</td>
+</tr>
+<tr>
+<td><code>Goal::Hold { action, frames }</code></td>
+<td>This action was held for <code>frames</code> frames in total</td>
+</tr>
+<tr>
+<td><code>Goal::Milestone { flag }</code></td>
+<td><a class="sym" href="#sym-ShellGame-milestone"><code>milestone</code></a> reports the flag true</td>
+</tr>
+<tr>
+<td><code>Goal::Beat { frames }</code></td>
+<td>The player watched for <code>frames</code> frames</td>
+</tr>
+</tbody>
+</table>
+<p>After a goal is met, the tutor holds for 42 frames, so the player watches the effect that they caused before the next lesson arrives.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup> Input is not counted during the hold.</p>
+<p>Spotlight::Named points at a target through a registry that is rebuilt every frame. A widget or HUD element calls <a class="sym" href="#sym-publish_rect"><code>publish_rect</code></a> with a name in <a class="sym" href="#sym-ShellGame-hud"><code>hud</code></a>, the lesson names it, and an amber ring paints over it. Spotlight::None leaves the cue to the key-cap in the coach card, since a key is not on screen. The coach card shows progress dots and a Skip tutorial button. At the end of the last lesson, the shell calls <a class="sym" href="#sym-ShellGame-reset"><code>reset</code></a> and starts a clean game.</p>
+<h2 id="theme">Theme</h2>
+<p><a class="sym" href="shell.html"><code>shell::theme</code></a> holds the tokens of a dark chassis: a background ladder, one teal accent, one gold, a text ramp and signal colours.[[src:warp_sdk/src/shell/theme.rs|pub const ACCENT: [u8; 3] = [50, 180, 200]; // teal — the "this one" colour]] <a class="sym" href="#sym-apply"><code>theme::apply</code></a> pushes the tokens into the widget table of egui once per frame, so a slider that a game draws in <a class="sym" href="#sym-ShellGame-hud"><code>hud</code></a> matches the menus. It also installs JetBrains Mono at the front of both font families, and the same call runs the scale.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Token</th>
+<th>Value (points)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-DISPLAY"><code>DISPLAY</code></a></td>
+<td>44</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-TITLE"><code>TITLE</code></a></td>
+<td>27</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-HEADING"><code>HEADING</code></a></td>
+<td>21</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-BUTTON"><code>BUTTON</code></a></td>
+<td>18</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-BODY"><code>BODY</code></a></td>
+<td>16</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-SMALL"><code>SMALL</code></a></td>
+<td>14</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-MICRO"><code>MICRO</code></a></td>
+<td>12</td>
+</tr>
+</tbody>
+</table>
+<p>Sizes go through <a class="sym" href="scale.html#sym-px"><code>scale::px</code></a> at use: <a class="sym" href="#sym-font"><code>theme::font</code></a> and <a class="sym" href="#sym-mono"><code>theme::mono</code></a> do this. <a class="sym" href="#sym-c"><code>theme::c</code></a> and <a class="sym" href="#sym-ca"><code>theme::ca</code></a> make an egui colour from a token, and <a class="sym" href="#sym-mix"><code>theme::mix</code></a> blends two tokens.</p>
+<h2 id="widgets">Widgets</h2>
+<p><a class="sym" href="shell.html"><code>shell::widgets</code></a> holds the components that the default egui theme lacks.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Component</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-button"><code>button</code></a></td>
+<td>A squircle button with Btn::Primary (gold) or Btn::Normal weight</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-ghost"><code>ghost</code></a></td>
+<td>A text-only button for a quiet action</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-panel"><code>panel</code></a></td>
+<td>A framed card</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-keycap"><code>keycap</code></a></td>
+<td>A key glyph whose accent pulses</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-section"><code>section</code></a></td>
+<td>A section rule in mono</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-slider_row"><code>slider_row</code></a></td>
+<td>A labelled slider. Returns true while the value changes</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-dim"><code>dim</code></a></td>
+<td>Darkens the window and adds a soft vignette</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-cue_ring"><code>cue_ring</code></a></td>
+<td>The amber pulsing ring of the tutor</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-menu"><code>menu</code></a></td>
+<td>A squircle that unfolds out of a key</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-menu"><code>menu</code></a> puts a screen in a squircle that unfolds from a small key at its centre, over the Structural motion token. The contents lay out at their settled place at once, and the chrome clips them, so the animated geometry is the clip and nothing fights the layout.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup> Clicks inside are muted until the unfold ends.</p>
+<p>When a screen stops calling <a class="sym" href="#sym-menu"><code>menu</code></a>, <a class="sym" href="#sym-retract_menus"><code>retract_menus</code></a> shrinks that chrome back into its key. It is called once per frame, after the screens. The retracting chrome is empty, because the screen no longer runs. Reduced or off motion snaps both moves.</p>
+<h2 id="testing">Testing</h2>
+<p><a class="sym" href="#sym-boot"><code>shell::boot</code></a> boots a shell game headlessly and returns a <a class="sym" href="smoke.html#sym-Report"><code>smoke::Report</code></a>.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="a">#[test]</span>
+<span class="k">fn</span> <span class="f">the_shell_boots_on_its_unfolding_title</span>() {
+    <span class="k">let</span> report = boot::&lt;<span class="t">Probe</span>&gt;(<span class="n">30</span>);
+    assert_eq!(report.frames, <span class="n">30</span>);
+    assert!(report.actions_registered &gt;= <span class="n">1</span>, <span class="s">"no actions: {report:?}"</span>);
+}</code></pre></div>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li><a class="sym" href="#sym-Chrome"><code>Chrome</code></a> reports its screens through the hostlink function <code>report_screen</code>, not <a class="sym" href="smoke.html#sym-report_screen"><code>smoke::report_screen</code></a>. <a class="sym" href="smoke.html#sym-play"><code>smoke::play</code></a> records only names sent through <a class="sym" href="smoke.html#sym-report_screen"><code>smoke::report_screen</code></a>, so a <a class="sym" href="smoke.html#sym-PlayReport"><code>PlayReport</code></a> for <a class="sym" href="#sym-Chrome"><code>Chrome</code></a> holds no screens.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></li>
+<li>The three audio values in the settings are stored, and nothing in the shell applies them to a sink.</li>
+<li><a class="sym" href="#sym-ShellGame"><code>ShellGame</code></a> has no close hook, and Quit on the title calls <code>std::process::exit</code>. A game that must save on exit needs another route.</li>
+<li>The shell has no save slots, no end screen and no way to return to the title from a game rule. A game that needs them uses <a href="front.html" data-slug="front">Front end</a>.</li>
+<li><a class="sym" href="#sym-Chrome"><code>Chrome</code></a> returns false from <code>auto_style</code> and runs the zoom keys itself, or the engine would step the scale a second time on one press.</li>
+</ul><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 76 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-shell" class="modhead"><code>warp_sdk::shell</code></h3><h4>Functions</h4><div class="item" id="sym-run_shell" data-name="run_shell"><div class="sig"><a class="anchor" href="#sym-run_shell" aria-label="Link to run_shell">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> run_shell&lt;<span class="t">G</span>: <span class="t">ShellGame</span>&gt;(config: <span class="k">crate</span>::<span class="t">Config</span>)</code></div><div class="doc"><p>Run a game with the shell. Wraps the game in <code>Chrome</code> and hands it to the
+engine, so the game gets the title, pause, settings, tutorial and HUD.</p></div></div><div class="item" id="sym-boot" data-name="boot"><div class="sig"><a class="anchor" href="#sym-boot" aria-label="Link to boot">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> boot&lt;<span class="t">G</span>: <span class="t">ShellGame</span>&gt;(frames: u32) -&gt; <span class="k">crate</span>::smoke::<span class="t">Report</span></code></div><div class="doc"><p>Boot a shell game headlessly for a few frames.</p></div></div><div class="item" id="sym-publish_rect" data-name="publish_rect"><div class="sig"><a class="anchor" href="#sym-publish_rect" aria-label="Link to publish_rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">publish_rect</span>(name: &amp;str, rect: egui::<span class="t">Rect</span>)</code></div><div class="doc"><p>A widget or HUD element publishes its screen rect under <code>name</code>, so a lesson
+can point at it. Call in <code>hud</code> (or a panel's draw), every frame.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-About" data-name="about"><div class="sig"><a class="anchor" href="#sym-About" aria-label="Link to About">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">About</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> title: &amp;<span class="a">'static</span> str,
+<span class="k">pub</span> tagline: &amp;<span class="a">'static</span> str,</code></pre></div><div class="doc"><p>The name and one line the title screen shows.</p></div></div></div><div class="typeblock"><div class="item" id="sym-ShellGame" data-name="shellgame"><div class="sig"><a class="anchor" href="#sym-ShellGame" aria-label="Link to ShellGame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">trait</span> <span class="t">ShellGame</span>: <span class="a">'static</span></code></div><div class="doc"><p>The contract a game implements to get the shell.</p></div></div><details class="members"><summary>11 methods</summary><div class="item" id="sym-ShellGame-new" data-name="shellgame::new"><div class="sig"><a class="anchor" href="#sym-ShellGame-new" aria-label="Link to ShellGame::new">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-ShellGame-about" data-name="shellgame::about"><div class="sig"><a class="anchor" href="#sym-ShellGame-about" aria-label="Link to ShellGame::about">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">about</span>() -&gt; <span class="t">About</span></code></div></div><div class="item" id="sym-ShellGame-actions" data-name="shellgame::actions"><div class="sig"><a class="anchor" href="#sym-ShellGame-actions" aria-label="Link to ShellGame::actions">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">actions</span>() -&gt; &amp;<span class="a">'static</span> [bindings::<span class="t">Action</span>]</code></div></div><div class="item" id="sym-ShellGame-tutorial" data-name="shellgame::tutorial"><div class="sig"><a class="anchor" href="#sym-ShellGame-tutorial" aria-label="Link to ShellGame::tutorial">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">tutorial</span>() -&gt; &amp;<span class="a">'static</span> [<span class="t">Lesson</span>]</code></div><div class="doc"><p>The guided lessons, in order. An empty slice skips the tutorial.</p></div></div><div class="item" id="sym-ShellGame-input" data-name="shellgame::input"><div class="sig"><a class="anchor" href="#sym-ShellGame-input" aria-label="Link to ShellGame::input">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">input</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, input: &amp;<span class="t">WinitInputHelper</span>, width: u16, height: u16)</code></div></div><div class="item" id="sym-ShellGame-update" data-name="shellgame::update"><div class="sig"><a class="anchor" href="#sym-ShellGame-update" aria-label="Link to ShellGame::update">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">update</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div></div><div class="item" id="sym-ShellGame-draw" data-name="shellgame::draw"><div class="sig"><a class="anchor" href="#sym-ShellGame-draw" aria-label="Link to ShellGame::draw">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">draw</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ctx: &amp;<span class="k">mut</span> <span class="t">RenderContext</span>)</code></div></div><div class="item" id="sym-ShellGame-hud" data-name="shellgame::hud"><div class="sig"><a class="anchor" href="#sym-ShellGame-hud" aria-label="Link to ShellGame::hud">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">hud</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ui: &amp;<span class="k">mut</span> egui::<span class="t">Ui</span>)</code></div></div><div class="item" id="sym-ShellGame-reset" data-name="shellgame::reset"><div class="sig"><a class="anchor" href="#sym-ShellGame-reset" aria-label="Link to ShellGame::reset">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">reset</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div></div><div class="item" id="sym-ShellGame-begin_tutorial" data-name="shellgame::begin_tutorial"><div class="sig"><a class="anchor" href="#sym-ShellGame-begin_tutorial" aria-label="Link to ShellGame::begin_tutorial">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">begin_tutorial</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Arrange a safe teaching scenario for the tutorial. Defaults to a normal
+reset; a game overrides it to slow the game down and remove failure.</p></div></div><div class="item" id="sym-ShellGame-milestone" data-name="shellgame::milestone"><div class="sig"><a class="anchor" href="#sym-ShellGame-milestone" aria-label="Link to ShellGame::milestone">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">milestone</span>(&amp;<span class="k">self</span>, _flag: &amp;str) -&gt; bool</code></div><div class="doc"><p>Report a named teaching milestone (for a <code>Goal::Milestone</code> lesson).</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Chrome" data-name="chrome"><div class="sig"><a class="anchor" href="#sym-Chrome" aria-label="Link to Chrome">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Chrome</span>&lt;<span class="t">G</span>: <span class="t">ShellGame</span>&gt;</code></div></div></div><div class="typeblock"><div class="item" id="sym-Goal" data-name="goal"><div class="sig"><a class="anchor" href="#sym-Goal" aria-label="Link to Goal">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Goal</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Advance when any of these actions has been pressed `times` times.</span>
+<span class="t">Press</span> { actions: &amp;<span class="a">'static</span> [&amp;<span class="a">'static</span> str], times: u32 },
+<span class="c">/// Advance when this action has been held for `frames` frames total.</span>
+<span class="t">Hold</span> { action: &amp;<span class="a">'static</span> str, frames: u32 },
+<span class="c">/// Advance when the game reports this milestone true.</span>
+<span class="t">Milestone</span> { flag: &amp;<span class="a">'static</span> str },
+<span class="c">/// Advance after the player has simply watched for `frames` frames.</span>
+<span class="t">Beat</span> { frames: u32 },</code></pre></div><div class="doc"><p>How a lesson knows the player did the thing.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Lesson" data-name="lesson"><div class="sig"><a class="anchor" href="#sym-Lesson" aria-label="Link to Lesson">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Lesson</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> title: &amp;<span class="a">'static</span> str,
+<span class="k">pub</span> body: &amp;<span class="a">'static</span> str,
+<span class="k">pub</span> goal: <span class="t">Goal</span>,
+<span class="k">pub</span> spotlight: <span class="t">Spotlight</span>,</code></pre></div><div class="doc"><p>One tutorial beat. <code>body</code> may hold <code>[Key]</code> tokens, drawn as key-caps.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Spotlight" data-name="spotlight"><div class="sig"><a class="anchor" href="#sym-Spotlight" aria-label="Link to Spotlight">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Spotlight</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The coach card carries the cue (a key-cap), nothing on the field.</span>
+<span class="t">None</span>,
+<span class="c">/// A ring over a registered rect (a HUD element or a board cell).</span>
+<span class="t">Named</span>(&amp;<span class="a">'static</span> str),</code></pre></div><div class="doc"><p>What the lesson points at.</p></div></div></div><h3 id="mod-shell--theme" class="modhead"><code>warp_sdk::shell::theme</code></h3><h4>Functions</h4><div class="item" id="sym-c" data-name="c"><div class="sig"><a class="anchor" href="#sym-c" aria-label="Link to c">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">c</span>(rgb: [u8; <span class="n">3</span>]) -&gt; egui::<span class="t">Color32</span></code></div></div><div class="item" id="sym-ca" data-name="ca"><div class="sig"><a class="anchor" href="#sym-ca" aria-label="Link to ca">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">ca</span>(rgb: [u8; <span class="n">3</span>], a: u8) -&gt; egui::<span class="t">Color32</span></code></div></div><div class="item" id="sym-mix" data-name="mix"><div class="sig"><a class="anchor" href="#sym-mix" aria-label="Link to mix">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">mix</span>(a: [u8; <span class="n">3</span>], b: [u8; <span class="n">3</span>], t: f32) -&gt; egui::<span class="t">Color32</span></code></div><div class="doc"><p>Blend two token colours; <code>t</code> runs 0 (a) to 1 (b). The hover ramp uses it.</p></div></div><div class="item" id="sym-font" data-name="font"><div class="sig"><a class="anchor" href="#sym-font" aria-label="Link to font">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">font</span>(size: f32) -&gt; egui::<span class="t">FontId</span></code></div><div class="doc"><p>A proportional font at a scale-step size.</p></div></div><div class="item" id="sym-mono" data-name="mono"><div class="sig"><a class="anchor" href="#sym-mono" aria-label="Link to mono">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">mono</span>(size: f32) -&gt; egui::<span class="t">FontId</span></code></div><div class="doc"><p>A monospace font at a scale-step size. The shell's headings and key-caps use
+mono, which is the arcade look.</p></div></div><div class="item" id="sym-install_fonts" data-name="install_fonts"><div class="sig"><a class="anchor" href="#sym-install_fonts" aria-label="Link to install_fonts">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">install_fonts</span>(ctx: &amp;egui::<span class="t">Context</span>)</code></div><div class="doc"><p>Install the mono face at the front of both families, once for the process.
+Everything downstream is stock egui, so this is the whole "custom font" cost.</p></div></div><div class="item" id="sym-apply" data-name="apply"><div class="sig"><a class="anchor" href="#sym-apply" aria-label="Link to apply">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">apply</span>(ctx: &amp;egui::<span class="t">Context</span>)</code></div><div class="doc"><p>Push the tokens into egui's widget table, so game-drawn widgets (sliders,
+text) match the menus. Call once per frame in the gui pass, after the scale.</p></div></div><h4>Constants</h4><div class="item" id="sym-BG_DARK" data-name="bg_dark"><div class="sig"><a class="anchor" href="#sym-BG_DARK" aria-label="Link to BG_DARK">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">BG_DARK</span>: [u8; <span class="n">3</span>] = [<span class="n">12</span>, <span class="n">14</span>, <span class="n">22</span>]</code></div></div><div class="item" id="sym-BG_PANEL" data-name="bg_panel"><div class="sig"><a class="anchor" href="#sym-BG_PANEL" aria-label="Link to BG_PANEL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">BG_PANEL</span>: [u8; <span class="n">3</span>] = [<span class="n">16</span>, <span class="n">19</span>, <span class="n">28</span>]</code></div></div><div class="item" id="sym-BG_CARD" data-name="bg_card"><div class="sig"><a class="anchor" href="#sym-BG_CARD" aria-label="Link to BG_CARD">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">BG_CARD</span>: [u8; <span class="n">3</span>] = [<span class="n">22</span>, <span class="n">27</span>, <span class="n">38</span>]</code></div></div><div class="item" id="sym-BG_HOVER" data-name="bg_hover"><div class="sig"><a class="anchor" href="#sym-BG_HOVER" aria-label="Link to BG_HOVER">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">BG_HOVER</span>: [u8; <span class="n">3</span>] = [<span class="n">30</span>, <span class="n">38</span>, <span class="n">55</span>]</code></div></div><div class="item" id="sym-BORDER" data-name="border"><div class="sig"><a class="anchor" href="#sym-BORDER" aria-label="Link to BORDER">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">BORDER</span>: [u8; <span class="n">3</span>] = [<span class="n">35</span>, <span class="n">42</span>, <span class="n">60</span>]</code></div></div><div class="item" id="sym-ACCENT" data-name="accent"><div class="sig"><a class="anchor" href="#sym-ACCENT" aria-label="Link to ACCENT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ACCENT</span>: [u8; <span class="n">3</span>] = [<span class="n">50</span>, <span class="n">180</span>, <span class="n">200</span>]; <span class="c">// teal — the "this one" colour pub const ACCENT_DIM: [u8; 3] = [25, 80, 95]</span></code></div></div><div class="item" id="sym-ACCENT_DIM" data-name="accent_dim"><div class="sig"><a class="anchor" href="#sym-ACCENT_DIM" aria-label="Link to ACCENT_DIM">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ACCENT_DIM</span>: [u8; <span class="n">3</span>] = [<span class="n">25</span>, <span class="n">80</span>, <span class="n">95</span>]</code></div></div><div class="item" id="sym-HIGHLIGHT" data-name="highlight"><div class="sig"><a class="anchor" href="#sym-HIGHLIGHT" aria-label="Link to HIGHLIGHT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">HIGHLIGHT</span>: [u8; <span class="n">3</span>] = [<span class="n">150</span>, <span class="n">200</span>, <span class="n">255</span>]</code></div></div><div class="item" id="sym-GOLD" data-name="gold"><div class="sig"><a class="anchor" href="#sym-GOLD" aria-label="Link to GOLD">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">GOLD</span>: [u8; <span class="n">3</span>] = [<span class="n">218</span>, <span class="n">185</span>, <span class="n">78</span>]; <span class="c">// the primary-action fill  pub const TEXT: [u8; 3] = [220, 225, 235]</span></code></div></div><div class="item" id="sym-TEXT" data-name="text"><div class="sig"><a class="anchor" href="#sym-TEXT" aria-label="Link to TEXT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">TEXT</span>: [u8; <span class="n">3</span>] = [<span class="n">220</span>, <span class="n">225</span>, <span class="n">235</span>]</code></div></div><div class="item" id="sym-TEXT_DIM" data-name="text_dim"><div class="sig"><a class="anchor" href="#sym-TEXT_DIM" aria-label="Link to TEXT_DIM">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">TEXT_DIM</span>: [u8; <span class="n">3</span>] = [<span class="n">140</span>, <span class="n">150</span>, <span class="n">175</span>]</code></div></div><div class="item" id="sym-TEXT_HINT" data-name="text_hint"><div class="sig"><a class="anchor" href="#sym-TEXT_HINT" aria-label="Link to TEXT_HINT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">TEXT_HINT</span>: [u8; <span class="n">3</span>] = [<span class="n">90</span>, <span class="n">105</span>, <span class="n">140</span>]</code></div></div><div class="item" id="sym-OK" data-name="ok"><div class="sig"><a class="anchor" href="#sym-OK" aria-label="Link to OK">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">OK</span>: [u8; <span class="n">3</span>] = [<span class="n">100</span>, <span class="n">200</span>, <span class="n">100</span>]</code></div></div><div class="item" id="sym-BAD" data-name="bad"><div class="sig"><a class="anchor" href="#sym-BAD" aria-label="Link to BAD">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">BAD</span>: [u8; <span class="n">3</span>] = [<span class="n">235</span>, <span class="n">90</span>, <span class="n">80</span>]</code></div></div><div class="item" id="sym-CUE" data-name="cue"><div class="sig"><a class="anchor" href="#sym-CUE" aria-label="Link to CUE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">CUE</span>: [u8; <span class="n">3</span>] = [<span class="n">255</span>, <span class="n">196</span>, <span class="n">0</span>]; <span class="c">// amber — the tutorial "do this now" ring  pub fn c(rgb: [u8; 3]) -&gt; egui::Color32</span></code></div></div><div class="item" id="sym-DISPLAY" data-name="display"><div class="sig"><a class="anchor" href="#sym-DISPLAY" aria-label="Link to DISPLAY">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">DISPLAY</span>: f32 = <span class="n">44.0</span></code></div></div><div class="item" id="sym-TITLE" data-name="title"><div class="sig"><a class="anchor" href="#sym-TITLE" aria-label="Link to TITLE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">TITLE</span>: f32 = <span class="n">27.0</span></code></div></div><div class="item" id="sym-HEADING" data-name="heading"><div class="sig"><a class="anchor" href="#sym-HEADING" aria-label="Link to HEADING">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">HEADING</span>: f32 = <span class="n">21.0</span></code></div></div><div class="item" id="sym-BUTTON" data-name="button"><div class="sig"><a class="anchor" href="#sym-BUTTON" aria-label="Link to BUTTON">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">BUTTON</span>: f32 = <span class="n">18.0</span></code></div></div><div class="item" id="sym-BODY" data-name="body"><div class="sig"><a class="anchor" href="#sym-BODY" aria-label="Link to BODY">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">BODY</span>: f32 = <span class="n">16.0</span></code></div></div><div class="item" id="sym-SMALL" data-name="small"><div class="sig"><a class="anchor" href="#sym-SMALL" aria-label="Link to SMALL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SMALL</span>: f32 = <span class="n">14.0</span></code></div></div><div class="item" id="sym-MICRO" data-name="micro"><div class="sig"><a class="anchor" href="#sym-MICRO" aria-label="Link to MICRO">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MICRO</span>: f32 = <span class="n">12.0</span></code></div></div><div class="item" id="sym-PANEL_ROUND" data-name="panel_round"><div class="sig"><a class="anchor" href="#sym-PANEL_ROUND" aria-label="Link to PANEL_ROUND">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">PANEL_ROUND</span>: f32 = <span class="n">14.0</span></code></div></div><div class="item" id="sym-MENU_KEY" data-name="menu_key"><div class="sig"><a class="anchor" href="#sym-MENU_KEY" aria-label="Link to MENU_KEY">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MENU_KEY</span>: f32 = <span class="n">44.0</span></code></div><div class="doc"><p>The side of the squircle key a menu unfolds out of and retracts into, in
+raw pt. <code>widgets::menu</code> multiplies it through <code>scale::px</code>. The duration and
+curve are not tokens here: they are <code>squircle::Motion::Structural</code> and
+<code>squircle::Curve::EaseOut</code>, the same as a deck panel.</p></div></div><h3 id="mod-shell--tutor" class="modhead"><code>warp_sdk::shell::tutor</code></h3><h4>Functions</h4><div class="item" id="sym-publish_rect" data-name="publish_rect"><div class="sig"><a class="anchor" href="#sym-publish_rect" aria-label="Link to publish_rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">publish_rect</span>(name: &amp;str, rect: egui::<span class="t">Rect</span>)</code></div><div class="doc"><p>A widget or HUD element publishes its screen rect under <code>name</code>, so a lesson
+can point at it. Call in <code>hud</code> (or a panel's draw), every frame.</p></div></div><div class="item" id="sym-clear_rects" data-name="clear_rects"><div class="sig"><a class="anchor" href="#sym-clear_rects" aria-label="Link to clear_rects">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear_rects</span>()</code></div><div class="doc"><p>Clear the registry at the start of a frame, before anything publishes.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Lesson" data-name="lesson"><div class="sig"><a class="anchor" href="#sym-Lesson" aria-label="Link to Lesson">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Lesson</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> title: &amp;<span class="a">'static</span> str,
+<span class="k">pub</span> body: &amp;<span class="a">'static</span> str,
+<span class="k">pub</span> goal: <span class="t">Goal</span>,
+<span class="k">pub</span> spotlight: <span class="t">Spotlight</span>,</code></pre></div><div class="doc"><p>One tutorial beat. <code>body</code> may hold <code>[Key]</code> tokens, drawn as key-caps.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Goal" data-name="goal"><div class="sig"><a class="anchor" href="#sym-Goal" aria-label="Link to Goal">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Goal</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Advance when any of these actions has been pressed `times` times.</span>
+<span class="t">Press</span> { actions: &amp;<span class="a">'static</span> [&amp;<span class="a">'static</span> str], times: u32 },
+<span class="c">/// Advance when this action has been held for `frames` frames total.</span>
+<span class="t">Hold</span> { action: &amp;<span class="a">'static</span> str, frames: u32 },
+<span class="c">/// Advance when the game reports this milestone true.</span>
+<span class="t">Milestone</span> { flag: &amp;<span class="a">'static</span> str },
+<span class="c">/// Advance after the player has simply watched for `frames` frames.</span>
+<span class="t">Beat</span> { frames: u32 },</code></pre></div><div class="doc"><p>How a lesson knows the player did the thing.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Spotlight" data-name="spotlight"><div class="sig"><a class="anchor" href="#sym-Spotlight" aria-label="Link to Spotlight">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Spotlight</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The coach card carries the cue (a key-cap), nothing on the field.</span>
+<span class="t">None</span>,
+<span class="c">/// A ring over a registered rect (a HUD element or a board cell).</span>
+<span class="t">Named</span>(&amp;<span class="a">'static</span> str),</code></pre></div><div class="doc"><p>What the lesson points at.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Tutor" data-name="tutor"><div class="sig"><a class="anchor" href="#sym-Tutor" aria-label="Link to Tutor">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Tutor</span></code></div><div class="doc"><p>The running tutorial state the shell owns.</p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-Tutor-new" data-name="tutor::new"><div class="sig"><a class="anchor" href="#sym-Tutor-new" aria-label="Link to Tutor::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Tutor-reset" data-name="tutor::reset"><div class="sig"><a class="anchor" href="#sym-Tutor-reset" aria-label="Link to Tutor::reset">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reset</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div></div><div class="item" id="sym-Tutor-note_input" data-name="tutor::note_input"><div class="sig"><a class="anchor" href="#sym-Tutor-note_input" aria-label="Link to Tutor::note_input">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">note_input</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, lessons: &amp;[<span class="t">Lesson</span>], input: &amp;<span class="t">WinitInputHelper</span>)</code></div><div class="doc"><p>Count presses and holds for the current lesson. Call in the input pass,
+with the game's input helper, while the tutorial runs.</p></div></div><div class="item" id="sym-Tutor-advance" data-name="tutor::advance"><div class="sig"><a class="anchor" href="#sym-Tutor-advance" aria-label="Link to Tutor::advance">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">advance</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, lessons: &amp;[<span class="t">Lesson</span>], milestone: <span class="k">impl</span> <span class="t">Fn</span>(&amp;str) -&gt; bool) -&gt; bool</code></div><div class="doc"><p>Tick the tutorial one frame. Returns true when the last lesson is done.
+Call in the update pass, after the game steps, with the game's milestone
+reader.</p></div></div><div class="item" id="sym-Tutor-ui" data-name="tutor::ui"><div class="sig"><a class="anchor" href="#sym-Tutor-ui" aria-label="Link to Tutor::ui">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">ui</span>(&amp;<span class="k">self</span>, ctx: &amp;egui::<span class="t">Context</span>, lessons: &amp;[<span class="t">Lesson</span>]) -&gt; bool</code></div><div class="doc"><p>Draw the cue ring and the coach card. Returns true if Skip was clicked.</p></div></div></details></div><h3 id="mod-shell--widgets" class="modhead"><code>warp_sdk::shell::widgets</code></h3><h4>Functions</h4><div class="item" id="sym-fill_squircle" data-name="fill_squircle"><div class="sig"><a class="anchor" href="#sym-fill_squircle" aria-label="Link to fill_squircle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">fill_squircle</span>(p: &amp;egui::<span class="t">Painter</span>, rect: egui::<span class="t">Rect</span>, r: f32, fill: egui::<span class="t">Color32</span>)</code></div><div class="doc"><p>Fill a squircle through the shared kit (<code>squircle::shape::fill</code>).</p></div></div><div class="item" id="sym-stroke_squircle" data-name="stroke_squircle"><div class="sig"><a class="anchor" href="#sym-stroke_squircle" aria-label="Link to stroke_squircle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stroke_squircle</span>(p: &amp;egui::<span class="t">Painter</span>, rect: egui::<span class="t">Rect</span>, r: f32, stroke: egui::<span class="t">Stroke</span>)</code></div><div class="doc"><p>Stroke a squircle outline through the shared kit (<code>squircle::shape::stroke</code>).</p></div></div><div class="item" id="sym-button" data-name="button"><div class="sig"><a class="anchor" href="#sym-button" aria-label="Link to button">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">button</span>(ui: &amp;<span class="k">mut</span> egui::<span class="t">Ui</span>, text: &amp;str, kind: <span class="t">Btn</span>) -&gt; egui::<span class="t">Response</span></code></div><div class="doc"><p>A squircle button that eases to its hover colour and lights a dim halo
+under itself. Returns the click response.</p></div></div><div class="item" id="sym-ghost" data-name="ghost"><div class="sig"><a class="anchor" href="#sym-ghost" aria-label="Link to ghost">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">ghost</span>(ui: &amp;<span class="k">mut</span> egui::<span class="t">Ui</span>, text: &amp;str) -&gt; egui::<span class="t">Response</span></code></div><div class="doc"><p>A text-only ghost button, for a quiet action like Skip or Back.</p></div></div><div class="item" id="sym-panel" data-name="panel"><div class="sig"><a class="anchor" href="#sym-panel" aria-label="Link to panel">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">panel</span>() -&gt; egui::<span class="t">Frame</span></code></div><div class="doc"><p>A framed card: a raised surface with a hairline border and generous inner
+margin. The tutor's lesson card uses it. The title, pause and settings
+screens use <code>menu</code>, which draws the same surface as an unfolding squircle.</p></div></div><div class="item" id="sym-keycap" data-name="keycap"><div class="sig"><a class="anchor" href="#sym-keycap" aria-label="Link to keycap">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">keycap</span>(ui: &amp;<span class="k">mut</span> egui::<span class="t">Ui</span>, label: &amp;str, hot: f32)</code></div><div class="doc"><p>A key-cap glyph, e.g. <code>Space</code> or <code>←</code>. <code>hot</code> (0..1) pulses its accent so the
+tutor can say "press THIS". Advances the cursor by the cap width.</p></div></div><div class="item" id="sym-section" data-name="section"><div class="sig"><a class="anchor" href="#sym-section" aria-label="Link to section">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">section</span>(ui: &amp;<span class="k">mut</span> egui::<span class="t">Ui</span>, text: &amp;str)</code></div><div class="doc"><p>A <code>// UPPERCASE</code> section rule, mono and dim.</p></div></div><div class="item" id="sym-slider_row" data-name="slider_row"><div class="sig"><a class="anchor" href="#sym-slider_row" aria-label="Link to slider_row">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">slider_row</span>(ui: &amp;<span class="k">mut</span> egui::<span class="t">Ui</span>, name: &amp;str, value: &amp;<span class="k">mut</span> f32, lo: f32, hi: f32) -&gt; bool</code></div><div class="doc"><p>A labelled slider row. Returns true while the value changes.</p></div></div><div class="item" id="sym-dim" data-name="dim"><div class="sig"><a class="anchor" href="#sym-dim" aria-label="Link to dim">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">dim</span>(ctx: &amp;egui::<span class="t">Context</span>, alpha: u8)</code></div><div class="doc"><p>Darken the whole window and drop a soft vignette, so a menu over the frozen
+game reads clearly. Restrained: a few rings, no scanlines.</p></div></div><div class="item" id="sym-cue_ring" data-name="cue_ring"><div class="sig"><a class="anchor" href="#sym-cue_ring" aria-label="Link to cue_ring">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cue_ring</span>(p: &amp;egui::<span class="t">Painter</span>, rect: egui::<span class="t">Rect</span>, time: f64)</code></div><div class="doc"><p>The tutor's standing ring: an amber pulsing squircle border around a target
+rect, painted on the given layer so it keeps the target's z-order.</p></div></div><div class="item" id="sym-menu" data-name="menu"><div class="sig"><a class="anchor" href="#sym-menu" aria-label="Link to menu">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> menu&lt;<span class="t">R</span>&gt;( ctx: &amp;egui::<span class="t">Context</span>, id_source: &amp;str, add_contents: <span class="k">impl</span> <span class="t">FnOnce</span>(&amp;<span class="k">mut</span> egui::<span class="t">Ui</span>) -&gt; <span class="t">R</span>, ) -&gt; <span class="t">R</span></code></div><div class="doc"><p>A centred menu screen that unfolds out of a squircle key.</p>
+<p>Call it every frame the screen is up; <code>id_source</code> names the screen. The
+contents lay out at their settled place and the growing chrome clips them.
+Clicks inside are muted until the unfold ends. When a later frame stops
+calling <code>menu</code> for this id, <code>retract_menus</code> shrinks the chrome back into
+the key. A menu called again while it retracts unfolds from where it is.</p></div></div><div class="item" id="sym-retract_menus" data-name="retract_menus"><div class="sig"><a class="anchor" href="#sym-retract_menus" aria-label="Link to retract_menus">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">retract_menus</span>(ctx: &amp;egui::<span class="t">Context</span>)</code></div><div class="doc"><p>Retract every menu that no screen called this frame. Call it once per
+frame, after the screens. The chrome shrinks back into its key on the
+background layer, under any menu that unfolds in its place.</p></div></div><div class="item" id="sym-menu_unfold" data-name="menu_unfold"><div class="sig"><a class="anchor" href="#sym-menu_unfold" aria-label="Link to menu_unfold">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">menu_unfold</span>(ctx: &amp;egui::<span class="t">Context</span>, id_source: &amp;str) -&gt; f32</code></div><div class="doc"><p>The eased unfold of menu <code>id_source</code>: 0 inside its key, 1 fully open.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Btn" data-name="btn"><div class="sig"><a class="anchor" href="#sym-Btn" aria-label="Link to Btn">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Btn</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Primary</span>,
+<span class="t">Normal</span>,</code></pre></div><div class="doc"><p>Button weight: the gold primary action, or a normal card button.</p></div></div></div><h2 id="see-also">See also</h2><ul><li><a href="renderer.html" data-slug="renderer">Renderer and run</a></li><li><a href="smoke.html" data-slug="smoke">Smoke test</a></li><li><a href="front.html" data-slug="front">Front end</a></li><li><a href="teach.html" data-slug="teach">Teach kit</a></li><li><a href="squircle.html" data-slug="squircle">Squircle kit</a></li><li><a href="scale.html" data-slug="scale">Interface scale</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/shell/mod.rs</code> - <code>the old render into `update` (step) and `draw` (paint), so a menu freezes and</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/shell/mod.rs</code> - <code>Mode::Paused =&gt; &quot;pause&quot;,</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/shell/mod.rs</code> - <code>// Skipping drops the sandbox and starts a clean game.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/shell/mod.rs</code> - <code>// ── Settings, saved beside the game as plain key=value lines</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/shell/tutor.rs</code> - <code>names a goal the shell can watch, and it does not advance until the player</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/shell/tutor.rs</code> - <code>const OBS_FRAMES: u32 = 42; // the observation hold after a goal is met</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/shell/widgets.rs</code> - <code>So the animated geometry is the clip, not the layout, and nothing fights</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/src/smoke.rs</code> - <code>//! while an editor is attached, so `play` cannot see a name sent there.</code></li></ol><table class="navbox"><tr><th><a href="category-getting-started.html">Getting started</a></th></tr><tr><td><a href="renderer.html" data-slug="renderer">Renderer and run</a> · <b>Game shell</b> · <a href="smoke.html" data-slug="smoke">Smoke test</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-getting-started.html">Getting started</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

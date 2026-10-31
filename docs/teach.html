@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teach kit - Warp Wiki</title>
+<meta name="description" content="tutorials with control glyphs, verb-keyed steps and purpose cues">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="teach">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#overview">Overview</a></li><li><a href="#design">Design</a><ul><li><a href="#the-game-reports-done">The game reports done</a></li><li><a href="#prompts-read-the-binding-at-paint-time">Prompts read the binding at paint time</a></li></ul></li><li><a href="#glyphs">Glyphs</a></li><li><a href="#courses">Courses</a><ul><li><a href="#lifecycle">Lifecycle</a></li><li><a href="#skipping-and-replay">Skipping and replay</a></li><li><a href="#anchors">Anchors</a></li></ul></li><li><a href="#purpose-cues">Purpose cues</a><ul><li><a href="#kinds-and-roles">Kinds and roles</a></li><li><a href="#links">Links</a></li><li><a href="#reveals">Reveals</a></li></ul></li><li><a href="#world-to-screen">World to screen</a></li><li><a href="#persistence">Persistence</a></li><li><a href="#usage">Usage</a></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Teach kit</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">tutorials with control glyphs, verb-keyed steps and purpose cues</p><table class="infobox"><caption>Teach kit</caption><tr><th>Category</th><td><a href="category-information.html">Information</a></td></tr><tr><th>Module</th><td><code>warp_sdk::teach</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/teach.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">95</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example teach</code></td></tr></table><p><strong>The teach kit</strong> is a set of tools that teach a game by playing it, with pictures in place of a list of words. It lives in <a class="sym" href="teach.html"><code>warp_sdk::teach</code></a>. A player learns a game when the game shows them what to do, at the place where they do it, and then shows them that they did it <sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup>. The kit gives a game three tools for that: <a class="sym" href="#sym-Glyph"><code>Glyph</code></a>, <a class="sym" href="#sym-Course"><code>Course</code></a> and <a class="sym" href="#sym-Cues"><code>Cues</code></a>.</p>
+<h2 id="overview">Overview</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Tool</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Glyph"><code>Glyph</code></a></td>
+<td>Draws a control as a vector picture: a keycap with the bound key, a mouse button that blinks or fills, a wheel, a gamepad button</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Course"><code>Course</code></a></td>
+<td>Runs ordered steps keyed by verbs, with one glyph prompt at a time at a world point or a screen point</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Cues"><code>Cues</code></a></td>
+<td>Shows purpose: a moving dotted path from a thing to where it is used, and a first-encounter callout</td>
+</tr>
+</tbody>
+</table>
+<p>The <a class="sym" href="#sym-Glyph"><code>Glyph</code></a> of this kit differs from the squircle <a class="sym" href="squircle.html#sym-Glyph"><code>squircle::Glyph</code></a> and from <a class="sym" href="hud-cues.html#sym-Sym"><code>hud::cues::Sym</code></a>. It draws an input control and not an object or a key face.</p>
+<h2 id="design">Design</h2>
+<h3 id="the-game-reports-done">The game reports done</h3>
+<p>The kit does not watch keys, because a key press is not the lesson. "Grab" is learned when an orb is in the claw, not when the button went down far from any orb. Only the game knows that, so only the game says it <sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup>. A verb the player does before its step comes is learned too, and its prompt never shows.</p>
+<h3 id="prompts-read-the-binding-at-paint-time">Prompts read the binding at paint time</h3>
+<p><a class="sym" href="#sym-Glyph-action"><code>Glyph::action</code></a> keeps the action id, not the key. The painter asks <a class="sym" href="bindings.html#sym-chords"><code>chords</code></a> each frame, so a player who rebinds grab to F sees F on the next frame <sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup>. An action with no binding shows a <code>?</code> keycap. See <a href="bindings.html" data-slug="bindings">Bindings</a>.</p>
+<h2 id="glyphs">Glyphs</h2>
+<p>A <a class="sym" href="#sym-Glyph"><code>Glyph</code></a> is one control, drawn as a picture and never as a line of text. <a class="sym" href="#sym-Glyph-action"><code>Glyph::action</code></a> is the preferred form, because it follows a rebind.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Constructor</th>
+<th>Shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Glyph-action"><code>Glyph::action</code></a></td>
+<td>The bound control of an action, pressed</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Glyph-action_hold"><code>Glyph::action_hold</code></a></td>
+<td>The bound control of an action, held</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Glyph-cross"><code>Glyph::cross</code></a></td>
+<td>Four actions as an inverted T of keycaps, for movement</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Glyph-key"><code>Glyph::key</code></a></td>
+<td>A keycap with a fixed label, for a key that is not an action</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Glyph-mouse"><code>Glyph::mouse</code></a></td>
+<td>A mouse with one <a class="sym" href="#sym-MouseButton"><code>MouseButton</code></a> marked</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Glyph-pad"><code>Glyph::pad</code></a></td>
+<td>A gamepad control, one of the <a class="sym" href="#sym-Pad"><code>Pad</code></a> values</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Glyph-row"><code>Glyph::row</code></a></td>
+<td>Alternatives side by side, for example keyboard and gamepad</td>
+</tr>
+<tr>
+<td>Glyph::Wheel</td>
+<td>A mouse with the wheel marked, for a <a class="sym" href="#sym-Scroll"><code>Scroll</code></a> direction</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Gesture"><code>Gesture</code></a> sets how the player must work the control, and the glyph animates the difference. Under Gesture::Press the glyph blinks down and up with a ripple. Under Gesture::Hold it stays down and a ring fills. <a class="sym" href="#sym-Pad"><code>Pad</code></a> names controls by position and not by brand letter, so Pad::South is the bottom face button.</p>
+<p><a class="sym" href="#sym-Glyph-from_chord"><code>Glyph::from_chord</code></a> builds the glyph for one chord, and <a class="sym" href="#sym-Glyph-resolved"><code>Glyph::resolved</code></a> replaces every Glyph::Action with its bound control now. <a class="sym" href="#sym-paint_glyph"><code>paint_glyph</code></a> paints a glyph in a game's own panel, and <a class="sym" href="#sym-glyph_size"><code>glyph_size</code></a> measures one.</p>
+<h2 id="courses">Courses</h2>
+<p>A <a class="sym" href="#sym-Course"><code>Course</code></a> is an ordered tutorial with one prompt at a time. <a class="sym" href="#sym-Step-new"><code>Step::new</code></a> pairs a verb with a glyph, and <a class="sym" href="#sym-Step-at"><code>Step::at</code></a> sets its first <a class="sym" href="#sym-Anchor"><code>Anchor</code></a>. <a class="sym" href="#sym-Course-step"><code>Course::step</code></a> adds a step at the end.</p>
+<h3 id="lifecycle">Lifecycle</h3>
+<p>Each frame, in the game logic, a game does three things in this order.</p>
+<ol>
+<li>It calls <a class="sym" href="#sym-Course-anchor"><code>Course::anchor</code></a> for a verb whose thing moves.</li>
+<li>It calls <a class="sym" href="#sym-Course-done"><code>Course::done</code></a> when the player has done a verb. Calling it each frame is cheap, because a learned verb returns at once.</li>
+<li>It calls <a class="sym" href="#sym-Course-tick"><code>Course::tick</code></a> once with the frame time.</li>
+</ol>
+<p>In <code>gui</code> it calls <a class="sym" href="#sym-Course-show"><code>Course::show</code></a> with a projection closure.</p>
+<p>A prompt moves through these phases.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Phase</th>
+<th style="text-align: right;">Default time</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gap</td>
+<td style="text-align: right;">0.6 s at the start, 0.25 s after a confirm, 0.3 s after a skip</td>
+<td>No prompt; the next prompt waits for any confirm animation</td>
+</tr>
+<tr>
+<td>Show</td>
+<td style="text-align: right;">8 s</td>
+<td>The prompt pops in, then fades during its last 0.4 s</td>
+</tr>
+<tr>
+<td>Rest</td>
+<td style="text-align: right;">4 s</td>
+<td>The prompt is gone; it then returns with a bounce</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Course-timeout"><code>Course::timeout</code></a> sets the show and rest times, with a show time of at least 0.5 seconds. <a class="sym" href="#sym-Course-reshows"><code>Course::reshows</code></a> counts how many times the current prompt came back, so a game can add help for a stuck player.</p>
+<p>When <a class="sym" href="#sym-Course-done"><code>Course::done</code></a> names the current step, the prompt shows a check pulse and flies away over <a class="sym" href="#sym-CONFIRM_SECONDS"><code>CONFIRM_SECONDS</code></a> (0.7), and the next step comes after that animation. Only a prompt the player could see flies away. A verb done during the gap, before its prompt came, just counts <sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup>. When <a class="sym" href="#sym-Course-done"><code>Course::done</code></a> names a later step, that step is learned and never shows. The function returns true the first time a verb is learned.</p>
+<p>A confirm reaches the game in two ways. <a class="sym" href="#sym-Course-on_confirm"><code>Course::on_confirm</code></a> sets a hook, for a particle burst or a sound. <a class="sym" href="#sym-Course-take_confirms"><code>Course::take_confirms</code></a> returns the <a class="sym" href="#sym-Confirm"><code>Confirm</code></a> values since the last call. <code>Confirm.world</code> is set when the step's anchor was a world point.</p>
+<h3 id="skipping-and-replay">Skipping and replay</h3>
+<p><a class="sym" href="#sym-Course-show"><code>Course::show</code></a> paints a small skip mark at the corner of the prompt, and a click on it skips the step. <a class="sym" href="#sym-Course-skip"><code>Course::skip</code></a> does the same from code, and <a class="sym" href="#sym-Course-skip_all"><code>Course::skip_all</code></a> skips every remaining step. A skipped step counts as learned and does not come back, and it sends no <a class="sym" href="#sym-Confirm"><code>Confirm</code></a>. <a class="sym" href="#sym-Course-relearn"><code>Course::relearn</code></a> forgets every learned verb and starts from the first step.</p>
+<p><a class="sym" href="#sym-Course-current"><code>Course::current</code></a> gives the verb the course teaches now, <a class="sym" href="#sym-Course-is_learned"><code>Course::is_learned</code></a> tests one verb, <a class="sym" href="#sym-Course-finished"><code>Course::finished</code></a> is true when no step remains and no animation runs, and <a class="sym" href="#sym-Course-visible_prompts"><code>Course::visible_prompts</code></a> reports the number on screen. The course keeps that at 0 or 1.</p>
+<h3 id="anchors">Anchors</h3>
+<p>An <a class="sym" href="#sym-Anchor"><code>Anchor</code></a> says where a prompt points. Anchor::World is a world point, and the prompt sits above it with a tail that points down. Anchor::Screen is a fraction of the screen, and the default is <code>[0.5, 0.78]</code>. Anchor::Rect is a screen element: the prompt sits above it and a ring marks it.</p>
+<h2 id="purpose-cues">Purpose cues</h2>
+<p><a class="sym" href="#sym-Cues"><code>Cues</code></a> shows what things are for. Most games use the global one through the free functions <a class="sym" href="#sym-begin"><code>begin</code></a>, <a class="sym" href="#sym-Cues-kind"><code>kind</code></a>, <a class="sym" href="#sym-Cues-link"><code>link</code></a>, <a class="sym" href="#sym-Cues-reveal"><code>reveal</code></a>, <a class="sym" href="#sym-Course-tick"><code>tick</code></a> and <a class="sym" href="#sym-Course-show"><code>show</code></a>. A separate <a class="sym" href="#sym-Cues"><code>Cues</code></a> value has the same methods. <a class="sym" href="#sym-with"><code>with</code></a> runs a closure on the global cues, and <a class="sym" href="#sym-begin_with"><code>begin_with</code></a> replaces them, for example with an in-memory set in a test. The global cues start in memory if <a class="sym" href="#sym-begin"><code>begin</code></a> never ran, so nothing persists until it does <sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup>.</p>
+<h3 id="kinds-and-roles">Kinds and roles</h3>
+<p>A <a class="sym" href="#sym-Kind"><code>Kind</code></a> is a kind of thing in the game, with an id, a <a class="sym" href="#sym-Role"><code>Role</code></a> and a short name. <a class="sym" href="#sym-Kind-new"><code>Kind::new</code></a> cuts a longer name to two words. A link or a reveal of an unregistered id uses Role::Unknown.</p>
+<p>Each teach <a class="sym" href="#sym-Role"><code>Role</code></a> is one action of the <a href="semiotics.html" data-slug="semiotics">semiotic standard</a>. The action class gives the frame and the colour role, and the colour comes from a <a class="sym" href="visual.html#sym-Language"><code>visual::Language</code></a>. A game that uses the same language in its HUD teaches the player what a colour and a frame mean <sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup>.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Role</th>
+<th>Standard action</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Role::Collect</td>
+<td>Collect</td>
+<td>Pick it up</td>
+</tr>
+<tr>
+<td>Role::Home</td>
+<td>Deliver</td>
+<td>Bring things here</td>
+</tr>
+<tr>
+<td>Role::Danger</td>
+<td>Danger</td>
+<td>Keep away, or fight it</td>
+</tr>
+<tr>
+<td>Role::Ally</td>
+<td>Health</td>
+<td>It helps the player</td>
+</tr>
+<tr>
+<td>Role::Food</td>
+<td>Energy</td>
+<td>It keeps something alive</td>
+</tr>
+<tr>
+<td>Role::Tool</td>
+<td>Interact</td>
+<td>Use it on something</td>
+</tr>
+<tr>
+<td>Role::Unknown</td>
+<td>New</td>
+<td>Not known yet</td>
+</tr>
+</tbody>
+</table>
+<p>Role::Home is not a house, because in the standard the house frame means Build. <a class="sym" href="#sym-Cues-with_language"><code>Cues::with_language</code></a> and <a class="sym" href="#sym-Cues-set_language"><code>Cues::set_language</code></a> give the game's language, and the default is <a class="sym" href="visual.html#sym-default_language"><code>visual::default_language</code></a>. <a class="sym" href="#sym-Cues-set_icon"><code>Cues::set_icon</code></a> paints kind icons with a game's own closure of type <a class="sym" href="#sym-IconFn"><code>IconFn</code></a>, which returns false to keep the role icon. <a class="sym" href="#sym-paint_role_icon"><code>paint_role_icon</code></a> draws a role glyph outside the cues.</p>
+<h3 id="links">Links</h3>
+<p><a class="sym" href="#sym-Cues-link"><code>link</code></a> draws a moving, dotted path from a thing to the place where it is used, the first few times only. A game calls it every frame while the link applies, for example while the player carries an orb. One unbroken run of frames is one showing. After <a class="sym" href="#sym-Cues-link_shows"><code>Cues::link_shows</code></a> showings of a kind (default 3), later runs draw nothing <sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup>. A link started counts in <a class="sym" href="#sym-Cues-tick"><code>Cues::tick</code></a>, so <a class="sym" href="#sym-Cues-link"><code>link</code></a> calls must come before the tick of that frame. The path fades in over a quarter second and out over a third.</p>
+<h3 id="reveals">Reveals</h3>
+<p><a class="sym" href="#sym-Cues-reveal"><code>reveal</code></a> introduces a kind the first time the player meets it, with a ring, the role icon and the name, for <a class="sym" href="#sym-REVEAL_SECONDS"><code>REVEAL_SECONDS</code></a> (3.2). A game calls it each frame while the thing is in view, and the callout follows the thing. After the first time, the call does nothing. <a class="sym" href="#sym-Cues-introduced"><code>Cues::introduced</code></a> tests whether a kind has had its callout, and <a class="sym" href="#sym-Cues-relearn"><code>Cues::relearn</code></a> forgets every count.</p>
+<h2 id="world-to-screen">World to screen</h2>
+<p>Every paint call takes a <a class="sym" href="#sym-View2-project"><code>project</code></a> closure from a world point to an optional egui point. <a class="sym" href="#sym-World"><code>World</code></a> is <code>[f32; 2]</code> with +y up, and <code>ultraviolet::Vec2</code> converts with <code>.into()</code>.</p>
+<p><a class="sym" href="#sym-View2"><code>View2</code></a> is a small camera that matches the engine 2D view: <code>half_height</code> is the same number a game gives to <code>set_view_scale</code>. <a class="sym" href="#sym-View2-projector"><code>View2::projector</code></a> returns the closure, and <a class="sym" href="#sym-View2-project"><code>View2::project</code></a> maps one point. A closure that returns <code>None</code> leaves that frame's anchor or link undrawn.</p>
+<h2 id="persistence">Persistence</h2>
+<p>Learned state goes to <code>&lt;app data&gt;/teach/&lt;game&gt;.course</code> and <code>&lt;game&gt;.cues</code>, as one <code>key&lt;TAB&gt;count</code> line per entry <sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup>. <a class="sym" href="#sym-store_path"><code>store_path</code></a> gives the path, and it replaces any character other than ASCII letters, digits, <code>-</code> and <code>_</code> in the game name.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Constructor</th>
+<th>Storage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Course-new"><code>Course::new</code></a>, <a class="sym" href="#sym-Cues-new"><code>Cues::new</code></a></td>
+<td>Under app data for the game</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Course-in_memory"><code>Course::in_memory</code></a>, <a class="sym" href="#sym-Cues-in_memory"><code>Cues::in_memory</code></a></td>
+<td>None; for tests and demos</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Course-stored_at"><code>Course::stored_at</code></a>, <a class="sym" href="#sym-Cues-stored_at"><code>Cues::stored_at</code></a></td>
+<td>One named file</td>
+</tr>
+</tbody>
+</table>
+<p>Learned verbs persist, so a second session starts at the first verb the player has not done yet. On a platform with no app data folder the state stays in memory. The store writes the whole file on each count change and ignores write errors. A line that does not parse is skipped when the file loads.</p>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> <span class="k">mut</span> course = teach::<span class="t">Course</span>::<span class="f">new</span>(<span class="s">"reef"</span>)
+    .<span class="f">step</span>(teach::<span class="t">Step</span>::<span class="f">new</span>(<span class="s">"move"</span>, teach::<span class="t">Glyph</span>::<span class="f">cross</span>(<span class="s">"up"</span>, <span class="s">"left"</span>, <span class="s">"down"</span>, <span class="s">"right"</span>)))
+    .<span class="f">step</span>(teach::<span class="t">Step</span>::<span class="f">new</span>(<span class="s">"grab"</span>, teach::<span class="t">Glyph</span>::<span class="f">action_hold</span>(<span class="s">"grab"</span>)));
+teach::<span class="f">begin</span>(<span class="s">"reef"</span>);
+teach::<span class="f">kind</span>(teach::<span class="t">Kind</span>::<span class="f">new</span>(<span class="s">"orb"</span>, teach::<span class="t">Role</span>::<span class="t">Collect</span>, <span class="s">"Orb"</span>));
+
+<span class="c">// each frame, in game logic:</span>
+course.<span class="f">anchor</span>(<span class="s">"move"</span>, teach::<span class="t">Anchor</span>::<span class="t">World</span>(player));
+<span class="k">if</span> moved { course.<span class="f">done</span>(<span class="s">"move"</span>); }
+teach::<span class="f">reveal</span>(<span class="s">"orb"</span>, orb_pos);
+<span class="k">if</span> carrying { teach::<span class="f">link</span>(player, base, <span class="s">"orb"</span>); }
+course.<span class="f">tick</span>(dt);
+teach::<span class="f">tick</span>(dt);
+
+<span class="c">// in gui:</span>
+<span class="k">let</span> project = teach::<span class="t">View2</span>::<span class="f">new</span>(cam_pos, cam_half_height).<span class="f">projector</span>(ctx);
+course.<span class="f">show</span>(ctx, &amp;project);
+teach::<span class="f">show</span>(ctx, &amp;project);</code></pre></div>
+<p>The <a class="sym" href="teach.html"><code>teach</code></a> example builds its lesson from three steps and offers keyboard and stick at once:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">fn</span> <span class="f">lesson</span>(course: <span class="t">Course</span>) -&gt; <span class="t">Course</span> {
+    <span class="k">let</span> walk = <span class="t">Glyph</span>::<span class="f">row</span>(vec![
+        <span class="t">Glyph</span>::<span class="f">cross</span>(<span class="s">"up"</span>, <span class="s">"left"</span>, <span class="s">"down"</span>, <span class="s">"right"</span>),
+        <span class="t">Glyph</span>::<span class="f">pad</span>(<span class="t">Pad</span>::<span class="t">LeftStick</span>, <span class="t">Gesture</span>::<span class="t">Hold</span>),
+    ]);
+    course
+        .<span class="f">step</span>(<span class="t">Step</span>::<span class="f">new</span>(<span class="s">"move"</span>, walk.<span class="f">clone</span>()))
+        .<span class="f">step</span>(<span class="t">Step</span>::<span class="f">new</span>(<span class="s">"grab"</span>, <span class="t">Glyph</span>::<span class="f">action_hold</span>(<span class="s">"grab"</span>)))
+        .<span class="f">step</span>(<span class="t">Step</span>::<span class="f">new</span>(<span class="s">"deliver"</span>, walk).<span class="f">at</span>(<span class="t">Anchor</span>::<span class="t">World</span>(<span class="f">w</span>(<span class="t">BASE</span>))))
+}</code></pre></div>
+<p>Its game <a class="sym" href="#sym-Course-step"><code>step</code></a> method holds all of the game logic and takes plain controls, so the tests run the lesson with no window. Its second run starts where the player stopped.</p>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<ul>
+<li><a href="bindings.html" data-slug="bindings">Bindings</a> supplies the chord of each Glyph::Action, read each frame.</li>
+<li><a href="semiotics.html" data-slug="semiotics">Semiotics</a> and <a href="visual.html" data-slug="visual">Visual language</a> supply the role actions, frames and colours.</li>
+<li><a href="hud-cues.html" data-slug="hud-cues">HUD cues</a> uses the same standard for forced changes. A <a class="sym" href="teach.html"><code>teach</code></a> prompt asks for an action, and a cue explains something that happened.</li>
+<li>A <a class="sym" href="#sym-Pad"><code>Pad</code></a> glyph names a position only. It is a fixed picture and is not read from a binding or from <a href="gamepad.html" data-slug="gamepad">Gamepad</a>.</li>
+</ul>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>There is no global <a class="sym" href="#sym-Course"><code>Course</code></a>. A game owns its <a class="sym" href="#sym-Course"><code>Course</code></a> value, and <a class="sym" href="#sym-Course-show"><code>Course::show</code></a> needs <code>&amp;mut self</code>.</li>
+<li>The kit does not read the shell motion preference, and its painted sizes are fixed points.</li>
+<li><a class="sym" href="#sym-Course-done"><code>Course::done</code></a> records any verb, including one that is in no step.</li>
+<li>Prompts are one at a time by design, so a course cannot teach two verbs in parallel.</li>
+</ul>
+<h2 id="history">History</h2>
+<p>The kit was added on 2026-10-29, after a placeholder registration, and a later commit of that day aligned it with the semiotic standard.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 95 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-teach" class="modhead"><code>warp_sdk::teach</code></h3><h4>Functions</h4><div class="item" id="sym-store_path" data-name="store_path"><div class="sig"><a class="anchor" href="#sym-store_path" aria-label="Link to store_path">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">store_path</span>(game: &amp;str, part: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="t">PathBuf</span>&gt;</code></div><div class="doc"><p>The file where a game keeps one part of its learned state, under app data.
+None when the platform has no app data folder.</p>
+<p><code>ignore
+let p = teach::store_path("reef", "course");  // &lt;app data&gt;/teach/reef.course</code></p></div></div><div class="item" id="sym-with" data-name="with"><div class="sig"><a class="anchor" href="#sym-with" aria-label="Link to with">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> with&lt;<span class="t">R</span>&gt;(f: <span class="k">impl</span> <span class="t">FnOnce</span>(&amp;<span class="k">mut</span> <span class="t">Cues</span>) -&gt; <span class="t">R</span>) -&gt; <span class="t">R</span></code></div><div class="doc"><p>Run <code>f</code> on the global cues. They start in memory if <code>begin</code> never ran.</p>
+<p><code>ignore
+let n = teach::with(|c| c.link_count("orb"));</code></p></div></div><div class="item" id="sym-begin" data-name="begin"><div class="sig"><a class="anchor" href="#sym-begin" aria-label="Link to begin">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">begin</span>(game: &amp;str)</code></div><div class="doc"><p>Start the global cues for <code>game</code>, with counts that persist under app data.</p>
+<p><code>ignore
+teach::begin("reef");</code></p></div></div><div class="item" id="sym-begin_with" data-name="begin_with"><div class="sig"><a class="anchor" href="#sym-begin_with" aria-label="Link to begin_with">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">begin_with</span>(cues: <span class="t">Cues</span>)</code></div><div class="doc"><p>Replace the global cues with any <code>Cues</code>, for example <code>Cues::in_memory()</code> in a test.</p>
+<p><code>ignore
+teach::begin_with(Cues::in_memory().link_shows(2));</code></p></div></div><div class="item" id="sym-kind" data-name="kind"><div class="sig"><a class="anchor" href="#sym-kind" aria-label="Link to kind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">kind</span>(k: <span class="t">Kind</span>)</code></div><div class="doc"><p>Register a kind on the global cues. See [<code>Cues::kind</code>].</p>
+<p><code>ignore
+teach::kind(Kind::new("orb", Role::Collect, "Orb"));</code></p></div></div><div class="item" id="sym-link" data-name="link"><div class="sig"><a class="anchor" href="#sym-link" aria-label="Link to link">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">link</span>(from_world: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">World</span>&gt;, to_world: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">World</span>&gt;, kind: &amp;str) -&gt; bool</code></div><div class="doc"><p>Ask for a link this frame on the global cues. See [<code>Cues::link</code>].</p>
+<p><code>ignore
+if carrying { teach::link(player, colony, "orb"); }</code></p></div></div><div class="item" id="sym-reveal" data-name="reveal"><div class="sig"><a class="anchor" href="#sym-reveal" aria-label="Link to reveal">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reveal</span>(kind: &amp;str, at: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">World</span>&gt;) -&gt; bool</code></div><div class="doc"><p>Introduce a kind on the global cues. See [<code>Cues::reveal</code>].</p>
+<p><code>ignore
+teach::reveal("gloom", gloom_pos);</code></p></div></div><div class="item" id="sym-tick" data-name="tick"><div class="sig"><a class="anchor" href="#sym-tick" aria-label="Link to tick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">tick</span>(dt: f32)</code></div><div class="doc"><p>Move the clock of the global cues. See [<code>Cues::tick</code>].</p>
+<p><code>ignore
+teach::tick(dt);</code></p></div></div><div class="item" id="sym-show" data-name="show"><div class="sig"><a class="anchor" href="#sym-show" aria-label="Link to show">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">show</span>(ctx: &amp;egui::<span class="t">Context</span>, project: &amp;<span class="k">dyn</span> <span class="t">Fn</span>(<span class="t">World</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">Pos2</span>&gt;)</code></div><div class="doc"><p>Paint the global cues. See [<code>Cues::show</code>].</p>
+<p><code>ignore
+teach::show(ctx, &amp;View2::new(cam, 1.0).projector(ctx));</code></p></div></div><div class="item" id="sym-glyph_size" data-name="glyph_size"><div class="sig"><a class="anchor" href="#sym-glyph_size" aria-label="Link to glyph_size">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">glyph_size</span>(g: &amp;<span class="t">Glyph</span>, unit: f32) -&gt; <span class="t">Vec2</span></code></div><div class="doc"><p>The size of a glyph painted at <code>unit</code> (the height of one keycap).</p>
+<p><code>ignore
+let size = teach::glyph_size(&amp;glyph.resolved(), 28.0);</code></p></div></div><div class="item" id="sym-paint_glyph" data-name="paint_glyph"><div class="sig"><a class="anchor" href="#sym-paint_glyph" aria-label="Link to paint_glyph">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">paint_glyph</span>(p: &amp;<span class="t">Painter</span>, g: &amp;<span class="t">Glyph</span>, center: <span class="t">Pos2</span>, unit: f32, time: f32, alpha: f32)</code></div><div class="doc"><p>Paint one glyph centred at <code>center</code>. <code>time</code> drives the animation in
+seconds; <code>alpha</code> fades it. Use it for a glyph in your own panel.</p>
+<p><code>ignore
+let p = ui.painter();
+teach::paint_glyph(p, &amp;Glyph::action("jump").resolved(), rect.center(), 24.0, t, 1.0);</code></p></div></div><div class="item" id="sym-paint_role_icon" data-name="paint_role_icon"><div class="sig"><a class="anchor" href="#sym-paint_role_icon" aria-label="Link to paint_role_icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">paint_role_icon</span>(p: &amp;<span class="t">Painter</span>, role: <span class="t">Role</span>, c: <span class="t">Pos2</span>, r: f32, col: <span class="t">Color32</span>)</code></div><div class="doc"><p>Paint the glyph of a role (the glyph of its standard action, no frame),
+centred at <code>c</code> with radius <code>r</code>, in <code>col</code>. For the glyph in its frame and
+class colour, use <code>visual::action_icon(p, role.action(), rect, &amp;lang, 1.0)</code>.</p>
+<p><code>ignore
+teach::paint_role_icon(ui.painter(), Role::Danger, rect.center(), 10.0, Role::Danger.color());</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-World" data-name="world"><div class="sig"><a class="anchor" href="#sym-World" aria-label="Link to World">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">type</span> <span class="t">World</span> = [f32; <span class="n">2</span>]</code></div><div class="doc"><p>A world point, <code>[x, y]</code>, +y up. <code>ultraviolet::Vec2</code> converts with <code>.into()</code>.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Gesture" data-name="gesture"><div class="sig"><a class="anchor" href="#sym-Gesture" aria-label="Link to Gesture">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Gesture</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Press and let go. The glyph blinks down and up with a ripple.</span>
+<span class="t">Press</span>,
+<span class="c">/// Keep it down. The glyph stays down and a ring fills.</span>
+<span class="t">Hold</span>,</code></pre></div><div class="doc"><p>How the player must work the control. The glyph animates the difference.</p>
+<p><code>ignore
+let g = teach::Glyph::mouse(teach::MouseButton::Left, teach::Gesture::Hold);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-MouseButton" data-name="mousebutton"><div class="sig"><a class="anchor" href="#sym-MouseButton" aria-label="Link to MouseButton">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">MouseButton</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Left</span>,
+<span class="t">Right</span>,
+<span class="t">Middle</span>,</code></pre></div><div class="doc"><p>A mouse button that a glyph can show.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Scroll" data-name="scroll"><div class="sig"><a class="anchor" href="#sym-Scroll" aria-label="Link to Scroll">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Scroll</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Up</span>,
+<span class="t">Down</span>,
+<span class="c">/// Both directions: the chevrons move up, then down.</span>
+<span class="t">Either</span>,</code></pre></div><div class="doc"><p>A wheel direction that a glyph can show.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Pad" data-name="pad"><div class="sig"><a class="anchor" href="#sym-Pad" aria-label="Link to Pad">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Pad</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The bottom face button (A on an Xbox pad).</span>
+<span class="t">South</span>,
+<span class="c">/// The right face button (B).</span>
+<span class="t">East</span>,
+<span class="c">/// The left face button (X).</span>
+<span class="t">West</span>,
+<span class="c">/// The top face button (Y).</span>
+<span class="t">North</span>,
+<span class="t">LeftBumper</span>,
+<span class="t">RightBumper</span>,
+<span class="t">LeftTrigger</span>,
+<span class="t">RightTrigger</span>,
+<span class="c">/// The left stick. The dot moves around the rim.</span>
+<span class="t">LeftStick</span>,
+<span class="c">/// The right stick. The dot moves around the rim.</span>
+<span class="t">RightStick</span>,
+<span class="t">DpadUp</span>,
+<span class="t">DpadDown</span>,
+<span class="t">DpadLeft</span>,
+<span class="t">DpadRight</span>,
+<span class="t">Start</span>,
+<span class="t">Select</span>,</code></pre></div><div class="doc"><p>A gamepad control, named by position, not by brand letter.</p>
+<p><code>ignore
+let jump = teach::Glyph::pad(teach::Pad::South, teach::Gesture::Press);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Glyph" data-name="glyph"><div class="sig"><a class="anchor" href="#sym-Glyph" aria-label="Link to Glyph">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Glyph</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A `bindings` action. The first bound chord is painted at paint time.</span>
+<span class="t">Action</span> { id: &amp;<span class="a">'static</span> str, gesture: <span class="t">Gesture</span> },
+<span class="c">/// A keycap with a fixed label.</span>
+<span class="t">Key</span> { label: <span class="t">String</span>, gesture: <span class="t">Gesture</span> },
+<span class="c">/// A mouse with one button marked.</span>
+<span class="t">Mouse</span> { button: <span class="t">MouseButton</span>, gesture: <span class="t">Gesture</span> },
+<span class="c">/// A mouse with the wheel marked and chevrons that move.</span>
+<span class="t">Wheel</span>(<span class="t">Scroll</span>),
+<span class="c">/// A gamepad control.</span>
+<span class="t">Pad</span> { button: <span class="t">Pad</span>, gesture: <span class="t">Gesture</span> },
+<span class="c">/// Four glyphs in an inverted T: up on top, then left, down, right.</span>
+<span class="c">/// The press animation walks around the four.</span>
+<span class="t">Cross</span>(<span class="t">Box</span>&lt;[<span class="t">Glyph</span>; <span class="n">4</span>]&gt;),
+<span class="c">/// Glyphs side by side with a thin bar between them: any one works.</span>
+<span class="t">Row</span>(<span class="t">Vec</span>&lt;<span class="t">Glyph</span>&gt;),</code></pre></div><div class="doc"><p>One control, drawn as a picture. Never a line of text.</p>
+<p>Prefer [<code>Glyph::action</code>]: it shows the key the player bound, and it
+follows a rebind on the next frame.</p>
+<p><code>ignore
+use warp_sdk::teach::Glyph;
+let grab = Glyph::action_hold("grab");             // bound key or button, held
+let walk = Glyph::cross("up", "left", "down", "right"); // four keycaps in a T
+let both = Glyph::row(vec![walk, Glyph::pad(teach::Pad::LeftStick, teach::Gesture::Hold)]);</code></p></div></div><details class="members"><summary>11 methods</summary><div class="item" id="sym-Glyph-action" data-name="glyph::action"><div class="sig"><a class="anchor" href="#sym-Glyph-action" aria-label="Link to Glyph::action">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">action</span>(id: &amp;<span class="a">'static</span> str) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>The bound control of an action, pressed.</p>
+<p><code>ignore
+Glyph::action("jump")</code></p></div></div><div class="item" id="sym-Glyph-action_hold" data-name="glyph::action_hold"><div class="sig"><a class="anchor" href="#sym-Glyph-action_hold" aria-label="Link to Glyph::action_hold">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">action_hold</span>(id: &amp;<span class="a">'static</span> str) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>The bound control of an action, held.</p>
+<p><code>ignore
+Glyph::action_hold("grab")</code></p></div></div><div class="item" id="sym-Glyph-cross" data-name="glyph::cross"><div class="sig"><a class="anchor" href="#sym-Glyph-cross" aria-label="Link to Glyph::cross">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cross</span>(up: &amp;<span class="a">'static</span> str, left: &amp;<span class="a">'static</span> str, down: &amp;<span class="a">'static</span> str, right: &amp;<span class="a">'static</span> str) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>Four actions as an inverted T of keycaps, for movement.</p>
+<p><code>ignore
+Glyph::cross("up", "left", "down", "right")</code></p></div></div><div class="item" id="sym-Glyph-key" data-name="glyph::key"><div class="sig"><a class="anchor" href="#sym-Glyph-key" aria-label="Link to Glyph::key">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">key</span>(label: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, gesture: <span class="t">Gesture</span>) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>A keycap with a fixed label, for a key that is not an action.</p>
+<p><code>ignore
+Glyph::key("Esc", Gesture::Press)</code></p></div></div><div class="item" id="sym-Glyph-mouse" data-name="glyph::mouse"><div class="sig"><a class="anchor" href="#sym-Glyph-mouse" aria-label="Link to Glyph::mouse">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">mouse</span>(button: <span class="t">MouseButton</span>, gesture: <span class="t">Gesture</span>) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>A mouse button.</p>
+<p><code>ignore
+Glyph::mouse(MouseButton::Right, Gesture::Press)</code></p></div></div><div class="item" id="sym-Glyph-pad" data-name="glyph::pad"><div class="sig"><a class="anchor" href="#sym-Glyph-pad" aria-label="Link to Glyph::pad">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pad</span>(button: <span class="t">Pad</span>, gesture: <span class="t">Gesture</span>) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>A gamepad control.</p>
+<p><code>ignore
+Glyph::pad(Pad::RightTrigger, Gesture::Hold)</code></p></div></div><div class="item" id="sym-Glyph-row" data-name="glyph::row"><div class="sig"><a class="anchor" href="#sym-Glyph-row" aria-label="Link to Glyph::row">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">row</span>(glyphs: <span class="t">Vec</span>&lt;<span class="t">Glyph</span>&gt;) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>Alternatives side by side, for example keyboard and gamepad.</p>
+<p><code>ignore
+Glyph::row(vec![Glyph::action("jump"), Glyph::pad(Pad::South, Gesture::Press)])</code></p></div></div><div class="item" id="sym-Glyph-from_chord" data-name="glyph::from_chord"><div class="sig"><a class="anchor" href="#sym-Glyph-from_chord" aria-label="Link to Glyph::from_chord">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_chord</span>(chord: <span class="t">Chord</span>, gesture: <span class="t">Gesture</span>) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>The glyph for one chord: a keycap, a mouse button or the wheel.</p>
+<p><code>ignore
+let g = Glyph::from_chord(Chord::key(RawKey::E), Gesture::Press);</code></p></div></div><div class="item" id="sym-Glyph-resolved" data-name="glyph::resolved"><div class="sig"><a class="anchor" href="#sym-Glyph-resolved" aria-label="Link to Glyph::resolved">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">resolved</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>This glyph with every <code>Action</code> replaced by its bound control now.
+An action with no binding shows a <code>?</code> keycap.</p>
+<p><code>ignore
+let now = Glyph::action("grab").resolved();</code></p></div></div><div class="item" id="sym-Glyph-distance" data-name="glyph::distance"><div class="sig"><a class="anchor" href="#sym-Glyph-distance" aria-label="Link to Glyph::distance">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">distance</span>(&amp;<span class="k">self</span>, p: <span class="t">Vec2</span>) -&gt; f32</code></div><div class="doc"><p>The signed distance from <code>p</code> to the glyph, in shape space.
+<code>f32::INFINITY</code> for [<code>Glyph::None</code>].</p>
+<p><code>use warp_sdk::icon::Glyph;
+use warp_sdk::ultraviolet::Vec2;
+assert!(Glyph::Dot.distance(Vec2::zero()) &lt; 0.0);</code></p></div></div><div class="item" id="sym-Glyph-builtins" data-name="glyph::builtins"><div class="sig"><a class="anchor" href="#sym-Glyph-builtins" aria-label="Link to Glyph::builtins">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">builtins</span>() -&gt; <span class="t">Vec</span>&lt;<span class="t">Glyph</span>&gt;</code></div><div class="doc"><p>The built-in glyphs, in a fixed order. [<code>IconSpec::from_name</code>] picks
+one of them.</p>
+<p><code>assert!(warp_sdk::icon::Glyph::builtins().len() &gt;= 10);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Anchor" data-name="anchor"><div class="sig"><a class="anchor" href="#sym-Anchor" aria-label="Link to Anchor">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Anchor</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A world point. The prompt sits above it with a tail that points down.</span>
+<span class="t">World</span>(<span class="t">World</span>),
+<span class="c">/// A screen point as a fraction of the screen, `[0, 0]` top left.</span>
+<span class="t">Screen</span>([f32; <span class="n">2</span>]),
+<span class="c">/// A screen element. The prompt sits above it and a ring marks it.</span>
+<span class="t">Rect</span>(<span class="t">Rect</span>),</code></pre></div><div class="doc"><p>Where a prompt points.</p>
+<p><code>ignore
+course.anchor("grab", Anchor::World(orb_pos));
+course.anchor("map", Anchor::Rect(minimap_rect));</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-View2" data-name="view2"><div class="sig"><a class="anchor" href="#sym-View2" aria-label="Link to View2">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">View2</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> pos: <span class="t">World</span>,
+<span class="k">pub</span> half_height: f32,</code></pre></div><div class="doc"><p>A small 2D camera that matches the engine view.</p>
+<p><code>pos</code> is the world point at the screen centre. <code>half_height</code> is the world
+distance from the centre to the top edge, the same number a game gives to
+<code>RenderContext::set_view_scale</code>.</p>
+<p><code>ignore
+let project = View2::new([0.0, 0.0], 1.0).projector(ctx);
+course.show(ctx, &amp;project);</code></p></div></div><details class="members"><summary>3 methods</summary><div class="item" id="sym-View2-new" data-name="view2::new"><div class="sig"><a class="anchor" href="#sym-View2-new" aria-label="Link to View2::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(pos: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">World</span>&gt;, half_height: f32) -&gt; <span class="t">View2</span></code></div><div class="doc"><p>A camera at <code>pos</code> that shows <code>half_height</code> world units above the centre.</p>
+<p><code>ignore
+let v = View2::new(player.into(), 1.0);</code></p></div></div><div class="item" id="sym-View2-project" data-name="view2::project"><div class="sig"><a class="anchor" href="#sym-View2-project" aria-label="Link to View2::project">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">project</span>(&amp;<span class="k">self</span>, screen: <span class="t">Rect</span>, w: <span class="t">World</span>) -&gt; <span class="t">Pos2</span></code></div><div class="doc"><p>The screen point of a world point, inside <code>screen</code>.</p>
+<p><code>ignore
+let p = view.project(ctx.screen_rect(), [1.0, 0.5]);</code></p></div></div><div class="item" id="sym-View2-projector" data-name="view2::projector"><div class="sig"><a class="anchor" href="#sym-View2-projector" aria-label="Link to View2::projector">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">projector</span>(<span class="k">self</span>, ctx: &amp;egui::<span class="t">Context</span>) -&gt; <span class="k">impl</span> <span class="t">Fn</span>(<span class="t">World</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">Pos2</span>&gt;</code></div><div class="doc"><p>A <code>project</code> closure for the paint calls of this module.</p>
+<p><code>ignore
+teach::show(ctx, &amp;View2::new(cam, 1.0).projector(ctx));</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Step" data-name="step"><div class="sig"><a class="anchor" href="#sym-Step" aria-label="Link to Step">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Step</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> verb: &amp;<span class="a">'static</span> str,
+<span class="k">pub</span> glyph: <span class="t">Glyph</span>,
+<span class="k">pub</span> anchor: <span class="t">Anchor</span>,</code></pre></div><div class="doc"><p>One step of a course: a verb, the glyph that teaches it, and its anchor.</p>
+<p><code>ignore
+Step::new("grab", Glyph::action_hold("grab")).at(Anchor::World(orb))</code></p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-Step-new" data-name="step::new"><div class="sig"><a class="anchor" href="#sym-Step-new" aria-label="Link to Step::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(verb: &amp;<span class="a">'static</span> str, glyph: <span class="t">Glyph</span>) -&gt; <span class="t">Step</span></code></div><div class="doc"><p>A step for <code>verb</code>, taught by <code>glyph</code>, at the default screen anchor.</p>
+<p><code>ignore
+Step::new("jump", Glyph::action("jump"))</code></p></div></div><div class="item" id="sym-Step-at" data-name="step::at"><div class="sig"><a class="anchor" href="#sym-Step-at" aria-label="Link to Step::at">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">at</span>(<span class="k">mut</span> <span class="k">self</span>, anchor: <span class="t">Anchor</span>) -&gt; <span class="t">Step</span></code></div><div class="doc"><p>The same step with its first anchor.</p>
+<p><code>ignore
+Step::new("dock", Glyph::action("dock")).at(Anchor::World(base))</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Confirm" data-name="confirm"><div class="sig"><a class="anchor" href="#sym-Confirm" aria-label="Link to Confirm">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Confirm</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> verb: &amp;<span class="a">'static</span> str,
+<span class="c">/// The anchor of the step, when it was a world point.</span>
+<span class="k">pub</span> world: <span class="t">Option</span>&lt;<span class="t">World</span>&gt;,</code></pre></div><div class="doc"><p>What the course sends when the player completes a step.</p>
+<p><code>ignore
+for c in course.take_confirms() { particles.burst(c.world.unwrap_or(player)); }</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Course" data-name="course"><div class="sig"><a class="anchor" href="#sym-Course" aria-label="Link to Course">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Course</span></code></div><div class="doc"><p>An ordered tutorial taught by glyph prompts, one prompt at a time.</p>
+<p>The game says when the player did a verb. A verb done before its step
+comes is learned, and its step never shows. Learned verbs persist, so a
+second session starts at the first verb the player has not done yet.</p>
+<p><code>ignore
+let mut course = Course::new("reef")
+.step(Step::new("move", Glyph::cross("up", "left", "down", "right")))
+.step(Step::new("grab", Glyph::action_hold("grab")))
+.on_confirm(|c| sfx::play("ding"));
+// logic:  course.anchor("grab", Anchor::World(orb)); if got_orb { course.done("grab"); }
+//         course.tick(dt);
+// gui:    course.show(ctx, &amp;View2::new(cam, 1.0).projector(ctx));</code></p></div></div><details class="members"><summary>19 methods</summary><div class="item" id="sym-Course-new" data-name="course::new"><div class="sig"><a class="anchor" href="#sym-Course-new" aria-label="Link to Course::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(game: &amp;str) -&gt; <span class="t">Course</span></code></div><div class="doc"><p>A course whose learned verbs persist under app data for <code>game</code>.</p>
+<p><code>ignore
+let course = Course::new("reef");</code></p></div></div><div class="item" id="sym-Course-in_memory" data-name="course::in_memory"><div class="sig"><a class="anchor" href="#sym-Course-in_memory" aria-label="Link to Course::in_memory">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">in_memory</span>() -&gt; <span class="t">Course</span></code></div><div class="doc"><p>A course that forgets everything when it drops. For tests and demos.</p>
+<p><code>ignore
+let course = Course::in_memory();</code></p></div></div><div class="item" id="sym-Course-stored_at" data-name="course::stored_at"><div class="sig"><a class="anchor" href="#sym-Course-stored_at" aria-label="Link to Course::stored_at">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stored_at</span>(path: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">PathBuf</span>&gt;) -&gt; <span class="t">Course</span></code></div><div class="doc"><p>A course that persists to one named file.</p>
+<p><code>ignore
+let course = Course::stored_at(dir.join("tutorial.txt"));</code></p></div></div><div class="item" id="sym-Course-step" data-name="course::step"><div class="sig"><a class="anchor" href="#sym-Course-step" aria-label="Link to Course::step">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">step</span>(<span class="k">mut</span> <span class="k">self</span>, step: <span class="t">Step</span>) -&gt; <span class="t">Course</span></code></div><div class="doc"><p>Add a step at the end.</p>
+<p><code>ignore
+let c = Course::new("reef").step(Step::new("move", Glyph::cross("up", "left", "down", "right")));</code></p></div></div><div class="item" id="sym-Course-timeout" data-name="course::timeout"><div class="sig"><a class="anchor" href="#sym-Course-timeout" aria-label="Link to Course::timeout">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">timeout</span>(<span class="k">mut</span> <span class="k">self</span>, linger: f32, rest: f32) -&gt; <span class="t">Course</span></code></div><div class="doc"><p>Seconds a prompt shows before it goes (default 8), and seconds before
+it comes back with a bounce (default 4).</p>
+<p><code>ignore
+let c = Course::new("reef").timeout(5.0, 3.0);</code></p></div></div><div class="item" id="sym-Course-on_confirm" data-name="course::on_confirm"><div class="sig"><a class="anchor" href="#sym-Course-on_confirm" aria-label="Link to Course::on_confirm">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">on_confirm</span>(<span class="k">mut</span> <span class="k">self</span>, hook: <span class="k">impl</span> <span class="t">FnMut</span>(&amp;<span class="t">Confirm</span>) + <span class="a">'static</span>) -&gt; <span class="t">Course</span></code></div><div class="doc"><p>Call <code>hook</code> when a step completes. Use it for a particle burst or a sound.</p>
+<p><code>ignore
+let c = Course::new("reef").on_confirm(|c| audio::play("chime"));</code></p></div></div><div class="item" id="sym-Course-anchor" data-name="course::anchor"><div class="sig"><a class="anchor" href="#sym-Course-anchor" aria-label="Link to Course::anchor">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">anchor</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, verb: &amp;str, anchor: <span class="t">Anchor</span>)</code></div><div class="doc"><p>Move the anchor of a step. Call it each frame for a thing that moves.</p>
+<p><code>ignore
+course.anchor("move", Anchor::World(player.into()));</code></p></div></div><div class="item" id="sym-Course-done" data-name="course::done"><div class="sig"><a class="anchor" href="#sym-Course-done" aria-label="Link to Course::done">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">done</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, verb: &amp;str) -&gt; bool</code></div><div class="doc"><p>The game says the player did <code>verb</code>. Calling it each frame is cheap.</p>
+<p>If <code>verb</code> is the current step, the prompt confirms and the next step
+comes after the confirm animation. If it is a later step, that step is
+learned and will not show. Returns true the first time a verb is learned.</p>
+<p><code>ignore
+if orb_in_claw { course.done("grab"); }</code></p></div></div><div class="item" id="sym-Course-skip" data-name="course::skip"><div class="sig"><a class="anchor" href="#sym-Course-skip" aria-label="Link to Course::skip">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">skip</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Skip the current step. It counts as learned and will not come back.</p>
+<p><code>ignore
+if bindings::pressed("skip_tutorial", input) { course.skip(); }</code></p></div></div><div class="item" id="sym-Course-skip_all" data-name="course::skip_all"><div class="sig"><a class="anchor" href="#sym-Course-skip_all" aria-label="Link to Course::skip_all">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">skip_all</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Skip every remaining step.</p>
+<p><code>ignore
+course.skip_all();</code></p></div></div><div class="item" id="sym-Course-relearn" data-name="course::relearn"><div class="sig"><a class="anchor" href="#sym-Course-relearn" aria-label="Link to Course::relearn">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">relearn</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Forget every learned verb and start from the first step.</p>
+<p><code>ignore
+if replay_clicked { course.relearn(); }</code></p></div></div><div class="item" id="sym-Course-is_learned" data-name="course::is_learned"><div class="sig"><a class="anchor" href="#sym-Course-is_learned" aria-label="Link to Course::is_learned">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_learned</span>(&amp;<span class="k">self</span>, verb: &amp;str) -&gt; bool</code></div><div class="doc"><p>True when the player has done <code>verb</code>, in this session or an earlier one.</p>
+<p><code>ignore
+if course.is_learned("grab") { spawn_more_orbs(); }</code></p></div></div><div class="item" id="sym-Course-current" data-name="course::current"><div class="sig"><a class="anchor" href="#sym-Course-current" aria-label="Link to Course::current">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">current</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="a">'static</span> str&gt;</code></div><div class="doc"><p>The verb the course teaches now, or None when it is finished.</p>
+<p><code>ignore
+let teaching = course.current();</code></p></div></div><div class="item" id="sym-Course-finished" data-name="course::finished"><div class="sig"><a class="anchor" href="#sym-Course-finished" aria-label="Link to Course::finished">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">finished</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True when every step is learned or skipped.</p>
+<p><code>ignore
+if course.finished() { start_wave_one(); }</code></p></div></div><div class="item" id="sym-Course-visible_prompts" data-name="course::visible_prompts"><div class="sig"><a class="anchor" href="#sym-Course-visible_prompts" aria-label="Link to Course::visible_prompts">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">visible_prompts</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>How many prompts are on screen now, the confirm animation included.
+The course keeps this at 0 or 1.</p>
+<p><code>ignore
+assert!(course.visible_prompts() &lt;= 1);</code></p></div></div><div class="item" id="sym-Course-reshows" data-name="course::reshows"><div class="sig"><a class="anchor" href="#sym-Course-reshows" aria-label="Link to Course::reshows">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reshows</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div><div class="doc"><p>How many times the current prompt came back after a timeout.</p>
+<p><code>ignore
+if course.reshows() &gt; 3 { show_a_hint_arrow(); }</code></p></div></div><div class="item" id="sym-Course-take_confirms" data-name="course::take_confirms"><div class="sig"><a class="anchor" href="#sym-Course-take_confirms" aria-label="Link to Course::take_confirms">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_confirms</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">Confirm</span>&gt;</code></div><div class="doc"><p>Take the confirms since the last call, for game effects.</p>
+<p><code>ignore
+for c in course.take_confirms() { burst(c.world); }</code></p></div></div><div class="item" id="sym-Course-tick" data-name="course::tick"><div class="sig"><a class="anchor" href="#sym-Course-tick" aria-label="Link to Course::tick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">tick</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32)</code></div><div class="doc"><p>Move the clock. Call once per frame with the frame time in seconds.</p>
+<p><code>ignore
+course.tick(1.0 / 60.0);</code></p></div></div><div class="item" id="sym-Course-show" data-name="course::show"><div class="sig"><a class="anchor" href="#sym-Course-show" aria-label="Link to Course::show">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">show</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ctx: &amp;egui::<span class="t">Context</span>, project: &amp;<span class="k">dyn</span> <span class="t">Fn</span>(<span class="t">World</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">Pos2</span>&gt;)</code></div><div class="doc"><p>Paint the prompt and the confirm animation. Call it from <code>gui</code>.</p>
+<p>A click on the small skip mark at the corner of the prompt skips the step.</p>
+<p><code>ignore
+course.show(ctx, &amp;View2::new(cam, 1.0).projector(ctx));</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Role" data-name="role"><div class="sig"><a class="anchor" href="#sym-Role" aria-label="Link to Role">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Role</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Pick it up. Collect: a Resource hexagon.</span>
+<span class="t">Collect</span>,
+<span class="c">/// Bring things here. Deliver: a Resource hexagon. Not a house; the</span>
+<span class="c">/// house frame means Build.</span>
+<span class="t">Home</span>,
+<span class="c">/// Keep away, or fight it. Danger: "!" in a red triangle.</span>
+<span class="t">Danger</span>,
+<span class="c">/// It helps you. Health: an Ally shield.</span>
+<span class="t">Ally</span>,
+<span class="c">/// It keeps something alive. Energy: an Ally shield with a bolt.</span>
+<span class="t">Food</span>,
+<span class="c">/// Use it on something. Interact: a Player circle with a pointer.</span>
+<span class="t">Tool</span>,
+<span class="c">/// Not known yet. New: a Discovery dashed ring with a ray dot.</span>
+<span class="t">Unknown</span>,</code></pre></div><div class="doc"><p>What a kind of thing is for. The role is one action of the semiotic
+standard ([<code>Role::action</code>]). The action class sets the frame and the
+colour role; the glyph names the role.</p>
+<p><code>ignore
+Kind::new("orb", Role::Collect, "Orb")</code></p></div></div><details class="members"><summary>8 methods</summary><div class="item" id="sym-Role-action" data-name="role::action"><div class="sig"><a class="anchor" href="#sym-Role-action" aria-label="Link to Role::action">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">action</span>(<span class="k">self</span>) -&gt; <span class="t">Action</span></code></div><div class="doc"><p>The action of the standard that this role shows.</p>
+<p><code>ignore
+assert_eq!(Role::Home.action(), semiotics::Action::Deliver);</code></p></div></div><div class="item" id="sym-Role-visual" data-name="role::visual"><div class="sig"><a class="anchor" href="#sym-Role-visual" aria-label="Link to Role::visual">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">visual</span>(<span class="k">self</span>) -&gt; visual::<span class="t">Role</span></code></div><div class="doc"><p>The <code>visual::Role</code> of the action class. It gives the colour.</p></div></div><div class="item" id="sym-Role-color" data-name="role::color"><div class="sig"><a class="anchor" href="#sym-Role-color" aria-label="Link to Role::color">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">color</span>(<span class="k">self</span>) -&gt; <span class="t">Color32</span></code></div><div class="doc"><p>The colour of this role in <code>visual::default_language()</code>.</p>
+<p><code>ignore
+let c = Role::Collect.color();</code></p></div></div><div class="item" id="sym-Role-color_in" data-name="role::color_in"><div class="sig"><a class="anchor" href="#sym-Role-color_in" aria-label="Link to Role::color_in">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">color_in</span>(<span class="k">self</span>, lang: &amp;<span class="t">Language</span>) -&gt; <span class="t">Color32</span></code></div><div class="doc"><p>The colour of this role in <code>lang</code>.</p>
+<p><code>ignore
+let c = Role::Collect.color_in(&amp;lang);</code></p></div></div><div class="item" id="sym-Role-index" data-name="role::index"><div class="sig"><a class="anchor" href="#sym-Role-index" aria-label="Link to Role::index">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">index</span>(<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>The position of the role in [<code>Role::ALL</code>].</p></div></div><div class="item" id="sym-Role-name" data-name="role::name"><div class="sig"><a class="anchor" href="#sym-Role-name" aria-label="Link to Role::name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">name</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>The lower-case name, for example <code>"resource"</code>.</p></div></div><div class="item" id="sym-Role-shape" data-name="role::shape"><div class="sig"><a class="anchor" href="#sym-Role-shape" aria-label="Link to Role::shape">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">shape</span>(<span class="k">self</span>) -&gt; <span class="t">Shape</span></code></div><div class="doc"><p>The shape of the role. Each role has a different shape. When the
+role is the colour of a class in the semiotic standard, the shape is
+the frame of that class (see [<code>Shape::frame</code>]).</p>
+<p>Neutral is the one exception. Neutral is the colour of the
+Prohibition class, but a Neutral world marker is a background thing,
+not "you can not do this". It keeps the bar.</p>
+<p><code>ignore
+assert_eq!(Role::Danger.shape(), Shape::Triangle);
+assert_eq!(Role::Resource.shape().frame(), Some(semiotics::Frame::Hexagon));</code></p></div></div><div class="item" id="sym-Role-default_icon" data-name="role::default_icon"><div class="sig"><a class="anchor" href="#sym-Role-default_icon" aria-label="Link to Role::default_icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">default_icon</span>(<span class="k">self</span>) -&gt; <span class="t">Icon</span></code></div><div class="doc"><p>The icon that a game uses for the role when it has no better icon.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Kind" data-name="kind"><div class="sig"><a class="anchor" href="#sym-Kind" aria-label="Link to Kind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Kind</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> id: &amp;<span class="a">'static</span> str,
+<span class="k">pub</span> role: <span class="t">Role</span>,
+<span class="k">pub</span> name: <span class="t">String</span>,</code></pre></div><div class="doc"><p>A kind of thing in the game, as the cues show it: a role and a short name.</p>
+<p>The name is one or two words. A longer name is cut to two words.</p>
+<p><code>ignore
+teach::kind(Kind::new("colony", Role::Home, "Colony"));</code></p></div></div><details class="members"><summary>6 methods</summary><div class="item" id="sym-Kind-new" data-name="kind::new"><div class="sig"><a class="anchor" href="#sym-Kind-new" aria-label="Link to Kind::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(id: &amp;<span class="a">'static</span> str, role: <span class="t">Role</span>, name: &amp;str) -&gt; <span class="t">Kind</span></code></div><div class="doc"><p>A kind with its role and its one- or two-word name.</p>
+<p><code>ignore
+Kind::new("gloom", Role::Danger, "Gloom")</code></p></div></div><div class="item" id="sym-Kind-default_secs" data-name="kind::default_secs"><div class="sig"><a class="anchor" href="#sym-Kind-default_secs" aria-label="Link to Kind::default_secs">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">default_secs</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The duration a film editor would give this kind, in seconds.</p></div></div><div class="item" id="sym-Kind-default_ease" data-name="kind::default_ease"><div class="sig"><a class="anchor" href="#sym-Kind-default_ease" aria-label="Link to Kind::default_ease">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">default_ease</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Ease</span></code></div><div class="doc"><p>The curve this kind uses unless the game sets one.</p></div></div><div class="item" id="sym-Kind-name" data-name="kind::name"><div class="sig"><a class="anchor" href="#sym-Kind-name" aria-label="Link to Kind::name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">name</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>A short name for a label.</p></div></div><div class="item" id="sym-Kind-uses_matte" data-name="kind::uses_matte"><div class="sig"><a class="anchor" href="#sym-Kind-uses_matte" aria-label="Link to Kind::uses_matte">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">uses_matte</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True when the kind closes a matte, switches screens at the half and
+opens the matte again. Only one screen is visible at a time.</p></div></div><div class="item" id="sym-Kind-showcase" data-name="kind::showcase"><div class="sig"><a class="anchor" href="#sym-Kind-showcase" aria-label="Link to Kind::showcase">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">showcase</span>(area: <span class="t">Rect</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">Kind</span>&gt;</code></div><div class="doc"><p>One of every kind, for a showcase or a test. <code>area</code> places the match
+cut rects.</p>
+<p><code>ignore
+for kind in Kind::showcase(ctx.screen_rect()) { /* ... */ }</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-IconFn" data-name="iconfn"><div class="sig"><a class="anchor" href="#sym-IconFn" aria-label="Link to IconFn">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">type</span> <span class="t">IconFn</span> = <span class="k">dyn</span> <span class="t">Fn</span>(&amp;<span class="t">Painter</span>, &amp;str, <span class="t">Pos2</span>, f32, <span class="t">Color32</span>) -&gt; bool + <span class="t">Send</span> + <span class="t">Sync</span></code></div><div class="doc"><p>Paints the icon of a kind in place of the role icon. Return false to keep
+the role icon. Arguments: painter, kind id, centre, radius, colour.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Cues" data-name="cues"><div class="sig"><a class="anchor" href="#sym-Cues" aria-label="Link to Cues">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Cues</span></code></div><div class="doc"><p>Purpose cues: links from a thing to where it is used, and first-encounter
+callouts. Most games use the global one through [<code>link</code>] and [<code>reveal</code>].</p>
+<p><code>ignore
+let mut cues = Cues::in_memory().link_shows(3);
+cues.kind(Kind::new("orb", Role::Collect, "Orb"));
+cues.reveal("orb", orb_pos);
+cues.link(player, base, "orb");
+cues.tick(dt);
+cues.show(ctx, &amp;project);</code></p></div></div><details class="members"><summary>17 methods</summary><div class="item" id="sym-Cues-with_language" data-name="cues::with_language"><div class="sig"><a class="anchor" href="#sym-Cues-with_language" aria-label="Link to Cues::with_language">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_language</span>(<span class="k">mut</span> <span class="k">self</span>, lang: <span class="t">Language</span>) -&gt; <span class="t">Cues</span></code></div><div class="doc"><p>The same cues with the colours of <code>lang</code>, the game's language.</p>
+<p><code>ignore
+let cues = Cues::new("reef").with_language(Language::new("ocean calm", 7));</code></p></div></div><div class="item" id="sym-Cues-set_language" data-name="cues::set_language"><div class="sig"><a class="anchor" href="#sym-Cues-set_language" aria-label="Link to Cues::set_language">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_language</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, lang: <span class="t">Language</span>)</code></div><div class="doc"><p>Set the language in place, for example on the global cues.</p>
+<p><code>ignore
+teach::with(|c| c.set_language(lang.clone()));</code></p></div></div><div class="item" id="sym-Cues-language" data-name="cues::language"><div class="sig"><a class="anchor" href="#sym-Cues-language" aria-label="Link to Cues::language">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">language</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="t">Language</span></code></div><div class="doc"><p>The language that colours the cues: the one you gave, or
+<code>visual::default_language()</code>.</p></div></div><div class="item" id="sym-Cues-new" data-name="cues::new"><div class="sig"><a class="anchor" href="#sym-Cues-new" aria-label="Link to Cues::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(game: &amp;str) -&gt; <span class="t">Cues</span></code></div><div class="doc"><p>Cues whose "already shown" counts persist under app data for <code>game</code>.</p>
+<p><code>ignore
+let cues = Cues::new("reef");</code></p></div></div><div class="item" id="sym-Cues-in_memory" data-name="cues::in_memory"><div class="sig"><a class="anchor" href="#sym-Cues-in_memory" aria-label="Link to Cues::in_memory">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">in_memory</span>() -&gt; <span class="t">Cues</span></code></div><div class="doc"><p>Cues that forget everything when they drop.</p>
+<p><code>ignore
+let cues = Cues::in_memory();</code></p></div></div><div class="item" id="sym-Cues-stored_at" data-name="cues::stored_at"><div class="sig"><a class="anchor" href="#sym-Cues-stored_at" aria-label="Link to Cues::stored_at">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stored_at</span>(path: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">PathBuf</span>&gt;) -&gt; <span class="t">Cues</span></code></div><div class="doc"><p>Cues that persist to one named file.</p>
+<p><code>ignore
+let cues = Cues::stored_at(dir.join("cues.txt"));</code></p></div></div><div class="item" id="sym-Cues-link_shows" data-name="cues::link_shows"><div class="sig"><a class="anchor" href="#sym-Cues-link_shows" aria-label="Link to Cues::link_shows">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">link_shows</span>(<span class="k">mut</span> <span class="k">self</span>, n: u32) -&gt; <span class="t">Cues</span></code></div><div class="doc"><p>How many separate times a link of one kind shows (default 3).</p>
+<p><code>ignore
+let cues = Cues::new("reef").link_shows(5);</code></p></div></div><div class="item" id="sym-Cues-set_icon" data-name="cues::set_icon"><div class="sig"><a class="anchor" href="#sym-Cues-set_icon" aria-label="Link to Cues::set_icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_icon</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, f: <span class="k">impl</span> <span class="t">Fn</span>(&amp;<span class="t">Painter</span>, &amp;str, <span class="t">Pos2</span>, f32, <span class="t">Color32</span>) -&gt; bool + <span class="t">Send</span> + <span class="t">Sync</span> + <span class="a">'static</span>)</code></div><div class="doc"><p>Paint kind icons with your own closure. Return false to use the role icon.</p>
+<p><code>ignore
+cues.set_icon(|p, kind, c, r, col| { if kind == "orb" { p.circle_filled(c, r, col); true } else { false } });</code></p></div></div><div class="item" id="sym-Cues-kind" data-name="cues::kind"><div class="sig"><a class="anchor" href="#sym-Cues-kind" aria-label="Link to Cues::kind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">kind</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, k: <span class="t">Kind</span>)</code></div><div class="doc"><p>Register a kind. A link or reveal of an unknown id uses <code>Role::Unknown</code>.</p>
+<p><code>ignore
+cues.kind(Kind::new("orb", Role::Collect, "Orb"));</code></p></div></div><div class="item" id="sym-Cues-link" data-name="cues::link"><div class="sig"><a class="anchor" href="#sym-Cues-link" aria-label="Link to Cues::link">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">link</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, from: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">World</span>&gt;, to: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">World</span>&gt;, kind: &amp;str) -&gt; bool</code></div><div class="doc"><p>Ask for a link from <code>from</code> to <code>to</code> this frame. Call it every frame
+while the link applies, for example while the player carries an orb.</p>
+<p>One unbroken run of frames is one showing. After <code>link_shows</code>
+showings of <code>kind</code>, later runs draw nothing. Returns true while the
+link draws.</p>
+<p><code>ignore
+if carrying { cues.link(player, base, "orb"); }</code></p></div></div><div class="item" id="sym-Cues-link_count" data-name="cues::link_count"><div class="sig"><a class="anchor" href="#sym-Cues-link_count" aria-label="Link to Cues::link_count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">link_count</span>(&amp;<span class="k">self</span>, kind: &amp;str) -&gt; u32</code></div><div class="doc"><p>How many showings of a link kind have started, this session and before.</p>
+<p><code>ignore
+let n = cues.link_count("orb");</code></p></div></div><div class="item" id="sym-Cues-visible_links" data-name="cues::visible_links"><div class="sig"><a class="anchor" href="#sym-Cues-visible_links" aria-label="Link to Cues::visible_links">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">visible_links</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>How many links draw now.</p>
+<p><code>ignore
+let n = cues.visible_links();</code></p></div></div><div class="item" id="sym-Cues-reveal" data-name="cues::reveal"><div class="sig"><a class="anchor" href="#sym-Cues-reveal" aria-label="Link to Cues::reveal">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reveal</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, kind: &amp;str, at: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">World</span>&gt;) -&gt; bool</code></div><div class="doc"><p>Introduce <code>kind</code> at <code>at</code> the first time the player meets it.</p>
+<p>The callout shows a ring, the role icon and the name, for
+<code>REVEAL_SECONDS</code>. Call it each frame while the thing is in view: the
+callout follows it. After the first time, the call does nothing.
+Returns true while the callout shows.</p>
+<p><code>ignore
+if on_screen(gloom) { cues.reveal("gloom", gloom.pos); }</code></p></div></div><div class="item" id="sym-Cues-introduced" data-name="cues::introduced"><div class="sig"><a class="anchor" href="#sym-Cues-introduced" aria-label="Link to Cues::introduced">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">introduced</span>(&amp;<span class="k">self</span>, kind: &amp;str) -&gt; bool</code></div><div class="doc"><p>True when <code>kind</code> has had its callout, this session or before.</p>
+<p><code>ignore
+if !cues.introduced("gloom") { slow_the_gloom(); }</code></p></div></div><div class="item" id="sym-Cues-relearn" data-name="cues::relearn"><div class="sig"><a class="anchor" href="#sym-Cues-relearn" aria-label="Link to Cues::relearn">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">relearn</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Forget every count, so each link and callout shows again.</p>
+<p><code>ignore
+cues.relearn();</code></p></div></div><div class="item" id="sym-Cues-tick" data-name="cues::tick"><div class="sig"><a class="anchor" href="#sym-Cues-tick" aria-label="Link to Cues::tick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">tick</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32)</code></div><div class="doc"><p>Move the clock. Call once per frame, after the frame's <code>link</code> calls.</p>
+<p><code>ignore
+cues.tick(dt);</code></p></div></div><div class="item" id="sym-Cues-show" data-name="cues::show"><div class="sig"><a class="anchor" href="#sym-Cues-show" aria-label="Link to Cues::show">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">show</span>(&amp;<span class="k">self</span>, ctx: &amp;egui::<span class="t">Context</span>, project: &amp;<span class="k">dyn</span> <span class="t">Fn</span>(<span class="t">World</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">Pos2</span>&gt;)</code></div><div class="doc"><p>Paint links and callouts. Call it from <code>gui</code>.</p>
+<p><code>ignore
+cues.show(ctx, &amp;View2::new(cam, 1.0).projector(ctx));</code></p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-CONFIRM_SECONDS" data-name="confirm_seconds"><div class="sig"><a class="anchor" href="#sym-CONFIRM_SECONDS" aria-label="Link to CONFIRM_SECONDS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">CONFIRM_SECONDS</span>: f32 = <span class="n">0.7</span></code></div><div class="doc"><p>Seconds the confirm animation runs: check pulse, then the prompt flies away.</p></div></div><div class="item" id="sym-REVEAL_SECONDS" data-name="reveal_seconds"><div class="sig"><a class="anchor" href="#sym-REVEAL_SECONDS" aria-label="Link to REVEAL_SECONDS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">REVEAL_SECONDS</span>: f32 = <span class="n">3.2</span></code></div><div class="doc"><p>Seconds a reveal callout stays.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="bindings.html" data-slug="bindings">Bindings</a></li><li><a href="semiotics.html" data-slug="semiotics">Semiotics</a></li><li><a href="visual.html" data-slug="visual">Visual language</a></li><li><a href="hud-cues.html" data-slug="hud-cues">HUD cues</a></li><li><a href="squircle.html" data-slug="squircle">Squircle kit</a></li><li><a href="gamepad.html" data-slug="gamepad">Gamepad</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/teach.rs</code> - <code>A player learns a game when the game shows them what to do, at the place</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/teach.rs</code> - <code>that, so only the game says it. A verb the player does before its step</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/teach.rs</code> - <code>`bindings::chords` each frame, so a player who rebinds grab to F sees F</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/teach.rs</code> - <code>the gap, before its prompt came, just counts.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/teach.rs</code> - <code>Run `f` on the global cues. They start in memory if `begin` never ran.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/teach.rs</code> - <code>HUD teaches the player what a colour and a frame mean.</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/teach.rs</code> - <code>showings of `kind`, later runs draw nothing. Returns true while the</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/src/teach.rs</code> - <code>`&lt;app data&gt;/teach/&lt;game&gt;.course` and `&lt;game&gt;.cues`, one `key&lt;TAB&gt;count`</code></li></ol><table class="navbox"><tr><th><a href="category-information.html">Information</a></th></tr><tr><td><a href="squircle.html" data-slug="squircle">Squircle kit</a> · <a href="hud.html" data-slug="hud">HUD</a> · <a href="hud-cues.html" data-slug="hud-cues">HUD cues</a> · <a href="hud-markers.html" data-slug="hud-markers">HUD markers</a> · <a href="hud-minimap.html" data-slug="hud-minimap">HUD minimap</a> · <a href="hud-progress.html" data-slug="hud-progress">HUD progress</a> · <b>Teach kit</b> · <a href="widgets.html" data-slug="widgets">Panel widgets</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-information.html">Information</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

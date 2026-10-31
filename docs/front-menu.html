@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Menu screens - Warp Wiki</title>
+<meta name="description" content="Title, pause and end screens, painted buttons, five layouts, one focus">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="front-menu">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#rules">Rules</a></li><li><a href="#usage">Usage</a></li><li><a href="#screens">Screens</a><ul><li><a href="#title">Title</a></li><li><a href="#pause">Pause</a></li><li><a href="#end">End</a></li></ul></li><li><a href="#input">Input</a></li><li><a href="#layouts">Layouts</a></li><li><a href="#look">Look</a><ul><li><a href="#buttons">Buttons</a></li></ul></li><li><a href="#limitations">Limitations</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Menu screens</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">Title, pause and end screens, painted buttons, five layouts, one focus</p><table class="infobox"><caption>Menu screens</caption><tr><th>Category</th><td><a href="category-front-end.html">Front end</a></td></tr><tr><th>Module</th><td><code>warp_sdk::front::menu</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/front/menu.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">64</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example front</code></td></tr></table><p><strong>Menu screens</strong> are the title, pause and end screens of a game, with the button that they share, in the <a class="sym" href="front-menu.html"><code>warp_sdk::front::menu</code></a> module. A game keeps one <a class="sym" href="#sym-Title"><code>Title</code></a>, <a class="sym" href="#sym-Pause"><code>Pause</code></a> or <a class="sym" href="#sym-End"><code>End</code></a> value, calls <a class="sym" href="#sym-Button-show"><code>show</code></a> each frame from <code>gui</code>, and gets an optional <a class="sym" href="#sym-MenuAction"><code>MenuAction</code></a> back. The kit paints with the egui painter and uses no stock egui button. It handles focus, the mouse, the keyboard and a gamepad, and the game decides what each action does.</p>
+<h2 id="rules">Rules</h2>
+<p>The kit keeps four rules, stated in its header.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<ul>
+<li>Every screen is real buttons. The mouse, the keyboard and a gamepad all move the same focus.</li>
+<li>A title always leads into play. New game is always on the title, and no builder removes it. Continue shows only when <a class="sym" href="#sym-Title-has_save"><code>has_save</code></a> is true. The rule answers a known failure: a title with no way in is a game that cannot start.</li>
+<li>The wordmark uses the display font family of the game by name. An unknown name falls back to the proportional family, so the call never panics. egui itself panics on an unknown family, so every family goes through this check.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></li>
+<li>A glow is layered strokes of the same shape, or the same text galley drawn on a ring of offsets. It is never a blurred sprite, so it stays aligned with the button and the text.</li>
+</ul>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::front::menu::{<span class="t">End</span>, <span class="t">Layout</span>, <span class="t">MenuAction</span>, <span class="t">Outcome</span>, <span class="t">Pause</span>, <span class="t">Title</span>};
+
+<span class="c">// In the game state:</span>
+<span class="k">let</span> title = <span class="t">Title</span>::<span class="f">new</span>(<span class="s">"PEARL DIVER"</span>).<span class="f">tagline</span>(<span class="s">"twenty pearls save the reef"</span>).<span class="f">has_save</span>(has_save);
+<span class="k">let</span> pause = <span class="t">Pause</span>::<span class="f">new</span>().<span class="f">layout</span>(<span class="t">Layout</span>::<span class="t">LeftRail</span>);
+<span class="k">let</span> end = <span class="t">End</span>::<span class="f">new</span>(<span class="t">Outcome</span>::<span class="t">Lost</span>, <span class="s">""</span>);</code></pre></div>
+<p>In <code>gui</code>, show the current screen and carry out the action:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust">title.has_save = slots.<span class="f">latest</span>().<span class="f">is_some</span>();
+<span class="k">match</span> title.<span class="f">show</span>(ctx) {
+    <span class="t">Some</span>(<span class="t">MenuAction</span>::<span class="t">NewGame</span>) =&gt; <span class="f">start_new</span>(),
+    <span class="t">Some</span>(<span class="t">MenuAction</span>::<span class="t">Continue</span>) =&gt; <span class="f">continue_latest</span>(),
+    <span class="t">Some</span>(<span class="t">MenuAction</span>::<span class="t">Quit</span>) =&gt; std::process::<span class="f">exit</span>(<span class="n">0</span>),
+    _ =&gt; {}
+}</code></pre></div>
+<p>Call <a class="sym" href="#sym-Pause-reset_focus"><code>Pause::reset_focus</code></a> when play pauses, so the focus returns to Resume.</p>
+<h2 id="screens">Screens</h2>
+<p>Every screen has <a class="sym" href="#sym-Title-actions"><code>actions</code></a>, <a class="sym" href="#sym-MenuAction-label"><code>label</code></a> to replace the text of one action (for example, a translation), <a class="sym" href="#sym-Button-show"><code>show</code></a>, <a class="sym" href="#sym-Title-show_with"><code>show_with</code></a> or an equivalent for extra input, and <a class="sym" href="#sym-Title-step"><code>step</code></a>. <a class="sym" href="#sym-Title-step"><code>step</code></a> applies one frame of input with no painting, so a test or a headless driver can use it.</p>
+<h3 id="title">Title</h3>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Position</th>
+<th>Action</th>
+<th>Present</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Continue</td>
+<td>Only while <a class="sym" href="#sym-Title-has_save"><code>has_save</code></a> is true</td>
+</tr>
+<tr>
+<td>2</td>
+<td>New game</td>
+<td>Always</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Load</td>
+<td>Unless <a class="sym" href="#sym-Title-without_load"><code>without_load</code></a></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Settings</td>
+<td>Unless <a class="sym" href="#sym-Title-without_settings"><code>without_settings</code></a></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Quit</td>
+<td>Unless <a class="sym" href="#sym-Title-without_quit"><code>without_quit</code></a></td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Title-without_load"><code>without_load</code></a> suits a game with one save slot, and <a class="sym" href="#sym-Title-without_quit"><code>without_quit</code></a> suits a platform that has no quit, such as a browser or a phone. The title has no back action, so Escape does nothing. <a class="sym" href="#sym-Title-display_font"><code>display_font</code></a> names the registered family for the wordmark. <a class="sym" href="#sym-Title-tagline"><code>tagline</code></a> sets a line under it. On a fresh title with no save, Enter gives New game.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<h3 id="pause">Pause</h3>
+<p>The order is Resume, Settings, Save, Load, Quit to title, Quit. Resume and Quit to title are always present, and <a class="sym" href="#sym-Pause-without_save"><code>without_save</code></a>, <a class="sym" href="#sym-Title-without_load"><code>without_load</code></a>, <a class="sym" href="#sym-Title-without_settings"><code>without_settings</code></a> and <a class="sym" href="#sym-Title-without_quit"><code>without_quit</code></a> drop the others. Escape gives Resume.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup> <a class="sym" href="#sym-Pause-heading"><code>heading</code></a> replaces the word "Paused".</p>
+<h3 id="end">End</h3>
+<p><a class="sym" href="#sym-End-new"><code>End::new</code></a> takes an <a class="sym" href="#sym-Outcome"><code>Outcome</code></a> and a headline. The screen has Try again, New game and Title, all always present, and no back action. It uses the bottom bar layout. <a class="sym" href="#sym-End-left_aligned"><code>left_aligned</code></a> moves the screen to the left.</p>
+<p><a class="sym" href="#sym-End-stat"><code>stat</code></a> adds a row with a glyph, and <a class="sym" href="#sym-End-stat_painted"><code>stat_painted</code></a> adds a row with an icon that a painter function draws. The rows fade in one after the other. <a class="sym" href="#sym-End-accent"><code>accent</code></a> gives <code>victory</code> for a win and <code>danger</code> for a loss.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">self</span>.end = <span class="t">End</span>::<span class="f">new</span>(outcome, head).<span class="f">stat</span>(<span class="s">"◆"</span>, <span class="k">self</span>.pearls).<span class="f">stat</span>(<span class="s">"⏱"</span>, format!(<span class="s">"{:.0}s"</span>, <span class="k">self</span>.playtime));</code></pre></div>
+<p><a class="sym" href="#sym-Button-show"><code>show</code></a> paints a scrim in the outcome accent. <a class="sym" href="#sym-End-show_with_scene"><code>show_with_scene</code></a> takes a closure that paints under the kit, with the painter, the screen rect and the fade-in value. The game supplies the scene treatment, and the kit supplies the layout, the stats and the actions.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<h2 id="input">Input</h2>
+<p><a class="sym" href="#sym-MenuInput"><code>MenuInput</code></a> is one frame of menu input: <code>up</code>, <code>down</code>, <code>left</code>, <code>right</code>, <code>confirm</code> and <code>back</code>. <a class="sym" href="#sym-MenuInput-from_egui"><code>MenuInput::from_egui</code></a> reads the keys and consumes them, so a later check in the same frame does not see them again. Arrows and WASD move, Enter and Space push, and Escape goes back.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<p>A game adds its gamepad by building a second <a class="sym" href="#sym-MenuInput"><code>MenuInput</code></a> and passing it to <a class="sym" href="#sym-Title-show_with"><code>show_with</code></a>. <a class="sym" href="#sym-MenuInput-merge"><code>merge</code></a> combines two inputs, with each field true when either is true.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> pad = <span class="t">MenuInput</span> { down: pad.dpad_down_pressed, confirm: pad.south_pressed, ..<span class="t">Default</span>::<span class="f">default</span>() };
+<span class="k">let</span> action = title.<span class="f">show_with</span>(ctx, pad);</code></pre></div>
+<p>Focus wraps at both ends of the list. On a pointer hover, the focus moves to the hovered button, but only when the pointer moved in that frame. A resting pointer therefore does not hold the focus against the keyboard.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<h2 id="layouts">Layouts</h2>
+<p><a class="sym" href="#sym-Layout"><code>Layout</code></a> says where a screen puts its wordmark and buttons. <a class="sym" href="#sym-place"><code>place</code></a> is the pure function behind it: it returns a <a class="sym" href="#sym-Placement"><code>Placement</code></a> of rects for <code>n</code> buttons of a given height, so a game can place its own extra content beside the buttons.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Layout</th>
+<th>Arrangement</th>
+<th>Scrim</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CenteredColumn</td>
+<td>Wordmark above a centred column. The default</td>
+<td>Flat, over the whole screen</td>
+</tr>
+<tr>
+<td>LeftRail</td>
+<td>Wordmark and buttons on the left</td>
+<td>Gradient on the left half</td>
+</tr>
+<tr>
+<td>BottomBar</td>
+<td>Wordmark centred high, buttons in one row</td>
+<td>Gradient over the bottom 30 percent</td>
+</tr>
+<tr>
+<td><code>Diegetic { anchor }</code></td>
+<td>A small column at a fraction of the screen, inside the live scene</td>
+<td>None</td>
+</tr>
+<tr>
+<td>Split</td>
+<td>Wordmark on the left half, buttons on the right</td>
+<td>Flat, over the right half, with a divider</td>
+</tr>
+</tbody>
+</table>
+<p>The scrim is dark where the text sits and clear where the scene shows. In the bottom bar, Placement::row is true, so left and right move the focus along the row.</p>
+<h2 id="look">Look</h2>
+<p><a class="sym" href="#sym-MenuStyle"><code>MenuStyle</code></a> holds the look of every screen, and a game sets it once from its palette.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>display_family</code></td>
+<td><code>None</code></td>
+<td>Family for the wordmark and headlines</td>
+</tr>
+<tr>
+<td><code>body_family</code></td>
+<td><code>None</code></td>
+<td>Family for labels and stats</td>
+</tr>
+<tr>
+<td><code>ink</code></td>
+<td>236, 240, 246</td>
+<td>Text colour</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-End-accent"><code>accent</code></a></td>
+<td>120, 210, 255</td>
+<td>Plate, ring and underline of a focused button</td>
+</tr>
+<tr>
+<td><code>glow</code></td>
+<td>80, 180, 255</td>
+<td>Glow around focused buttons and the wordmark</td>
+</tr>
+<tr>
+<td><code>scrim</code></td>
+<td>4, 10, 22 at alpha 170</td>
+<td>Colour behind the menu</td>
+</tr>
+<tr>
+<td><code>plate</code></td>
+<td>20, 32, 52 at alpha 200</td>
+<td>Plate of an unfocused button</td>
+</tr>
+<tr>
+<td><code>danger</code></td>
+<td>255, 104, 88</td>
+<td>End accent for a loss</td>
+</tr>
+<tr>
+<td><code>victory</code></td>
+<td>255, 206, 112</td>
+<td>End accent for a win</td>
+</tr>
+<tr>
+<td><a class="sym" href="shell.html#sym-button"><code>button</code></a></td>
+<td>ButtonStyle::Squircle</td>
+<td>Button shape</td>
+</tr>
+<tr>
+<td><code>button_height</code></td>
+<td>52</td>
+<td>Height in points. Labels scale from it</td>
+</tr>
+</tbody>
+</table>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> style = <span class="t">MenuStyle</span> {
+    display_family: <span class="t">Some</span>(<span class="s">"reef-display"</span>.<span class="f">into</span>()),
+    accent: <span class="t">Color32</span>::<span class="f">from_rgb</span>(<span class="n">255</span>, <span class="n">170</span>, <span class="n">120</span>),
+    ..<span class="t">MenuStyle</span>::<span class="f">default</span>()
+};
+<span class="k">let</span> title = <span class="t">Title</span>::<span class="f">new</span>(<span class="s">"REEF"</span>).<span class="f">style</span>(style);</code></pre></div>
+<h3 id="buttons">Buttons</h3>
+<p><a class="sym" href="#sym-ButtonStyle"><code>ButtonStyle</code></a> has three shapes. Squircle is a filled superellipse plate with a ring of the same curve. Underline is text on open ground, with a line that grows on focus. Bracket is text between four corner brackets that close in on focus.</p>
+<p><a class="sym" href="#sym-Button"><code>Button</code></a> is public, for a game that places its own. It eases its hover, press and focus values on its own clock.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> r = <span class="t">Button</span>::<span class="f">new</span>(<span class="s">"start"</span>, <span class="s">"Start"</span>).<span class="f">focused</span>(<span class="k">true</span>).<span class="f">show</span>(ui, rect, &amp;style);
+<span class="k">if</span> r.clicked { <span class="f">start</span>(); }</code></pre></div>
+<p><a class="sym" href="#sym-squircle_points"><code>squircle_points</code></a> gives the outline of a superellipse-cornered rect, with each corner following the curve |x|^4 + |y|^4 = r^4. The focus ring and the glow use this function on an expanded rect, so they stay aligned with the button.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li><a class="sym" href="#sym-Button-show"><code>show</code></a> must run from <code>gui</code>, because it reads egui input. Only one screen should show per frame: each screen consumes the menu keys.</li>
+<li>With no family registered, the wordmark and labels use the proportional family. A game installs faces with <a href="fonts.html" data-slug="fonts">Fonts</a> to avoid the stock font.</li>
+<li>The kit has no transition of its own beyond a fade-in on first show. A game routes screen changes through <a href="cine.html" data-slug="cine">Cine</a>.</li>
+<li>The kit opens no save list. MenuAction::Load is an action for the game to answer, and the example <a class="sym" href="front.html"><code>front</code></a> answers it by loading the latest slot.</li>
+</ul><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 64 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-front--menu" class="modhead"><code>warp_sdk::front::menu</code></h3><h4>Functions</h4><div class="item" id="sym-ease_out_cubic" data-name="ease_out_cubic"><div class="sig"><a class="anchor" href="#sym-ease_out_cubic" aria-label="Link to ease_out_cubic">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">ease_out_cubic</span>(t: f32) -&gt; f32</code></div><div class="doc"><p>The cubic ease-out curve on 0..=1.</p>
+<p><code>ignore
+assert_eq!(ease_out_cubic(1.0), 1.0);</code></p></div></div><div class="item" id="sym-place" data-name="place"><div class="sig"><a class="anchor" href="#sym-place" aria-label="Link to place">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">place</span>(layout: <span class="t">Layout</span>, screen: <span class="t">Rect</span>, n: usize, h: f32) -&gt; <span class="t">Placement</span></code></div><div class="doc"><p>The rects for <code>n</code> buttons of height <code>h</code> on <code>screen</code> in <code>layout</code>.
+Pure, so a game can place its own extra content beside the buttons.</p>
+<p><code>ignore
+let p = place(Layout::Split, ctx.screen_rect(), 5, 52.0);</code></p></div></div><div class="item" id="sym-squircle_points" data-name="squircle_points"><div class="sig"><a class="anchor" href="#sym-squircle_points" aria-label="Link to squircle_points">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">squircle_points</span>(rect: <span class="t">Rect</span>, r: f32) -&gt; <span class="t">Vec</span>&lt;<span class="t">Pos2</span>&gt;</code></div><div class="doc"><p>The outline of a superellipse-cornered rect, clockwise from the top
+left. Each corner of radius <code>r</code> follows |x|^4 + |y|^4 = r^4, so the curve
+meets the straight edge with no visible join. The focus ring and the glow
+use this same function on an expanded rect, so they stay aligned.</p>
+<p><code>ignore
+let pts = squircle_points(rect, 12.0);
+painter.add(Shape::convex_polygon(pts, fill, Stroke::NONE));</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-MenuAction" data-name="menuaction"><div class="sig"><a class="anchor" href="#sym-MenuAction" aria-label="Link to MenuAction">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">MenuAction</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Title: load the latest save.</span>
+<span class="t">Continue</span>,
+<span class="c">/// Title and end: start a new run.</span>
+<span class="t">NewGame</span>,
+<span class="c">/// Title and pause: open the slot list.</span>
+<span class="t">Load</span>,
+<span class="c">/// Title and pause: open the settings screen.</span>
+<span class="t">Settings</span>,
+<span class="c">/// Title and pause: close the application.</span>
+<span class="t">Quit</span>,
+<span class="c">/// Pause: go back into play.</span>
+<span class="t">Resume</span>,
+<span class="c">/// Pause: write a save.</span>
+<span class="t">Save</span>,
+<span class="c">/// Pause: stop play and show the title.</span>
+<span class="t">QuitToTitle</span>,
+<span class="c">/// End: play the same run again.</span>
+<span class="t">TryAgain</span>,
+<span class="c">/// End: show the title.</span>
+<span class="t">Title</span>,</code></pre></div><div class="doc"><p>What the player chose. Every screen returns <code>Option&lt;MenuAction&gt;</code>, and the
+game decides what each action does.</p>
+<p><code>ignore
+if pause.show(ctx) == Some(MenuAction::Resume) { state = Play; }</code></p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-MenuAction-label" data-name="menuaction::label"><div class="sig"><a class="anchor" href="#sym-MenuAction-label" aria-label="Link to MenuAction::label">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">label</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>The default label for the action.</p>
+<p><code>ignore
+assert_eq!(MenuAction::NewGame.label(), "New game");</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-MenuInput" data-name="menuinput"><div class="sig"><a class="anchor" href="#sym-MenuInput" aria-label="Link to MenuInput">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">MenuInput</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> up: bool,
+<span class="k">pub</span> down: bool,
+<span class="k">pub</span> left: bool,
+<span class="k">pub</span> right: bool,
+<span class="c">/// Push the focused button.</span>
+<span class="k">pub</span> confirm: bool,
+<span class="c">/// Escape or the gamepad east button. Each screen gives it one meaning.</span>
+<span class="k">pub</span> back: bool,</code></pre></div><div class="doc"><p>One frame of menu input. The kit fills it from the keyboard. A game adds
+its gamepad with [<code>MenuInput::merge</code>] and passes the result to <code>show_with</code>.</p>
+<p><code>ignore
+let pad = MenuInput { down: pad.dpad_down_pressed, confirm: pad.south_pressed, ..Default::default() };
+let action = title.show_with(ctx, pad);</code></p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-MenuInput-from_egui" data-name="menuinput::from_egui"><div class="sig"><a class="anchor" href="#sym-MenuInput-from_egui" aria-label="Link to MenuInput::from_egui">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_egui</span>(ctx: &amp;<span class="t">Context</span>) -&gt; <span class="t">MenuInput</span></code></div><div class="doc"><p>Read and consume this frame's menu keys from egui. Arrows and WASD
+move, Enter and Space push, Escape goes back. The kit consumes the
+keys, so a later check in the same frame does not see them again.</p>
+<p><code>ignore
+let input = MenuInput::from_egui(ctx);</code></p></div></div><div class="item" id="sym-MenuInput-merge" data-name="menuinput::merge"><div class="sig"><a class="anchor" href="#sym-MenuInput-merge" aria-label="Link to MenuInput::merge">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">merge</span>(<span class="k">self</span>, o: <span class="t">MenuInput</span>) -&gt; <span class="t">MenuInput</span></code></div><div class="doc"><p>The two inputs together: a field is true when either one is true.</p>
+<p><code>ignore
+let input = MenuInput::from_egui(ctx).merge(pad);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-ButtonStyle" data-name="buttonstyle"><div class="sig"><a class="anchor" href="#sym-ButtonStyle" aria-label="Link to ButtonStyle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">ButtonStyle</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A filled superellipse plate with a ring of the same curve.</span>
+<span class="t">Squircle</span>,
+<span class="c">/// Text on open ground, with a line under the text that grows on focus.</span>
+<span class="t">Underline</span>,
+<span class="c">/// Text between four corner brackets that close in on focus.</span>
+<span class="t">Bracket</span>,</code></pre></div><div class="doc"><p>The shape a [<code>Button</code>] paints.</p>
+<p><code>ignore
+let style = MenuStyle { button: ButtonStyle::Bracket, ..MenuStyle::default() };</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-MenuStyle" data-name="menustyle"><div class="sig"><a class="anchor" href="#sym-MenuStyle" aria-label="Link to MenuStyle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">MenuStyle</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The registered egui family name for the wordmark and headlines.</span>
+<span class="k">pub</span> display_family: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// The registered egui family name for button labels and stats.</span>
+<span class="k">pub</span> body_family: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// Text color.</span>
+<span class="k">pub</span> ink: <span class="t">Color32</span>,
+<span class="c">/// The plate, ring and underline color of a focused button.</span>
+<span class="k">pub</span> accent: <span class="t">Color32</span>,
+<span class="c">/// The glow color around focused buttons and the wordmark.</span>
+<span class="k">pub</span> glow: <span class="t">Color32</span>,
+<span class="c">/// The scrim color behind the menu, so the text reads over the scene.</span>
+<span class="k">pub</span> scrim: <span class="t">Color32</span>,
+<span class="c">/// The plate color of a button that has no focus.</span>
+<span class="k">pub</span> plate: <span class="t">Color32</span>,
+<span class="c">/// The end-screen accent for a loss.</span>
+<span class="k">pub</span> danger: <span class="t">Color32</span>,
+<span class="c">/// The end-screen accent for a win.</span>
+<span class="k">pub</span> victory: <span class="t">Color32</span>,
+<span class="k">pub</span> button: <span class="t">ButtonStyle</span>,
+<span class="c">/// Button height in points. Labels scale from it.</span>
+<span class="k">pub</span> button_height: f32,</code></pre></div><div class="doc"><p>The look of every menu screen. A game sets this once from its palette.</p>
+<p><code>ignore
+let style = MenuStyle {
+display_family: Some("reef-display".into()),
+accent: Color32::from_rgb(255, 170, 120),
+..MenuStyle::default()
+};
+let title = Title::new("REEF").style(style);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Layout" data-name="layout"><div class="sig"><a class="anchor" href="#sym-Layout" aria-label="Link to Layout">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Layout</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Wordmark above a centred column of buttons.</span>
+<span class="t">CenteredColumn</span>,
+<span class="c">/// Wordmark and buttons on the left, over a dark band.</span>
+<span class="t">LeftRail</span>,
+<span class="c">/// Wordmark centred high, buttons in one row at the bottom.</span>
+<span class="t">BottomBar</span>,
+<span class="c">/// No scrim. A small column at `anchor`, a fraction (0..1) of the</span>
+<span class="c">/// screen, so the menu sits inside the live scene.</span>
+<span class="t">Diegetic</span> { anchor: <span class="t">Pos2</span> },
+<span class="c">/// Wordmark on the left half, buttons on the right half.</span>
+<span class="t">Split</span>,</code></pre></div><div class="doc"><p>Where a screen puts its wordmark and its buttons.</p>
+<p><code>ignore
+let title = Title::new("REEF").layout(Layout::LeftRail);
+// Over a live scene, anchored to a world point the game projects:
+title.layout = Layout::Diegetic { anchor: Pos2::new(0.62, 0.55) };</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Placement" data-name="placement"><div class="sig"><a class="anchor" href="#sym-Placement" aria-label="Link to Placement">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Placement</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The box the wordmark or headline fits into.</span>
+<span class="k">pub</span> wordmark: <span class="t">Rect</span>,
+<span class="c">/// One rect per button, in item order.</span>
+<span class="k">pub</span> buttons: <span class="t">Vec</span>&lt;<span class="t">Rect</span>&gt;,
+<span class="c">/// True when the buttons sit in a row, so left and right move the focus.</span>
+<span class="k">pub</span> row: bool,</code></pre></div><div class="doc"><p>The rects of one screen, from [<code>place</code>].</p></div></div></div><div class="typeblock"><div class="item" id="sym-ButtonResponse" data-name="buttonresponse"><div class="sig"><a class="anchor" href="#sym-ButtonResponse" aria-label="Link to ButtonResponse">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">ButtonResponse</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> clicked: bool,
+<span class="c">/// The pointer is over the button and moved this frame.</span>
+<span class="k">pub</span> hovered: bool,
+<span class="k">pub</span> response: egui::<span class="t">Response</span>,</code></pre></div><div class="doc"><p>What a [<code>Button</code>] reports for one frame.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Button" data-name="button"><div class="sig"><a class="anchor" href="#sym-Button" aria-label="Link to Button">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Button</span>&lt;<span class="a">'a</span>&gt;</code></div><div class="doc"><p>A bespoke menu button, painted with the egui painter.</p>
+<p>It eases its hover, press and focus values on its own clock. The focus
+ring and the glow follow the shape of the button.</p>
+<p><code>ignore
+let r = Button::new("start", "Start").focused(true).show(ui, rect, &amp;style);
+if r.clicked { start(); }</code></p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-Button-new" data-name="button::new"><div class="sig"><a class="anchor" href="#sym-Button-new" aria-label="Link to Button::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(id_source: <span class="k">impl</span> <span class="t">Hash</span>, label: &amp;<span class="a">'a</span> str) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Button-focused" data-name="button::focused"><div class="sig"><a class="anchor" href="#sym-Button-focused" aria-label="Link to Button::focused">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">focused</span>(<span class="k">mut</span> <span class="k">self</span>, f: bool) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Draw the focus ring and the glow. A menu sets this from its focus.</p></div></div><div class="item" id="sym-Button-style" data-name="button::style"><div class="sig"><a class="anchor" href="#sym-Button-style" aria-label="Link to Button::style">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">style</span>(<span class="k">mut</span> <span class="k">self</span>, s: <span class="t">ButtonStyle</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Use this shape and not <code>MenuStyle::button</code>.</p></div></div><div class="item" id="sym-Button-show" data-name="button::show"><div class="sig"><a class="anchor" href="#sym-Button-show" aria-label="Link to Button::show">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">show</span>(<span class="k">self</span>, ui: &amp;<span class="k">mut</span> <span class="t">Ui</span>, rect: <span class="t">Rect</span>, look: &amp;<span class="t">MenuStyle</span>) -&gt; <span class="t">ButtonResponse</span></code></div><div class="doc"><p>Sense clicks on <code>rect</code> and paint the button there.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Title" data-name="title"><div class="sig"><a class="anchor" href="#sym-Title" aria-label="Link to Title">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Title</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> wordmark: <span class="t">String</span>,
+<span class="k">pub</span> tagline: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// Show "Continue". Set it from `save::Slots::latest`.</span>
+<span class="k">pub</span> has_save: bool,
+<span class="k">pub</span> layout: <span class="t">Layout</span>,
+<span class="k">pub</span> style: <span class="t">MenuStyle</span>,</code></pre></div><div class="doc"><p>The title screen: wordmark and Continue, New game, Load, Settings, Quit.</p>
+<p>Keep one <code>Title</code> in the game state and call [<code>Title::show</code>] each frame
+while the title is up. "New game" is always present. "Continue" is
+present only while <code>has_save</code> is true, and it is first when present.</p>
+<p><code>ignore
+let mut title = Title::new("REEF").tagline("a living sea").layout(Layout::LeftRail);
+title.has_save = slots.latest().is_some();
+if let Some(a) = title.show(ctx) { handle(a); }</code></p></div></div><details class="members"><summary>15 methods</summary><div class="item" id="sym-Title-new" data-name="title::new"><div class="sig"><a class="anchor" href="#sym-Title-new" aria-label="Link to Title::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(wordmark: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Title-tagline" data-name="title::tagline"><div class="sig"><a class="anchor" href="#sym-Title-tagline" aria-label="Link to Title::tagline">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">tagline</span>(<span class="k">mut</span> <span class="k">self</span>, t: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Title-layout" data-name="title::layout"><div class="sig"><a class="anchor" href="#sym-Title-layout" aria-label="Link to Title::layout">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">layout</span>(<span class="k">mut</span> <span class="k">self</span>, l: <span class="t">Layout</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Title-style" data-name="title::style"><div class="sig"><a class="anchor" href="#sym-Title-style" aria-label="Link to Title::style">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">style</span>(<span class="k">mut</span> <span class="k">self</span>, s: <span class="t">MenuStyle</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Title-display_font" data-name="title::display_font"><div class="sig"><a class="anchor" href="#sym-Title-display_font" aria-label="Link to Title::display_font">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">display_font</span>(<span class="k">mut</span> <span class="k">self</span>, name: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Use the registered egui font family <code>name</code> for the wordmark.</p></div></div><div class="item" id="sym-Title-has_save" data-name="title::has_save"><div class="sig"><a class="anchor" href="#sym-Title-has_save" aria-label="Link to Title::has_save">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">has_save</span>(<span class="k">mut</span> <span class="k">self</span>, yes: bool) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Title-without_load" data-name="title::without_load"><div class="sig"><a class="anchor" href="#sym-Title-without_load" aria-label="Link to Title::without_load">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">without_load</span>(<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Drop "Load", for a game with one save slot.</p></div></div><div class="item" id="sym-Title-without_settings" data-name="title::without_settings"><div class="sig"><a class="anchor" href="#sym-Title-without_settings" aria-label="Link to Title::without_settings">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">without_settings</span>(<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Drop "Settings".</p></div></div><div class="item" id="sym-Title-without_quit" data-name="title::without_quit"><div class="sig"><a class="anchor" href="#sym-Title-without_quit" aria-label="Link to Title::without_quit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">without_quit</span>(<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Drop "Quit", for a platform that has no quit (a browser or a phone).</p></div></div><div class="item" id="sym-Title-label" data-name="title::label"><div class="sig"><a class="anchor" href="#sym-Title-label" aria-label="Link to Title::label">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">label</span>(<span class="k">mut</span> <span class="k">self</span>, action: <span class="t">MenuAction</span>, text: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Replace the text of one action, for example a translation.</p></div></div><div class="item" id="sym-Title-actions" data-name="title::actions"><div class="sig"><a class="anchor" href="#sym-Title-actions" aria-label="Link to Title::actions">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">actions</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">MenuAction</span>&gt;</code></div><div class="doc"><p>The actions on screen, top to bottom. "New game" is always here.</p>
+<p><code>ignore
+assert!(Title::new("X").without_load().actions().contains(&amp;MenuAction::NewGame));</code></p></div></div><div class="item" id="sym-Title-focused" data-name="title::focused"><div class="sig"><a class="anchor" href="#sym-Title-focused" aria-label="Link to Title::focused">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">focused</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">MenuAction</span></code></div><div class="doc"><p>The focused action.</p></div></div><div class="item" id="sym-Title-step" data-name="title::step"><div class="sig"><a class="anchor" href="#sym-Title-step" aria-label="Link to Title::step">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">step</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, input: <span class="t">MenuInput</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">MenuAction</span>&gt;</code></div><div class="doc"><p>Apply one frame of input with no painting. The title has no back
+action. <code>show</code> calls this, and a test or a headless driver can too.</p></div></div><div class="item" id="sym-Title-show" data-name="title::show"><div class="sig"><a class="anchor" href="#sym-Title-show" aria-label="Link to Title::show">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">show</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ctx: &amp;<span class="t">Context</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">MenuAction</span>&gt;</code></div><div class="doc"><p>Paint the title and return the player's choice this frame.</p></div></div><div class="item" id="sym-Title-show_with" data-name="title::show_with"><div class="sig"><a class="anchor" href="#sym-Title-show_with" aria-label="Link to Title::show_with">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">show_with</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ctx: &amp;<span class="t">Context</span>, extra: <span class="t">MenuInput</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">MenuAction</span>&gt;</code></div><div class="doc"><p>[<code>Title::show</code>] with extra input, for example a gamepad.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Pause" data-name="pause"><div class="sig"><a class="anchor" href="#sym-Pause" aria-label="Link to Pause">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Pause</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> heading: <span class="t">String</span>,
+<span class="k">pub</span> layout: <span class="t">Layout</span>,
+<span class="k">pub</span> style: <span class="t">MenuStyle</span>,</code></pre></div><div class="doc"><p>The pause screen: Resume, Settings, Save, Load, Quit to title, Quit.
+Escape gives <code>Resume</code>. "Resume" and "Quit to title" are always present.</p>
+<p><code>ignore
+let mut pause = Pause::new().layout(Layout::LeftRail);
+match pause.show(ctx) {
+Some(MenuAction::Resume) =&gt; state = Play,
+Some(MenuAction::Save) =&gt; { slots.write(1, &amp;meta, &amp;data).ok(); }
+_ =&gt; {}
+}</code></p></div></div><details class="members"><summary>14 methods</summary><div class="item" id="sym-Pause-new" data-name="pause::new"><div class="sig"><a class="anchor" href="#sym-Pause-new" aria-label="Link to Pause::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Pause-heading" data-name="pause::heading"><div class="sig"><a class="anchor" href="#sym-Pause-heading" aria-label="Link to Pause::heading">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">heading</span>(<span class="k">mut</span> <span class="k">self</span>, h: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Pause-layout" data-name="pause::layout"><div class="sig"><a class="anchor" href="#sym-Pause-layout" aria-label="Link to Pause::layout">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">layout</span>(<span class="k">mut</span> <span class="k">self</span>, l: <span class="t">Layout</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Pause-style" data-name="pause::style"><div class="sig"><a class="anchor" href="#sym-Pause-style" aria-label="Link to Pause::style">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">style</span>(<span class="k">mut</span> <span class="k">self</span>, s: <span class="t">MenuStyle</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Pause-without_save" data-name="pause::without_save"><div class="sig"><a class="anchor" href="#sym-Pause-without_save" aria-label="Link to Pause::without_save">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">without_save</span>(<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Drop "Save", for a game that saves on its own.</p></div></div><div class="item" id="sym-Pause-without_load" data-name="pause::without_load"><div class="sig"><a class="anchor" href="#sym-Pause-without_load" aria-label="Link to Pause::without_load">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">without_load</span>(<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Pause-without_settings" data-name="pause::without_settings"><div class="sig"><a class="anchor" href="#sym-Pause-without_settings" aria-label="Link to Pause::without_settings">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">without_settings</span>(<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Pause-without_quit" data-name="pause::without_quit"><div class="sig"><a class="anchor" href="#sym-Pause-without_quit" aria-label="Link to Pause::without_quit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">without_quit</span>(<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Pause-label" data-name="pause::label"><div class="sig"><a class="anchor" href="#sym-Pause-label" aria-label="Link to Pause::label">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">label</span>(<span class="k">mut</span> <span class="k">self</span>, action: <span class="t">MenuAction</span>, text: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Pause-actions" data-name="pause::actions"><div class="sig"><a class="anchor" href="#sym-Pause-actions" aria-label="Link to Pause::actions">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">actions</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">MenuAction</span>&gt;</code></div><div class="doc"><p>The actions on screen, top to bottom.</p></div></div><div class="item" id="sym-Pause-reset_focus" data-name="pause::reset_focus"><div class="sig"><a class="anchor" href="#sym-Pause-reset_focus" aria-label="Link to Pause::reset_focus">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reset_focus</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Put the focus back on "Resume". Call it when play pauses.</p></div></div><div class="item" id="sym-Pause-step" data-name="pause::step"><div class="sig"><a class="anchor" href="#sym-Pause-step" aria-label="Link to Pause::step">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">step</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, input: <span class="t">MenuInput</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">MenuAction</span>&gt;</code></div><div class="doc"><p>Apply one frame of input with no painting. Escape gives <code>Resume</code>.</p></div></div><div class="item" id="sym-Pause-show" data-name="pause::show"><div class="sig"><a class="anchor" href="#sym-Pause-show" aria-label="Link to Pause::show">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">show</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ctx: &amp;<span class="t">Context</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">MenuAction</span>&gt;</code></div></div><div class="item" id="sym-Pause-show_with" data-name="pause::show_with"><div class="sig"><a class="anchor" href="#sym-Pause-show_with" aria-label="Link to Pause::show_with">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">show_with</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ctx: &amp;<span class="t">Context</span>, extra: <span class="t">MenuInput</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">MenuAction</span>&gt;</code></div><div class="doc"><p>[<code>Pause::show</code>] with extra input, for example a gamepad.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Outcome" data-name="outcome"><div class="sig"><a class="anchor" href="#sym-Outcome" aria-label="Link to Outcome">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Outcome</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Won</span>,
+<span class="t">Lost</span>,</code></pre></div><div class="doc"><p>How the run ended. It picks the accent of the end screen.</p></div></div></div><div class="typeblock"><div class="item" id="sym-StatIcon" data-name="staticon"><div class="sig"><a class="anchor" href="#sym-StatIcon" aria-label="Link to StatIcon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">StatIcon</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A glyph from the body font, for example "◆".</span>
+<span class="t">Glyph</span>(<span class="t">String</span>),
+<span class="c">/// A painter function the game supplies: it draws into the square rect</span>
+<span class="c">/// with the given color.</span>
+<span class="t">Paint</span>(<span class="k">fn</span>(&amp;<span class="t">Painter</span>, <span class="t">Rect</span>, <span class="t">Color32</span>)),</code></pre></div><div class="doc"><p>The icon of a stat row.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Stat" data-name="stat"><div class="sig"><a class="anchor" href="#sym-Stat" aria-label="Link to Stat">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Stat</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> icon: <span class="t">StatIcon</span>,
+<span class="k">pub</span> value: <span class="t">String</span>,</code></pre></div><div class="doc"><p>One stat row on the end screen: an icon and a number.</p></div></div></div><div class="typeblock"><div class="item" id="sym-End" data-name="end"><div class="sig"><a class="anchor" href="#sym-End" aria-label="Link to End">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">End</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> outcome: <span class="t">Outcome</span>,
+<span class="k">pub</span> headline: <span class="t">String</span>,
+<span class="k">pub</span> stats: <span class="t">Vec</span>&lt;<span class="t">Stat</span>&gt;,
+<span class="k">pub</span> style: <span class="t">MenuStyle</span>,
+<span class="c">/// Align the screen on the left in place of the centre.</span>
+<span class="k">pub</span> left: bool,</code></pre></div><div class="doc"><p>The end screen: a headline, stat rows (icon and number), and Try again,
+New game, Title.</p>
+<p>The game supplies the scene treatment in <code>show_with_scene</code>: the closure
+paints under the kit, with the screen rect and the fade-in value. The kit
+supplies the layout, the stats and the actions.</p>
+<p><code>ignore
+let mut end = End::new(Outcome::Lost, "THE REEF IS BLEACHED")
+.stat("◆", 42)
+.stat_painted(paint_polyp, 7);
+let a = end.show_with_scene(ctx, MenuInput::default(), |p, screen, t| {
+p.rect_filled(screen, 0.0, Color32::from_rgba_unmultiplied(200, 200, 190, (90.0 * t) as u8));
+});</code></p></div></div><details class="members"><summary>11 methods</summary><div class="item" id="sym-End-new" data-name="end::new"><div class="sig"><a class="anchor" href="#sym-End-new" aria-label="Link to End::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(outcome: <span class="t">Outcome</span>, headline: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-End-stat" data-name="end::stat"><div class="sig"><a class="anchor" href="#sym-End-stat" aria-label="Link to End::stat">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stat</span>(<span class="k">mut</span> <span class="k">self</span>, glyph: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, value: <span class="k">impl</span> std::fmt::<span class="t">Display</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Add a stat row with a glyph icon.</p></div></div><div class="item" id="sym-End-stat_painted" data-name="end::stat_painted"><div class="sig"><a class="anchor" href="#sym-End-stat_painted" aria-label="Link to End::stat_painted">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stat_painted</span>(<span class="k">mut</span> <span class="k">self</span>, icon: <span class="k">fn</span>(&amp;<span class="t">Painter</span>, <span class="t">Rect</span>, <span class="t">Color32</span>), value: <span class="k">impl</span> std::fmt::<span class="t">Display</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Add a stat row with a painted icon.</p></div></div><div class="item" id="sym-End-style" data-name="end::style"><div class="sig"><a class="anchor" href="#sym-End-style" aria-label="Link to End::style">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">style</span>(<span class="k">mut</span> <span class="k">self</span>, s: <span class="t">MenuStyle</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-End-left_aligned" data-name="end::left_aligned"><div class="sig"><a class="anchor" href="#sym-End-left_aligned" aria-label="Link to End::left_aligned">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">left_aligned</span>(<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-End-label" data-name="end::label"><div class="sig"><a class="anchor" href="#sym-End-label" aria-label="Link to End::label">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">label</span>(<span class="k">mut</span> <span class="k">self</span>, action: <span class="t">MenuAction</span>, text: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-End-actions" data-name="end::actions"><div class="sig"><a class="anchor" href="#sym-End-actions" aria-label="Link to End::actions">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">actions</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">MenuAction</span>&gt;</code></div><div class="doc"><p>Try again, New game, Title. All three are always present.</p></div></div><div class="item" id="sym-End-accent" data-name="end::accent"><div class="sig"><a class="anchor" href="#sym-End-accent" aria-label="Link to End::accent">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">accent</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Color32</span></code></div><div class="doc"><p>The accent for the outcome.</p></div></div><div class="item" id="sym-End-step" data-name="end::step"><div class="sig"><a class="anchor" href="#sym-End-step" aria-label="Link to End::step">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">step</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, input: <span class="t">MenuInput</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">MenuAction</span>&gt;</code></div><div class="doc"><p>Apply one frame of input with no painting. The end screen has no
+back action.</p></div></div><div class="item" id="sym-End-show" data-name="end::show"><div class="sig"><a class="anchor" href="#sym-End-show" aria-label="Link to End::show">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">show</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ctx: &amp;<span class="t">Context</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">MenuAction</span>&gt;</code></div><div class="doc"><p>Show the end screen with the default treatment: a scrim in the
+outcome accent.</p></div></div><div class="item" id="sym-End-show_with_scene" data-name="end::show_with_scene"><div class="sig"><a class="anchor" href="#sym-End-show_with_scene" aria-label="Link to End::show_with_scene">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">show_with_scene</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ctx: &amp;<span class="t">Context</span>, extra: <span class="t">MenuInput</span>, scene: <span class="k">impl</span> <span class="t">FnOnce</span>(&amp;<span class="t">Painter</span>, <span class="t">Rect</span>, f32)) -&gt; <span class="t">Option</span>&lt;<span class="t">MenuAction</span>&gt;</code></div><div class="doc"><p>Show the end screen over the game's own treatment. <code>scene</code> receives
+the painter, the screen rect and the fade-in value 0..=1.</p></div></div></details></div><h2 id="see-also">See also</h2><ul><li><a href="front.html" data-slug="front">Front end</a></li><li><a href="front-save.html" data-slug="front-save">Save slots</a></li><li><a href="front-settings.html" data-slug="front-settings">Settings</a></li><li><a href="fonts.html" data-slug="fonts">Fonts</a></li><li><a href="cine.html" data-slug="cine">Cine</a></li><li><a href="gamepad.html" data-slug="gamepad">Gamepad</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/menu.rs</code> - <code>//! THE RULES THE KIT KEEPS</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/menu.rs</code> - <code>/// registered under that name. egui panics on an unknown family, so every</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/menu.rs</code> - <code>fn enter_on_a_fresh_title_starts_a_new_game() {</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/menu.rs</code> - <code>/// Apply one frame of input with no painting. Escape gives `Resume`.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/menu.rs</code> - <code>/// The game supplies the scene treatment in `show_with_scene`: the closure</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/menu.rs</code> - <code>/// Read and consume this frame&#x27;s menu keys from egui. Arrows and WASD</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/menu.rs</code> - <code>/// The pointer is over the button and moved this frame.</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/menu.rs</code> - <code>/// The outline of a superellipse-cornered rect, clockwise from the top</code></li></ol><table class="navbox"><tr><th><a href="category-front-end.html">Front end</a></th></tr><tr><td><a href="front.html" data-slug="front">Front end</a> · <b>Menu screens</b> · <a href="front-save.html" data-slug="front-save">Save slots</a> · <a href="front-settings.html" data-slug="front-settings">Settings</a> · <a href="fonts.html" data-slug="fonts">Fonts</a> · <a href="cine.html" data-slug="cine">Cine</a> · <a href="icon.html" data-slug="icon">Application icon</a> · <a href="boot.html" data-slug="boot">Boot splash and screenshots</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-front-end.html">Front end</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel widgets - Warp Wiki</title>
+<meta name="description" content="the editor&#x27;s standard inspector controls, for a game&#x27;s own tool panel">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="widgets">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#purpose">Purpose</a></li><li><a href="#design">Design</a></li><li><a href="#the-controls">The controls</a><ul><li><a href="#rows">Rows</a></li><li><a href="#foldouts">Foldouts</a></li><li><a href="#sliders">Sliders</a></li><li><a href="#buttons">Buttons</a></li><li><a href="#dropdowns">Dropdowns</a></li></ul></li><li><a href="#usage">Usage</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Panel widgets</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">the editor&#x27;s standard inspector controls, for a game&#x27;s own tool panel</p><table class="infobox"><caption>Panel widgets</caption><tr><th>Category</th><td><a href="category-information.html">Information</a></td></tr><tr><th>Module</th><td><code>warp_sdk::widgets</code></td></tr><tr><th>Source</th><td><code>warp_core/src/ui/widgets/mod.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">12</a></td></tr></table><p><strong>Panel widgets</strong> are the standard inspector controls of the Warp editor, re-exported for a game's own tool panel. The module is <a class="sym" href="widgets.html"><code>warp_sdk::widgets</code></a>, a re-export of a chosen set from <code>warp_core/src/ui/widgets</code>. Each control takes the full width and reads its colour from the style the engine installs, so a game panel matches the chrome around it <sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup>. It is for a panel docked in the editor. What a player sees over the game belongs to the <a href="squircle.html" data-slug="squircle">squircle kit</a> or to <a href="front.html" data-slug="front">Front end</a>.</p>
+<h2 id="purpose">Purpose</h2>
+<p>A game panel on raw egui gets egui's defaults, and two of them read wrong against the rest of the interface. A slider is a fixed 96 pixels and does not reach the edge of the panel, so it sits in a column of blank space. A button, a toggle and a label each carry a different frame, so a column of controls does not line up <sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup>.</p>
+<p>The module is not <a href="palette.html" data-slug="palette"><a class="sym" href="palette.html#sym-palette"><code>palette</code></a></a> either. These are finished controls, and <a class="sym" href="palette.html#sym-palette"><code>palette</code></a> is the box a game draws its own shapes in.</p>
+<h2 id="design">Design</h2>
+<p>The look is dense and quiet. A widget paints a flat rect and then its text, and it does not call the framed egui widget. There are two reasons. egui frames a button with rounded corners and a margin that this chrome does not want. A hand-painted rect can also span the full panel width, so a list row highlights across the panel and not only behind its text <sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup>.</p>
+<p>Every strip widget takes the full available width and a fixed height, so a column of them stacks with no ragged edge. All button widgets paint through one function, <code>face_of</code>, so a button, a toggle and an icon button cannot drift apart. Every metric is a design unit read through <a class="sym" href="scale.html#sym-px"><code>px</code></a>, so controls grow with the chrome.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Metric</th>
+<th style="text-align: right;">Design units</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ROW_H</td>
+<td style="text-align: right;">18</td>
+<td>Height of one inspector row</td>
+</tr>
+<tr>
+<td>LABEL_W</td>
+<td style="text-align: right;">128</td>
+<td>Width of the label column</td>
+</tr>
+<tr>
+<td>Strip height</td>
+<td style="text-align: right;">22</td>
+<td>Height of a header bar or a foldout header</td>
+</tr>
+<tr>
+<td>Button height</td>
+<td style="text-align: right;">18</td>
+<td>Height of a toolbar button</td>
+</tr>
+</tbody>
+</table>
+<h2 id="the-controls">The controls</h2>
+<p>The SDK re-exports twelve functions. <code>warp_core/src/ui/widgets</code> holds more, such as tables and number fields, and the SDK does not re-export those.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Function</th>
+<th>Signature in short</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-row"><code>row</code></a></td>
+<td><a class="sym" href="#sym-row"><code>row(ui, label, add)</code></a></td>
+<td>A fixed-width label, then whatever the caller adds</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-header"><code>header</code></a></td>
+<td><a class="sym" href="#sym-header"><code>header(ui, text)</code></a></td>
+<td>A section title on a filled bar, with a rule along its bottom edge</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-foldout"><code>foldout</code></a></td>
+<td><a class="sym" href="#sym-foldout"><code>foldout(ui, id, title, open_default, body)</code></a></td>
+<td>A collapsing section; returns <code>Some</code> only while open</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-set_foldout"><code>set_foldout</code></a></td>
+<td><a class="sym" href="#sym-set_foldout"><code>set_foldout(ui, id, open)</code></a></td>
+<td>Opens or closes a foldout from outside it</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-slider"><code>slider</code></a></td>
+<td><a class="sym" href="#sym-slider"><code>slider(ui, value, range)</code></a></td>
+<td>A full-width slider with the number in a fixed column</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-tool_button"><code>tool_button</code></a></td>
+<td><a class="sym" href="#sym-tool_button"><code>tool_button(ui, text, enabled)</code></a></td>
+<td>A toolbar button with a raised face</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-toggle_button"><code>toggle_button</code></a></td>
+<td><a class="sym" href="#sym-toggle_button"><code>toggle_button(ui, text, active, enabled)</code></a></td>
+<td>A button that holds an on state</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-icon_button"><code>icon_button</code></a></td>
+<td><a class="sym" href="#sym-icon_button"><code>icon_button(ui, glyph, tooltip, enabled)</code></a></td>
+<td>A square button with one glyph</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-dropdown"><code>dropdown</code></a></td>
+<td><a class="sym" href="#sym-dropdown"><code>dropdown(ui, id, trigger, width, add)</code></a></td>
+<td>A panel that hangs below a button</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-hint"><code>hint</code></a></td>
+<td><a class="sym" href="#sym-hint"><code>hint(ui, text)</code></a></td>
+<td>Dim helper text</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-label_text"><code>label_text</code></a></td>
+<td><a class="sym" href="#sym-label_text"><code>label_text(ui, text)</code></a></td>
+<td>Plain text that does not react to the pointer</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-separator_h"><code>separator_h</code></a></td>
+<td><a class="sym" href="#sym-separator_h"><code>separator_h(ui)</code></a></td>
+<td>A single-pixel rule across the panel</td>
+</tr>
+</tbody>
+</table>
+<h3 id="rows">Rows</h3>
+<p><a class="sym" href="#sym-row"><code>row</code></a> gives one label column width to every row, so a column of fields lines up down the panel even when the labels differ in length. It lays out left to right with vertical centering, so a field shorter than the row sits on the middle line <sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup>. The body's return value comes back from <a class="sym" href="#sym-row"><code>row</code></a>.</p>
+<h3 id="foldouts">Foldouts</h3>
+<p><a class="sym" href="#sym-foldout"><code>foldout</code></a> is the main grouping device. Its open state lives in egui memory under <code>id</code>, so the section keeps its state across frames and across a rebuild of the panel, and <code>id</code> must be unique inside the parent <code>Ui</code>. The body runs only while the section is open.</p>
+<p><a class="sym" href="#sym-set_foldout"><code>set_foldout</code></a> takes the same id string and must use the same <code>Ui</code>, because the id hashes the parent. An id built in a different <code>Ui</code> names a different foldout, and the call does nothing. The write lands on the next frame, so a caller can set the state before the group draws or after it <sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup>.</p>
+<h3 id="sliders">Sliders</h3>
+<p><a class="sym" href="#sym-slider"><code>slider</code></a> replaces <code>egui::Slider</code> for three reasons the source gives. The egui rail is one fixed width. Its handle is a circle, and every other control in this chrome is a square face. Its value reads <code>0</code> at zero and <code>0.035</code> elsewhere, so a column changes shape as the numbers pass through zero <sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup>.</p>
+<p>The rail is measured from what the row has left, so it ends where the number column starts and every rail in a panel has the same length. The value box prints the same decimals at every value: three for a span up to 1, two up to 10, and one above that.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Gesture</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Drag the handle</td>
+<td>The value follows the pointer with no jump at the press</td>
+</tr>
+<tr>
+<td>Press the rail</td>
+<td>The handle jumps to the pointer and the drag begins</td>
+</tr>
+<tr>
+<td>Shift while dragging</td>
+<td>A tenth of the distance</td>
+</tr>
+<tr>
+<td>The command modifier while dragging</td>
+<td>Snap to a step read from the span of the range</td>
+</tr>
+<tr>
+<td>Arrows, when focused</td>
+<td>One step; with Shift, a tenth of one</td>
+</tr>
+<tr>
+<td>Page Up, Page Down</td>
+<td>Ten steps</td>
+</tr>
+<tr>
+<td>Home, End</td>
+<td>The ends of the range</td>
+</tr>
+<tr>
+<td>The value box</td>
+<td>Drag for fine work, or click to type a number</td>
+</tr>
+</tbody>
+</table>
+<p>The snap step is 0.1 for a span up to 2.1, 1 up to 21, and 10 above that. Shift takes it down one decade. The behaviour borrows the press offset from Dear ImGui, the span-based snap from Blender, the fewest-decimals aim from egui, and the keyboard pattern from the W3C slider pattern <sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup>. The response is the union of the rail and the box, so <code>.changed()</code> is true for a move made either way.</p>
+<h3 id="buttons">Buttons</h3>
+<p><a class="sym" href="#sym-tool_button"><code>tool_button</code></a> has a face much lighter than a toolbar strip, so that the button carries a visible edge before the pointer arrives. A disabled button senses hover only, so a caller never reads a click from it <sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup>.</p>
+<p><a class="sym" href="#sym-toggle_button"><code>toggle_button</code></a> paints the one saturated value in the palette for its on state, so the choice that is showing is obvious across the toolbar. It exists because callers had been writing the state into the label as <code>[Grid]</code>, which reads as text and not as a state. <a class="sym" href="#sym-icon_button"><code>icon_button</code></a> requires a tooltip, because a glyph alone cannot say what the button changes.</p>
+<h3 id="dropdowns">Dropdowns</h3>
+<p><a class="sym" href="#sym-dropdown"><code>dropdown</code></a> shows a panel below a trigger button at a width the caller picks. The click on the trigger opens and closes it, Escape closes it, and a click anywhere else closes it. It returns <code>None</code> while shut, so the body costs nothing then. It takes a <code>&amp;Ui</code>, an <code>egui::Id</code> and the trigger <code>egui::Response</code>. It avoids <code>egui::popup::popup_below_widget</code>, which sets the panel width to the width of the button that opened it.</p>
+<p><a class="sym" href="#sym-label_text"><code>label_text</code></a> exists so that a value in a toolbar does not look clickable, which a button would suggest.</p>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::widgets;
+widgets::<span class="f">header</span>(ui, <span class="s">"Colony"</span>);
+widgets::<span class="f">row</span>(ui, <span class="s">"Growth"</span>, |ui| widgets::<span class="f">slider</span>(ui, &amp;<span class="k">mut</span> growth, <span class="n">0.0</span>..=<span class="n">1.0</span>));</code></pre></div>
+<p><a class="sym" href="#sym-row"><code>row</code></a> supplies the fixed label column and a full-width body, so the slider spans to the right edge with its value in a column at the end. The controls go inside the <code>ui</code> of a panel, which a game gets by implementing WarpWindow. See <a href="window.html" data-slug="window">Custom windows</a>.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::window::{<span class="k">self</span>, <span class="t">Group</span>, <span class="t">WarpWindow</span>, <span class="t">WindowSpec</span>};
+
+<span class="k">struct</span> <span class="t">Meter</span>;
+<span class="k">impl</span> <span class="t">WarpWindow</span> <span class="k">for</span> <span class="t">Meter</span> {
+    <span class="k">fn</span> <span class="f">spec</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">WindowSpec</span> {
+        <span class="t">WindowSpec</span>::<span class="f">new</span>(<span class="s">"meter"</span>, <span class="s">"Meter"</span>).<span class="f">group</span>(<span class="t">Group</span>::<span class="t">Debug</span>)
+    }
+    <span class="k">fn</span> <span class="f">ui</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ui: &amp;<span class="k">mut</span> warp_sdk::egui::<span class="t">Ui</span>) {
+        ui.<span class="f">label</span>(<span class="s">"mine"</span>);
+    }
+}
+
+window::<span class="f">register</span>(<span class="t">Box</span>::<span class="f">new</span>(<span class="t">Meter</span>)).<span class="f">ok</span>();              <span class="c">// once, before run</span></code></pre></div>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>The controls depend on the style the engine installs, so they suit a panel in the editor and not a game's own screen.</li>
+<li><a class="sym" href="#sym-slider"><code>slider</code></a> takes an <code>f32</code> value only.</li>
+<li><a class="sym" href="#sym-foldout"><code>foldout</code></a> and <a class="sym" href="#sym-set_foldout"><code>set_foldout</code></a> must share a parent <code>Ui</code> to name the same section.</li>
+</ul><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 12 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-widgets" class="modhead"><code>warp_sdk::widgets</code></h3><h4>Functions</h4><div class="item" id="sym-dropdown" data-name="dropdown"><div class="sig"><a class="anchor" href="#sym-dropdown" aria-label="Link to dropdown">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> dropdown&lt;<span class="t">R</span>&gt;( ui: &amp;<span class="t">Ui</span>, id: egui::<span class="t">Id</span>, trigger: &amp;<span class="t">Response</span>, width: f32, add: <span class="k">impl</span> <span class="t">FnOnce</span>(&amp;<span class="k">mut</span> <span class="t">Ui</span>) -&gt; <span class="t">R</span>, ) -&gt; <span class="t">Option</span>&lt;<span class="t">R</span>&gt;</code></div><div class="doc"><p>A panel that hangs below a button, at a width the caller picks.</p>
+<p>The click on <code>trigger</code> opens and closes it, Escape closes it, and a click
+anywhere else closes it. Returns None while it is shut, so the body costs
+nothing when nobody looks at it.</p>
+<p>Not <code>egui::popup::popup_below_widget</code>. That helper sets the panel width to
+the width of the button that opened it, so a form behind a narrow button
+would be a narrow column.</p></div></div><div class="item" id="sym-foldout" data-name="foldout"><div class="sig"><a class="anchor" href="#sym-foldout" aria-label="Link to foldout">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> foldout&lt;<span class="t">R</span>&gt;( ui: &amp;<span class="k">mut</span> <span class="t">Ui</span>, id: &amp;str, title: &amp;str, open_default: bool, body: <span class="k">impl</span> <span class="t">FnOnce</span>(&amp;<span class="k">mut</span> <span class="t">Ui</span>) -&gt; <span class="t">R</span>, ) -&gt; <span class="t">Option</span>&lt;<span class="t">R</span>&gt;</code></div><div class="doc"><p>A collapsing section with a triangle, the main grouping device.</p>
+<p>The open state lives in egui memory under <code>id</code>, so the section keeps its
+state across frames and across a rebuild of the panel. <code>id</code> must be
+unique inside the parent Ui.</p>
+<p>The body runs only while the section is open, so the return is an Option.</p></div></div><div class="item" id="sym-header" data-name="header"><div class="sig"><a class="anchor" href="#sym-header" aria-label="Link to header">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">header</span>(ui: &amp;<span class="k">mut</span> <span class="t">Ui</span>, text: &amp;str)</code></div><div class="doc"><p>A section title on a filled bar, with a rule along its bottom edge.</p>
+<p>The bar spans the full width and the rule sits on the bottom edge of that
+bar. The first version drew its rule at the top of the space that was
+still free, which put the line below the title and below the gap, so the
+line floated away from the text it belonged to.</p></div></div><div class="item" id="sym-hint" data-name="hint"><div class="sig"><a class="anchor" href="#sym-hint" aria-label="Link to hint">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">hint</span>(ui: &amp;<span class="k">mut</span> <span class="t">Ui</span>, text: &amp;str) -&gt; <span class="t">Response</span></code></div><div class="doc"><p>Dim helper text, for a default value or a derived name.</p></div></div><div class="item" id="sym-icon_button" data-name="icon_button"><div class="sig"><a class="anchor" href="#sym-icon_button" aria-label="Link to icon_button">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">icon_button</span>(ui: &amp;<span class="k">mut</span> <span class="t">Ui</span>, glyph: &amp;str, tooltip: &amp;str, enabled: bool) -&gt; <span class="t">Response</span></code></div><div class="doc"><p>A square button that carries one glyph, for a <code>-</code> or <code>+</code> control.</p>
+<p>The tooltip is not optional here. A glyph alone cannot say what the button
+changes, so the caller must give the words.</p></div></div><div class="item" id="sym-label_text" data-name="label_text"><div class="sig"><a class="anchor" href="#sym-label_text" aria-label="Link to label_text">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">label_text</span>(ui: &amp;<span class="k">mut</span> <span class="t">Ui</span>, text: &amp;str) -&gt; <span class="t">Response</span></code></div><div class="doc"><p>Plain body text that does nothing when the pointer touches it.</p>
+<p>Use this for a value a toolbar shows, such as a count or a mode name. A
+caller that reached for a button to show a value made the value look
+clickable, which is the confusion this widget removes.</p></div></div><div class="item" id="sym-row" data-name="row"><div class="sig"><a class="anchor" href="#sym-row" aria-label="Link to row">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> row&lt;<span class="t">R</span>&gt;(ui: &amp;<span class="k">mut</span> <span class="t">Ui</span>, label: &amp;str, add: <span class="k">impl</span> <span class="t">FnOnce</span>(&amp;<span class="k">mut</span> <span class="t">Ui</span>) -&gt; <span class="t">R</span>) -&gt; <span class="t">R</span></code></div><div class="doc"><p>One inspector row: a fixed-width label, then whatever the caller adds.</p>
+<p>The label column has one width for every row, so a column of fields lines
+up down the panel even when the labels differ in length. The row lays out
+left to right with vertical centering, so a field shorter than the row
+sits on the middle line and not on the top edge.</p></div></div><div class="item" id="sym-separator_h" data-name="separator_h"><div class="sig"><a class="anchor" href="#sym-separator_h" aria-label="Link to separator_h">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">separator_h</span>(ui: &amp;<span class="k">mut</span> <span class="t">Ui</span>)</code></div><div class="doc"><p>A single-pixel rule across the panel, with a little air each side.</p></div></div><div class="item" id="sym-set_foldout" data-name="set_foldout"><div class="sig"><a class="anchor" href="#sym-set_foldout" aria-label="Link to set_foldout">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_foldout</span>(ui: &amp;<span class="t">Ui</span>, id: &amp;str, open: bool)</code></div><div class="doc"><p>Force one foldout open or shut, before or after it draws.</p>
+<p><code>foldout</code> reads its own state from egui memory and a caller cannot reach
+that state through the return value, so a panel that wants to open its
+groups from a control ABOVE them has no other way in.</p>
+<p><code>id</code> is the same string the <code>foldout</code> call uses, and the same <code>Ui</code> must
+make both — <code>make_persistent_id</code> hashes the parent, so an id built in a
+different <code>Ui</code> names a different foldout and the call does nothing.</p>
+<p>The write lands on the next frame, which is what makes the order safe: a
+caller can set the state before the group draws, or after it.</p></div></div><div class="item" id="sym-slider" data-name="slider"><div class="sig"><a class="anchor" href="#sym-slider" aria-label="Link to slider">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">slider</span>(ui: &amp;<span class="k">mut</span> <span class="t">Ui</span>, value: &amp;<span class="k">mut</span> f32, range: std::ops::<span class="t">RangeInclusive</span>&lt;f32&gt;) -&gt; <span class="t">Response</span></code></div><div class="doc"><p>A slider that spans the row, with the number in a fixed column at its end.</p>
+<p>The gestures, in the order somebody discovers them:</p>
+<p>drag the handle      the value follows the pointer, no jump at the press
+press the rail       the handle jumps to the pointer and the drag begins
+Shift while dragging a tenth of the distance, taken or dropped mid-drag
+Cmd while dragging   snap to a step read from the span of the range
+arrows, when focused one step; Shift for a tenth of one
+Page Up, Page Down   ten steps
+Home, End            the ends of the range
+the value box        drag it for fine work, click it to type a number</p>
+<p>The response is the union of the rail and the box, so <code>.changed()</code> is true
+for a move made either way.</p></div></div><div class="item" id="sym-toggle_button" data-name="toggle_button"><div class="sig"><a class="anchor" href="#sym-toggle_button" aria-label="Link to toggle_button">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">toggle_button</span>(ui: &amp;<span class="k">mut</span> <span class="t">Ui</span>, text: &amp;str, active: bool, enabled: bool) -&gt; <span class="t">Response</span></code></div><div class="doc"><p>A button that holds an on state, for a view switcher or a mode switch.</p>
+<p>The on state paints theme::bg_selected(), the one saturated value in the
+palette, so the choice that is showing is obvious across the toolbar. The
+earlier chrome had no such widget, and callers wrote the state into the
+label as <code>[Grid]</code>, which reads as text and not as a state.</p></div></div><div class="item" id="sym-tool_button" data-name="tool_button"><div class="sig"><a class="anchor" href="#sym-tool_button" aria-label="Link to tool_button">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">tool_button</span>(ui: &amp;<span class="k">mut</span> <span class="t">Ui</span>, text: &amp;str, enabled: bool) -&gt; <span class="t">Response</span></code></div><div class="doc"><p>A toolbar button with a raised face, a border and a centered label.</p>
+<p>The face is btn_face(), which is much lighter than the BG_HEADER strip a
+toolbar paints, so the button carries a visible edge before the pointer
+arrives. Hover lifts the value and lights the border. A press drops the
+value to theme::bg_active(). A disabled button senses hover only, so a
+caller never reads a click from it.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="window.html" data-slug="window">Custom windows</a></li><li><a href="squircle.html" data-slug="squircle">Squircle kit</a></li><li><a href="palette.html" data-slug="palette">Palette roles</a></li><li><a href="editor-panels.html" data-slug="editor-panels">Editor panels</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/lib.rs</code> - <code>width and reads its color from the Style the engine installs for a game by</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/lib.rs</code> - <code>button, a toggle and a label each carry a different frame, so a column of</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/ui/widgets/mod.rs</code> - <code>span the full panel width, so a list row highlights across the panel and</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/ui/widgets/container.rs</code> - <code>left to right with vertical centering, so a field shorter than the row</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_core/src/ui/widgets/container.rs</code> - <code>The write lands on the next frame, which is what makes the order safe: a</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_core/src/ui/widgets/slider.rs</code> - <code>changes its shape as the numbers pass through zero is hard to scan.</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_core/src/ui/widgets/slider.rs</code> - <code>Three editors have already solved this widget, and each of them solved a</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_core/src/ui/widgets/button.rs</code> - <code>value to theme::bg_active(). A disabled button senses hover only, so a</code></li></ol><table class="navbox"><tr><th><a href="category-information.html">Information</a></th></tr><tr><td><a href="squircle.html" data-slug="squircle">Squircle kit</a> · <a href="hud.html" data-slug="hud">HUD</a> · <a href="hud-cues.html" data-slug="hud-cues">HUD cues</a> · <a href="hud-markers.html" data-slug="hud-markers">HUD markers</a> · <a href="hud-minimap.html" data-slug="hud-minimap">HUD minimap</a> · <a href="hud-progress.html" data-slug="hud-progress">HUD progress</a> · <a href="teach.html" data-slug="teach">Teach kit</a> · <b>Panel widgets</b></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-information.html">Information</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

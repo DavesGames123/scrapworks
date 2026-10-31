@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visual language - Warp Wiki</title>
+<meta name="description" content="One colour, shape and icon set per game role, checked by rule">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="visual">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#roles">Roles</a></li><li><a href="#the-language">The language</a><ul><li><a href="#how-the-colours-are-built">How the colours are built</a></li><li><a href="#reading-colours">Reading colours</a></li></ul></li><li><a href="#the-rules">The rules</a></li><li><a href="#colour-blindness">Colour blindness</a></li><li><a href="#shapes">Shapes</a></li><li><a href="#icons">Icons</a></li><li><a href="#link-to-the-semiotic-standard">Link to the semiotic standard</a></li><li><a href="#usage">Usage</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Visual language</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">One colour, shape and icon set per game role, checked by rule</p><table class="infobox"><caption>Visual language</caption><tr><th>Category</th><td><a href="category-look.html">Look</a></td></tr><tr><th>Module</th><td><code>warp_sdk::visual</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/visual.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">50</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example visual</code></td></tr></table><p><strong>Visual language</strong> is the Warp system that gives each kind of thing in a game one role, and each role one colour and one shape, so that a game shows meaning without words. It lives in <a class="sym" href="#sym-Role-visual"><code>warp_sdk::visual</code></a> and its main type is <a class="sym" href="#sym-Language"><code>Language</code></a>. The same role always looks the same, in the world, in the HUD and on the map.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> The module also holds a vector icon set, colour-blindness simulation, and the bridge to the <a href="semiotics.html" data-slug="semiotics">Semiotics</a> icon standard. It implements the <a href="art-direction.html#gameplay-you-can-see" data-slug="art-direction">art direction rule</a> that colour has one meaning.</p>
+<h2 id="roles">Roles</h2>
+<p><a class="sym" href="#sym-Role"><code>Role</code></a> has twelve values. Give every visible thing one role. Each has a fixed shape, and all shapes differ, so a player who cannot see the colour still sees the role.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Role</th>
+<th>Meaning</th>
+<th><a class="sym" href="#sym-Role-shape"><code>Role::shape</code></a></th>
+<th>Default icon</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Player</td>
+<td>the player and what they control</td>
+<td>circle</td>
+<td>Target</td>
+</tr>
+<tr>
+<td>Ally</td>
+<td>friends, the colony, helpers</td>
+<td>shield</td>
+<td>Colony</td>
+</tr>
+<tr>
+<td>Resource</td>
+<td>things to collect</td>
+<td>hexagon</td>
+<td>Food</td>
+</tr>
+<tr>
+<td>Energy</td>
+<td>power, fuel, light, battery</td>
+<td>bolt</td>
+<td>Energy</td>
+</tr>
+<tr>
+<td>Danger</td>
+<td>enemies and attacks</td>
+<td>triangle</td>
+<td>Danger</td>
+</tr>
+<tr>
+<td>Hazard</td>
+<td>the world can hurt the player here</td>
+<td>diamond</td>
+<td>HazardHeat</td>
+</tr>
+<tr>
+<td>Interactable</td>
+<td>doors, switches, stations</td>
+<td>capsule</td>
+<td>Unlock</td>
+</tr>
+<tr>
+<td>Objective</td>
+<td>the current goal</td>
+<td>star</td>
+<td>Home</td>
+</tr>
+<tr>
+<td>Discovery</td>
+<td>something new or hidden</td>
+<td>ring of ten dashes</td>
+<td>Discovery</td>
+</tr>
+<tr>
+<td>Neutral</td>
+<td>background things with no game meaning</td>
+<td>bar</td>
+<td>Unknown</td>
+</tr>
+<tr>
+<td>Upgrade</td>
+<td>things that make the player stronger</td>
+<td>house</td>
+<td>Upgrade</td>
+</tr>
+<tr>
+<td>UiAccent</td>
+<td>interface chrome</td>
+<td>square</td>
+<td>Arrow</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Role-default_icon"><code>Role::default_icon</code></a> gives the icon for a role with no better one. <a class="sym" href="#sym-Role-ALL"><code>Role::ALL</code></a>, <a class="sym" href="#sym-Role-index"><code>Role::index</code></a> and <a class="sym" href="#sym-Role-name"><code>Role::name</code></a> iterate and name them.</p>
+<h2 id="the-language">The language</h2>
+<p>A <a class="sym" href="#sym-Language"><code>Language</code></a> holds twelve role colours, a <code>paper</code> colour and a dark casing colour for one game. <a class="sym" href="#sym-Language-new"><code>Language::new</code></a> takes a mood and a seed, and is <a class="sym" href="palette-kit.html#sym-pick"><code>palette_kit::pick</code></a> followed by <a class="sym" href="#sym-Language-from_swatch"><code>Language::from_swatch</code></a>. A game can also pass its own <a class="sym" href="palette-kit.html#sym-Swatch"><code>Swatch</code></a>. The default <a class="sym" href="#sym-Language"><code>Language</code></a> is mood "dark" with seed 0, and <a class="sym" href="#sym-default_language"><code>default_language</code></a> shares one such value, made once, for kits that take no language.</p>
+<h3 id="how-the-colours-are-built">How the colours are built</h3>
+<p><a class="sym" href="#sym-Language-from_swatch"><code>Language::from_swatch</code></a> works in OKLCH.</p>
+<ol>
+<li><strong>Paper.</strong> The swatch background moves to a usable paper. A mid-lightness paper cannot hold twelve role colours at <a class="sym" href="#sym-MIN_CONTRAST"><code>MIN_CONTRAST</code></a>, so it moves to dark (L 0.24) or light (L 0.93). A lightness at or below 0.30 or at or above 0.90 stays. The hue stays and the chroma drops to <a class="sym" href="#sym-PAPER_MAX_CHROMA"><code>PAPER_MAX_CHROMA</code></a> or less, because a more colourful paper takes hue space from the roles and a red paper breaks the danger band.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></li>
+<li><strong>Levels.</strong> The paper sets three lightness levels: 0.70, 0.80, 0.90 on dark paper and 0.42, 0.51, 0.60 on light paper.</li>
+<li><strong>Plan.</strong> Each role has an anchor hue, a lightness step and a saturation target, where saturation is chroma as a part of the sRGB limit at that lightness and hue.</li>
+<li><strong>Turn.</strong> The inks set a chroma scale and a small hue turn, and the seed adds a little more. The danger hues do not take the turn: red stays red.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></li>
+<li><strong>Contrast.</strong> Each colour passes through <a class="sym" href="palette-kit.html#sym-ensure_contrast"><code>ensure_contrast</code></a>.</li>
+<li><strong>Separation.</strong> Up to 24 rounds move the later role of a near pair by one lightness step, until each pair has the required distance.</li>
+</ol>
+<p>The role plan is the hue wheel of the system.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Role</th>
+<th>Anchor hue</th>
+<th>Saturation target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Danger</td>
+<td>27</td>
+<td>0.95</td>
+</tr>
+<tr>
+<td>Hazard</td>
+<td>60</td>
+<td>0.95</td>
+</tr>
+<tr>
+<td>Objective</td>
+<td>90</td>
+<td>0.85</td>
+</tr>
+<tr>
+<td>Resource</td>
+<td>130</td>
+<td>0.80</td>
+</tr>
+<tr>
+<td>Ally</td>
+<td>158</td>
+<td>0.70</td>
+</tr>
+<tr>
+<td>Player</td>
+<td>194</td>
+<td>1.00</td>
+</tr>
+<tr>
+<td>Energy</td>
+<td>222</td>
+<td>0.80</td>
+</tr>
+<tr>
+<td>Interactable</td>
+<td>250</td>
+<td>0.70</td>
+</tr>
+<tr>
+<td>UiAccent</td>
+<td>278</td>
+<td>0.60</td>
+</tr>
+<tr>
+<td>Discovery</td>
+<td>306</td>
+<td>0.80</td>
+</tr>
+<tr>
+<td>Upgrade</td>
+<td>336</td>
+<td>0.80</td>
+</tr>
+<tr>
+<td>Neutral</td>
+<td>250</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p>Neutral is built apart at a low chroma, darker than every role on dark paper and lighter on light paper, so that it stays quieter than the rest.</p>
+<h3 id="reading-colours">Reading colours</h3>
+<p><a class="sym" href="#sym-Language-color"><code>Language::color</code></a> returns an <a class="sym" href="palette-kit.html#sym-Rgb"><code>Rgb</code></a>. <a class="sym" href="#sym-Language-egui"><code>Language::egui</code></a> returns an egui colour. <a class="sym" href="#sym-Language-casing"><code>Language::casing</code></a> is the dark outline of every marker and icon, which keeps a marker clear on a bright or busy world.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup> <a class="sym" href="#sym-Language-paper_egui"><code>Language::paper_egui</code></a> is the paper. Draw the language <code>paper</code> field, not the swatch <code>bg</code> field, behind markers and the HUD.</p>
+<h2 id="the-rules">The rules</h2>
+<p><a class="sym" href="#sym-Language-check"><code>Language::check</code></a> returns an <a class="sym" href="#sym-Issue"><code>Issue</code></a> for each broken rule. An empty list means the language is good. A test runs every mood across seeds and requires an empty list.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Rule</th>
+<th>Limit</th>
+<th>Issue</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Only Danger and Hazard use the warm red and orange band</td>
+<td><a class="sym" href="#sym-DANGER_BAND"><code>DANGER_BAND</code></a>, 15 to 72 degrees</td>
+<td>InDangerBand, OutOfDangerBand</td>
+</tr>
+<tr>
+<td>Each pair of roles is apart in OKLab</td>
+<td><a class="sym" href="#sym-MIN_DISTANCE"><code>MIN_DISTANCE</code></a>, 0.06</td>
+<td>TooClose</td>
+</tr>
+<tr>
+<td>Each role reads on the paper</td>
+<td><a class="sym" href="#sym-MIN_CONTRAST"><code>MIN_CONTRAST</code></a>, 3.0</td>
+<td>LowContrast</td>
+</tr>
+<tr>
+<td>Player has the highest saturation</td>
+<td></td>
+<td>MoreSaturatedThanPlayer</td>
+</tr>
+<tr>
+<td>Neutral has a low chroma</td>
+<td><a class="sym" href="#sym-NEUTRAL_MAX_CHROMA"><code>NEUTRAL_MAX_CHROMA</code></a>, 0.04</td>
+<td>NeutralTooColourful</td>
+</tr>
+<tr>
+<td>Each role has its own shape</td>
+<td></td>
+<td>SameShape</td>
+</tr>
+</tbody>
+</table>
+<p>Red means danger, and nothing else is red.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup> <a class="sym" href="#sym-BAND_MARGIN"><code>BAND_MARGIN</code></a> is the hue gap that other roles keep when the language is built. <a class="sym" href="#sym-Language-check"><code>check</code></a> flags a role only inside half of that gap, and a colour with chroma under 0.035 has no hue that a player sees, so the band rule does not apply to it.</p>
+<h2 id="colour-blindness">Colour blindness</h2>
+<p><a class="sym" href="#sym-simulate"><code>simulate</code></a> gives the colour that a player with a <a class="sym" href="#sym-Vision"><code>Vision</code></a> sees, using the Machado 2009 matrices at full severity in linear RGB. <a class="sym" href="#sym-Language-confusable"><code>Language::confusable</code></a> lists the role pairs that are closer than <a class="sym" href="#sym-MIN_DISTANCE"><code>MIN_DISTANCE</code></a> after simulation.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">for</span> (a, b) <span class="k">in</span> lang.<span class="f">confusable</span>(<span class="t">Vision</span>::<span class="t">Deuteranopia</span>) { assert_ne!(a.<span class="f">shape</span>(), b.<span class="f">shape</span>()); }</code></pre></div>
+<p>Colour alone can fail for such a player, and <a class="sym" href="#sym-Language-check"><code>Language::check</code></a> does not forbid those pairs. The role shape separates them, so meaning never depends on colour only.[[src:warp_sdk/src/visual.rs|only. [<a class="sym" href="#sym-Language-confusable"><code>Language::confusable</code></a>] gives the pairs that a colour-blind]]</p>
+<h2 id="shapes">Shapes</h2>
+<p><a class="sym" href="#sym-Shape"><code>Shape</code></a> has fifteen values. Twelve are role shapes. Drop, Chevron and Plus have no role now. <a class="sym" href="#sym-Shape-outline"><code>Shape::outline</code></a> gives the outline in the unit box, with coordinates from -1 to 1 and y down, and <a class="sym" href="#sym-Shape-contains"><code>Shape::contains</code></a> tests a point. Ring is ten dashes around a hole of radius <a class="sym" href="#sym-RING_HOLE"><code>RING_HOLE</code></a>.</p>
+<h2 id="icons">Icons</h2>
+<p><a class="sym" href="#sym-Icon"><code>Icon</code></a> is a set of 29 vector icons in a unit box, so each draws at any size with the same stroke ratio (<a class="sym" href="#sym-STROKE_RATIO"><code>STROKE_RATIO</code></a>) and the same corner cut (<a class="sym" href="#sym-CORNER"><code>CORNER</code></a>). <a class="sym" href="#sym-Icon-role"><code>Icon::role</code></a> gives the usual role of an icon, and <a class="sym" href="#sym-Icon-name"><code>Icon::name</code></a> its name. Danger and Warning draw the same art.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Function</th>
+<th>Paints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-icon"><code>icon</code></a></td>
+<td>an icon in a rect with the colour of a role</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-icon_with"><code>icon_with</code></a></td>
+<td>an icon with a fill and a casing of your own</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-marker"><code>marker</code></a></td>
+<td>the role shape, filled and cased, for legends, minimap points and small world markers</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-shape_with"><code>shape_with</code></a></td>
+<td>any shape with your own colours</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-badge"><code>badge</code></a></td>
+<td>a role shape at a screen point, with an optional inner icon</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-badge"><code>badge</code></a> places the inner icon in the widest part of each shape. The caller maps the world position to the screen. On a Danger triangle with the Danger icon inside, it draws only the exclamation mark, because the badge is the triangle already.</p>
+<h2 id="link-to-the-semiotic-standard">Link to the semiotic standard</h2>
+<p>Role shapes and <a href="semiotics.html" data-slug="semiotics">Semiotics</a> frames agree. When a role is the colour of a meaning class, the role shape is the frame of that class: Resource is a hexagon, Upgrade a house, Discovery a dashed ring, Interactable a capsule and UiAccent a square.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup> <a class="sym" href="#sym-Shape-frame"><code>Shape::frame</code></a> gives that mapping. A test checks it.</p>
+<p>Neutral is the one exception. Neutral is the colour of the Prohibition class, but a Neutral world marker is a background thing, not "you cannot do this", so it keeps the bar.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<p><a class="sym" href="#sym-Icon-action"><code>Icon::action</code></a> gives the <a class="sym" href="semiotics.html#sym-Action"><code>semiotics::Action</code></a> with the same meaning, or <code>None</code>. When it is <code>Some</code>, the icon role is the role of that action class, so Lock is Neutral, Stun is Player and BatteryLow is Danger. Energy and Light have no action, because the standard puts energy in the Vital class and the Energy role has no class.</p>
+<p><a class="sym" href="#sym-action_icon"><code>action_icon</code></a> paints a standard icon in the colours of a language: frame, role colour and glyph, at rest, with a fade. <a class="sym" href="#sym-action_glyph"><code>action_glyph</code></a> paints only the glyph in one colour, for use inside a frame of your own or next to text. <a href="hud-cues.html" data-slug="hud-cues">HUD cues</a> and <a href="teach.html" data-slug="teach">Teach kit</a> use these, so one meaning has one look in every kit.</p>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::visual::{<span class="k">self</span>, <span class="t">Icon</span>, <span class="t">Language</span>, <span class="t">Role</span>};
+
+<span class="k">let</span> lang = <span class="t">Language</span>::<span class="f">new</span>(<span class="s">"ocean calm"</span>, <span class="n">42</span>);      <span class="c">// or Language::from_swatch(&amp;sw, 42)</span>
+assert!(lang.<span class="f">check</span>().<span class="f">is_empty</span>());
+<span class="c">// In `gui`:</span>
+visual::<span class="f">icon</span>(&amp;painter, <span class="t">Icon</span>::<span class="t">Food</span>, rect, &amp;lang, <span class="t">Role</span>::<span class="t">Resource</span>);
+visual::<span class="f">badge</span>(&amp;painter, screen_pos, <span class="n">24.0</span>, &amp;lang, <span class="t">Role</span>::<span class="t">Danger</span>, <span class="t">Some</span>(<span class="t">Icon</span>::<span class="t">Danger</span>));
+<span class="k">let</span> enemy_red = lang.<span class="f">egui</span>(<span class="t">Role</span>::<span class="t">Danger</span>);         <span class="c">// use the same colour in `render`</span></code></pre></div>
+<p>Make one <a class="sym" href="#sym-Language"><code>Language</code></a> at start. Give every visible thing a <a class="sym" href="#sym-Role"><code>Role</code></a>. Draw world markers with <a class="sym" href="#sym-badge"><code>badge</code></a> and HUD icons with <a class="sym" href="#sym-icon"><code>icon</code></a>. The <a class="sym" href="#sym-Role-visual"><code>visual</code></a> example shows a role board and an icon grid for three moods.</p>
+<h2 id="history">History</h2>
+<p>The module was added on 2026-10-29 in the commit "sdk: add visual, semantic colour roles, shapes and an icon set". The commit "sdk: align visual, hud cues and teach with the semiotic standard" later moved its role shapes and some icon roles to match <a href="semiotics.html" data-slug="semiotics">Semiotics</a>.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 50 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-visual" class="modhead"><code>warp_sdk::visual</code></h3><h4>Functions</h4><div class="item" id="sym-simulate" data-name="simulate"><div class="sig"><a class="anchor" href="#sym-simulate" aria-label="Link to simulate">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">simulate</span>(c: <span class="t">Rgb</span>, vision: <span class="t">Vision</span>) -&gt; <span class="t">Rgb</span></code></div><div class="doc"><p>The colour that a player with <code>vision</code> sees. This uses the Machado 2009
+matrices at full severity, in linear RGB.</p>
+<p><code>ignore
+let seen = visual::simulate(lang.color(Role::Danger), Vision::Deuteranopia);</code></p></div></div><div class="item" id="sym-icon" data-name="icon"><div class="sig"><a class="anchor" href="#sym-icon" aria-label="Link to icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">icon</span>(painter: &amp;<span class="t">Painter</span>, which: <span class="t">Icon</span>, rect: <span class="t">Rect</span>, lang: &amp;<span class="t">Language</span>, role: <span class="t">Role</span>)</code></div><div class="doc"><p>Paint an icon in <code>rect</code> with the colour of <code>role</code>. The icon keeps its
+aspect: it fills the largest centred square in <code>rect</code>.</p>
+<p><code>ignore
+visual::icon(ui.painter(), Icon::BatteryLow, rect, &amp;lang, Role::Energy);</code></p></div></div><div class="item" id="sym-icon_with" data-name="icon_with"><div class="sig"><a class="anchor" href="#sym-icon_with" aria-label="Link to icon_with">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">icon_with</span>(painter: &amp;<span class="t">Painter</span>, which: <span class="t">Icon</span>, rect: <span class="t">Rect</span>, fill: <span class="t">Color32</span>, casing: <span class="t">Color32</span>)</code></div><div class="doc"><p>Paint an icon with a fill colour and a casing colour of your own.</p>
+<p><code>ignore
+visual::icon_with(&amp;painter, Icon::Map, rect, Color32::WHITE, Color32::BLACK);</code></p></div></div><div class="item" id="sym-marker" data-name="marker"><div class="sig"><a class="anchor" href="#sym-marker" aria-label="Link to marker">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">marker</span>(painter: &amp;<span class="t">Painter</span>, rect: <span class="t">Rect</span>, lang: &amp;<span class="t">Language</span>, role: <span class="t">Role</span>)</code></div><div class="doc"><p>Paint the shape of <code>role</code> in <code>rect</code>, filled with the role colour and
+cased. Use it for legends, minimap points and small world markers.</p>
+<p><code>ignore
+visual::marker(&amp;painter, rect, &amp;lang, Role::Hazard);</code></p></div></div><div class="item" id="sym-shape_with" data-name="shape_with"><div class="sig"><a class="anchor" href="#sym-shape_with" aria-label="Link to shape_with">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">shape_with</span>(painter: &amp;<span class="t">Painter</span>, shape: <span class="t">Shape</span>, rect: <span class="t">Rect</span>, fill: <span class="t">Color32</span>, casing: <span class="t">Color32</span>)</code></div><div class="doc"><p>Paint a shape with a fill colour and a casing colour of your own.</p></div></div><div class="item" id="sym-badge" data-name="badge"><div class="sig"><a class="anchor" href="#sym-badge" aria-label="Link to badge">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">badge</span>(painter: &amp;<span class="t">Painter</span>, center: <span class="t">Pos2</span>, size: f32, lang: &amp;<span class="t">Language</span>, role: <span class="t">Role</span>, inner: <span class="t">Option</span>&lt;<span class="t">Icon</span>&gt;)</code></div><div class="doc"><p>Paint a world-space badge: the role shape at <code>center</code> (a screen point),
+<code>size</code> pixels wide, with an optional icon inside in the casing colour.
+The caller maps the world position to the screen.</p>
+<p><code>ignore
+let p = to_screen(enemy.pos);
+visual::badge(&amp;painter, p, 22.0, &amp;lang, Role::Danger, Some(Icon::Danger));</code></p></div></div><div class="item" id="sym-default_language" data-name="default_language"><div class="sig"><a class="anchor" href="#sym-default_language" aria-label="Link to default_language">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">default_language</span>() -&gt; &amp;<span class="a">'static</span> <span class="t">Language</span></code></div><div class="doc"><p>One shared default [<code>Language</code>], made once. Kits that take no language
+(for example <code>hud::cues</code> and <code>teach</code> before <code>with_language</code>) use it.</p>
+<p><code>ignore
+let red = visual::default_language().egui(Role::Danger);</code></p></div></div><div class="item" id="sym-action_icon" data-name="action_icon"><div class="sig"><a class="anchor" href="#sym-action_icon" aria-label="Link to action_icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">action_icon</span>(painter: &amp;<span class="t">Painter</span>, action: <span class="t">Action</span>, rect: <span class="t">Rect</span>, lang: &amp;<span class="t">Language</span>, alpha: f32)</code></div><div class="doc"><p>Paint the standard icon of <code>action</code> in <code>rect</code>: the frame of its class,
+the role colour from <code>lang</code>, the glyph, in the default icon style, at
+rest. <code>alpha</code> (0..1) fades all of it.</p>
+<p><code>ignore
+visual::action_icon(&amp;painter, semiotics::Action::Respawn, rect, &amp;lang, 1.0);</code></p></div></div><div class="item" id="sym-action_glyph" data-name="action_glyph"><div class="sig"><a class="anchor" href="#sym-action_glyph" aria-label="Link to action_glyph">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">action_glyph</span>(painter: &amp;<span class="t">Painter</span>, action: <span class="t">Action</span>, rect: <span class="t">Rect</span>, col: <span class="t">Color32</span>)</code></div><div class="doc"><p>Paint only the glyph of <code>action</code> (no frame) in <code>rect</code>, in one colour.
+Use it inside a frame of your own, or next to text.</p>
+<p><code>ignore
+visual::action_glyph(&amp;painter, semiotics::Action::Collect, rect, lang.egui(Role::Resource));</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Role" data-name="role"><div class="sig"><a class="anchor" href="#sym-Role" aria-label="Link to Role">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Role</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The player and the things the player controls.</span>
+<span class="t">Player</span>,
+<span class="c">/// Friends: the colony, helpers, other players on your side.</span>
+<span class="t">Ally</span>,
+<span class="c">/// Things to collect: food, ore, pickups.</span>
+<span class="t">Resource</span>,
+<span class="c">/// Power, fuel, light, battery.</span>
+<span class="t">Energy</span>,
+<span class="c">/// Enemies and attacks. Hurts the player.</span>
+<span class="t">Danger</span>,
+<span class="c">/// The world can hurt the player here: heat, pressure, poison.</span>
+<span class="t">Hazard</span>,
+<span class="c">/// The player can use this: doors, switches, stations.</span>
+<span class="t">Interactable</span>,
+<span class="c">/// The current goal.</span>
+<span class="t">Objective</span>,
+<span class="c">/// Something new or hidden that the player can find.</span>
+<span class="t">Discovery</span>,
+<span class="c">/// Background things with no game meaning.</span>
+<span class="t">Neutral</span>,
+<span class="c">/// Things that make the player stronger.</span>
+<span class="t">Upgrade</span>,
+<span class="c">/// Interface chrome: frames, focus, selection.</span>
+<span class="t">UiAccent</span>,</code></pre></div><div class="doc"><p>What a thing means to the player. Give every visible thing one role.</p>
+<p><code>ignore
+let c = lang.egui(Role::Resource);</code></p></div></div><details class="members"><summary>9 methods</summary><div class="item" id="sym-Role-ALL" data-name="role::all"><div class="sig"><a class="anchor" href="#sym-Role-ALL" aria-label="Link to Role::ALL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ALL</span>: [<span class="t">Role</span>; <span class="n">12</span>] = [ <span class="t">Role</span>::<span class="t">Player</span>, <span class="t">Role</span>::<span class="t">Ally</span>, <span class="t">Role</span>::<span class="t">Resource</span>, <span class="t">Role</span>::<span class="t">Energy</span>, <span class="t">Role</span>::<span class="t">Danger</span>, <span class="t">Role</span>::<span class="t">Hazard</span>, <span class="t">Role</span>::<span class="t">Interactable</span>, <span class="t">Role</span>::<span class="t">Objective</span>, <span class="t">Role</span>::<span class="t">Discovery</span>, <span class="t">Role</span>::<span class="t">Neutral</span>, <span class="t">Role</span>::<span class="t">Upgrade</span>, <span class="t">Role</span>::<span class="t">UiAccent</span>, ]</code></div><div class="doc"><p>Every role, in a fixed order. <code>Role::ALL[r.index()] == r</code>.</p>
+<p><code>ignore
+for r in Role::ALL { println!("{}", r.name()); }</code></p></div></div><div class="item" id="sym-Role-index" data-name="role::index"><div class="sig"><a class="anchor" href="#sym-Role-index" aria-label="Link to Role::index">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">index</span>(<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>The position of the role in [<code>Role::ALL</code>].</p></div></div><div class="item" id="sym-Role-name" data-name="role::name"><div class="sig"><a class="anchor" href="#sym-Role-name" aria-label="Link to Role::name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">name</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>The lower-case name, for example <code>"resource"</code>.</p></div></div><div class="item" id="sym-Role-shape" data-name="role::shape"><div class="sig"><a class="anchor" href="#sym-Role-shape" aria-label="Link to Role::shape">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">shape</span>(<span class="k">self</span>) -&gt; <span class="t">Shape</span></code></div><div class="doc"><p>The shape of the role. Each role has a different shape. When the
+role is the colour of a class in the semiotic standard, the shape is
+the frame of that class (see [<code>Shape::frame</code>]).</p>
+<p>Neutral is the one exception. Neutral is the colour of the
+Prohibition class, but a Neutral world marker is a background thing,
+not "you can not do this". It keeps the bar.</p>
+<p><code>ignore
+assert_eq!(Role::Danger.shape(), Shape::Triangle);
+assert_eq!(Role::Resource.shape().frame(), Some(semiotics::Frame::Hexagon));</code></p></div></div><div class="item" id="sym-Role-default_icon" data-name="role::default_icon"><div class="sig"><a class="anchor" href="#sym-Role-default_icon" aria-label="Link to Role::default_icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">default_icon</span>(<span class="k">self</span>) -&gt; <span class="t">Icon</span></code></div><div class="doc"><p>The icon that a game uses for the role when it has no better icon.</p></div></div><div class="item" id="sym-Role-action" data-name="role::action"><div class="sig"><a class="anchor" href="#sym-Role-action" aria-label="Link to Role::action">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">action</span>(<span class="k">self</span>) -&gt; <span class="t">Action</span></code></div><div class="doc"><p>The action of the standard that this role shows.</p>
+<p><code>ignore
+assert_eq!(Role::Home.action(), semiotics::Action::Deliver);</code></p></div></div><div class="item" id="sym-Role-visual" data-name="role::visual"><div class="sig"><a class="anchor" href="#sym-Role-visual" aria-label="Link to Role::visual">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">visual</span>(<span class="k">self</span>) -&gt; visual::<span class="t">Role</span></code></div><div class="doc"><p>The <code>visual::Role</code> of the action class. It gives the colour.</p></div></div><div class="item" id="sym-Role-color" data-name="role::color"><div class="sig"><a class="anchor" href="#sym-Role-color" aria-label="Link to Role::color">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">color</span>(<span class="k">self</span>) -&gt; <span class="t">Color32</span></code></div><div class="doc"><p>The colour of this role in <code>visual::default_language()</code>.</p>
+<p><code>ignore
+let c = Role::Collect.color();</code></p></div></div><div class="item" id="sym-Role-color_in" data-name="role::color_in"><div class="sig"><a class="anchor" href="#sym-Role-color_in" aria-label="Link to Role::color_in">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">color_in</span>(<span class="k">self</span>, lang: &amp;<span class="t">Language</span>) -&gt; <span class="t">Color32</span></code></div><div class="doc"><p>The colour of this role in <code>lang</code>.</p>
+<p><code>ignore
+let c = Role::Collect.color_in(&amp;lang);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Shape" data-name="shape"><div class="sig"><a class="anchor" href="#sym-Shape" aria-label="Link to Shape">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Shape</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A full disc. Player.</span>
+<span class="t">Circle</span>,
+<span class="c">/// A shield with a point at the bottom. Ally.</span>
+<span class="t">Shield</span>,
+<span class="c">/// A drop with a point at the top. No role uses it now.</span>
+<span class="t">Drop</span>,
+<span class="c">/// A lightning bolt. Energy.</span>
+<span class="t">Bolt</span>,
+<span class="c">/// A triangle with a point at the top. Danger.</span>
+<span class="t">Triangle</span>,
+<span class="c">/// A square on its corner. Hazard.</span>
+<span class="t">Diamond</span>,
+<span class="c">/// A square. UiAccent.</span>
+<span class="t">Square</span>,
+<span class="c">/// A five-point star. Objective.</span>
+<span class="t">Star</span>,
+<span class="c">/// A ring of ten dashes. Discovery.</span>
+<span class="t">Ring</span>,
+<span class="c">/// A short wide bar. Neutral.</span>
+<span class="t">Bar</span>,
+<span class="c">/// An up chevron. No role uses it now.</span>
+<span class="t">Chevron</span>,
+<span class="c">/// A plus sign. No role uses it now.</span>
+<span class="t">Plus</span>,
+<span class="c">/// A hexagon with a flat top. Resource.</span>
+<span class="t">Hexagon</span>,
+<span class="c">/// A pentagon with the peak up. Upgrade.</span>
+<span class="t">House</span>,
+<span class="c">/// A horizontal pill. Interactable.</span>
+<span class="t">Capsule</span>,</code></pre></div><div class="doc"><p>A role shape. All shapes have a different outline, so a player who can
+not see the colour still sees the role.</p>
+<p><code>ignore
+visual::shape_with(&amp;painter, Role::Hazard.shape(), rect, fill, casing);</code></p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-Shape-ALL" data-name="shape::all"><div class="sig"><a class="anchor" href="#sym-Shape-ALL" aria-label="Link to Shape::ALL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ALL</span>: [<span class="t">Shape</span>; <span class="n">15</span>] = [ <span class="t">Shape</span>::<span class="t">Circle</span>, <span class="t">Shape</span>::<span class="t">Shield</span>, <span class="t">Shape</span>::<span class="t">Drop</span>, <span class="t">Shape</span>::<span class="t">Bolt</span>, <span class="t">Shape</span>::<span class="t">Triangle</span>, <span class="t">Shape</span>::<span class="t">Diamond</span>, <span class="t">Shape</span>::<span class="t">Square</span>, <span class="t">Shape</span>::<span class="t">Star</span>, <span class="t">Shape</span>::<span class="t">Ring</span>, <span class="t">Shape</span>::<span class="t">Bar</span>, <span class="t">Shape</span>::<span class="t">Chevron</span>, <span class="t">Shape</span>::<span class="t">Plus</span>, <span class="t">Shape</span>::<span class="t">Hexagon</span>, <span class="t">Shape</span>::<span class="t">House</span>, <span class="t">Shape</span>::<span class="t">Capsule</span>, ]</code></div><div class="doc"><p>Every shape.</p></div></div><div class="item" id="sym-Shape-frame" data-name="shape::frame"><div class="sig"><a class="anchor" href="#sym-Shape-frame" aria-label="Link to Shape::frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">frame</span>(<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">Frame</span>&gt;</code></div><div class="doc"><p>The frame of the semiotic standard that this shape draws, or <code>None</code>
+when the standard has no frame of this shape.</p>
+<p><code>ignore
+assert_eq!(Shape::House.frame(), Some(semiotics::Frame::House));</code></p></div></div><div class="item" id="sym-Shape-outline" data-name="shape::outline"><div class="sig"><a class="anchor" href="#sym-Shape-outline" aria-label="Link to Shape::outline">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">outline</span>(<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;[f32; <span class="n">2</span>]&gt;</code></div><div class="doc"><p>The outline of the shape in the unit box (-1..1 on both axes, y down).
+For [<code>Shape::Ring</code>] this is the outer edge; the hole has radius
+[<code>RING_HOLE</code>].</p>
+<p><code>ignore
+let pts = Shape::Star.outline();</code></p></div></div><div class="item" id="sym-Shape-contains" data-name="shape::contains"><div class="sig"><a class="anchor" href="#sym-Shape-contains" aria-label="Link to Shape::contains">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">contains</span>(<span class="k">self</span>, p: [f32; <span class="n">2</span>]) -&gt; bool</code></div><div class="doc"><p>True when the unit-box point <code>p</code> is inside the shape. For
+[<code>Shape::Ring</code>] the point must be on one of the ten dashes.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Vision" data-name="vision"><div class="sig"><a class="anchor" href="#sym-Vision" aria-label="Link to Vision">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Vision</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Full colour vision. [`simulate`] gives the colour back unchanged.</span>
+<span class="t">Normal</span>,
+<span class="c">/// No red cones.</span>
+<span class="t">Protanopia</span>,
+<span class="c">/// No green cones. The most common kind.</span>
+<span class="t">Deuteranopia</span>,
+<span class="c">/// No blue cones.</span>
+<span class="t">Tritanopia</span>,</code></pre></div><div class="doc"><p>A kind of colour vision, for [<code>simulate</code>].</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Vision-BLIND" data-name="vision::blind"><div class="sig"><a class="anchor" href="#sym-Vision-BLIND" aria-label="Link to Vision::BLIND">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">BLIND</span>: [<span class="t">Vision</span>; <span class="n">3</span>] = [<span class="t">Vision</span>::<span class="t">Protanopia</span>, <span class="t">Vision</span>::<span class="t">Deuteranopia</span>, <span class="t">Vision</span>::<span class="t">Tritanopia</span>]</code></div><div class="doc"><p>The three kinds of colour blindness.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Issue" data-name="issue"><div class="sig"><a class="anchor" href="#sym-Issue" aria-label="Link to Issue">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Issue</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A role that is not Danger or Hazard has a hue in the danger band.</span>
+<span class="t">InDangerBand</span>(<span class="t">Role</span>, f32),
+<span class="c">/// Danger or Hazard has a hue out of the danger band.</span>
+<span class="t">OutOfDangerBand</span>(<span class="t">Role</span>, f32),
+<span class="c">/// Two roles are nearer than [`MIN_DISTANCE`] in OKLab.</span>
+<span class="t">TooClose</span>(<span class="t">Role</span>, <span class="t">Role</span>, f32),
+<span class="c">/// A role has less contrast than [`MIN_CONTRAST`] on the paper.</span>
+<span class="t">LowContrast</span>(<span class="t">Role</span>, f32),
+<span class="c">/// This role has a higher saturation than Player.</span>
+<span class="t">MoreSaturatedThanPlayer</span>(<span class="t">Role</span>),
+<span class="c">/// Neutral has more chroma than [`NEUTRAL_MAX_CHROMA`].</span>
+<span class="t">NeutralTooColourful</span>(f32),
+<span class="c">/// Two roles have the same shape.</span>
+<span class="t">SameShape</span>(<span class="t">Role</span>, <span class="t">Role</span>),</code></pre></div><div class="doc"><p>A problem that [<code>Language::check</code>] finds.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Language" data-name="language"><div class="sig"><a class="anchor" href="#sym-Language" aria-label="Link to Language">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Language</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The paper (background) colour. It is the swatch background, moved to</span>
+<span class="c">/// a dark or light level with low chroma when it is not usable. Draw</span>
+<span class="c">/// this colour, not `Swatch::bg`, behind markers and the HUD.</span>
+<span class="k">pub</span> paper: <span class="t">Rgb</span>,</code></pre></div><div class="doc"><p>The colours of the twelve roles for one game, made from a palette.</p>
+<p><code>ignore
+let lang = Language::from_swatch(&amp;palette_kit::pick("reef calm", 7), 7);
+let player: egui::Color32 = lang.egui(Role::Player);</code></p></div></div><details class="members"><summary>8 methods</summary><div class="item" id="sym-Language-new" data-name="language::new"><div class="sig"><a class="anchor" href="#sym-Language-new" aria-label="Link to Language::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(mood: &amp;str, seed: u64) -&gt; <span class="t">Language</span></code></div><div class="doc"><p>A language from a mood and a seed: <code>palette_kit::pick</code> then
+[<code>Language::from_swatch</code>].</p>
+<p><code>ignore
+let lang = Language::new("neon dark", 3);</code></p></div></div><div class="item" id="sym-Language-from_swatch" data-name="language::from_swatch"><div class="sig"><a class="anchor" href="#sym-Language-from_swatch" aria-label="Link to Language::from_swatch">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_swatch</span>(sw: &amp;<span class="t">Swatch</span>, seed: u64) -&gt; <span class="t">Language</span></code></div><div class="doc"><p>A language from a palette. The paper sets the lightness of the roles.
+A mid-lightness or colourful swatch background changes to a usable
+paper first (see [<code>Language::paper</code>]).
+The inks set the chroma and turn the hues a small amount. The seed
+adds a small hue turn. The result passes [<code>Language::check</code>].</p>
+<p><code>ignore
+let sw = palette_kit::pick("ocean", 1);
+let lang = Language::from_swatch(&amp;sw, 1);</code></p></div></div><div class="item" id="sym-Language-color" data-name="language::color"><div class="sig"><a class="anchor" href="#sym-Language-color" aria-label="Link to Language::color">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">color</span>(&amp;<span class="k">self</span>, role: <span class="t">Role</span>) -&gt; <span class="t">Rgb</span></code></div><div class="doc"><p>The colour of a role.</p></div></div><div class="item" id="sym-Language-egui" data-name="language::egui"><div class="sig"><a class="anchor" href="#sym-Language-egui" aria-label="Link to Language::egui">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">egui</span>(&amp;<span class="k">self</span>, role: <span class="t">Role</span>) -&gt; <span class="t">Color32</span></code></div><div class="doc"><p>The colour of a role as an egui colour.</p>
+<p><code>ignore
+painter.circle_filled(p, 6.0, lang.egui(Role::Resource));</code></p></div></div><div class="item" id="sym-Language-casing" data-name="language::casing"><div class="sig"><a class="anchor" href="#sym-Language-casing" aria-label="Link to Language::casing">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">casing</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Color32</span></code></div><div class="doc"><p>The dark casing colour: the outline of every marker and icon. It keeps
+a marker clear on a bright or busy world.</p></div></div><div class="item" id="sym-Language-paper_egui" data-name="language::paper_egui"><div class="sig"><a class="anchor" href="#sym-Language-paper_egui" aria-label="Link to Language::paper_egui">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">paper_egui</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Color32</span></code></div><div class="doc"><p>The paper colour as an egui colour.</p></div></div><div class="item" id="sym-Language-check" data-name="language::check"><div class="sig"><a class="anchor" href="#sym-Language-check" aria-label="Link to Language::check">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">check</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">Issue</span>&gt;</code></div><div class="doc"><p>All the problems of this language. An empty list means it is good.</p>
+<p><code>ignore
+assert!(lang.check().is_empty(), "{:?}", lang.check());</code></p></div></div><div class="item" id="sym-Language-confusable" data-name="language::confusable"><div class="sig"><a class="anchor" href="#sym-Language-confusable" aria-label="Link to Language::confusable">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">confusable</span>(&amp;<span class="k">self</span>, vision: <span class="t">Vision</span>) -&gt; <span class="t">Vec</span>&lt;(<span class="t">Role</span>, <span class="t">Role</span>)&gt;</code></div><div class="doc"><p>The role pairs that a player with <code>vision</code> can not separate by
+colour (OKLab distance under [<code>MIN_DISTANCE</code>] after [<code>simulate</code>]).
+The role shapes separate these pairs.</p>
+<p><code>ignore
+for (a, b) in lang.confusable(Vision::Deuteranopia) { assert_ne!(a.shape(), b.shape()); }</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Icon" data-name="icon"><div class="sig"><a class="anchor" href="#sym-Icon" aria-label="Link to Icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Icon</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Food</span>, <span class="t">Energy</span>, <span class="t">BatteryLow</span>, <span class="t">Danger</span>, <span class="t">HazardHeat</span>, <span class="t">Home</span>, <span class="t">Colony</span>, <span class="t">Unknown</span>, <span class="t">Discovery</span>, <span class="t">Upgrade</span>,
+<span class="t">Depth</span>, <span class="t">Pressure</span>, <span class="t">Cargo</span>, <span class="t">Sonar</span>, <span class="t">Light</span>, <span class="t">Map</span>, <span class="t">Species</span>, <span class="t">Damage</span>, <span class="t">Heal</span>, <span class="t">Stun</span>, <span class="t">Lock</span>, <span class="t">Unlock</span>,
+<span class="t">Arrow</span>, <span class="t">Target</span>, <span class="t">Time</span>, <span class="t">Warning</span>, <span class="t">Growth</span>, <span class="t">Spawn</span>, <span class="t">Respawn</span>,</code></pre></div><div class="doc"><p>The icon set. Every icon is vector art in a unit box: it draws at any
+size with the same stroke ratio and the same corner cut.</p>
+<p><code>ignore
+for ic in Icon::ALL { visual::icon(&amp;painter, ic, cell(ic), &amp;lang, ic.role()); }</code></p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-Icon-ALL" data-name="icon::all"><div class="sig"><a class="anchor" href="#sym-Icon-ALL" aria-label="Link to Icon::ALL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ALL</span>: [<span class="t">Icon</span>; <span class="n">29</span>] = [ <span class="t">Icon</span>::<span class="t">Food</span>, <span class="t">Icon</span>::<span class="t">Energy</span>, <span class="t">Icon</span>::<span class="t">BatteryLow</span>, <span class="t">Icon</span>::<span class="t">Danger</span>, <span class="t">Icon</span>::<span class="t">HazardHeat</span>, <span class="t">Icon</span>::<span class="t">Home</span>, <span class="t">Icon</span>::<span class="t">Colony</span>, <span class="t">Icon</span>::<span class="t">Unknown</span>, <span class="t">Icon</span>::<span class="t">Discovery</span>, <span class="t">Icon</span>::<span class="t">Upgrade</span>, <span class="t">Icon</span>::<span class="t">Depth</span>, <span class="t">Icon</span>::<span class="t">Pressure</span>, <span class="t">Icon</span>::<span class="t">Cargo</span>, <span class="t">Icon</span>::<span class="t">Sonar</span>, <span class="t">Icon</span>::<span class="t">Light</span>, <span class="t">Icon</span>::<span class="t">Map</span>, <span class="t">Icon</span>::<span class="t">Species</span>, <span class="t">Icon</span>::<span class="t">Damage</span>, <span class="t">Icon</span>::<span class="t">Heal</span>, <span class="t">Icon</span>::<span class="t">Stun</span>, <span class="t">Icon</span>::<span class="t">Lock</span>, <span class="t">Icon</span>::<span class="t">Unlock</span>, <span class="t">Icon</span>::<span class="t">Arrow</span>, <span class="t">Icon</span>::<span class="t">Target</span>, <span class="t">Icon</span>::<span class="t">Time</span>, <span class="t">Icon</span>::<span class="t">Warning</span>, <span class="t">Icon</span>::<span class="t">Growth</span>, <span class="t">Icon</span>::<span class="t">Spawn</span>, <span class="t">Icon</span>::<span class="t">Respawn</span>, ]</code></div><div class="doc"><p>Every icon.</p></div></div><div class="item" id="sym-Icon-name" data-name="icon::name"><div class="sig"><a class="anchor" href="#sym-Icon-name" aria-label="Link to Icon::name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">name</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>The lower-case name, for example <code>"battery_low"</code>.</p></div></div><div class="item" id="sym-Icon-role" data-name="icon::role"><div class="sig"><a class="anchor" href="#sym-Icon-role" aria-label="Link to Icon::role">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">role</span>(<span class="k">self</span>) -&gt; <span class="t">Role</span></code></div><div class="doc"><p>The role that the icon usually has. An icon with a standard meaning
+([<code>Icon::action</code>]) has the role of its class: Lock is grey
+(Prohibition), Stun is Player (an action), BatteryLow is Danger
+(Warning).</p></div></div><div class="item" id="sym-Icon-action" data-name="icon::action"><div class="sig"><a class="anchor" href="#sym-Icon-action" aria-label="Link to Icon::action">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">action</span>(<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">Action</span>&gt;</code></div><div class="doc"><p>The action of the semiotic standard with the same meaning, or <code>None</code>
+when the standard has no such action. When it is <code>Some</code>, the icon
+role is the role of the action class.</p>
+<p>Energy and Light have no action here. The standard puts energy in
+the Vital class (Ally), but [<code>Role::Energy</code>] has no class.</p>
+<p><code>ignore
+assert_eq!(Icon::Lock.action(), Some(semiotics::Action::Locked));</code></p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-DANGER_BAND" data-name="danger_band"><div class="sig"><a class="anchor" href="#sym-DANGER_BAND" aria-label="Link to DANGER_BAND">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">DANGER_BAND</span>: (f32, f32) = (<span class="n">15.0</span>, <span class="n">72.0</span>)</code></div><div class="doc"><p>The reserved OKLCH hue band, in degrees, for Danger and Hazard. It holds
+warm red (about 29 degrees) and orange (about 56 degrees).</p></div></div><div class="item" id="sym-BAND_MARGIN" data-name="band_margin"><div class="sig"><a class="anchor" href="#sym-BAND_MARGIN" aria-label="Link to BAND_MARGIN">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">BAND_MARGIN</span>: f32 = <span class="n">10.0</span></code></div><div class="doc"><p>The hue gap, in degrees, that each other role keeps from [<code>DANGER_BAND</code>].</p></div></div><div class="item" id="sym-MIN_DISTANCE" data-name="min_distance"><div class="sig"><a class="anchor" href="#sym-MIN_DISTANCE" aria-label="Link to MIN_DISTANCE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MIN_DISTANCE</span>: f32 = <span class="n">0.06</span></code></div><div class="doc"><p>The smallest OKLab distance between two roles.</p></div></div><div class="item" id="sym-MIN_CONTRAST" data-name="min_contrast"><div class="sig"><a class="anchor" href="#sym-MIN_CONTRAST" aria-label="Link to MIN_CONTRAST">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MIN_CONTRAST</span>: f32 = <span class="n">3.0</span></code></div><div class="doc"><p>The smallest WCAG contrast of a role on the paper.</p></div></div><div class="item" id="sym-NEUTRAL_MAX_CHROMA" data-name="neutral_max_chroma"><div class="sig"><a class="anchor" href="#sym-NEUTRAL_MAX_CHROMA" aria-label="Link to NEUTRAL_MAX_CHROMA">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">NEUTRAL_MAX_CHROMA</span>: f32 = <span class="n">0.04</span></code></div><div class="doc"><p>The largest OKLCH chroma of Neutral.</p></div></div><div class="item" id="sym-RING_HOLE" data-name="ring_hole"><div class="sig"><a class="anchor" href="#sym-RING_HOLE" aria-label="Link to RING_HOLE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">RING_HOLE</span>: f32 = <span class="n">0.5</span></code></div><div class="doc"><p>The hole radius of [<code>Shape::Ring</code>] in the unit box.</p></div></div><div class="item" id="sym-PAPER_MAX_CHROMA" data-name="paper_max_chroma"><div class="sig"><a class="anchor" href="#sym-PAPER_MAX_CHROMA" aria-label="Link to PAPER_MAX_CHROMA">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">PAPER_MAX_CHROMA</span>: f32 = <span class="n">0.03</span></code></div><div class="doc"><p>The largest OKLCH chroma of the paper. A more colourful paper takes hue
+space from the roles, and a red paper breaks the danger band.</p></div></div><div class="item" id="sym-STROKE_RATIO" data-name="stroke_ratio"><div class="sig"><a class="anchor" href="#sym-STROKE_RATIO" aria-label="Link to STROKE_RATIO">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">STROKE_RATIO</span>: f32 = <span class="n">0.07</span></code></div><div class="doc"><p>The stroke width of a casing, as a part of the icon size.</p></div></div><div class="item" id="sym-CORNER" data-name="corner"><div class="sig"><a class="anchor" href="#sym-CORNER" aria-label="Link to CORNER">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">CORNER</span>: f32 = <span class="n">0.07</span></code></div><div class="doc"><p>The corner cut of every filled polygon, in unit-box units.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="semiotics.html" data-slug="semiotics">Semiotics</a></li><li><a href="palette-kit.html" data-slug="palette-kit">Palette kit</a></li><li><a href="hud-cues.html" data-slug="hud-cues">HUD cues</a></li><li><a href="teach.html" data-slug="teach">Teach kit</a></li><li><a href="hud-minimap.html" data-slug="hud-minimap">HUD minimap</a></li><li><a href="art-direction.html" data-slug="art-direction">Art direction</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/visual.rs</code> - <code>colour and one shape. The same role always looks the same, in the world,</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/visual.rs</code> - <code>not see the colour still sees the role.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/visual.rs</code> - <code>space from the roles, and a red paper breaks the danger band.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/visual.rs</code> - <code>The danger hues do not turn: red stays red.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/visual.rs</code> - <code>a marker clear on a bright or busy world.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/visual.rs</code> - <code>Red means danger, and nothing else is red.</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/visual.rs</code> - <code>a hexagon, Upgrade a house, Discovery a dashed ring, Interactable a</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/src/visual.rs</code> - <code>Neutral is the one exception. Neutral is the colour of the</code></li></ol><table class="navbox"><tr><th><a href="category-look.html">Look</a></th></tr><tr><td><b>Visual language</b> · <a href="semiotics.html" data-slug="semiotics">Semiotics</a> · <a href="palette-kit.html" data-slug="palette-kit">Palette kit</a> · <a href="post.html" data-slug="post">Post effects</a> · <a href="camera.html" data-slug="camera">Camera</a> · <a href="juice.html" data-slug="juice">Juice</a> · <a href="lit2d.html" data-slug="lit2d">Lit2d</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-look.html">Look</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

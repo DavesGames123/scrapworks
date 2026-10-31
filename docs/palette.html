@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Palette roles - Warp Wiki</title>
+<meta name="description" content="the fifteen named colours a game draws with, and the box it draws them in">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="palette">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#design">Design</a></li><li><a href="#roles">Roles</a></li><li><a href="#usage">Usage</a></li><li><a href="#the-box">The box</a></li><li><a href="#project-settings">Project settings</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Palette roles</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">the fifteen named colours a game draws with, and the box it draws them in</p><table class="infobox"><caption>Palette roles</caption><tr><th>Category</th><td><a href="category-editor-channels.html">Editor channels</a></td></tr><tr><th>Module</th><td><code>warp_sdk::palette</code></td></tr><tr><th>Source</th><td><code>warp_core/src/panels/palette/mod.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">35</a></td></tr></table><p><strong>Palette roles</strong> are a closed vocabulary of fifteen named colours with open values, held by the <a class="sym" href="#sym-palette"><code>palette</code></a> module of <code>warp_core</code> and re-exported by <code>warp_sdk</code>. A game asks for a role and gets a colour. The Theme panel writes the same table, and <code>[settings.theme]</code> in the <a href="manifest.html" data-slug="manifest">App manifest</a> carries it between runs, so a theme swap is one edit and not a pass over the source.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<div class="hatnote">For generating a palette from a mood and a seed, see <a href="palette-kit.html" data-slug="palette-kit">Palette kit</a>. That kit is colour mathematics and taste rules. This module is the live table of roles that a game reads at draw time.</div>
+
+<h2 id="design">Design</h2>
+<p>This is not the theme module of <code>warp_core</code>. That module is the palette of the editor chrome, with roles such as <code>bg_panel</code> and <code>bg_row_alt</code>, the vocabulary of a tool with tab strips. A game has grounds, ink and status, and it has no rows. One project built its whole interface on the chrome palette, because it was the only palette on offer.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<p>The roles are closed and the values are open. <a class="sym" href="#sym-Role"><code>Role</code></a> is an enum, so each game names the same fifteen things, and a game written against them picks up any palette. The source says that the fifteen came from what four games converged on independently.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<p>Each role is one atomic holding packed RGBA, because each draw call reads this table and a lock there would serialise the frame. <a class="sym" href="#sym-palette"><code>palette</code></a> returns the table as a copy, so that a loop over several roles avoids repeated atomic loads.</p>
+<h2 id="roles">Roles</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Group</th>
+<th>Roles</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grounds</td>
+<td>Background, Surface, SurfaceRaised, SurfaceSunken</td>
+</tr>
+<tr>
+<td>Ink</td>
+<td>Ink, InkDim, InkStrong, InkInverted</td>
+</tr>
+<tr>
+<td>Attention</td>
+<td>Highlight, Accent</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Ok, Warn, Bad</td>
+</tr>
+<tr>
+<td>Rules</td>
+<td>Line, LineStrong</td>
+</tr>
+</tbody>
+</table>
+<p>Highlight means "this one": selection, focus, the hovered row. Accent is the colour of the game, used sparingly. The key of a role is stable across builds, because a rename orphans the override of everyone who made one.</p>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::palette::{<span class="k">self</span>, <span class="t">Role</span>};
+ctx.<span class="f">draw_rect</span>(min, max, palette::<span class="f">color</span>(<span class="t">Role</span>::<span class="t">Surface</span>).<span class="f">bytes</span>());
+ui.<span class="f">label</span>(egui::<span class="t">RichText</span>::<span class="f">new</span>(name).<span class="f">color</span>(palette::<span class="f">color</span>(<span class="t">Role</span>::<span class="t">Ink</span>).<span class="f">egui</span>()));</code></pre></div>
+<p><a class="sym" href="#sym-color"><code>color</code></a> is one relaxed load with no branch or allocation. It returns an <a class="sym" href="#sym-Rgba"><code>Rgba</code></a>, whose <a class="sym" href="#sym-Rgba-bytes"><code>Rgba::bytes</code></a> gives the <code>[u8; 4]</code> that each <a class="sym" href="renderer.html#sym-RenderContext"><code>RenderContext</code></a> primitive takes, and whose <a class="sym" href="#sym-Rgba-egui"><code>Rgba::egui</code></a> gives an egui colour. One definition therefore serves both. An <a class="sym" href="#sym-Rgba"><code>Rgba</code></a> serialises as a hex string, such as <code>"#1a1a1f"</code>, because a person can read and paste that.</p>
+<p><a class="sym" href="#sym-set_color"><code>set_color</code></a> puts a colour on a role for this process. The Theme panel calls it during a drag, and it does not write the manifest. <a class="sym" href="#sym-set_palette"><code>set_palette</code></a> installs a whole table, and <a class="sym" href="#sym-reset"><code>reset</code></a> restores the default.</p>
+<h2 id="the-box">The box</h2>
+<p>A colour alone does not make a panel readable. Text straight on a moving scene is unreadable in any colour, and the fix is a filled box with a border and padding. Those numbers are <a class="sym" href="#sym-Metric"><code>Metric</code></a>, and they live beside the colours.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Metric</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rounding</td>
+<td>Corner radius</td>
+</tr>
+<tr>
+<td>Border</td>
+<td>Border width; zero draws none</td>
+</tr>
+<tr>
+<td>PadX</td>
+<td>Horizontal padding</td>
+</tr>
+<tr>
+<td>PadY</td>
+<td>Vertical padding</td>
+</tr>
+<tr>
+<td>Gap</td>
+<td>Space between boxes</td>
+</tr>
+</tbody>
+</table>
+<p>Metrics are design units, so <a class="sym" href="#sym-Palette-metric"><code>metric</code></a> values turn into pixels through <a href="scale.html" data-slug="scale">Interface scale</a>, and a themed box answers the zoom keys.</p>
+<p><a class="sym" href="#sym-frame"><code>frame</code></a> builds an egui frame for a HUD, and <a class="sym" href="#sym-frame_raised"><code>frame_raised</code></a>, <a class="sym" href="#sym-frame_sunken"><code>frame_sunken</code></a> and <a class="sym" href="#sym-frame_of"><code>frame_of</code></a> choose the fill. <a class="sym" href="#sym-gap"><code>gap</code></a> gives the space between boxes. The aim is that <code>palette::frame().show(ui, ..)</code> is fewer characters than the bare call, so the box is the shortest path.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<p>In the scene, <code>draw_panel</code> on <a class="sym" href="renderer.html#sym-RenderContext"><code>RenderContext</code></a> fills and outlines a rect. The scene has no pixels, because the view is two units tall at scale one. So that call takes padding from the rect of the caller and reads only colours from the table.</p>
+<h2 id="project-settings">Project settings</h2>
+<p><a class="sym" href="#sym-section"><code>section</code></a> is the <code>[settings.theme]</code> block. It is a built-in of <a href="project-settings.html" data-slug="project-settings">Project settings</a>, so a game that calls nothing still gets the palette of its project, because the engine loaded it before the first frame.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<p><a class="sym" href="#sym-Palette"><code>Palette</code></a> is the serialised view, with one named field per role and metric. <a class="sym" href="project-settings.html#sym-merge"><code>project_settings::merge</code></a> writes only the keys that differ from <a class="sym" href="#sym-Palette-DEFAULT"><code>Palette::DEFAULT</code></a>, so a block lists only what a project changed.</p>
+<p><a class="sym" href="#sym-Palette-DEFAULT"><code>Palette::DEFAULT</code></a> is dark and low chroma, with one blue for each "this one". The source calls it a starting point and not a house style.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-toml">[settings.theme]
+accent = <span class="s">"#1a1a1f"</span></code></pre></div>
+<h2 id="limitations">Limitations</h2>
+<p>The <a class="sym" href="#sym-frame"><code>frame</code></a> functions are native only, because they read the editor <code>ui</code> theme. The browser game draws its own frames.</p>
+<p>For finished controls, see <a href="widgets.html" data-slug="widgets">Panel widgets</a>.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 35 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-palette" class="modhead"><code>warp_sdk::palette</code></h3><h4>Functions</h4><div class="item" id="sym-color" data-name="color"><div class="sig"><a class="anchor" href="#sym-color" aria-label="Link to color">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">color</span>(role: <span class="t">Role</span>) -&gt; <span class="t">Rgba</span></code></div><div class="doc"><p>The colour a role carries right now.</p>
+<p>This is the call a game makes. One relaxed load, no branch, no allocation.</p>
+<p>ctx.draw_rect(min, max, palette::color(Role::Surface).bytes());
+ui.label(RichText::new("score").color(palette::color(Role::Ink).egui()));</p></div></div><div class="item" id="sym-set_color" data-name="set_color"><div class="sig"><a class="anchor" href="#sym-set_color" aria-label="Link to set_color">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_color</span>(role: <span class="t">Role</span>, c: <span class="t">Rgba</span>)</code></div><div class="doc"><p>Put a colour on a role, for this process.</p>
+<p>The Theme panel calls this as a person drags. It does not write the
+manifest — <code>project_settings</code> does that on save, from <code>section</code>.</p></div></div><div class="item" id="sym-metric" data-name="metric"><div class="sig"><a class="anchor" href="#sym-metric" aria-label="Link to metric">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">metric</span>(m: <span class="t">Metric</span>) -&gt; f32</code></div><div class="doc"><p>One metric, in design units. Multiply by <code>ui::theme::px</code> for pixels.</p></div></div><div class="item" id="sym-set_metric" data-name="set_metric"><div class="sig"><a class="anchor" href="#sym-set_metric" aria-label="Link to set_metric">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_metric</span>(m: <span class="t">Metric</span>, v: f32)</code></div></div><div class="item" id="sym-palette" data-name="palette"><div class="sig"><a class="anchor" href="#sym-palette" aria-label="Link to palette">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">palette</span>() -&gt; <span class="t">Palette</span></code></div><div class="doc"><p>The whole table, as one value.</p>
+<p>Take this once and name fields on it when a loop reads several roles. The
+copy is twenty loads; twenty lookups against the live table would be
+twenty each time round.</p></div></div><div class="item" id="sym-set_palette" data-name="set_palette"><div class="sig"><a class="anchor" href="#sym-set_palette" aria-label="Link to set_palette">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_palette</span>(p: <span class="t">Palette</span>)</code></div><div class="doc"><p>Install a whole table. What <code>[settings.theme]</code> does on project open.</p></div></div><div class="item" id="sym-reset" data-name="reset"><div class="sig"><a class="anchor" href="#sym-reset" aria-label="Link to reset">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reset</span>()</code></div><div class="doc"><p>Put every role back to the default.</p></div></div><div class="item" id="sym-section" data-name="section"><div class="sig"><a class="anchor" href="#sym-section" aria-label="Link to section">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">section</span>() -&gt; <span class="k">crate</span>::project_settings::<span class="t">Section</span></code></div><div class="doc"><p><code>[settings.theme]</code>, for <code>project_settings</code>.</p>
+<p>Registered as a builtin rather than by the application, and that is the
+point of the whole module. A game that calls nothing still gets its
+project's palette, because the engine loaded it before the first frame.</p></div></div><div class="item" id="sym-frame" data-name="frame"><div class="sig"><a class="anchor" href="#sym-frame" aria-label="Link to frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">frame</span>() -&gt; egui::<span class="t">Frame</span></code></div><div class="doc"><p>A themed box for a HUD, on the <code>Surface</code> role.</p>
+<p>palette::frame().show(ui, |ui| {
+ui.label("score");
+});</p></div></div><div class="item" id="sym-frame_of" data-name="frame_of"><div class="sig"><a class="anchor" href="#sym-frame_of" aria-label="Link to frame_of">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">frame_of</span>(fill: <span class="t">Role</span>) -&gt; egui::<span class="t">Frame</span></code></div><div class="doc"><p>A themed box filled with any role.</p>
+<p>The border is <code>Line</code> whatever the fill is, because a border that tracked
+the fill would vanish on the one surface that most needs an edge — a
+panel laid straight over the scene.</p></div></div><div class="item" id="sym-frame_raised" data-name="frame_raised"><div class="sig"><a class="anchor" href="#sym-frame_raised" aria-label="Link to frame_raised">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">frame_raised</span>() -&gt; egui::<span class="t">Frame</span></code></div><div class="doc"><p>The same, one step up: a button, a header, the card in front of a card.</p></div></div><div class="item" id="sym-frame_sunken" data-name="frame_sunken"><div class="sig"><a class="anchor" href="#sym-frame_sunken" aria-label="Link to frame_sunken">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">frame_sunken</span>() -&gt; egui::<span class="t">Frame</span></code></div><div class="doc"><p>The same, one step down: a field, a well, the track of a bar.</p></div></div><div class="item" id="sym-gap" data-name="gap"><div class="sig"><a class="anchor" href="#sym-gap" aria-label="Link to gap">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">gap</span>() -&gt; f32</code></div><div class="doc"><p>The gap between one box and the next, in pixels at the current scale.</p>
+<p><code>ui.add_space(palette::gap())</code> rather than a literal, so the rhythm of a
+HUD moves with the theme the same way its colours do.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Rgba" data-name="rgba"><div class="sig"><a class="anchor" href="#sym-Rgba" aria-label="Link to Rgba">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Rgba</span>(<span class="k">pub</span> [u8; <span class="n">4</span>])</code></div><div class="doc"><p>One colour, in the form both halves of the engine want.</p>
+<p><code>draw_rect</code> and every other primitive take <code>[u8; 4]</code>; egui takes
+<code>Color32</code>. Holding the bytes and converting on demand means a role has
+one definition rather than two that can disagree.</p>
+<p>Serialised as a hex string. <code>"#1a1a1f"</code> in a manifest is a value a person
+can read and a designer can paste; <code>[26, 26, 31]</code> is neither.</p></div></div><details class="members"><summary>6 methods</summary><div class="item" id="sym-Rgba-rgb" data-name="rgba::rgb"><div class="sig"><a class="anchor" href="#sym-Rgba-rgb" aria-label="Link to Rgba::rgb">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="k">fn</span> <span class="f">rgb</span>(r: u8, g: u8, b: u8) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Rgba-rgba" data-name="rgba::rgba"><div class="sig"><a class="anchor" href="#sym-Rgba-rgba" aria-label="Link to Rgba::rgba">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="k">fn</span> <span class="f">rgba</span>(r: u8, g: u8, b: u8, a: u8) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Rgba-bytes" data-name="rgba::bytes"><div class="sig"><a class="anchor" href="#sym-Rgba-bytes" aria-label="Link to Rgba::bytes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="k">fn</span> <span class="f">bytes</span>(<span class="k">self</span>) -&gt; [u8; <span class="n">4</span>]</code></div><div class="doc"><p>The form every <code>RenderContext</code> primitive takes.</p></div></div><div class="item" id="sym-Rgba-egui" data-name="rgba::egui"><div class="sig"><a class="anchor" href="#sym-Rgba-egui" aria-label="Link to Rgba::egui">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="k">fn</span> <span class="f">egui</span>(<span class="k">self</span>) -&gt; egui::<span class="t">Color32</span></code></div><div class="doc"><p>The form egui takes.</p></div></div><div class="item" id="sym-Rgba-alpha" data-name="rgba::alpha"><div class="sig"><a class="anchor" href="#sym-Rgba-alpha" aria-label="Link to Rgba::alpha">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="k">fn</span> <span class="f">alpha</span>(<span class="k">self</span>, a: u8) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The same colour at a different opacity, for a wash over the scene.</p></div></div><div class="item" id="sym-Rgba-from_hex" data-name="rgba::from_hex"><div class="sig"><a class="anchor" href="#sym-Rgba-from_hex" aria-label="Link to Rgba::from_hex">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_hex</span>(word: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div><div class="doc"><p>Read <code>#rgb</code>, <code>#rrggbb</code> or <code>#rrggbbaa</code>. The leading hash is optional.</p>
+<p>An unreadable word gives <code>None</code> rather than an error. The caller keeps
+its default, so one bad key in a manifest costs one role and not the
+project.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Role" data-name="role"><div class="sig"><a class="anchor" href="#sym-Role" aria-label="Link to Role">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Role</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Behind everything. The void a scene sits in.</span>
+<span class="t">Background</span>,
+<span class="c">/// A panel, a card, a dialog — the body of a thing laid over the scene.</span>
+<span class="t">Surface</span>,
+<span class="c">/// A surface lifted off the one under it: a button, a header, a tab.</span>
+<span class="t">SurfaceRaised</span>,
+<span class="c">/// A surface pressed into the one under it: a field, a well, a track.</span>
+<span class="t">SurfaceSunken</span>,
+<span class="c">/// Body text and iconography on a surface.</span>
+<span class="t">Ink</span>,
+<span class="c">/// Secondary text: a caption, a hint, a disabled label.</span>
+<span class="t">InkDim</span>,
+<span class="c">/// A heading, or the one line that must be read first.</span>
+<span class="t">InkStrong</span>,
+<span class="c">/// Ink for a surface drawn in the accent colour, where normal ink fails.</span>
+<span class="t">InkInverted</span>,
+<span class="c">/// This one. Selection, focus, the hovered row, the live note.</span>
+<span class="t">Highlight</span>,
+<span class="c">/// The game's own colour. Used sparingly, or it stops meaning anything.</span>
+<span class="t">Accent</span>,
+<span class="c">/// It worked.</span>
+<span class="t">Ok</span>,
+<span class="c">/// It worked, with something to say about it.</span>
+<span class="t">Warn</span>,
+<span class="c">/// It did not work.</span>
+<span class="t">Bad</span>,
+<span class="c">/// A rule between two areas, and the border of a box.</span>
+<span class="t">Line</span>,
+<span class="c">/// A rule that has to be seen: a focused border, an axis, a baseline.</span>
+<span class="t">LineStrong</span>,</code></pre></div><div class="doc"><p>What a colour is FOR. The vocabulary is closed; the values are not.</p>
+<p>Named for what a game has rather than what a widget has. A tool has rows
+and fields; a game has a ground, a surface, ink on it, one colour that
+says "this one", and three that say how it went.</p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-Role-ALL" data-name="role::all"><div class="sig"><a class="anchor" href="#sym-Role-ALL" aria-label="Link to Role::ALL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ALL</span>: [<span class="t">Role</span>; <span class="n">15</span>] = [ <span class="t">Role</span>::<span class="t">Background</span>, <span class="t">Role</span>::<span class="t">Surface</span>, <span class="t">Role</span>::<span class="t">SurfaceRaised</span>, <span class="t">Role</span>::<span class="t">SurfaceSunken</span>, <span class="t">Role</span>::<span class="t">Ink</span>, <span class="t">Role</span>::<span class="t">InkDim</span>, <span class="t">Role</span>::<span class="t">InkStrong</span>, <span class="t">Role</span>::<span class="t">InkInverted</span>, <span class="t">Role</span>::<span class="t">Highlight</span>, <span class="t">Role</span>::<span class="t">Accent</span>, <span class="t">Role</span>::<span class="t">Ok</span>,</code></div><div class="doc"><p>Every role, in the order the Theme panel lists them.</p></div></div><div class="item" id="sym-Role-key" data-name="role::key"><div class="sig"><a class="anchor" href="#sym-Role-key" aria-label="Link to Role::key">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="k">fn</span> <span class="f">key</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>The key this role has in <code>[settings.theme]</code>, and the words a panel
+puts beside its swatch. Stable across builds: a rename orphans the
+override of everybody who already made one.</p></div></div><div class="item" id="sym-Role-group" data-name="role::group"><div class="sig"><a class="anchor" href="#sym-Role-group" aria-label="Link to Role::group">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="k">fn</span> <span class="f">group</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>The heading a panel files this role under.</p>
+<p>Five groups and not fifteen rows, because a person changing "the
+background" wants the four grounds together and does not want to read
+past the status colours to find them.</p></div></div><div class="item" id="sym-Role-GROUPS" data-name="role::groups"><div class="sig"><a class="anchor" href="#sym-Role-GROUPS" aria-label="Link to Role::GROUPS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">GROUPS</span>: [&amp;<span class="a">'static</span> str; <span class="n">5</span>] = [<span class="s">"Grounds"</span>, <span class="s">"Ink"</span>, <span class="s">"Emphasis"</span>, <span class="s">"Status"</span>, <span class="s">"Structure"</span>]</code></div><div class="doc"><p>Every group, in the order a panel lists them.</p></div></div><div class="item" id="sym-Role-title" data-name="role::title"><div class="sig"><a class="anchor" href="#sym-Role-title" aria-label="Link to Role::title">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="k">fn</span> <span class="f">title</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>The words beside the swatch. Title case, and shorter than the key.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Metric" data-name="metric"><div class="sig"><a class="anchor" href="#sym-Metric" aria-label="Link to Metric">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Metric</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Corner radius. Zero is a square box, and squares are a look.</span>
+<span class="t">Rounding</span>,
+<span class="c">/// Border width. Zero draws no border at all.</span>
+<span class="t">Border</span>,
+<span class="c">/// Space between a box's border and its content, horizontally.</span>
+<span class="t">PadX</span>,
+<span class="c">/// The same, vertically.</span>
+<span class="t">PadY</span>,
+<span class="c">/// Space between one box and the next.</span>
+<span class="t">Gap</span>,</code></pre></div><div class="doc"><p>The shape of a box, in design units.</p>
+<p>Design units and not pixels. <code>ui::theme::px</code> turns one into a pixel count
+at the interface scale in force, so a themed box answers the zoom keys
+the way the rest of the interface does.</p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-Metric-ALL" data-name="metric::all"><div class="sig"><a class="anchor" href="#sym-Metric-ALL" aria-label="Link to Metric::ALL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ALL</span>: [<span class="t">Metric</span>; <span class="n">5</span>] = [ <span class="t">Metric</span>::<span class="t">Rounding</span>, <span class="t">Metric</span>::<span class="t">Border</span>, <span class="t">Metric</span>::<span class="t">PadX</span>, <span class="t">Metric</span>::<span class="t">PadY</span>, <span class="t">Metric</span>::<span class="t">Gap</span>, ]</code></div></div><div class="item" id="sym-Metric-key" data-name="metric::key"><div class="sig"><a class="anchor" href="#sym-Metric-key" aria-label="Link to Metric::key">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="k">fn</span> <span class="f">key</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div></div><div class="item" id="sym-Metric-title" data-name="metric::title"><div class="sig"><a class="anchor" href="#sym-Metric-title" aria-label="Link to Metric::title">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="k">fn</span> <span class="f">title</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div></div><div class="item" id="sym-Metric-range" data-name="metric::range"><div class="sig"><a class="anchor" href="#sym-Metric-range" aria-label="Link to Metric::range">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="k">fn</span> <span class="f">range</span>(<span class="k">self</span>) -&gt; (f32, f32)</code></div><div class="doc"><p>The band a person works in, not what the renderer tolerates.</p>
+<p>A rail cut to the largest legal value puts the whole useful range in
+its first tenth, and a small change becomes impossible to place.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Palette" data-name="palette"><div class="sig"><a class="anchor" href="#sym-Palette" aria-label="Link to Palette">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Palette</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> background: <span class="t">Rgba</span>,
+<span class="k">pub</span> surface: <span class="t">Rgba</span>,
+<span class="k">pub</span> surface_raised: <span class="t">Rgba</span>,
+<span class="k">pub</span> surface_sunken: <span class="t">Rgba</span>,
+<span class="k">pub</span> ink: <span class="t">Rgba</span>,
+<span class="k">pub</span> ink_dim: <span class="t">Rgba</span>,
+<span class="k">pub</span> ink_strong: <span class="t">Rgba</span>,
+<span class="k">pub</span> ink_inverted: <span class="t">Rgba</span>,
+<span class="k">pub</span> highlight: <span class="t">Rgba</span>,
+<span class="k">pub</span> accent: <span class="t">Rgba</span>,
+<span class="k">pub</span> ok: <span class="t">Rgba</span>,
+<span class="k">pub</span> warn: <span class="t">Rgba</span>,
+<span class="k">pub</span> bad: <span class="t">Rgba</span>,
+<span class="k">pub</span> line: <span class="t">Rgba</span>,
+<span class="k">pub</span> line_strong: <span class="t">Rgba</span>,
+<span class="k">pub</span> rounding: f32,
+<span class="k">pub</span> border: f32,
+<span class="k">pub</span> pad_x: f32,
+<span class="k">pub</span> pad_y: f32,
+<span class="k">pub</span> gap: f32,</code></pre></div><div class="doc"><p>Every role and every metric, as one value.</p>
+<p>The serialised view of the live table, and what <code>[settings.theme]</code> holds.
+Named fields rather than an array, because <code>project_settings::merge</code>
+writes only the keys that differ from the default — so a project's block
+lists the four roles it changed and not all twenty.</p></div></div><details class="members"><summary>3 methods</summary><div class="item" id="sym-Palette-DEFAULT" data-name="palette::default"><div class="sig"><a class="anchor" href="#sym-Palette-DEFAULT" aria-label="Link to Palette::DEFAULT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">DEFAULT</span>: <span class="t">Palette</span> = <span class="t">Palette</span></code></div><div class="doc"><p>The look a game has before anybody themes it.</p>
+<p>Dark, low chroma, one blue that carries every "this one". It is a
+starting point that reads correctly on a projector and in a bright
+room, not a house style — the whole point of the table is that a
+project moves off it.</p></div></div><div class="item" id="sym-Palette-get" data-name="palette::get"><div class="sig"><a class="anchor" href="#sym-Palette-get" aria-label="Link to Palette::get">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="k">fn</span> <span class="f">get</span>(&amp;<span class="k">self</span>, role: <span class="t">Role</span>) -&gt; <span class="t">Rgba</span></code></div><div class="doc"><p>One role out of a copy. This is the lookup a draw loop wants: the
+copy was one pass over the table, and every <code>get</code> after it is a move.</p></div></div><div class="item" id="sym-Palette-metric" data-name="palette::metric"><div class="sig"><a class="anchor" href="#sym-Palette-metric" aria-label="Link to Palette::metric">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="k">fn</span> <span class="f">metric</span>(&amp;<span class="k">self</span>, m: <span class="t">Metric</span>) -&gt; f32</code></div><div class="doc"><p>One metric out of a copy, in design units.</p></div></div></details></div><h2 id="see-also">See also</h2><ul><li><a href="palette-kit.html" data-slug="palette-kit">Palette kit</a></li><li><a href="project-settings.html" data-slug="project-settings">Project settings</a></li><li><a href="widgets.html" data-slug="widgets">Panel widgets</a></li><li><a href="scale.html" data-slug="scale">Interface scale</a></li><li><a href="hud.html" data-slug="hud">HUD</a></li><li><a href="visual.html" data-slug="visual">Visual language</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/panels/palette/mod.rs</code> - <code>One table of named roles.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/lib.rs</code> - <code>This is NOT `ui::theme`, which is the editor chrome&#x27;s own palette</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/panels/palette/mod.rs</code> - <code>The fifteen are not invented.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/panels/palette/mod.rs</code> - <code>THE BOX IS PART OF THE THEME</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_core/src/panels/palette/box_draw.rs</code> - <code>So the box becomes the SHORTEST path rather than the remembered one.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_core/src/panels/palette/mod.rs</code> - <code>Registered as a builtin rather than by the application, and that is the</code></li></ol><table class="navbox"><tr><th><a href="category-editor-channels.html">Editor channels</a></th></tr><tr><td><a href="editor-panels.html" data-slug="editor-panels">Editor panels</a> · <a href="census.html" data-slug="census">Census</a> · <a href="devconsole.html" data-slug="devconsole">Dev console</a> · <a href="bindings.html" data-slug="bindings">Bindings</a> · <a href="audio.html" data-slug="audio">Audio</a> · <b>Palette roles</b> · <a href="profile.html" data-slug="profile">Profiler</a> · <a href="hostlink.html" data-slug="hostlink">Host link</a> · <a href="window.html" data-slug="window">Custom windows</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-editor-channels.html">Editor channels</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

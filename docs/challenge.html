@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Challenge kit - Warp Wiki</title>
+<meta name="description" content="combat with damage kinds, statuses, telegraphed attacks and a wave director">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="challenge">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#design">Design</a></li><li><a href="#usage">Usage</a></li><li><a href="#damage">Damage</a></li><li><a href="#statuses">Statuses</a></li><li><a href="#tools-and-the-loadout">Tools and the loadout</a></li><li><a href="#enemies">Enemies</a><ul><li><a href="#the-phase-machine">The phase machine</a></li><li><a href="#stagger-and-morale">Stagger and morale</a></li></ul></li><li><a href="#the-director">The director</a></li><li><a href="#events">Events</a></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Challenge kit</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">combat with damage kinds, statuses, telegraphed attacks and a wave director</p><table class="infobox"><caption>Challenge kit</caption><tr><th>Category</th><td><a href="category-game-systems.html">Game systems</a></td></tr><tr><th>Module</th><td><code>warp_sdk::challenge</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/challenge.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">194</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example challenge</code></td></tr></table><p><strong>Challenge kit</strong> is the combat simulation of the Warp SDK: damage kinds, status effects, tools, enemies that warn before they hit, and a director that sets the pace of waves. It lives in the <a class="sym" href="challenge.html"><code>challenge</code></a> module of <code>warp_sdk</code>. Each enemy resists some damage kinds and is weak to others, so the player must choose a tool and not rely on one general attack. The kit draws nothing: the game reads its state and an event list and draws what it wants.</p>
+<h2 id="design">Design</h2>
+<p>The stated premise of the module is that "a threat that one generic push removes is not a threat". Three mechanisms follow from it. Resistances make the choice of tool matter. Telegraphs make an attack readable, so the player can move before the damage. Morale lets a beaten enemy run away, which is how a colony gets "driven off" without a kill. <sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<p>All logic is pure and deterministic. The same seed and the same inputs give the same events, which is why the example can drive the whole fight from tests with no window. Randomness comes from <a class="sym" href="#sym-Rng"><code>Rng</code></a>, a small seeded SplitMix64 source that gives the same numbers on every machine. <sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<p>The module header lists four rules that the kit keeps:</p>
+<ul>
+<li>No attack does damage before its telegraph ends. The telegraph is never shorter than <a class="sym" href="#sym-MIN_TELEGRAPH"><code>MIN_TELEGRAPH</code></a> (0.25 s), also at the highest difficulty.</li>
+<li>A resisted kind does less damage than a neutral kind, and a weak kind does more. <a class="sym" href="#sym-Effect"><code>Effect</code></a> tells the game which, so it can show it.</li>
+<li>The director never spawns inside the view rectangle it gets.</li>
+<li>Statuses expire. Burn stacks, and a stun gives a short guard after it ends.</li>
+</ul>
+<h2 id="usage">Usage</h2>
+<p>A game makes one <a class="sym" href="#sym-Arena"><code>Arena</code></a> and one <a class="sym" href="#sym-Player"><code>Player</code></a>. Each frame it asks the loadout for a shot, gives the shot to the arena, then steps the arena and reads the events. <a class="sym" href="#sym-Arena-step"><code>Arena::step</code></a> needs the current view, because the director uses it to keep spawns out of sight, and a <code>progress</code> value in <code>0.0..=1.0</code> that drives escalation.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::challenge::*;
+<span class="k">use</span> warp_sdk::ultraviolet::<span class="t">Vec2</span>;
+
+<span class="c">// Once, in `new`:</span>
+<span class="k">let</span> roster = vec![<span class="t">Profile</span>::<span class="f">gloom</span>(), <span class="t">Profile</span>::<span class="f">shellback</span>()];
+<span class="k">let</span> <span class="k">mut</span> arena = <span class="t">Arena</span>::<span class="f">new</span>(<span class="n">7</span>, roster, <span class="t">DirectorConfig</span>::<span class="f">default</span>());
+<span class="k">let</span> <span class="k">mut</span> player = <span class="t">Player</span>::<span class="f">new</span>(<span class="t">Vec2</span>::<span class="f">zero</span>(), <span class="n">100.0</span>)
+    .<span class="f">with_tool</span>(<span class="t">Tool</span>::<span class="f">dart</span>())
+    .<span class="f">with_tool</span>(<span class="t">Tool</span>::<span class="f">flare</span>())
+    .<span class="f">with_tool</span>(<span class="t">Tool</span>::<span class="f">sonic_pulse</span>());
+
+<span class="c">// Each frame, in `render`:</span>
+<span class="k">if</span> <span class="k">let</span> <span class="t">Some</span>(shot) = player.loadout.<span class="f">trigger</span>(fire_held, dt, player.pos, aim, &amp;<span class="k">mut</span> arena.rng) {
+    arena.<span class="f">fire</span>(&amp;shot);
+}
+<span class="k">let</span> view = <span class="t">Rect</span>::<span class="f">centered</span>(player.pos, <span class="t">Vec2</span>::<span class="f">new</span>(<span class="n">16.0</span>, <span class="n">9.0</span>));
+<span class="k">for</span> e <span class="k">in</span> arena.<span class="f">step</span>(dt, &amp;<span class="k">mut</span> player, progress, view) {
+    <span class="c">// Draw a ring for Event::Telegraph, flash for Event::Hit, and so on.</span>
+}</code></pre></div>
+<p>The player is the game's own to move: the arena writes Player::vel when a hit pushes it, but the game integrates the position. The <a class="sym" href="challenge.html"><code>challenge</code></a> example keeps all logic in a Sim type that takes plain controls, then draws enemies, telegraph cones, projectiles and blasts from the arena state. <sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<p>Each part also works alone. A game can use <a class="sym" href="#sym-Health"><code>Health</code></a> and <a class="sym" href="#sym-Hit"><code>Hit</code></a> with no arena, or resolve a <a class="sym" href="#sym-Shot"><code>Shot</code></a> itself in place of <a class="sym" href="#sym-Arena-fire"><code>Arena::fire</code></a>.</p>
+<h2 id="damage">Damage</h2>
+<p><a class="sym" href="#sym-DamageKind"><code>DamageKind</code></a> has five built-in kinds, <a class="sym" href="#sym-Impact"><code>Impact</code></a>, Energy, Heat, Pressure and Sonic, plus DamageKind::Custom for a kind that the game numbers. <a class="sym" href="#sym-Resists"><code>Resists</code></a> holds one value per kind, clamped to <code>-2.0..=1.0</code>. The damage multiplier is <code>1 - resistance</code>. A value of 0 is neutral, 0.5 halves the damage, 1.0 is immune, and a negative value is a weakness.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Builder</th>
+<th>Resistance</th>
+<th>Multiplier</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Resists-weak"><code>Resists::weak</code></a></td>
+<td>-0.75</td>
+<td>1.75</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Resists-strong"><code>Resists::strong</code></a></td>
+<td>0.65</td>
+<td>0.35</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Resists-immune"><code>Resists::immune</code></a></td>
+<td>1.0</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Health"><code>Health</code></a> holds hit points, flat armor, resistances and invulnerability frames. Damage is <code>amount * (1 - resistance) - max(armor - pierce, 0)</code>, never below zero. Armor comes off after the multiplier, so a small hit against heavy armor can deal nothing. After a hit that deals damage, the health ignores hits for <a class="sym" href="#sym-Health-iframes"><code>iframes</code></a> seconds. <sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<p><a class="sym" href="#sym-Health-apply"><code>Health::apply</code></a> returns an <a class="sym" href="#sym-Outcome"><code>Outcome</code></a> with the damage dealt, the <a class="sym" href="#sym-Effect"><code>Effect</code></a>, and flags for a kill or an ignored hit. <a class="sym" href="#sym-Health-preview"><code>Health::preview</code></a> gives the damage with no state change. <a class="sym" href="#sym-Health-apply_tick"><code>Health::apply_tick</code></a> skips iframes, for burn and other ticks. <a class="sym" href="#sym-Effect"><code>Effect</code></a> comes from the multiplier alone: Weak, Normal, Resisted or Immune. The source asks the game to show it: a weak hit flashes bright, a resisted hit shows a dull spark, an immune hit shows a shield. <sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<h2 id="statuses">Statuses</h2>
+<p>A <a class="sym" href="#sym-StatusApply"><code>StatusApply</code></a> names a <a class="sym" href="#sym-StatusKind"><code>StatusKind</code></a>, a time and a magnitude. <a class="sym" href="#sym-Statuses"><code>Statuses</code></a> holds the active list for one creature. A second application of the same kind combines by a <a class="sym" href="#sym-Stacking"><code>Stacking</code></a> rule.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Kind</th>
+<th>Effect</th>
+<th>Default stacking</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stun</td>
+<td>No movement and no attacks</td>
+<td>Refresh</td>
+</tr>
+<tr>
+<td>Slow</td>
+<td>Speed times <code>1 - magnitude</code></td>
+<td>Refresh</td>
+</tr>
+<tr>
+<td>Burn</td>
+<td>Heat damage of <code>magnitude</code> per second per stack</td>
+<td><code>Intensify { max: 5 }</code></td>
+</tr>
+<tr>
+<td>Blind</td>
+<td>Sight cut to a quarter</td>
+<td>Refresh</td>
+</tr>
+<tr>
+<td>Fear</td>
+<td>Morale drops by <code>magnitude</code> per second</td>
+<td><code>Extend { cap: 8.0 }</code></td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Statuses-tick"><code>Statuses::tick</code></a> counts down and returns a <a class="sym" href="#sym-StatusTick"><code>StatusTick</code></a> with the burn damage, as one heat hit, and the kinds that ended. Burn is a <a class="sym" href="#sym-Hit"><code>Hit</code></a>, so a heat resistance reduces it. When a stun ends, the creature gets 1.5 s of stun guard, and a stun applied during the guard lasts a third of its time. <sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<h2 id="tools-and-the-loadout">Tools and the loadout</h2>
+<p>A <a class="sym" href="#sym-Tool"><code>Tool</code></a> is plain data: a name, a <a class="sym" href="#sym-Delivery"><code>Delivery</code></a>, a kind, damage, and optional energy, ammo, charge, spread, knockback, status and armor pierce. Five constructors set the delivery: <a class="sym" href="#sym-Tool-projectile"><code>Tool::projectile</code></a>, <a class="sym" href="#sym-Tool-beam"><code>Tool::beam</code></a>, <a class="sym" href="#sym-Tool-pulse"><code>Tool::pulse</code></a>, <a class="sym" href="#sym-Tool-melee"><code>Tool::melee</code></a> and <a class="sym" href="#sym-Tool-deploy"><code>Tool::deploy</code></a>. A <a class="sym" href="#sym-Deployable"><code>Deployable</code></a> is a mine, a turret or a lure that acts on its own.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Preset</th>
+<th>Delivery</th>
+<th>Kind</th>
+<th>Damage</th>
+<th>Cooldown</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Tool-dart"><code>Tool::dart</code></a></td>
+<td>Projectile</td>
+<td>Impact</td>
+<td>8</td>
+<td>0.22 s</td>
+<td>Speed 16, small spread</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Tool-flare"><code>Tool::flare</code></a></td>
+<td>Beam, range 7</td>
+<td>Energy</td>
+<td>26</td>
+<td>0.9 s</td>
+<td>0.45 s charge, 18 energy, blinds</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Tool-sonic_pulse"><code>Tool::sonic_pulse</code></a></td>
+<td>Pulse, radius 3.2</td>
+<td>Sonic</td>
+<td>10</td>
+<td>1.6 s</td>
+<td>25 energy, push 7, fear</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Tool-water_push"><code>Tool::water_push</code></a></td>
+<td>Pulse, radius 2.5</td>
+<td>Pressure</td>
+<td>1</td>
+<td>0.6 s</td>
+<td>Push 9</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Tool-heat_cutter"><code>Tool::heat_cutter</code></a></td>
+<td>Melee, range 1.4</td>
+<td>Heat</td>
+<td>14</td>
+<td>0.5 s</td>
+<td>Burn</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Tool-mine"><code>Tool::mine</code></a></td>
+<td>Deploy</td>
+<td>Pressure</td>
+<td>30</td>
+<td>2 s</td>
+<td>4 rounds</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Tool-lure"><code>Tool::lure</code></a></td>
+<td>Deploy</td>
+<td>Energy</td>
+<td>0</td>
+<td>8 s</td>
+<td>30 energy, radius 6, life 6 s</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Tool-turret"><code>Tool::turret</code></a></td>
+<td>Deploy</td>
+<td>Impact</td>
+<td>5</td>
+<td>12 s</td>
+<td>40 energy, life 10 s</td>
+</tr>
+</tbody>
+</table>
+<p>Each tool has a list of <a class="sym" href="#sym-Tier"><code>Tier</code></a> upgrades. <a class="sym" href="#sym-Tool-upgrade"><code>Tool::upgrade</code></a> reaches the next tier, and the multipliers of the tiers that are reached multiply together. <a class="sym" href="#sym-Tool-stats"><code>Tool::stats</code></a> gives the resulting <a class="sym" href="#sym-ToolStats"><code>ToolStats</code></a>. Unless the game replaces the list, each tool gets <a class="sym" href="#sym-Tool-standard_tiers"><code>Tool::standard_tiers</code></a>: more damage, then faster, then one more projectile. <sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<p>A <a class="sym" href="#sym-Loadout"><code>Loadout</code></a> holds tool slots, a shared energy pool and switching. <a class="sym" href="#sym-Loadout-trigger"><code>Loadout::trigger</code></a> must run once per frame, also when the fire button is up, because it regenerates energy and counts down cooldowns. An instant tool fires while the button is held. A charge tool fires on release after a full charge, and a short release cancels. A switch cancels a charge and blocks firing for <code>switch_time</code>, 0.15 s by default. <a class="sym" href="#sym-Loadout-active"><code>Loadout::active</code></a> panics on an empty loadout. <a class="sym" href="#sym-Loadout-ready"><code>Loadout::ready</code></a> and <a class="sym" href="#sym-Loadout-charge_fraction"><code>Loadout::charge_fraction</code></a> index the same slot, so an empty loadout panics there too.</p>
+<p><a class="sym" href="#sym-Loadout-trigger"><code>Loadout::trigger</code></a> returns a <a class="sym" href="#sym-Shot"><code>Shot</code></a> when the tool fires. <a class="sym" href="#sym-Arena-fire"><code>Arena::fire</code></a> resolves it. Beams, pulses and melee hit at once. Projectiles and deployables go into the world. The events of <a class="sym" href="#sym-Arena-fire"><code>fire</code></a> go to Arena::events, and the next <a class="sym" href="#sym-Arena-step"><code>Arena::step</code></a> returns them once.</p>
+<h2 id="enemies">Enemies</h2>
+<p>A <a class="sym" href="#sym-Profile"><code>Profile</code></a> is an enemy type: its numbers, its <a class="sym" href="#sym-Attack"><code>Attack</code></a>, how it hunts, what hurts it, and what it costs the director. <a class="sym" href="#sym-Profile-new"><code>Profile::new</code></a> gives a plain creature that seeks and bites. Four presets show the intended match-ups:</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Preset</th>
+<th>HP</th>
+<th>Hunt</th>
+<th>Weak to</th>
+<th>Resists</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Profile-gloom"><code>Profile::gloom</code></a></td>
+<td>45</td>
+<td>Orbit</td>
+<td>Energy</td>
+<td>Pressure, Impact</td>
+<td>Lunges. A push does not solve it, light does</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Profile-shellback"><code>Profile::shellback</code></a></td>
+<td>60</td>
+<td>Seek</td>
+<td>Sonic, Heat</td>
+<td>Energy</td>
+<td>Armor 6, wide sweep, from progress 0.2</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Profile-nipper"><code>Profile::nipper</code></a></td>
+<td>12</td>
+<td>Flock</td>
+<td>Sonic</td>
+<td></td>
+<td>Cheap, weak alone, a danger in a group</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Profile-lurker"><code>Profile::lurker</code></a></td>
+<td>35</td>
+<td>Ambush</td>
+<td>Energy</td>
+<td>Sonic</td>
+<td>Hidden until near, from progress 0.4</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-phase-machine">The phase machine</h3>
+<p>An <a class="sym" href="#sym-Enemy"><code>Enemy</code></a> runs a state machine with the phases in <a class="sym" href="#sym-Phase"><code>Phase</code></a>. The attack path is always Hunt, Telegraph, <a class="sym" href="#sym-Attack"><code>Attack</code></a>, Recover, and damage happens only on the move into <a class="sym" href="#sym-Attack"><code>Attack</code></a>. The direction locks at the start of the telegraph, so the player can read it and step out of the cone. <sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<p><a class="sym" href="#sym-Enemy-think"><code>Enemy::think</code></a> runs one frame. An Idle or Patrol enemy that sees a goal moves to Notice, stops for Profile::notice seconds, then moves to Hunt. In Hunt, an enemy in reach with no attack cooldown starts a telegraph. Recover is slow and open, the window to punish. It then starts the attack cooldown.</p>
+<p><a class="sym" href="#sym-Steer"><code>Steer</code></a> sets how an enemy moves while it hunts: Seek, Orbit, Ambush or Flock. The functions in <code>steer</code> each return a desired velocity, and steer::approach blends the current velocity toward it. A lure in sight wins over the player. <a class="sym" href="#sym-Enemy-hidden"><code>Enemy::hidden</code></a> is true for an ambusher that waits, so the game can leave it undrawn.</p>
+<h3 id="stagger-and-morale">Stagger and morale</h3>
+<p><a class="sym" href="#sym-Enemy-take"><code>Enemy::take</code></a> applies a hit: health, status, push and morale. Knockback divides by Profile::mass, and an immune hit applies no status. A weakness hit during a telegraph stuns the enemy for Profile::stagger seconds and so cancels the attack. After the stun, the enemy returns to Hunt with at least half of its attack cooldown.</p>
+<p>Morale is <code>0.0..=1.0</code>. A hit removes morale in proportion to the health it took, 2.5 times faster for a weakness hit (a factor of 1.5 against 0.6). Fear removes morale per second. A death within 5 units removes 0.15 from each nearby enemy. Morale regenerates up to Profile::courage when no fear is active. <sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup></p>
+<p>Below Profile::flee_at, the enemy enters Retreat and runs at 1.2 times its speed, from any phase but Stunned. A retreat during a telegraph therefore also cancels the attack. The enemy returns to Hunt when morale recovers by 0.25 above <code>flee_at</code>, capped at <code>courage</code>. An enemy in retreat that leaves the director bounds, grown by 2 units, is removed. Event::Fled reports it, and Arena::routs counts it as driven off. <sup class="ref"><a href="#ref-10" id="cite-10">[10]</a></sup></p>
+<h2 id="the-director">The director</h2>
+<p>The <a class="sym" href="#sym-Director"><code>Director</code></a> decides when waves come and what they hold. It alternates between two <a class="sym" href="#sym-Pace"><code>Pace</code></a> states, Rest and Wave. A wave has a budget. Each <code>spawn_every</code> seconds the director picks a random roster entry that is unlocked by <code>min_progress</code> and affordable, and pays its Profile::cost. A wave ends when the budget cannot buy the cheapest entry and no enemy is alive. A rest follows.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th><a class="sym" href="#sym-DirectorConfig"><code>DirectorConfig</code></a> field</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>base_budget</code></td>
+<td>3.0</td>
+<td>Budget of the first wave at progress 0</td>
+</tr>
+<tr>
+<td><code>budget_per_progress</code></td>
+<td>9.0</td>
+<td>Budget added at progress 1</td>
+</tr>
+<tr>
+<td><code>budget_per_wave</code></td>
+<td>1.0</td>
+<td>Budget added per wave</td>
+</tr>
+<tr>
+<td><code>rest</code></td>
+<td>10.0</td>
+<td>Seconds of rest at progress 0</td>
+</tr>
+<tr>
+<td><code>rest_late</code></td>
+<td>5.0</td>
+<td>Seconds of rest at progress 1</td>
+</tr>
+<tr>
+<td><code>spawn_every</code></td>
+<td>0.8</td>
+<td>Seconds between two spawns in a wave</td>
+</tr>
+<tr>
+<td><code>max_alive</code></td>
+<td>12</td>
+<td>The most enemies alive at once</td>
+</tr>
+<tr>
+<td><code>view_margin</code></td>
+<td>1.0</td>
+<td>Distance outside the view that a spawn keeps</td>
+</tr>
+<tr>
+<td><code>bounds</code></td>
+<td>-20..20 by -12..12</td>
+<td>Where spawns can go</td>
+</tr>
+<tr>
+<td><code>first_rest</code></td>
+<td>3.0</td>
+<td>Seconds before the first wave</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Difficulty-at"><code>Difficulty::at</code></a> turns progress and the wave number into multipliers that the arena applies at spawn. At progress 1 the health multiplier gains 0.8, damage gains 0.5, speed gains 0.2, and the telegraph multiplier loses 0.3. Each wave after the first adds a little more health and damage and shortens the telegraph a little. The telegraph multiplier never drops below 0.6, and <a class="sym" href="#sym-Enemy-telegraph_secs"><code>Enemy::telegraph_secs</code></a> keeps the result at or above <a class="sym" href="#sym-MIN_TELEGRAPH"><code>MIN_TELEGRAPH</code></a>. <sup class="ref"><a href="#ref-11" id="cite-11">[11]</a></sup></p>
+<p>A spawn point is a random point in <code>bounds</code> outside the view grown by <code>view_margin</code>. The director tries 24 points, then the bounds corner farthest from the view. When the view covers every corner too, no spawn happens and the budget stays. <sup class="ref"><a href="#ref-12" id="cite-12">[12]</a></sup></p>
+<p>The director's spawns start in Hunt, because a wave is an attack. An ambusher still waits hidden. <a class="sym" href="#sym-Arena-spawn"><code>Arena::spawn</code></a> places an enemy by hand; that enemy starts Idle and wanders near its position until it sees the player.</p>
+<h2 id="events">Events</h2>
+<p><a class="sym" href="#sym-Arena-step"><code>Arena::step</code></a> returns the frame's <a class="sym" href="#sym-Event"><code>Event</code></a> list. The game shows and sounds these and changes no kit state.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Group</th>
+<th>Variants</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Combat</td>
+<td><a class="sym" href="#sym-Hit"><code>Hit</code></a>, Died, StatusOn, StatusOff, Fired, Blast</td>
+</tr>
+<tr>
+<td>Enemy warning</td>
+<td>Telegraph, Strike (with <code>landed</code>)</td>
+</tr>
+<tr>
+<td>Morale</td>
+<td>Routed, Fled</td>
+</tr>
+<tr>
+<td>Pace</td>
+<td>Spawned, WaveStarted, WaveCleared, RestStarted</td>
+</tr>
+</tbody>
+</table>
+<p>Event::Telegraph carries the position, direction, reach, arc and seconds, which is all that is needed to draw the warning cone. <a class="sym" href="#sym-Enemy-telegraph_progress"><code>Enemy::telegraph_progress</code></a> gives the fill from 0 to 1 for a live enemy. <a class="sym" href="#sym-in_cone"><code>in_cone</code></a> is the test that the arena uses for strikes and melee.</p>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<p>The arena keeps its own Arena::kills and Arena::routs counts. A game passes them, or the events, to <a href="metaprog.html" data-slug="metaprog">Metaprogression</a> counters and <a href="quest.html" data-slug="quest">Quest kit</a> signals. The event list is the input for <a href="juice.html" data-slug="juice">Juice</a> and the <a href="hud.html" data-slug="hud">HUD</a>, and the kit calls neither. <a class="sym" href="#sym-Rect"><code>Rect</code></a> here is the kit's own world-unit rectangle, separate from any screen rectangle.</p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>The arena resolves only player projectiles against enemies. Team::Enemy exists, but <a class="sym" href="#sym-Arena-step"><code>Arena::step</code></a> ignores those projectiles in its collision test, so an enemy attack is a cone and not a shot.</li>
+<li>A mine ignores the knockback of its tool. <a class="sym" href="#sym-Arena-fire"><code>Arena::fire</code></a> clears the push on a deployed hit, and a blast uses a fixed push of 6.</li>
+<li>Event::Died for the player comes only from a strike. A player killed by burn gets a <a class="sym" href="#sym-Hit"><code>Hit</code></a> event and no Died, so a game should also check <a class="sym" href="#sym-Health-is_dead"><code>Health::is_dead</code></a>.</li>
+<li>Difficulty scales health, damage, speed and the telegraph. It does not scale armor.</li>
+<li><a class="sym" href="#sym-Arena-spawn"><code>Arena::spawn</code></a> indexes the roster and panics on a bad <a class="sym" href="teach.html#sym-kind"><code>kind</code></a>.</li>
+</ul>
+<h2 id="history">History</h2>
+<p>The module was added to the SDK on 2026-10-29.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 194 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-challenge" class="modhead"><code>warp_sdk::challenge</code></h3><h4>Functions</h4><div class="item" id="sym-in_cone" data-name="in_cone"><div class="sig"><a class="anchor" href="#sym-in_cone" aria-label="Link to in_cone">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">in_cone</span>(origin: <span class="t">Vec2</span>, dir: <span class="t">Vec2</span>, reach: f32, arc: f32, point: <span class="t">Vec2</span>, radius: f32) -&gt; bool</code></div><div class="doc"><p>True when <code>point</code> with <code>radius</code> is inside the cone from <code>origin</code> along
+<code>dir</code> with <code>reach</code> and full angle <code>arc</code>.</p></div></div><div class="item" id="sym-segment_distance" data-name="segment_distance"><div class="sig"><a class="anchor" href="#sym-segment_distance" aria-label="Link to segment_distance">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">segment_distance</span>(a: <span class="t">Vec2</span>, b: <span class="t">Vec2</span>, point: <span class="t">Vec2</span>) -&gt; f32</code></div><div class="doc"><p>The distance from <code>point</code> to the segment <code>a..b</code>.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Rng" data-name="rng"><div class="sig"><a class="anchor" href="#sym-Rng" aria-label="Link to Rng">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Rng</span>(u64)</code></div><div class="doc"><p>A small seeded random source (SplitMix64). The same seed gives the same
+numbers on every machine.</p>
+<p><code>use warp_sdk::challenge::Rng;
+let mut a = Rng::new(3);
+let mut b = Rng::new(3);
+assert_eq!(a.next_u32(), b.next_u32());</code></p></div></div><details class="members"><summary>22 methods</summary><div class="item" id="sym-Rng-new" data-name="rng::new"><div class="sig"><a class="anchor" href="#sym-Rng-new" aria-label="Link to Rng::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(seed: u64) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A source that starts from <code>seed</code>.</p></div></div><div class="item" id="sym-Rng-next_u64" data-name="rng::next_u64"><div class="sig"><a class="anchor" href="#sym-Rng-next_u64" aria-label="Link to Rng::next_u64">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">next_u64</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; u64</code></div><div class="doc"><p>The next 64 random bits.</p></div></div><div class="item" id="sym-Rng-next_u32" data-name="rng::next_u32"><div class="sig"><a class="anchor" href="#sym-Rng-next_u32" aria-label="Link to Rng::next_u32">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">next_u32</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; u32</code></div><div class="doc"><p>The next 32 random bits.</p></div></div><div class="item" id="sym-Rng-unit" data-name="rng::unit"><div class="sig"><a class="anchor" href="#sym-Rng-unit" aria-label="Link to Rng::unit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">unit</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>A number in <code>0.0..1.0</code>.</p></div></div><div class="item" id="sym-Rng-range" data-name="rng::range"><div class="sig"><a class="anchor" href="#sym-Rng-range" aria-label="Link to Rng::range">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">range</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, lo: f32, hi: f32) -&gt; f32</code></div><div class="doc"><p>A number in <code>lo..hi</code>.</p></div></div><div class="item" id="sym-Rng-index" data-name="rng::index"><div class="sig"><a class="anchor" href="#sym-Rng-index" aria-label="Link to Rng::index">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">index</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, n: usize) -&gt; usize</code></div><div class="doc"><p>An index in <code>0..n</code>. Gives 0 when <code>n</code> is 0.</p></div></div><div class="item" id="sym-Rng-key" data-name="rng::key"><div class="sig"><a class="anchor" href="#sym-Rng-key" aria-label="Link to Rng::key">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">key</span>(&amp;<span class="k">self</span>) -&gt; u64</code></div><div class="doc"><p>The fixed key of this generator. Sub-streams hash this key.</p>
+<p><code>use warp_sdk::procgen::Rng;
+assert_eq!(Rng::new(3).key(), Rng::new(3).key());</code></p></div></div><div class="item" id="sym-Rng-stream" data-name="rng::stream"><div class="sig"><a class="anchor" href="#sym-Rng-stream" aria-label="Link to Rng::stream">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stream</span>(&amp;<span class="k">self</span>, name: &amp;str) -&gt; <span class="t">Rng</span></code></div><div class="doc"><p>A named sub-stream. It depends only on this generator's key and
+<code>name</code>. Draws from the parent do not change it.</p>
+<p><code>use warp_sdk::procgen::Rng;
+let mut world = Rng::new(9);
+let before = world.stream("kelp").next_u64();
+world.next_u64();
+assert_eq!(world.stream("kelp").next_u64(), before);</code></p></div></div><div class="item" id="sym-Rng-stream_n" data-name="rng::stream_n"><div class="sig"><a class="anchor" href="#sym-Rng-stream_n" aria-label="Link to Rng::stream_n">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stream_n</span>(&amp;<span class="k">self</span>, name: &amp;str, index: u64) -&gt; <span class="t">Rng</span></code></div><div class="doc"><p>A named, numbered sub-stream: one per chunk, per level, per wave.</p>
+<p><code>use warp_sdk::procgen::Rng;
+let world = Rng::new(9);
+let mut chunk_3 = world.stream_n("chunk", 3);
+let _ = chunk_3.f32();</code></p></div></div><div class="item" id="sym-Rng-f32" data-name="rng::f32"><div class="sig"><a class="anchor" href="#sym-Rng-f32" aria-label="Link to Rng::f32">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">f32</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>A float in <code>[0, 1)</code>.</p>
+<p><code>let v = warp_sdk::procgen::Rng::new(0).f32();
+assert!((0.0..1.0).contains(&amp;v));</code></p></div></div><div class="item" id="sym-Rng-range_i" data-name="rng::range_i"><div class="sig"><a class="anchor" href="#sym-Rng-range_i" aria-label="Link to Rng::range_i">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">range_i</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, lo: i64, hi: i64) -&gt; i64</code></div><div class="doc"><p>An integer in <code>[lo, hi)</code>. If <code>hi &lt;= lo</code>, the result is <code>lo</code>.</p>
+<p><code>let v = warp_sdk::procgen::Rng::new(0).range_i(0, 6);
+assert!((0..6).contains(&amp;v));</code></p></div></div><div class="item" id="sym-Rng-index" data-name="rng::index"><div class="sig"><a class="anchor" href="#sym-Rng-index" aria-label="Link to Rng::index">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">index</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, len: usize) -&gt; usize</code></div><div class="doc"><p>An index in <code>[0, len)</code>. If <code>len</code> is 0, the result is 0.</p>
+<p><code>let i = warp_sdk::procgen::Rng::new(0).index(3);
+assert!(i &lt; 3);</code></p></div></div><div class="item" id="sym-Rng-chance" data-name="rng::chance"><div class="sig"><a class="anchor" href="#sym-Rng-chance" aria-label="Link to Rng::chance">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">chance</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, p: f32) -&gt; bool</code></div><div class="doc"><p>True with probability <code>p</code> (clamped to <code>[0, 1]</code>).</p>
+<p><code>assert!(!warp_sdk::procgen::Rng::new(0).chance(0.0));</code></p></div></div><div class="item" id="sym-Rng-pick" data-name="rng::pick"><div class="sig"><a class="anchor" href="#sym-Rng-pick" aria-label="Link to Rng::pick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> pick&lt;<span class="a">'a</span>, <span class="t">T</span>&gt;(&amp;<span class="k">mut</span> <span class="k">self</span>, items: &amp;<span class="a">'a</span> [<span class="t">T</span>]) -&gt; <span class="t">Option</span>&lt;&amp;<span class="a">'a</span> <span class="t">T</span>&gt;</code></div><div class="doc"><p>One item of a slice, or <code>None</code> if the slice is empty.</p>
+<p><code>let names = ["kelp", "coral"];
+assert!(warp_sdk::procgen::Rng::new(0).pick(&amp;names).is_some());</code></p></div></div><div class="item" id="sym-Rng-shuffle" data-name="rng::shuffle"><div class="sig"><a class="anchor" href="#sym-Rng-shuffle" aria-label="Link to Rng::shuffle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> shuffle&lt;<span class="t">T</span>&gt;(&amp;<span class="k">mut</span> <span class="k">self</span>, items: &amp;<span class="k">mut</span> [<span class="t">T</span>])</code></div><div class="doc"><p>Shuffle a slice in place (Fisher-Yates).</p>
+<p><code>let mut v = [1, 2, 3, 4];
+warp_sdk::procgen::Rng::new(0).shuffle(&amp;mut v);</code></p></div></div><div class="item" id="sym-Rng-normal" data-name="rng::normal"><div class="sig"><a class="anchor" href="#sym-Rng-normal" aria-label="Link to Rng::normal">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">normal</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, mean: f32, std_dev: f32) -&gt; f32</code></div><div class="doc"><p>A normal (Gaussian) value with this mean and standard deviation.</p>
+<p><code>let _ = warp_sdk::procgen::Rng::new(0).normal(0.0, 1.0);</code></p></div></div><div class="item" id="sym-Rng-unit_vec2" data-name="rng::unit_vec2"><div class="sig"><a class="anchor" href="#sym-Rng-unit_vec2" aria-label="Link to Rng::unit_vec2">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">unit_vec2</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; [f32; <span class="n">2</span>]</code></div><div class="doc"><p>A unit vector in a random direction.</p>
+<p><code>let d = warp_sdk::procgen::Rng::new(0).unit_vec2();
+assert!(((d[0] * d[0] + d[1] * d[1]) - 1.0).abs() &lt; 1e-4);</code></p></div></div><div class="item" id="sym-Rng-in_disc" data-name="rng::in_disc"><div class="sig"><a class="anchor" href="#sym-Rng-in_disc" aria-label="Link to Rng::in_disc">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">in_disc</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, center: [f32; <span class="n">2</span>], radius: f32) -&gt; [f32; <span class="n">2</span>]</code></div><div class="doc"><p>A point in a disc of this radius round <code>center</code>, with even density.</p>
+<p><code>let p = warp_sdk::procgen::Rng::new(0).in_disc([0.0, 0.0], 2.0);
+assert!(p[0].hypot(p[1]) &lt;= 2.0);</code></p></div></div><div class="item" id="sym-Rng-new" data-name="rng::new"><div class="sig"><a class="anchor" href="#sym-Rng-new" aria-label="Link to Rng::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(seed: u64) -&gt; <span class="t">Rng</span></code></div><div class="doc"><p>A source from a seed.</p></div></div><div class="item" id="sym-Rng-next_f32" data-name="rng::next_f32"><div class="sig"><a class="anchor" href="#sym-Rng-next_f32" aria-label="Link to Rng::next_f32">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">next_f32</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>A value in 0..1.</p></div></div><div class="item" id="sym-Rng-range" data-name="rng::range"><div class="sig"><a class="anchor" href="#sym-Rng-range" aria-label="Link to Rng::range">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">range</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, a: f32, b: f32) -&gt; f32</code></div><div class="doc"><p>A value in a..b.</p></div></div><div class="item" id="sym-Rng-weighted" data-name="rng::weighted"><div class="sig"><a class="anchor" href="#sym-Rng-weighted" aria-label="Link to Rng::weighted">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">weighted</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, w: &amp;[f32]) -&gt; usize</code></div><div class="doc"><p>An index picked with the given weights. Returns 0 if all are 0.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-DamageKind" data-name="damagekind"><div class="sig"><a class="anchor" href="#sym-DamageKind" aria-label="Link to DamageKind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">DamageKind</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Darts, harpoons, rams.</span>
+<span class="t">Impact</span>,
+<span class="c">/// Light and energy: flares, lamps, lasers.</span>
+<span class="t">Energy</span>,
+<span class="c">/// Heat: cutters, vents, burn.</span>
+<span class="t">Heat</span>,
+<span class="c">/// Pressure: water pushes and jets.</span>
+<span class="t">Pressure</span>,
+<span class="c">/// Sound: pings and pulses.</span>
+<span class="t">Sonic</span>,
+<span class="c">/// A kind that the game names. The number is the game's own.</span>
+<span class="t">Custom</span>(u8),</code></pre></div><div class="doc"><p>The kind of a hit. Resistances and weaknesses are per kind.</p>
+<p><code>use warp_sdk::challenge::DamageKind;
+let k = DamageKind::Energy; // light: a flare, a lamp beam
+assert_ne!(k, DamageKind::Pressure);</code></p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-DamageKind-BUILT_IN" data-name="damagekind::built_in"><div class="sig"><a class="anchor" href="#sym-DamageKind-BUILT_IN" aria-label="Link to DamageKind::BUILT_IN">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">BUILT_IN</span>: [<span class="t">DamageKind</span>; <span class="n">5</span>] = [ <span class="t">DamageKind</span>::<span class="t">Impact</span>, <span class="t">DamageKind</span>::<span class="t">Energy</span>, <span class="t">DamageKind</span>::<span class="t">Heat</span>, <span class="t">DamageKind</span>::<span class="t">Pressure</span>, <span class="t">DamageKind</span>::<span class="t">Sonic</span>, ]</code></div><div class="doc"><p>The five built-in kinds, in table order.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Resists" data-name="resists"><div class="sig"><a class="anchor" href="#sym-Resists" aria-label="Link to Resists">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Resists</span></code></div><div class="doc"><p>Resistance per damage kind. A value of 0 is neutral, 0.5 halves the
+damage, 1.0 is immune, and -0.5 is a weakness that adds half again.</p>
+<p><code>use warp_sdk::challenge::{DamageKind, Resists};
+let r = Resists::none().strong(DamageKind::Pressure).weak(DamageKind::Energy);
+assert!(r.multiplier(DamageKind::Pressure) &lt; 1.0);
+assert!(r.multiplier(DamageKind::Energy) &gt; 1.0);</code></p></div></div><details class="members"><summary>7 methods</summary><div class="item" id="sym-Resists-none" data-name="resists::none"><div class="sig"><a class="anchor" href="#sym-Resists-none" aria-label="Link to Resists::none">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">none</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Neutral to every kind.</p></div></div><div class="item" id="sym-Resists-set" data-name="resists::set"><div class="sig"><a class="anchor" href="#sym-Resists-set" aria-label="Link to Resists::set">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set</span>(<span class="k">mut</span> <span class="k">self</span>, kind: <span class="t">DamageKind</span>, value: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the resistance for <code>kind</code>. The value is clamped to <code>-2.0..=1.0</code>.</p></div></div><div class="item" id="sym-Resists-weak" data-name="resists::weak"><div class="sig"><a class="anchor" href="#sym-Resists-weak" aria-label="Link to Resists::weak">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">weak</span>(<span class="k">self</span>, kind: <span class="t">DamageKind</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A weakness: the kind does 1.75 times damage.</p></div></div><div class="item" id="sym-Resists-strong" data-name="resists::strong"><div class="sig"><a class="anchor" href="#sym-Resists-strong" aria-label="Link to Resists::strong">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">strong</span>(<span class="k">self</span>, kind: <span class="t">DamageKind</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A resistance: the kind does 0.35 times damage.</p></div></div><div class="item" id="sym-Resists-immune" data-name="resists::immune"><div class="sig"><a class="anchor" href="#sym-Resists-immune" aria-label="Link to Resists::immune">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">immune</span>(<span class="k">self</span>, kind: <span class="t">DamageKind</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Immune: the kind does no damage.</p></div></div><div class="item" id="sym-Resists-get" data-name="resists::get"><div class="sig"><a class="anchor" href="#sym-Resists-get" aria-label="Link to Resists::get">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">get</span>(&amp;<span class="k">self</span>, kind: <span class="t">DamageKind</span>) -&gt; f32</code></div><div class="doc"><p>The resistance value for <code>kind</code>.</p></div></div><div class="item" id="sym-Resists-multiplier" data-name="resists::multiplier"><div class="sig"><a class="anchor" href="#sym-Resists-multiplier" aria-label="Link to Resists::multiplier">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">multiplier</span>(&amp;<span class="k">self</span>, kind: <span class="t">DamageKind</span>) -&gt; f32</code></div><div class="doc"><p>The damage multiplier for <code>kind</code>: <code>1 - resistance</code>.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Effect" data-name="effect"><div class="sig"><a class="anchor" href="#sym-Effect" aria-label="Link to Effect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Effect</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The kind is a weakness: more damage than normal.</span>
+<span class="t">Weak</span>,
+<span class="c">/// Neutral.</span>
+<span class="t">Normal</span>,
+<span class="c">/// The kind is resisted: less damage than normal.</span>
+<span class="t">Resisted</span>,
+<span class="c">/// No damage from this kind.</span>
+<span class="t">Immune</span>,</code></pre></div><div class="doc"><p>How well a hit worked. Show it: a weak hit flashes bright, a resisted
+hit shows a dull spark, an immune hit shows a shield.</p></div></div></div><div class="typeblock"><div class="item" id="sym-StatusApply" data-name="statusapply"><div class="sig"><a class="anchor" href="#sym-StatusApply" aria-label="Link to StatusApply">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">StatusApply</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> kind: <span class="t">StatusKind</span>,
+<span class="c">/// Seconds.</span>
+<span class="k">pub</span> secs: f32,
+<span class="c">/// Slow: speed fraction removed. Burn: heat damage per second.</span>
+<span class="c">/// Fear: morale removed per second. Stun and blind ignore it.</span>
+<span class="k">pub</span> magnitude: f32,</code></pre></div><div class="doc"><p>The status part of a hit: which status, for how long, how strong.</p>
+<p><code>use warp_sdk::challenge::{StatusApply, StatusKind};
+let s = StatusApply::new(StatusKind::Slow, 2.0, 0.5); // half speed for 2 s
+assert_eq!(s.kind, StatusKind::Slow);</code></p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-StatusApply-new" data-name="statusapply::new"><div class="sig"><a class="anchor" href="#sym-StatusApply-new" aria-label="Link to StatusApply::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(kind: <span class="t">StatusKind</span>, secs: f32, magnitude: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A status of <code>kind</code> for <code>secs</code> seconds with <code>magnitude</code>.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Hit" data-name="hit"><div class="sig"><a class="anchor" href="#sym-Hit" aria-label="Link to Hit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Hit</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> kind: <span class="t">DamageKind</span>,
+<span class="k">pub</span> amount: f32,
+<span class="c">/// A velocity change, in world units per second, before mass.</span>
+<span class="k">pub</span> knockback: <span class="t">Vec2</span>,
+<span class="k">pub</span> status: <span class="t">Option</span>&lt;<span class="t">StatusApply</span>&gt;,
+<span class="c">/// Armor that this hit ignores.</span>
+<span class="k">pub</span> pierce: f32,</code></pre></div><div class="doc"><p>One hit: an amount of one damage kind, a push, and an optional status.</p>
+<p><code>use warp_sdk::challenge::{DamageKind, Hit};
+use warp_sdk::ultraviolet::Vec2;
+let h = Hit::new(DamageKind::Impact, 12.0).knockback(Vec2::new(3.0, 0.0));
+assert_eq!(h.amount, 12.0);</code></p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-Hit-new" data-name="hit::new"><div class="sig"><a class="anchor" href="#sym-Hit-new" aria-label="Link to Hit::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(kind: <span class="t">DamageKind</span>, amount: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A hit of <code>amount</code> of <code>kind</code>, with no push and no status.</p></div></div><div class="item" id="sym-Hit-knockback" data-name="hit::knockback"><div class="sig"><a class="anchor" href="#sym-Hit-knockback" aria-label="Link to Hit::knockback">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">knockback</span>(<span class="k">mut</span> <span class="k">self</span>, v: <span class="t">Vec2</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the push.</p></div></div><div class="item" id="sym-Hit-status" data-name="hit::status"><div class="sig"><a class="anchor" href="#sym-Hit-status" aria-label="Link to Hit::status">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">status</span>(<span class="k">mut</span> <span class="k">self</span>, s: <span class="t">StatusApply</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the status.</p></div></div><div class="item" id="sym-Hit-pierce" data-name="hit::pierce"><div class="sig"><a class="anchor" href="#sym-Hit-pierce" aria-label="Link to Hit::pierce">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pierce</span>(<span class="k">mut</span> <span class="k">self</span>, p: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the armor pierce.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Outcome" data-name="outcome"><div class="sig"><a class="anchor" href="#sym-Outcome" aria-label="Link to Outcome">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Outcome</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Hit points removed.</span>
+<span class="k">pub</span> dealt: f32,
+<span class="k">pub</span> effect: <span class="t">Effect</span>,
+<span class="c">/// This hit took the last hit point.</span>
+<span class="k">pub</span> killed: bool,
+<span class="c">/// The hit came during invulnerability or after death, and did nothing.</span>
+<span class="k">pub</span> ignored: bool,</code></pre></div><div class="doc"><p>What [<code>Health::apply</code>] did with a hit.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Health" data-name="health"><div class="sig"><a class="anchor" href="#sym-Health" aria-label="Link to Health">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Health</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> hp: f32,
+<span class="k">pub</span> max: f32,
+<span class="k">pub</span> armor: f32,
+<span class="k">pub</span> resist: <span class="t">Resists</span>,
+<span class="c">/// Seconds of invulnerability after a damaging hit.</span>
+<span class="k">pub</span> iframes: f32,
+<span class="c">/// Seconds of invulnerability left.</span>
+<span class="k">pub</span> invulnerable: f32,</code></pre></div><div class="doc"><p>Hit points, flat armor, resistances, and invulnerability frames.</p>
+<p>Damage = <code>amount * (1 - resistance) - max(armor - pierce, 0)</code>, never
+below zero. After a hit that deals damage, the health ignores hits for
+<code>iframes</code> seconds.</p>
+<p><code>use warp_sdk::challenge::{DamageKind, Health, Hit, Resists};
+let mut h = Health::new(50.0).armor(2.0)
+.resists(Resists::none().strong(DamageKind::Impact));
+let out = h.apply(&amp;Hit::new(DamageKind::Impact, 10.0));
+assert!(out.dealt &lt; 10.0 &amp;&amp; !out.killed);</code></p></div></div><details class="members"><summary>11 methods</summary><div class="item" id="sym-Health-new" data-name="health::new"><div class="sig"><a class="anchor" href="#sym-Health-new" aria-label="Link to Health::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(max: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Full health of <code>max</code>, no armor, neutral resistances, no iframes.</p></div></div><div class="item" id="sym-Health-armor" data-name="health::armor"><div class="sig"><a class="anchor" href="#sym-Health-armor" aria-label="Link to Health::armor">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">armor</span>(<span class="k">mut</span> <span class="k">self</span>, a: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set flat armor.</p></div></div><div class="item" id="sym-Health-resists" data-name="health::resists"><div class="sig"><a class="anchor" href="#sym-Health-resists" aria-label="Link to Health::resists">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">resists</span>(<span class="k">mut</span> <span class="k">self</span>, r: <span class="t">Resists</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the resistances.</p></div></div><div class="item" id="sym-Health-iframes" data-name="health::iframes"><div class="sig"><a class="anchor" href="#sym-Health-iframes" aria-label="Link to Health::iframes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">iframes</span>(<span class="k">mut</span> <span class="k">self</span>, secs: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the invulnerability time after a damaging hit.</p></div></div><div class="item" id="sym-Health-is_dead" data-name="health::is_dead"><div class="sig"><a class="anchor" href="#sym-Health-is_dead" aria-label="Link to Health::is_dead">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_dead</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True when no hit points are left.</p></div></div><div class="item" id="sym-Health-fraction" data-name="health::fraction"><div class="sig"><a class="anchor" href="#sym-Health-fraction" aria-label="Link to Health::fraction">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">fraction</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>Hit points as a fraction of the maximum, <code>0.0..=1.0</code>.</p></div></div><div class="item" id="sym-Health-preview" data-name="health::preview"><div class="sig"><a class="anchor" href="#sym-Health-preview" aria-label="Link to Health::preview">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">preview</span>(&amp;<span class="k">self</span>, hit: &amp;<span class="t">Hit</span>) -&gt; f32</code></div><div class="doc"><p>The damage <code>hit</code> would deal now, before iframes.</p></div></div><div class="item" id="sym-Health-apply" data-name="health::apply"><div class="sig"><a class="anchor" href="#sym-Health-apply" aria-label="Link to Health::apply">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">apply</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, hit: &amp;<span class="t">Hit</span>) -&gt; <span class="t">Outcome</span></code></div><div class="doc"><p>Apply one hit. Returns what happened, so the game can show it.</p></div></div><div class="item" id="sym-Health-apply_tick" data-name="health::apply_tick"><div class="sig"><a class="anchor" href="#sym-Health-apply_tick" aria-label="Link to Health::apply_tick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">apply_tick</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, hit: &amp;<span class="t">Hit</span>) -&gt; <span class="t">Outcome</span></code></div><div class="doc"><p>Apply damage that ignores iframes, for burn and other ticks.</p></div></div><div class="item" id="sym-Health-heal" data-name="health::heal"><div class="sig"><a class="anchor" href="#sym-Health-heal" aria-label="Link to Health::heal">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">heal</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, amount: f32)</code></div><div class="doc"><p>Add hit points, up to the maximum. Does nothing after death.</p></div></div><div class="item" id="sym-Health-tick" data-name="health::tick"><div class="sig"><a class="anchor" href="#sym-Health-tick" aria-label="Link to Health::tick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">tick</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32)</code></div><div class="doc"><p>Count down the invulnerability time.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-StatusKind" data-name="statuskind"><div class="sig"><a class="anchor" href="#sym-StatusKind" aria-label="Link to StatusKind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">StatusKind</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// No movement and no attacks. A stun that ends gives a short guard.</span>
+<span class="t">Stun</span>,
+<span class="c">/// Speed is multiplied by `1 - magnitude`.</span>
+<span class="t">Slow</span>,
+<span class="c">/// Heat damage of `magnitude` per second per stack.</span>
+<span class="t">Burn</span>,
+<span class="c">/// Sight is cut to a quarter.</span>
+<span class="t">Blind</span>,
+<span class="c">/// Morale drops by `magnitude` per second.</span>
+<span class="t">Fear</span>,</code></pre></div><div class="doc"><p>A status effect.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-StatusKind-default_stacking" data-name="statuskind::default_stacking"><div class="sig"><a class="anchor" href="#sym-StatusKind-default_stacking" aria-label="Link to StatusKind::default_stacking">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">default_stacking</span>(<span class="k">self</span>) -&gt; <span class="t">Stacking</span></code></div><div class="doc"><p>How a second application of this kind combines with the first.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Stacking" data-name="stacking"><div class="sig"><a class="anchor" href="#sym-Stacking" aria-label="Link to Stacking">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Stacking</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Keep the longer time and the stronger magnitude.</span>
+<span class="t">Refresh</span>,
+<span class="c">/// Add the times, up to `cap` seconds.</span>
+<span class="t">Extend</span> { cap: f32 },
+<span class="c">/// Add one stack, up to `max`, and refresh the time.</span>
+<span class="t">Intensify</span> { max: u8 },
+<span class="c">/// A second application does nothing.</span>
+<span class="t">Ignore</span>,</code></pre></div><div class="doc"><p>How a new application combines with a status that is already on.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Status" data-name="status"><div class="sig"><a class="anchor" href="#sym-Status" aria-label="Link to Status">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Status</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> kind: <span class="t">StatusKind</span>,
+<span class="c">/// Seconds left.</span>
+<span class="k">pub</span> left: f32,
+<span class="k">pub</span> magnitude: f32,
+<span class="k">pub</span> stacks: u8,</code></pre></div><div class="doc"><p>One active status.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Statuses" data-name="statuses"><div class="sig"><a class="anchor" href="#sym-Statuses" aria-label="Link to Statuses">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Statuses</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> list: <span class="t">Vec</span>&lt;<span class="t">Status</span>&gt;,
+<span class="c">/// Seconds left of stun guard. A stun during the guard lasts a third.</span>
+<span class="k">pub</span> stun_guard: f32,</code></pre></div><div class="doc"><p>The statuses on one creature.</p>
+<p><code>use warp_sdk::challenge::{StatusApply, StatusKind, Statuses};
+let mut s = Statuses::default();
+s.apply(StatusApply::new(StatusKind::Slow, 1.0, 0.5));
+assert_eq!(s.speed_factor(), 0.5);
+let ended = s.tick(1.5).expired;
+assert_eq!(ended, vec![StatusKind::Slow]);</code></p></div></div><details class="members"><summary>9 methods</summary><div class="item" id="sym-Statuses-apply" data-name="statuses::apply"><div class="sig"><a class="anchor" href="#sym-Statuses-apply" aria-label="Link to Statuses::apply">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">apply</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, s: <span class="t">StatusApply</span>) -&gt; bool</code></div><div class="doc"><p>Apply with the kind's default stacking. Returns true when the
+status was not on before.</p></div></div><div class="item" id="sym-Statuses-apply_with" data-name="statuses::apply_with"><div class="sig"><a class="anchor" href="#sym-Statuses-apply_with" aria-label="Link to Statuses::apply_with">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">apply_with</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, s: <span class="t">StatusApply</span>, stacking: <span class="t">Stacking</span>) -&gt; bool</code></div><div class="doc"><p>Apply with the stacking you give.</p></div></div><div class="item" id="sym-Statuses-tick" data-name="statuses::tick"><div class="sig"><a class="anchor" href="#sym-Statuses-tick" aria-label="Link to Statuses::tick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">tick</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32) -&gt; <span class="t">StatusTick</span></code></div><div class="doc"><p>Count down. Returns burn damage for <code>dt</code> and the kinds that ended.</p></div></div><div class="item" id="sym-Statuses-get" data-name="statuses::get"><div class="sig"><a class="anchor" href="#sym-Statuses-get" aria-label="Link to Statuses::get">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">get</span>(&amp;<span class="k">self</span>, kind: <span class="t">StatusKind</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Status</span>&gt;</code></div><div class="doc"><p>The active status of <code>kind</code>, if any.</p></div></div><div class="item" id="sym-Statuses-has" data-name="statuses::has"><div class="sig"><a class="anchor" href="#sym-Statuses-has" aria-label="Link to Statuses::has">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">has</span>(&amp;<span class="k">self</span>, kind: <span class="t">StatusKind</span>) -&gt; bool</code></div><div class="doc"><p>True when a status of <code>kind</code> is on.</p></div></div><div class="item" id="sym-Statuses-clear" data-name="statuses::clear"><div class="sig"><a class="anchor" href="#sym-Statuses-clear" aria-label="Link to Statuses::clear">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Remove every status.</p></div></div><div class="item" id="sym-Statuses-speed_factor" data-name="statuses::speed_factor"><div class="sig"><a class="anchor" href="#sym-Statuses-speed_factor" aria-label="Link to Statuses::speed_factor">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">speed_factor</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The speed multiplier: 0 when stunned, <code>1 - magnitude</code> when slowed.</p></div></div><div class="item" id="sym-Statuses-sight_factor" data-name="statuses::sight_factor"><div class="sig"><a class="anchor" href="#sym-Statuses-sight_factor" aria-label="Link to Statuses::sight_factor">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">sight_factor</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The sight multiplier: a quarter when blind.</p></div></div><div class="item" id="sym-Statuses-fear_rate" data-name="statuses::fear_rate"><div class="sig"><a class="anchor" href="#sym-Statuses-fear_rate" aria-label="Link to Statuses::fear_rate">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">fear_rate</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>Morale lost per second from fear.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-StatusTick" data-name="statustick"><div class="sig"><a class="anchor" href="#sym-StatusTick" aria-label="Link to StatusTick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">StatusTick</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Burn damage for this tick, as one heat hit. Apply it with</span>
+<span class="c">/// [`Health::apply_tick`].</span>
+<span class="k">pub</span> burn: <span class="t">Option</span>&lt;<span class="t">Hit</span>&gt;,
+<span class="c">/// The kinds that ended in this tick.</span>
+<span class="k">pub</span> expired: <span class="t">Vec</span>&lt;<span class="t">StatusKind</span>&gt;,</code></pre></div><div class="doc"><p>What one [<code>Statuses::tick</code>] produced.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Deployable" data-name="deployable"><div class="sig"><a class="anchor" href="#sym-Deployable" aria-label="Link to Deployable">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Deployable</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Arms after `arm` seconds. When an enemy comes within `trigger`, it</span>
+<span class="c">/// bursts and hits every enemy within `blast`.</span>
+<span class="t">Mine</span> { arm: f32, trigger: f32, blast: f32, life: f32 },
+<span class="c">/// Fires a projectile at the nearest enemy within `range` each `every`</span>
+<span class="c">/// seconds.</span>
+<span class="t">Turret</span> { every: f32, range: f32, speed: f32, life: f32 },
+<span class="c">/// Pulls the attention of enemies within `radius`. They hunt the lure</span>
+<span class="c">/// in place of the player.</span>
+<span class="t">Lure</span> { radius: f32, life: f32 },</code></pre></div><div class="doc"><p>Something a tool puts in the world that acts on its own.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Delivery" data-name="delivery"><div class="sig"><a class="anchor" href="#sym-Delivery" aria-label="Link to Delivery">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Delivery</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// `count` projectiles, fanned over the spread.</span>
+<span class="t">Projectile</span> { speed: f32, radius: f32, life: f32, count: u8, pierce: u8 },
+<span class="c">/// An instant line: every enemy within `range` and `width` of the line.</span>
+<span class="t">Beam</span> { range: f32, width: f32 },
+<span class="c">/// An instant ring around the origin.</span>
+<span class="t">Pulse</span> { radius: f32 },
+<span class="c">/// An instant arc in front of the origin.</span>
+<span class="t">Melee</span> { range: f32, arc: f32 },
+<span class="c">/// Puts a [`Deployable`] at the origin.</span>
+<span class="t">Deploy</span>(<span class="t">Deployable</span>),</code></pre></div><div class="doc"><p>How a tool delivers its hit.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Tier" data-name="tier"><div class="sig"><a class="anchor" href="#sym-Tier" aria-label="Link to Tier">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Tier</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> damage: f32,
+<span class="k">pub</span> cooldown: f32,
+<span class="k">pub</span> cost: f32,
+<span class="k">pub</span> knockback: f32,
+<span class="k">pub</span> spread: f32,
+<span class="k">pub</span> status_secs: f32,
+<span class="k">pub</span> extra_projectiles: u8,</code></pre></div><div class="doc"><p>The change one upgrade tier makes. Every value is a multiplier, except
+<code>extra_projectiles</code>. The tiers that are reached multiply together.</p>
+<p><code>use warp_sdk::challenge::Tier;
+let t = Tier::new().damage(1.3).cooldown(0.85);
+assert_eq!(t.damage, 1.3);</code></p></div></div><details class="members"><summary>8 methods</summary><div class="item" id="sym-Tier-new" data-name="tier::new"><div class="sig"><a class="anchor" href="#sym-Tier-new" aria-label="Link to Tier::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A tier that changes nothing.</p></div></div><div class="item" id="sym-Tier-damage" data-name="tier::damage"><div class="sig"><a class="anchor" href="#sym-Tier-damage" aria-label="Link to Tier::damage">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">damage</span>(<span class="k">mut</span> <span class="k">self</span>, m: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Tier-cooldown" data-name="tier::cooldown"><div class="sig"><a class="anchor" href="#sym-Tier-cooldown" aria-label="Link to Tier::cooldown">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cooldown</span>(<span class="k">mut</span> <span class="k">self</span>, m: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Tier-cost" data-name="tier::cost"><div class="sig"><a class="anchor" href="#sym-Tier-cost" aria-label="Link to Tier::cost">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cost</span>(<span class="k">mut</span> <span class="k">self</span>, m: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Tier-knockback" data-name="tier::knockback"><div class="sig"><a class="anchor" href="#sym-Tier-knockback" aria-label="Link to Tier::knockback">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">knockback</span>(<span class="k">mut</span> <span class="k">self</span>, m: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Tier-spread" data-name="tier::spread"><div class="sig"><a class="anchor" href="#sym-Tier-spread" aria-label="Link to Tier::spread">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">spread</span>(<span class="k">mut</span> <span class="k">self</span>, m: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Tier-status_secs" data-name="tier::status_secs"><div class="sig"><a class="anchor" href="#sym-Tier-status_secs" aria-label="Link to Tier::status_secs">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">status_secs</span>(<span class="k">mut</span> <span class="k">self</span>, m: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Tier-extra_projectiles" data-name="tier::extra_projectiles"><div class="sig"><a class="anchor" href="#sym-Tier-extra_projectiles" aria-label="Link to Tier::extra_projectiles">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">extra_projectiles</span>(<span class="k">mut</span> <span class="k">self</span>, n: u8) -&gt; <span class="k">Self</span></code></div></div></details></div><div class="typeblock"><div class="item" id="sym-Tool" data-name="tool"><div class="sig"><a class="anchor" href="#sym-Tool" aria-label="Link to Tool">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Tool</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> name: <span class="t">String</span>,
+<span class="k">pub</span> delivery: <span class="t">Delivery</span>,
+<span class="k">pub</span> kind: <span class="t">DamageKind</span>,
+<span class="k">pub</span> damage: f32,
+<span class="c">/// Energy taken from the loadout pool per use.</span>
+<span class="k">pub</span> energy: f32,
+<span class="c">/// Rounds per refill. `None` uses no ammo.</span>
+<span class="k">pub</span> ammo_max: <span class="t">Option</span>&lt;u32&gt;,
+<span class="c">/// Seconds between uses.</span>
+<span class="k">pub</span> cooldown: f32,
+<span class="c">/// Seconds to hold the trigger before a release fires. 0 fires at once.</span>
+<span class="k">pub</span> charge: f32,
+<span class="c">/// Total fan angle in radians.</span>
+<span class="k">pub</span> spread: f32,
+<span class="c">/// Push speed given to what the tool hits.</span>
+<span class="k">pub</span> knockback: f32,
+<span class="k">pub</span> status: <span class="t">Option</span>&lt;<span class="t">StatusApply</span>&gt;,
+<span class="c">/// Armor ignored.</span>
+<span class="k">pub</span> pierce: f32,
+<span class="c">/// The upgrades, in order. `tier` of them are reached.</span>
+<span class="k">pub</span> tiers: <span class="t">Vec</span>&lt;<span class="t">Tier</span>&gt;,
+<span class="k">pub</span> tier: usize,</code></pre></div><div class="doc"><p>A tool or weapon, as data. Build one with a delivery constructor and
+the setters, or start from a preset.</p>
+<p><code>use warp_sdk::challenge::{DamageKind, Tool};
+let harpoon = Tool::projectile("harpoon", DamageKind::Impact, 18.0, 14.0)
+.cooldown(0.8).knockback(4.0).ammo(12);
+assert_eq!(harpoon.stats().damage, 18.0);</code></p></div></div><details class="members"><summary>26 methods</summary><div class="item" id="sym-Tool-projectile" data-name="tool::projectile"><div class="sig"><a class="anchor" href="#sym-Tool-projectile" aria-label="Link to Tool::projectile">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">projectile</span>(name: &amp;str, kind: <span class="t">DamageKind</span>, damage: f32, speed: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A projectile tool. <code>speed</code> is in world units per second.</p></div></div><div class="item" id="sym-Tool-beam" data-name="tool::beam"><div class="sig"><a class="anchor" href="#sym-Tool-beam" aria-label="Link to Tool::beam">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">beam</span>(name: &amp;str, kind: <span class="t">DamageKind</span>, damage: f32, range: f32, width: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A beam tool: an instant line of <code>range</code> and <code>width</code>.</p></div></div><div class="item" id="sym-Tool-pulse" data-name="tool::pulse"><div class="sig"><a class="anchor" href="#sym-Tool-pulse" aria-label="Link to Tool::pulse">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pulse</span>(name: &amp;str, kind: <span class="t">DamageKind</span>, damage: f32, radius: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>An area pulse tool: an instant ring of <code>radius</code>.</p></div></div><div class="item" id="sym-Tool-melee" data-name="tool::melee"><div class="sig"><a class="anchor" href="#sym-Tool-melee" aria-label="Link to Tool::melee">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">melee</span>(name: &amp;str, kind: <span class="t">DamageKind</span>, damage: f32, range: f32, arc: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A melee tool: an instant arc of <code>range</code> and <code>arc</code> radians.</p></div></div><div class="item" id="sym-Tool-deploy" data-name="tool::deploy"><div class="sig"><a class="anchor" href="#sym-Tool-deploy" aria-label="Link to Tool::deploy">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">deploy</span>(name: &amp;str, kind: <span class="t">DamageKind</span>, damage: f32, d: <span class="t">Deployable</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A deploy tool. <code>damage</code> and <code>kind</code> are for what the deployable hits.</p></div></div><div class="item" id="sym-Tool-cooldown" data-name="tool::cooldown"><div class="sig"><a class="anchor" href="#sym-Tool-cooldown" aria-label="Link to Tool::cooldown">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cooldown</span>(<span class="k">mut</span> <span class="k">self</span>, secs: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Tool-energy" data-name="tool::energy"><div class="sig"><a class="anchor" href="#sym-Tool-energy" aria-label="Link to Tool::energy">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">energy</span>(<span class="k">mut</span> <span class="k">self</span>, cost: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Tool-ammo" data-name="tool::ammo"><div class="sig"><a class="anchor" href="#sym-Tool-ammo" aria-label="Link to Tool::ammo">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">ammo</span>(<span class="k">mut</span> <span class="k">self</span>, rounds: u32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Tool-charge" data-name="tool::charge"><div class="sig"><a class="anchor" href="#sym-Tool-charge" aria-label="Link to Tool::charge">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">charge</span>(<span class="k">mut</span> <span class="k">self</span>, secs: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Tool-spread" data-name="tool::spread"><div class="sig"><a class="anchor" href="#sym-Tool-spread" aria-label="Link to Tool::spread">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">spread</span>(<span class="k">mut</span> <span class="k">self</span>, radians: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Tool-knockback" data-name="tool::knockback"><div class="sig"><a class="anchor" href="#sym-Tool-knockback" aria-label="Link to Tool::knockback">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">knockback</span>(<span class="k">mut</span> <span class="k">self</span>, speed: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Tool-status" data-name="tool::status"><div class="sig"><a class="anchor" href="#sym-Tool-status" aria-label="Link to Tool::status">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">status</span>(<span class="k">mut</span> <span class="k">self</span>, s: <span class="t">StatusApply</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Tool-pierce" data-name="tool::pierce"><div class="sig"><a class="anchor" href="#sym-Tool-pierce" aria-label="Link to Tool::pierce">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pierce</span>(<span class="k">mut</span> <span class="k">self</span>, armor: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Tool-count" data-name="tool::count"><div class="sig"><a class="anchor" href="#sym-Tool-count" aria-label="Link to Tool::count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">count</span>(<span class="k">mut</span> <span class="k">self</span>, n: u8) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the projectile count. Does nothing for other deliveries.</p></div></div><div class="item" id="sym-Tool-tiers" data-name="tool::tiers"><div class="sig"><a class="anchor" href="#sym-Tool-tiers" aria-label="Link to Tool::tiers">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">tiers</span>(<span class="k">mut</span> <span class="k">self</span>, t: <span class="t">Vec</span>&lt;<span class="t">Tier</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Replace the upgrade list.</p></div></div><div class="item" id="sym-Tool-standard_tiers" data-name="tool::standard_tiers"><div class="sig"><a class="anchor" href="#sym-Tool-standard_tiers" aria-label="Link to Tool::standard_tiers">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">standard_tiers</span>() -&gt; <span class="t">Vec</span>&lt;<span class="t">Tier</span>&gt;</code></div><div class="doc"><p>Three tiers: more damage, then faster, then one more projectile.</p></div></div><div class="item" id="sym-Tool-upgrade" data-name="tool::upgrade"><div class="sig"><a class="anchor" href="#sym-Tool-upgrade" aria-label="Link to Tool::upgrade">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">upgrade</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>Reach the next tier. Returns false when no tier is left.</p></div></div><div class="item" id="sym-Tool-stats" data-name="tool::stats"><div class="sig"><a class="anchor" href="#sym-Tool-stats" aria-label="Link to Tool::stats">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stats</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">ToolStats</span></code></div><div class="doc"><p>The values at the current tier.</p></div></div><div class="item" id="sym-Tool-dart" data-name="tool::dart"><div class="sig"><a class="anchor" href="#sym-Tool-dart" aria-label="Link to Tool::dart">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">dart</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Impact dart: fast, cheap, weak against armor.</p></div></div><div class="item" id="sym-Tool-flare" data-name="tool::flare"><div class="sig"><a class="anchor" href="#sym-Tool-flare" aria-label="Link to Tool::flare">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">flare</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Light flare beam: energy damage, blinds. Hold to charge.</p></div></div><div class="item" id="sym-Tool-sonic_pulse" data-name="tool::sonic_pulse"><div class="sig"><a class="anchor" href="#sym-Tool-sonic_pulse" aria-label="Link to Tool::sonic_pulse">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">sonic_pulse</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Sonic pulse: a ring that pushes, frightens and slows.</p></div></div><div class="item" id="sym-Tool-water_push" data-name="tool::water_push"><div class="sig"><a class="anchor" href="#sym-Tool-water_push" aria-label="Link to Tool::water_push">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">water_push</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Water push: pressure knockback with almost no damage. One tool among
+many, not the answer to every threat.</p></div></div><div class="item" id="sym-Tool-heat_cutter" data-name="tool::heat_cutter"><div class="sig"><a class="anchor" href="#sym-Tool-heat_cutter" aria-label="Link to Tool::heat_cutter">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">heat_cutter</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Heat cutter: a short melee arc that burns.</p></div></div><div class="item" id="sym-Tool-mine" data-name="tool::mine"><div class="sig"><a class="anchor" href="#sym-Tool-mine" aria-label="Link to Tool::mine">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">mine</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Pressure mine: arms, then bursts when an enemy comes near.</p></div></div><div class="item" id="sym-Tool-lure" data-name="tool::lure"><div class="sig"><a class="anchor" href="#sym-Tool-lure" aria-label="Link to Tool::lure">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">lure</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Lure: a light that pulls enemies away from the player.</p></div></div><div class="item" id="sym-Tool-turret" data-name="tool::turret"><div class="sig"><a class="anchor" href="#sym-Tool-turret" aria-label="Link to Tool::turret">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">turret</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Turret: shoots darts at the nearest enemy for a while.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-ToolStats" data-name="toolstats"><div class="sig"><a class="anchor" href="#sym-ToolStats" aria-label="Link to ToolStats">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">ToolStats</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> damage: f32,
+<span class="k">pub</span> cooldown: f32,
+<span class="k">pub</span> energy: f32,
+<span class="k">pub</span> knockback: f32,
+<span class="k">pub</span> spread: f32,
+<span class="k">pub</span> status: <span class="t">Option</span>&lt;<span class="t">StatusApply</span>&gt;,
+<span class="k">pub</span> count: u8,</code></pre></div><div class="doc"><p>The values of a [<code>Tool</code>] at its current tier.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Slot" data-name="slot"><div class="sig"><a class="anchor" href="#sym-Slot" aria-label="Link to Slot">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Slot</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> tool: <span class="t">Tool</span>,
+<span class="c">/// Seconds until the tool can fire again.</span>
+<span class="k">pub</span> cooldown_left: f32,
+<span class="c">/// Seconds the trigger has been held for a charge tool.</span>
+<span class="k">pub</span> charged: f32,
+<span class="c">/// Rounds left. Unused when the tool has no ammo.</span>
+<span class="k">pub</span> ammo: u32,</code></pre></div><div class="doc"><p>One tool in a loadout, with its own timers and ammo.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Shot" data-name="shot"><div class="sig"><a class="anchor" href="#sym-Shot" aria-label="Link to Shot">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Shot</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> tool: <span class="t">String</span>,
+<span class="k">pub</span> slot: usize,
+<span class="k">pub</span> delivery: <span class="t">Delivery</span>,
+<span class="k">pub</span> origin: <span class="t">Vec2</span>,
+<span class="c">/// One unit direction per projectile. One entry for other deliveries.</span>
+<span class="k">pub</span> dirs: <span class="t">Vec</span>&lt;<span class="t">Vec2</span>&gt;,
+<span class="c">/// The hit, with the knockback set along `dirs[0]`.</span>
+<span class="k">pub</span> hit: <span class="t">Hit</span>,
+<span class="c">/// Push speed. Area deliveries push away from `origin`.</span>
+<span class="k">pub</span> knockback: f32,</code></pre></div><div class="doc"><p>One use of a tool: where it fired and what it carries. Pass it to
+[<code>Arena::fire</code>], or resolve it yourself.</p></div></div><details class="members"><summary>6 methods</summary><div class="item" id="sym-Shot-to" data-name="shot::to"><div class="sig"><a class="anchor" href="#sym-Shot-to" aria-label="Link to Shot::to">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">to</span>(point: <span class="t">Vec2</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A shot to <code>point</code> with the default timing.</p>
+<p><code>use warp_sdk::camera::Shot;
+use warp_sdk::ultraviolet::Vec2;
+let shot = Shot::to(Vec2::new(5.0, 0.0));
+assert!(shot.scale.is_none());</code></p></div></div><div class="item" id="sym-Shot-zoom" data-name="shot::zoom"><div class="sig"><a class="anchor" href="#sym-Shot-zoom" aria-label="Link to Shot::zoom">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">zoom</span>(<span class="k">mut</span> <span class="k">self</span>, scale: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the zoom scale at the point.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Shot; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let shot = Shot::to(Vec2::zero()).zoom(2.0);
+```</p></div></div><div class="item" id="sym-Shot-travel" data-name="shot::travel"><div class="sig"><a class="anchor" href="#sym-Shot-travel" aria-label="Link to Shot::travel">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">travel</span>(<span class="k">mut</span> <span class="k">self</span>, to: f32, back: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the seconds of the pan to the point and of the pan back.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Shot; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let shot = Shot::to(Vec2::zero()).travel(1.5, 1.0);
+```</p></div></div><div class="item" id="sym-Shot-hold" data-name="shot::hold"><div class="sig"><a class="anchor" href="#sym-Shot-hold" aria-label="Link to Shot::hold">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">hold</span>(<span class="k">mut</span> <span class="k">self</span>, seconds: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the seconds at the point.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Shot; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let shot = Shot::to(Vec2::zero()).hold(3.0);
+```</p></div></div><div class="item" id="sym-Shot-letterbox" data-name="shot::letterbox"><div class="sig"><a class="anchor" href="#sym-Shot-letterbox" aria-label="Link to Shot::letterbox">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">letterbox</span>(<span class="k">mut</span> <span class="k">self</span>, fraction: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Show letterbox bars of this fraction of the screen height. A value
+of 0.1 is a good cinematic look.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Shot; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let shot = Shot::to(Vec2::zero()).letterbox(0.1);
+```</p></div></div><div class="item" id="sym-Shot-duration" data-name="shot::duration"><div class="sig"><a class="anchor" href="#sym-Shot-duration" aria-label="Link to Shot::duration">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">duration</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The full length of the shot in seconds.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Shot; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>assert!(Shot::to(Vec2::zero()).duration() &gt; 0.0);
+```</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Loadout" data-name="loadout"><div class="sig"><a class="anchor" href="#sym-Loadout" aria-label="Link to Loadout">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Loadout</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> slots: <span class="t">Vec</span>&lt;<span class="t">Slot</span>&gt;,
+<span class="k">pub</span> active: usize,
+<span class="k">pub</span> energy: f32,
+<span class="k">pub</span> energy_max: f32,
+<span class="c">/// Energy back per second.</span>
+<span class="k">pub</span> energy_regen: f32,
+<span class="c">/// Seconds a switch blocks firing.</span>
+<span class="k">pub</span> switch_time: f32,</code></pre></div><div class="doc"><p>Tool slots, a shared energy pool, and switching.</p>
+<p>Call [<code>Loadout::trigger</code>] once per frame with the fire button state.</p>
+<p><code>use warp_sdk::challenge::{Loadout, Rng, Tool};
+use warp_sdk::ultraviolet::Vec2;
+let mut l = Loadout::new(100.0, 20.0).with(Tool::dart()).with(Tool::sonic_pulse());
+let mut rng = Rng::new(1);
+let shot = l.trigger(true, 1.0 / 60.0, Vec2::zero(), Vec2::unit_x(), &amp;mut rng);
+assert!(shot.is_some());
+l.select(1);
+assert_eq!(l.active().name, "sonic pulse");</code></p></div></div><details class="members"><summary>12 methods</summary><div class="item" id="sym-Loadout-new" data-name="loadout::new"><div class="sig"><a class="anchor" href="#sym-Loadout-new" aria-label="Link to Loadout::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(energy_max: f32, energy_regen: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>An empty loadout with a full energy pool.</p></div></div><div class="item" id="sym-Loadout-with" data-name="loadout::with"><div class="sig"><a class="anchor" href="#sym-Loadout-with" aria-label="Link to Loadout::with">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with</span>(<span class="k">mut</span> <span class="k">self</span>, tool: <span class="t">Tool</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Add a tool in the next slot.</p></div></div><div class="item" id="sym-Loadout-push" data-name="loadout::push"><div class="sig"><a class="anchor" href="#sym-Loadout-push" aria-label="Link to Loadout::push">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">push</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, tool: <span class="t">Tool</span>)</code></div><div class="doc"><p>Add a tool in the next slot.</p></div></div><div class="item" id="sym-Loadout-active" data-name="loadout::active"><div class="sig"><a class="anchor" href="#sym-Loadout-active" aria-label="Link to Loadout::active">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">active</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="t">Tool</span></code></div><div class="doc"><p>The tool in the active slot. Panics when the loadout is empty.</p></div></div><div class="item" id="sym-Loadout-select" data-name="loadout::select"><div class="sig"><a class="anchor" href="#sym-Loadout-select" aria-label="Link to Loadout::select">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">select</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, i: usize)</code></div><div class="doc"><p>Switch to slot <code>i</code>. Out of range does nothing. A switch cancels a
+charge and blocks firing for <code>switch_time</code>.</p></div></div><div class="item" id="sym-Loadout-next" data-name="loadout::next"><div class="sig"><a class="anchor" href="#sym-Loadout-next" aria-label="Link to Loadout::next">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">next</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Switch to the next slot, wrapping.</p></div></div><div class="item" id="sym-Loadout-prev" data-name="loadout::prev"><div class="sig"><a class="anchor" href="#sym-Loadout-prev" aria-label="Link to Loadout::prev">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">prev</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Switch to the previous slot, wrapping.</p></div></div><div class="item" id="sym-Loadout-charge_fraction" data-name="loadout::charge_fraction"><div class="sig"><a class="anchor" href="#sym-Loadout-charge_fraction" aria-label="Link to Loadout::charge_fraction">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">charge_fraction</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The charge of the active tool, <code>0.0..=1.0</code>. Draw it as a meter.</p></div></div><div class="item" id="sym-Loadout-cooldown_fraction" data-name="loadout::cooldown_fraction"><div class="sig"><a class="anchor" href="#sym-Loadout-cooldown_fraction" aria-label="Link to Loadout::cooldown_fraction">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cooldown_fraction</span>(&amp;<span class="k">self</span>, i: usize) -&gt; f32</code></div><div class="doc"><p>The cooldown left on slot <code>i</code> as a fraction, <code>0.0..=1.0</code>.</p></div></div><div class="item" id="sym-Loadout-refill" data-name="loadout::refill"><div class="sig"><a class="anchor" href="#sym-Loadout-refill" aria-label="Link to Loadout::refill">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">refill</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Fill the ammo of every slot.</p></div></div><div class="item" id="sym-Loadout-ready" data-name="loadout::ready"><div class="sig"><a class="anchor" href="#sym-Loadout-ready" aria-label="Link to Loadout::ready">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">ready</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True when the active tool can fire now, without the charge.</p></div></div><div class="item" id="sym-Loadout-trigger" data-name="loadout::trigger"><div class="sig"><a class="anchor" href="#sym-Loadout-trigger" aria-label="Link to Loadout::trigger">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">trigger</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, held: bool, dt: f32, origin: <span class="t">Vec2</span>, aim: <span class="t">Vec2</span>, rng: &amp;<span class="k">mut</span> <span class="t">Rng</span>, ) -&gt; <span class="t">Option</span>&lt;<span class="t">Shot</span>&gt;</code></div><div class="doc"><p>Run one frame. <code>held</code> is the fire button. Returns a shot when the
+active tool fires. An instant tool fires while <code>held</code>. A charge tool
+fires on release after a full charge, and a short release cancels.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Steer" data-name="steer"><div class="sig"><a class="anchor" href="#sym-Steer" aria-label="Link to Steer">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Steer</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Straight at the target.</span>
+<span class="t">Seek</span>,
+<span class="c">/// Circle the target at `radius`, then close in to attack.</span>
+<span class="t">Orbit</span> { radius: f32, clockwise: bool },
+<span class="c">/// Wait without movement and hidden until the target comes within</span>
+<span class="c">/// `trigger`, then seek fast.</span>
+<span class="t">Ambush</span> { trigger: f32 },
+<span class="c">/// Seek, with separation and alignment from the same kind.</span>
+<span class="t">Flock</span>,</code></pre></div><div class="doc"><p>How an enemy moves while it hunts.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Phase" data-name="phase"><div class="sig"><a class="anchor" href="#sym-Phase" aria-label="Link to Phase">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Phase</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Idle</span>,
+<span class="t">Patrol</span>,
+<span class="c">/// Saw the target. Stops for a moment: show a mark over it.</span>
+<span class="t">Notice</span>,
+<span class="t">Hunt</span>,
+<span class="c">/// The warning before an attack. Draw it: a ring, a glow, a wind-up.</span>
+<span class="t">Telegraph</span>,
+<span class="t">Attack</span>,
+<span class="c">/// After an attack. Slow and open: the window to punish.</span>
+<span class="t">Recover</span>,
+<span class="c">/// Morale is low. Runs away from the target.</span>
+<span class="t">Retreat</span>,
+<span class="t">Stunned</span>,</code></pre></div><div class="doc"><p>The phase of an enemy's state machine.</p>
+<p>The attack path is always Hunt → Telegraph → Attack → Recover. Damage
+happens only on the move into Attack.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Attack" data-name="attack"><div class="sig"><a class="anchor" href="#sym-Attack" aria-label="Link to Attack">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Attack</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> name: <span class="t">String</span>,
+<span class="k">pub</span> kind: <span class="t">DamageKind</span>,
+<span class="k">pub</span> damage: f32,
+<span class="c">/// How far the attack reaches from the enemy.</span>
+<span class="k">pub</span> reach: f32,
+<span class="c">/// Full angle of the attack cone in radians.</span>
+<span class="k">pub</span> arc: f32,
+<span class="c">/// Seconds of warning before damage. Never below [`MIN_TELEGRAPH`].</span>
+<span class="k">pub</span> telegraph: f32,
+<span class="c">/// Seconds of the attack motion.</span>
+<span class="k">pub</span> active: f32,
+<span class="c">/// Seconds open to punishment after the attack.</span>
+<span class="k">pub</span> recover: f32,
+<span class="c">/// Seconds before the next attack can start.</span>
+<span class="k">pub</span> cooldown: f32,
+<span class="c">/// Speed of the lunge during the active time.</span>
+<span class="k">pub</span> lunge: f32,
+<span class="k">pub</span> knockback: f32,
+<span class="k">pub</span> status: <span class="t">Option</span>&lt;<span class="t">StatusApply</span>&gt;,</code></pre></div><div class="doc"><p>One enemy attack.</p>
+<p><code>use warp_sdk::challenge::{Attack, DamageKind};
+let bite = Attack::new("bite", DamageKind::Impact, 12.0, 1.4).telegraph(0.7);
+assert_eq!(bite.telegraph, 0.7);</code></p></div></div><details class="members"><summary>8 methods</summary><div class="item" id="sym-Attack-new" data-name="attack::new"><div class="sig"><a class="anchor" href="#sym-Attack-new" aria-label="Link to Attack::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(name: &amp;str, kind: <span class="t">DamageKind</span>, damage: f32, reach: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>An attack with a 0.6 s telegraph, a 90 degree cone, and no lunge.</p></div></div><div class="item" id="sym-Attack-telegraph" data-name="attack::telegraph"><div class="sig"><a class="anchor" href="#sym-Attack-telegraph" aria-label="Link to Attack::telegraph">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">telegraph</span>(<span class="k">mut</span> <span class="k">self</span>, secs: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Attack-arc" data-name="attack::arc"><div class="sig"><a class="anchor" href="#sym-Attack-arc" aria-label="Link to Attack::arc">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">arc</span>(<span class="k">mut</span> <span class="k">self</span>, radians: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Attack-recover" data-name="attack::recover"><div class="sig"><a class="anchor" href="#sym-Attack-recover" aria-label="Link to Attack::recover">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">recover</span>(<span class="k">mut</span> <span class="k">self</span>, secs: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Attack-cooldown" data-name="attack::cooldown"><div class="sig"><a class="anchor" href="#sym-Attack-cooldown" aria-label="Link to Attack::cooldown">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cooldown</span>(<span class="k">mut</span> <span class="k">self</span>, secs: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Attack-lunge" data-name="attack::lunge"><div class="sig"><a class="anchor" href="#sym-Attack-lunge" aria-label="Link to Attack::lunge">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">lunge</span>(<span class="k">mut</span> <span class="k">self</span>, speed: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Attack-knockback" data-name="attack::knockback"><div class="sig"><a class="anchor" href="#sym-Attack-knockback" aria-label="Link to Attack::knockback">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">knockback</span>(<span class="k">mut</span> <span class="k">self</span>, speed: f32) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Attack-status" data-name="attack::status"><div class="sig"><a class="anchor" href="#sym-Attack-status" aria-label="Link to Attack::status">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">status</span>(<span class="k">mut</span> <span class="k">self</span>, s: <span class="t">StatusApply</span>) -&gt; <span class="k">Self</span></code></div></div></details></div><div class="typeblock"><div class="item" id="sym-Profile" data-name="profile"><div class="sig"><a class="anchor" href="#sym-Profile" aria-label="Link to Profile">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Profile</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> name: <span class="t">String</span>,
+<span class="k">pub</span> hp: f32,
+<span class="k">pub</span> armor: f32,
+<span class="k">pub</span> resists: <span class="t">Resists</span>,
+<span class="k">pub</span> speed: f32,
+<span class="k">pub</span> accel: f32,
+<span class="c">/// Knockback is divided by mass.</span>
+<span class="k">pub</span> mass: f32,
+<span class="k">pub</span> radius: f32,
+<span class="c">/// Distance at which it sees the target.</span>
+<span class="k">pub</span> sight: f32,
+<span class="c">/// Seconds in Notice before Hunt.</span>
+<span class="k">pub</span> notice: f32,
+<span class="k">pub</span> hunt: <span class="t">Steer</span>,
+<span class="k">pub</span> attack: <span class="t">Attack</span>,
+<span class="c">/// Starting and resting morale, `0.0..=1.0`.</span>
+<span class="k">pub</span> courage: f32,
+<span class="c">/// Below this morale it retreats.</span>
+<span class="k">pub</span> flee_at: f32,
+<span class="c">/// Morale back per second.</span>
+<span class="k">pub</span> morale_regen: f32,
+<span class="c">/// A weakness hit during Telegraph stops the attack and stuns for this</span>
+<span class="c">/// many seconds. 0 turns the rule off.</span>
+<span class="k">pub</span> stagger: f32,
+<span class="c">/// What the director pays to spawn it.</span>
+<span class="k">pub</span> cost: f32,
+<span class="c">/// The lowest progress at which the director spawns it.</span>
+<span class="k">pub</span> min_progress: f32,</code></pre></div><div class="doc"><p>An enemy type: its numbers, its attack, how it moves, what hurts it.</p>
+<p><code>use warp_sdk::challenge::{DamageKind, Profile};
+let g = Profile::gloom();
+assert!(g.resists.multiplier(DamageKind::Pressure) &lt; 0.5); // a push does not solve it
+assert!(g.resists.multiplier(DamageKind::Energy) &gt; 1.0);   // light does</code></p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-Profile-new" data-name="profile::new"><div class="sig"><a class="anchor" href="#sym-Profile-new" aria-label="Link to Profile::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(name: &amp;str) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A plain profile: seeks and bites, neutral to every kind.</p></div></div><div class="item" id="sym-Profile-gloom" data-name="profile::gloom"><div class="sig"><a class="anchor" href="#sym-Profile-gloom" aria-label="Link to Profile::gloom">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">gloom</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A shadow creature: shrugs off pushes and darts, fears light. Orbits,
+then lunges. Use [<code>Tool::flare</code>] and [<code>Tool::sonic_pulse</code>].</p></div></div><div class="item" id="sym-Profile-shellback" data-name="profile::shellback"><div class="sig"><a class="anchor" href="#sym-Profile-shellback" aria-label="Link to Profile::shellback">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">shellback</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>An armored crawler: heavy armor, resists light, weak to sound and
+heat. Slow, with a wide claw sweep.</p></div></div><div class="item" id="sym-Profile-nipper" data-name="profile::nipper"><div class="sig"><a class="anchor" href="#sym-Profile-nipper" aria-label="Link to Profile::nipper">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">nipper</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A small schooling biter: weak alone, a danger in a group. Weak to
+sonic, easy to frighten.</p></div></div><div class="item" id="sym-Profile-lurker" data-name="profile::lurker"><div class="sig"><a class="anchor" href="#sym-Profile-lurker" aria-label="Link to Profile::lurker">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">lurker</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>An ambusher: hides without movement, then strikes hard. Weak to
+light, which also finds it.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Sense" data-name="sense"><div class="sig"><a class="anchor" href="#sym-Sense" aria-label="Link to Sense">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Sense</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The player position. `None` when the player is hidden.</span>
+<span class="k">pub</span> target: <span class="t">Option</span>&lt;<span class="t">Vec2</span>&gt;,
+<span class="c">/// A lure position that pulls this enemy, if any.</span>
+<span class="k">pub</span> lure: <span class="t">Option</span>&lt;<span class="t">Vec2</span>&gt;,</code></pre></div><div class="doc"><p>What an enemy knows this frame.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Enemy" data-name="enemy"><div class="sig"><a class="anchor" href="#sym-Enemy" aria-label="Link to Enemy">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Enemy</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> id: u32,
+<span class="c">/// Index into the arena roster.</span>
+<span class="k">pub</span> kind: usize,
+<span class="k">pub</span> profile: <span class="t">Profile</span>,
+<span class="k">pub</span> pos: <span class="t">Vec2</span>,
+<span class="k">pub</span> vel: <span class="t">Vec2</span>,
+<span class="k">pub</span> health: <span class="t">Health</span>,
+<span class="k">pub</span> statuses: <span class="t">Statuses</span>,
+<span class="k">pub</span> phase: <span class="t">Phase</span>,
+<span class="c">/// Seconds in the current phase.</span>
+<span class="k">pub</span> phase_t: f32,
+<span class="c">/// `0.0..=1.0`. Below `profile.flee_at` the enemy retreats.</span>
+<span class="k">pub</span> morale: f32,
+<span class="c">/// The direction locked at the start of the telegraph.</span>
+<span class="k">pub</span> attack_dir: <span class="t">Vec2</span>,
+<span class="k">pub</span> attack_cd: f32,
+<span class="c">/// Patrol points. Empty means wander near `home`.</span>
+<span class="k">pub</span> patrol: <span class="t">Vec</span>&lt;<span class="t">Vec2</span>&gt;,
+<span class="k">pub</span> home: <span class="t">Vec2</span>,
+<span class="c">/// Damage multiplier from the director at spawn.</span>
+<span class="k">pub</span> damage_mul: f32,
+<span class="c">/// Telegraph multiplier from the director at spawn.</span>
+<span class="k">pub</span> telegraph_mul: f32,</code></pre></div><div class="doc"><p>One enemy: position, health, statuses, phase and morale.</p></div></div><details class="members"><summary>7 methods</summary><div class="item" id="sym-Enemy-new" data-name="enemy::new"><div class="sig"><a class="anchor" href="#sym-Enemy-new" aria-label="Link to Enemy::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(id: u32, kind: usize, profile: <span class="t">Profile</span>, pos: <span class="t">Vec2</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A new enemy at <code>pos</code> with full health and morale.</p></div></div><div class="item" id="sym-Enemy-telegraph_secs" data-name="enemy::telegraph_secs"><div class="sig"><a class="anchor" href="#sym-Enemy-telegraph_secs" aria-label="Link to Enemy::telegraph_secs">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">telegraph_secs</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The telegraph length this enemy uses, after difficulty.</p></div></div><div class="item" id="sym-Enemy-telegraph_progress" data-name="enemy::telegraph_progress"><div class="sig"><a class="anchor" href="#sym-Enemy-telegraph_progress" aria-label="Link to Enemy::telegraph_progress">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">telegraph_progress</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;f32&gt;</code></div><div class="doc"><p>Telegraph progress, <code>0.0..=1.0</code>, or <code>None</code> outside Telegraph.
+Draw the warning so that it fills as this goes to 1.</p></div></div><div class="item" id="sym-Enemy-hidden" data-name="enemy::hidden"><div class="sig"><a class="anchor" href="#sym-Enemy-hidden" aria-label="Link to Enemy::hidden">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">hidden</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True for an ambusher that waits hidden.</p></div></div><div class="item" id="sym-Enemy-take" data-name="enemy::take"><div class="sig"><a class="anchor" href="#sym-Enemy-take" aria-label="Link to Enemy::take">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, hit: &amp;<span class="t">Hit</span>) -&gt; <span class="t">Outcome</span></code></div><div class="doc"><p>Take one hit: health, status, push and morale. A weakness hit during
+Telegraph staggers the enemy and cancels the attack.</p></div></div><div class="item" id="sym-Enemy-shaken" data-name="enemy::shaken"><div class="sig"><a class="anchor" href="#sym-Enemy-shaken" aria-label="Link to Enemy::shaken">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">shaken</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, amount: f32)</code></div><div class="doc"><p>Lower morale, for example when an ally dies nearby.</p></div></div><div class="item" id="sym-Enemy-think" data-name="enemy::think"><div class="sig"><a class="anchor" href="#sym-Enemy-think" aria-label="Link to Enemy::think">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">think</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32, sense: <span class="t">Sense</span>, neighbors: &amp;[(<span class="t">Vec2</span>, <span class="t">Vec2</span>)], rng: &amp;<span class="k">mut</span> <span class="t">Rng</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">EnemyAct</span>&gt;</code></div><div class="doc"><p>Run the state machine and move for one frame.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-EnemyAct" data-name="enemyact"><div class="sig"><a class="anchor" href="#sym-EnemyAct" aria-label="Link to EnemyAct">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">EnemyAct</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The telegraph started. Show a warning for `secs`.</span>
+<span class="t">Telegraph</span> { dir: <span class="t">Vec2</span>, secs: f32 },
+<span class="c">/// The attack lands now. Test the player against the cone.</span>
+<span class="t">Strike</span> { origin: <span class="t">Vec2</span>, dir: <span class="t">Vec2</span>, reach: f32, arc: f32, hit: <span class="t">Hit</span> },
+<span class="c">/// Morale broke. The enemy runs.</span>
+<span class="t">Routed</span>,
+<span class="c">/// A status ended.</span>
+<span class="t">StatusOff</span>(<span class="t">StatusKind</span>),
+<span class="c">/// Burn or another tick did damage.</span>
+<span class="t">Ticked</span>(<span class="t">Outcome</span>),</code></pre></div><div class="doc"><p>Something an enemy did in [<code>Enemy::think</code>].</p></div></div></div><div class="typeblock"><div class="item" id="sym-Team" data-name="team"><div class="sig"><a class="anchor" href="#sym-Team" aria-label="Link to Team">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Team</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Player</span>,
+<span class="t">Enemy</span>,</code></pre></div><div class="doc"><p>Which side a projectile or deployable is on.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Projectile" data-name="projectile"><div class="sig"><a class="anchor" href="#sym-Projectile" aria-label="Link to Projectile">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Projectile</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> id: u32,
+<span class="k">pub</span> team: <span class="t">Team</span>,
+<span class="k">pub</span> pos: <span class="t">Vec2</span>,
+<span class="k">pub</span> vel: <span class="t">Vec2</span>,
+<span class="k">pub</span> radius: f32,
+<span class="c">/// Seconds left.</span>
+<span class="k">pub</span> life: f32,
+<span class="k">pub</span> hit: <span class="t">Hit</span>,
+<span class="c">/// Extra targets it can pass through.</span>
+<span class="k">pub</span> pierce: u8,
+<span class="c">/// Targets already hit, so a piercing projectile hits each once.</span>
+<span class="k">pub</span> struck: <span class="t">Vec</span>&lt;u32&gt;,</code></pre></div><div class="doc"><p>One projectile.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Impact" data-name="impact"><div class="sig"><a class="anchor" href="#sym-Impact" aria-label="Link to Impact">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Impact</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> projectile: u32,
+<span class="k">pub</span> target: u32,
+<span class="k">pub</span> pos: <span class="t">Vec2</span>,
+<span class="k">pub</span> hit: <span class="t">Hit</span>,</code></pre></div><div class="doc"><p>One contact that [<code>Projectiles::step</code>] found.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Projectiles" data-name="projectiles"><div class="sig"><a class="anchor" href="#sym-Projectiles" aria-label="Link to Projectiles">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Projectiles</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> list: <span class="t">Vec</span>&lt;<span class="t">Projectile</span>&gt;,</code></pre></div><div class="doc"><p>A list of live projectiles with lifetimes.</p>
+<p><code>use warp_sdk::challenge::{DamageKind, Hit, Projectiles, Team};
+use warp_sdk::ultraviolet::Vec2;
+let mut p = Projectiles::default();
+p.spawn(Team::Player, Vec2::zero(), Vec2::new(10.0, 0.0), 0.1, 1.0, Hit::new(DamageKind::Impact, 5.0), 0);
+// The closure is the collision test: return the id of what it touches.
+let hits = p.step(0.2, |pr| (pr.pos.x &gt; 1.5).then_some(7));
+assert_eq!(hits[0].target, 7);
+assert!(p.list.is_empty()); // spent on the hit</code></p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-Projectiles-spawn" data-name="projectiles::spawn"><div class="sig"><a class="anchor" href="#sym-Projectiles-spawn" aria-label="Link to Projectiles::spawn">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">spawn</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, team: <span class="t">Team</span>, pos: <span class="t">Vec2</span>, vel: <span class="t">Vec2</span>, radius: f32, life: f32, hit: <span class="t">Hit</span>, pierce: u8, ) -&gt; u32</code></div><div class="doc"><p>Add one projectile. Returns its id.</p></div></div><div class="item" id="sym-Projectiles-step" data-name="projectiles::step"><div class="sig"><a class="anchor" href="#sym-Projectiles-step" aria-label="Link to Projectiles::step">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">step</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32, <span class="k">mut</span> collide: <span class="k">impl</span> <span class="t">FnMut</span>(&amp;<span class="t">Projectile</span>) -&gt; <span class="t">Option</span>&lt;u32&gt;) -&gt; <span class="t">Vec</span>&lt;<span class="t">Impact</span>&gt;</code></div><div class="doc"><p>Move every projectile, then call <code>collide</code> on each. <code>collide</code> returns
+the id of the target it touches, or <code>None</code>. A contact spends one
+pierce. A projectile with no pierce left, or no life left, is removed.
+Returns every contact, in order, for the caller to apply.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Deployed" data-name="deployed"><div class="sig"><a class="anchor" href="#sym-Deployed" aria-label="Link to Deployed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Deployed</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> id: u32,
+<span class="k">pub</span> kind: <span class="t">Deployable</span>,
+<span class="k">pub</span> team: <span class="t">Team</span>,
+<span class="k">pub</span> pos: <span class="t">Vec2</span>,
+<span class="c">/// Seconds since it was put down.</span>
+<span class="k">pub</span> age: f32,
+<span class="k">pub</span> hit: <span class="t">Hit</span>,</code></pre></div><div class="doc"><p>One deployable in the world.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Deployed-armed" data-name="deployed::armed"><div class="sig"><a class="anchor" href="#sym-Deployed-armed" aria-label="Link to Deployed::armed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">armed</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True when a mine is armed. Other kinds are always armed.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Rect" data-name="rect"><div class="sig"><a class="anchor" href="#sym-Rect" aria-label="Link to Rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Rect</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> min: <span class="t">Vec2</span>,
+<span class="k">pub</span> max: <span class="t">Vec2</span>,</code></pre></div><div class="doc"><p>An axis-aligned rectangle in world units.</p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-Rect-new" data-name="rect::new"><div class="sig"><a class="anchor" href="#sym-Rect-new" aria-label="Link to Rect::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(min: <span class="t">Vec2</span>, max: <span class="t">Vec2</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A rectangle from two corners.</p></div></div><div class="item" id="sym-Rect-centered" data-name="rect::centered"><div class="sig"><a class="anchor" href="#sym-Rect-centered" aria-label="Link to Rect::centered">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">centered</span>(center: <span class="t">Vec2</span>, size: <span class="t">Vec2</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A rectangle of <code>size</code> around <code>center</code>.</p></div></div><div class="item" id="sym-Rect-contains" data-name="rect::contains"><div class="sig"><a class="anchor" href="#sym-Rect-contains" aria-label="Link to Rect::contains">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">contains</span>(&amp;<span class="k">self</span>, p: <span class="t">Vec2</span>) -&gt; bool</code></div><div class="doc"><p>True when <code>p</code> is inside or on the edge.</p></div></div><div class="item" id="sym-Rect-grow" data-name="rect::grow"><div class="sig"><a class="anchor" href="#sym-Rect-grow" aria-label="Link to Rect::grow">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">grow</span>(&amp;<span class="k">self</span>, m: f32) -&gt; <span class="t">Rect</span></code></div><div class="doc"><p>The rectangle grown by <code>m</code> on every side.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Difficulty" data-name="difficulty"><div class="sig"><a class="anchor" href="#sym-Difficulty" aria-label="Link to Difficulty">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Difficulty</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> hp: f32,
+<span class="k">pub</span> damage: f32,
+<span class="k">pub</span> speed: f32,
+<span class="c">/// Telegraph multiplier. Never below 0.6, and the telegraph never below</span>
+<span class="c">/// [`MIN_TELEGRAPH`].</span>
+<span class="k">pub</span> telegraph: f32,</code></pre></div><div class="doc"><p>Difficulty numbers at one moment. The director makes them from progress
+and the wave number. The arena applies them at spawn.</p>
+<p><code>use warp_sdk::challenge::Difficulty;
+let early = Difficulty::at(0.0, 1);
+let late = Difficulty::at(1.0, 10);
+assert!(late.hp &gt; early.hp &amp;&amp; late.telegraph &lt; early.telegraph);</code></p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Difficulty-at" data-name="difficulty::at"><div class="sig"><a class="anchor" href="#sym-Difficulty-at" aria-label="Link to Difficulty::at">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">at</span>(progress: f32, wave: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The numbers at <code>progress</code> (<code>0.0..=1.0</code>) and <code>wave</code> (from 1).</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-DirectorConfig" data-name="directorconfig"><div class="sig"><a class="anchor" href="#sym-DirectorConfig" aria-label="Link to DirectorConfig">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">DirectorConfig</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Budget of the first wave at progress 0.</span>
+<span class="k">pub</span> base_budget: f32,
+<span class="c">/// Budget added at progress 1.</span>
+<span class="k">pub</span> budget_per_progress: f32,
+<span class="c">/// Budget added per wave.</span>
+<span class="k">pub</span> budget_per_wave: f32,
+<span class="c">/// Seconds of rest at progress 0.</span>
+<span class="k">pub</span> rest: f32,
+<span class="c">/// Seconds of rest at progress 1.</span>
+<span class="k">pub</span> rest_late: f32,
+<span class="c">/// Seconds between two spawns in a wave.</span>
+<span class="k">pub</span> spawn_every: f32,
+<span class="c">/// The most enemies alive at once.</span>
+<span class="k">pub</span> max_alive: usize,
+<span class="c">/// Distance outside the view that a spawn keeps.</span>
+<span class="k">pub</span> view_margin: f32,
+<span class="c">/// Where spawns can go.</span>
+<span class="k">pub</span> bounds: <span class="t">Rect</span>,
+<span class="c">/// Seconds before the first wave.</span>
+<span class="k">pub</span> first_rest: f32,</code></pre></div><div class="doc"><p>The director's settings.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Pace" data-name="pace"><div class="sig"><a class="anchor" href="#sym-Pace" aria-label="Link to Pace">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Pace</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// No spawns. `left` seconds until the next wave.</span>
+<span class="t">Rest</span> { left: f32 },
+<span class="c">/// A wave is on. `budget` is what is left to spend.</span>
+<span class="t">Wave</span> { budget: f32 },</code></pre></div><div class="doc"><p>Wave or rest.</p></div></div></div><div class="typeblock"><div class="item" id="sym-DirectorAct" data-name="directoract"><div class="sig"><a class="anchor" href="#sym-DirectorAct" aria-label="Link to DirectorAct">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">DirectorAct</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">WaveStarted</span> { wave: u32, budget: f32 },
+<span class="c">/// Spawn roster entry `kind` at `pos`.</span>
+<span class="t">Spawn</span> { kind: usize, pos: <span class="t">Vec2</span> },
+<span class="c">/// The wave is spent and every enemy is gone.</span>
+<span class="t">WaveCleared</span> { wave: u32 },
+<span class="t">RestStarted</span> { secs: f32 },</code></pre></div><div class="doc"><p>What the director decided this frame.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Director" data-name="director"><div class="sig"><a class="anchor" href="#sym-Director" aria-label="Link to Director">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Director</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> config: <span class="t">DirectorConfig</span>,
+<span class="k">pub</span> pace: <span class="t">Pace</span>,
+<span class="c">/// The current or last wave number. 0 before the first wave.</span>
+<span class="k">pub</span> wave: u32,
+<span class="k">pub</span> progress: f32,</code></pre></div><div class="doc"><p>The threat director: escalation from progress, wave budgets, rests, and
+spawns that never appear in view.</p>
+<p><code>use warp_sdk::challenge::{Director, DirectorConfig, Profile, Rect, Rng};
+use warp_sdk::ultraviolet::Vec2;
+let roster = vec![Profile::gloom()];
+let mut d = Director::new(DirectorConfig::default());
+let mut rng = Rng::new(1);
+let view = Rect::centered(Vec2::zero(), Vec2::new(10.0, 6.0));
+let acts = d.update(5.0, 0.0, 0, view, &amp;roster, &amp;mut rng);
+assert!(!acts.is_empty()); // the first wave started</code></p></div></div><details class="members"><summary>6 methods</summary><div class="item" id="sym-Director-new" data-name="director::new"><div class="sig"><a class="anchor" href="#sym-Director-new" aria-label="Link to Director::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(config: <span class="t">DirectorConfig</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A director that rests <code>first_rest</code> seconds before wave 1.</p></div></div><div class="item" id="sym-Director-budget_for" data-name="director::budget_for"><div class="sig"><a class="anchor" href="#sym-Director-budget_for" aria-label="Link to Director::budget_for">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">budget_for</span>(&amp;<span class="k">self</span>, wave: u32, progress: f32) -&gt; f32</code></div><div class="doc"><p>The budget of wave <code>wave</code> at <code>progress</code>.</p></div></div><div class="item" id="sym-Director-rest_for" data-name="director::rest_for"><div class="sig"><a class="anchor" href="#sym-Director-rest_for" aria-label="Link to Director::rest_for">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">rest_for</span>(&amp;<span class="k">self</span>, progress: f32) -&gt; f32</code></div><div class="doc"><p>The rest length at <code>progress</code>.</p></div></div><div class="item" id="sym-Director-difficulty" data-name="director::difficulty"><div class="sig"><a class="anchor" href="#sym-Director-difficulty" aria-label="Link to Director::difficulty">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">difficulty</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Difficulty</span></code></div><div class="doc"><p>The difficulty now.</p></div></div><div class="item" id="sym-Director-resting" data-name="director::resting"><div class="sig"><a class="anchor" href="#sym-Director-resting" aria-label="Link to Director::resting">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">resting</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True during a rest.</p></div></div><div class="item" id="sym-Director-update" data-name="director::update"><div class="sig"><a class="anchor" href="#sym-Director-update" aria-label="Link to Director::update">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">update</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32, progress: f32, alive: usize, view: <span class="t">Rect</span>, roster: &amp;[<span class="t">Profile</span>], rng: &amp;<span class="k">mut</span> <span class="t">Rng</span>, ) -&gt; <span class="t">Vec</span>&lt;<span class="t">DirectorAct</span>&gt;</code></div><div class="doc"><p>Run one frame. <code>alive</code> is the enemy count now. <code>view</code> is what the
+player sees: no spawn lands in it.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Who" data-name="who"><div class="sig"><a class="anchor" href="#sym-Who" aria-label="Link to Who">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Who</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Player</span>,
+<span class="t">Enemy</span>(u32),</code></pre></div><div class="doc"><p>Who a hit landed on.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Event" data-name="event"><div class="sig"><a class="anchor" href="#sym-Event" aria-label="Link to Event">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Event</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A hit dealt damage, or was resisted. Flash by `effect`.</span>
+<span class="t">Hit</span> { who: <span class="t">Who</span>, kind: <span class="t">DamageKind</span>, dealt: f32, effect: <span class="t">Effect</span>, pos: <span class="t">Vec2</span> },
+<span class="t">Died</span> { who: <span class="t">Who</span>, pos: <span class="t">Vec2</span> },
+<span class="c">/// An enemy warns. Draw the cone from `pos` along `dir` for `secs`.</span>
+<span class="t">Telegraph</span> { enemy: u32, pos: <span class="t">Vec2</span>, dir: <span class="t">Vec2</span>, reach: f32, arc: f32, secs: f32 },
+<span class="c">/// An enemy attack resolved. `landed` is false when the player dodged.</span>
+<span class="t">Strike</span> { enemy: u32, pos: <span class="t">Vec2</span>, dir: <span class="t">Vec2</span>, landed: bool },
+<span class="t">StatusOn</span> { who: <span class="t">Who</span>, status: <span class="t">StatusKind</span> },
+<span class="t">StatusOff</span> { who: <span class="t">Who</span>, status: <span class="t">StatusKind</span> },
+<span class="c">/// Morale broke. The enemy runs.</span>
+<span class="t">Routed</span> { enemy: u32 },
+<span class="c">/// A routed enemy left the bounds and is gone. It counts as driven off.</span>
+<span class="t">Fled</span> { enemy: u32 },
+<span class="t">Spawned</span> { enemy: u32, kind: usize, pos: <span class="t">Vec2</span> },
+<span class="t">WaveStarted</span> { wave: u32, budget: f32 },
+<span class="t">WaveCleared</span> { wave: u32 },
+<span class="t">RestStarted</span> { secs: f32 },
+<span class="c">/// A tool fired.</span>
+<span class="t">Fired</span> { tool: <span class="t">String</span>, origin: <span class="t">Vec2</span>, dir: <span class="t">Vec2</span> },
+<span class="c">/// An area went off: a pulse or a mine.</span>
+<span class="t">Blast</span> { pos: <span class="t">Vec2</span>, radius: f32 },</code></pre></div><div class="doc"><p>Everything the arena did in one step, for the game to show and sound.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Player" data-name="player"><div class="sig"><a class="anchor" href="#sym-Player" aria-label="Link to Player">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Player</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> pos: <span class="t">Vec2</span>,
+<span class="k">pub</span> vel: <span class="t">Vec2</span>,
+<span class="k">pub</span> radius: f32,
+<span class="k">pub</span> health: <span class="t">Health</span>,
+<span class="k">pub</span> statuses: <span class="t">Statuses</span>,
+<span class="k">pub</span> loadout: <span class="t">Loadout</span>,
+<span class="c">/// When true, enemies cannot see the player.</span>
+<span class="k">pub</span> hidden: bool,</code></pre></div><div class="doc"><p>The player as the arena sees it.</p>
+<p><code>use warp_sdk::challenge::{Player, Tool};
+use warp_sdk::ultraviolet::Vec2;
+let p = Player::new(Vec2::zero(), 100.0).with_tool(Tool::dart());
+assert_eq!(p.loadout.slots.len(), 1);</code></p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-Player-new" data-name="player::new"><div class="sig"><a class="anchor" href="#sym-Player-new" aria-label="Link to Player::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(pos: <span class="t">Vec2</span>, hp: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A player at <code>pos</code> with <code>hp</code>, 0.6 s of iframes, and an empty loadout
+with 100 energy and 25 energy per second.</p></div></div><div class="item" id="sym-Player-with_tool" data-name="player::with_tool"><div class="sig"><a class="anchor" href="#sym-Player-with_tool" aria-label="Link to Player::with_tool">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_tool</span>(<span class="k">mut</span> <span class="k">self</span>, t: <span class="t">Tool</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Add a tool to the loadout.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Arena" data-name="arena"><div class="sig"><a class="anchor" href="#sym-Arena" aria-label="Link to Arena">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Arena</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> roster: <span class="t">Vec</span>&lt;<span class="t">Profile</span>&gt;,
+<span class="k">pub</span> enemies: <span class="t">Vec</span>&lt;<span class="t">Enemy</span>&gt;,
+<span class="k">pub</span> projectiles: <span class="t">Projectiles</span>,
+<span class="k">pub</span> deployed: <span class="t">Vec</span>&lt;<span class="t">Deployed</span>&gt;,
+<span class="k">pub</span> director: <span class="t">Director</span>,
+<span class="k">pub</span> rng: <span class="t">Rng</span>,
+<span class="c">/// The events of the last [`Arena::step`] and [`Arena::fire`] calls.</span>
+<span class="k">pub</span> events: <span class="t">Vec</span>&lt;<span class="t">Event</span>&gt;,
+<span class="c">/// Enemies killed so far.</span>
+<span class="k">pub</span> kills: u32,
+<span class="c">/// Enemies driven off so far.</span>
+<span class="k">pub</span> routs: u32,</code></pre></div><div class="doc"><p>Enemies, projectiles, deployables and the director, run together.</p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-Arena-new" data-name="arena::new"><div class="sig"><a class="anchor" href="#sym-Arena-new" aria-label="Link to Arena::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(seed: u64, roster: <span class="t">Vec</span>&lt;<span class="t">Profile</span>&gt;, director: <span class="t">DirectorConfig</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>An arena with <code>roster</code> as the enemy types and a seeded random source.</p></div></div><div class="item" id="sym-Arena-spawn" data-name="arena::spawn"><div class="sig"><a class="anchor" href="#sym-Arena-spawn" aria-label="Link to Arena::spawn">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">spawn</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, kind: usize, pos: <span class="t">Vec2</span>) -&gt; u32</code></div><div class="doc"><p>Spawn roster entry <code>kind</code> at <code>pos</code> with the director's difficulty.
+Returns the enemy id. The enemy starts Idle and wanders near <code>pos</code>
+until it sees the player. The director's own spawns start in Hunt.</p></div></div><div class="item" id="sym-Arena-fire" data-name="arena::fire"><div class="sig"><a class="anchor" href="#sym-Arena-fire" aria-label="Link to Arena::fire">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">fire</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, shot: &amp;<span class="t">Shot</span>)</code></div><div class="doc"><p>Resolve one shot. Projectiles and deployables go in the world.
+Beams, pulses and melee hit at once. The events go to
+[<code>Arena::events</code>], and the next [<code>Arena::step</code>] returns them once.</p></div></div><div class="item" id="sym-Arena-step" data-name="arena::step"><div class="sig"><a class="anchor" href="#sym-Arena-step" aria-label="Link to Arena::step">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">step</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32, player: &amp;<span class="k">mut</span> <span class="t">Player</span>, progress: f32, view: <span class="t">Rect</span>) -&gt; &amp;[<span class="t">Event</span>]</code></div><div class="doc"><p>Run one frame: player statuses, director, enemies, projectiles and
+deployables. <code>progress</code> (<code>0.0..=1.0</code>) drives escalation. <code>view</code> is
+what the player sees. Returns this frame's events.</p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-MIN_TELEGRAPH" data-name="min_telegraph"><div class="sig"><a class="anchor" href="#sym-MIN_TELEGRAPH" aria-label="Link to MIN_TELEGRAPH">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MIN_TELEGRAPH</span>: f32 = <span class="n">0.25</span></code></div><div class="doc"><p>The shortest telegraph any attack can have, in seconds. Difficulty can
+make a telegraph shorter, but never shorter than this.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="juice.html" data-slug="juice">Juice</a></li><li><a href="teach.html" data-slug="teach">Teach kit</a></li><li><a href="economy.html" data-slug="economy">Economy kit</a></li><li><a href="quest.html" data-slug="quest">Quest kit</a></li><li><a href="metaprog.html" data-slug="metaprog">Metaprogression</a></li><li><a href="hud.html" data-slug="hud">HUD</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/challenge.rs</code> - <code>A threat that one generic push removes is not a threat.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/challenge.rs</code> - <code>All logic is pure and deterministic</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/examples/challenge.rs</code> - <code>all game logic is in `Sim::step`, which takes plain `Controls`.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/challenge.rs</code> - <code>Damage = `amount * (1 - resistance) - max(armor - pierce, 0)`, never</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/challenge.rs</code> - <code>How well a hit worked. Show it: a weak hit flashes bright, a resisted</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/challenge.rs</code> - <code>Seconds left of stun guard. A stun during the guard lasts a third.</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/challenge.rs</code> - <code>Three tiers: more damage, then faster, then one more projectile.</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/src/challenge.rs</code> - <code>The attack path is always Hunt → Telegraph → Attack → Recover. Damage</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_sdk/src/challenge.rs</code> - <code>let shock = if out.effect == Effect::Weak { 1.5 } else { 0.6 };</code></li><li id="ref-10"><a class="back" href="#cite-10" aria-label="Back to the text">^</a> <code>warp_sdk/src/challenge.rs</code> - <code>A routed enemy left the bounds and is gone. It counts as driven off.</code></li><li id="ref-11"><a class="back" href="#cite-11" aria-label="Back to the text">^</a> <code>warp_sdk/src/challenge.rs</code> - <code>telegraph: (1.0 - 0.3 * p - 0.01 * w).max(0.6),</code></li><li id="ref-12"><a class="back" href="#cite-12" aria-label="Back to the text">^</a> <code>warp_sdk/src/challenge.rs</code> - <code>A point in the bounds and outside `view` grown by the margin. Tries</code></li></ol><table class="navbox"><tr><th><a href="category-game-systems.html">Game systems</a></th></tr><tr><td><b>Challenge kit</b> · <a href="economy.html" data-slug="economy">Economy kit</a> · <a href="quest.html" data-slug="quest">Quest kit</a> · <a href="metaprog.html" data-slug="metaprog">Metaprogression</a> · <a href="gamepad.html" data-slug="gamepad">Gamepad</a> · <a href="soundtrack.html" data-slug="soundtrack">Soundtrack</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-game-systems.html">Game systems</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

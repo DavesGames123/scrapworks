@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Post effects - Warp Wiki</title>
+<meta name="description" content="One switch per post effect, settable from any thread">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="post">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#the-effects">The effects</a></li><li><a href="#presets">Presets</a></li><li><a href="#defaults">Defaults</a></li><li><a href="#when-a-change-shows">When a change shows</a></li><li><a href="#usage">Usage</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Post effects</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">One switch per post effect, settable from any thread</p><table class="infobox"><caption>Post effects</caption><tr><th>Category</th><td><a href="category-look.html">Look</a></td></tr><tr><th>Module</th><td><code>warp_sdk::post</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/post.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">25</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example starter</code><br><code>cargo run -p warp_sdk --example settings</code></td></tr></table><p><strong>Post effects</strong> is the Warp module that controls tonemapping, bloom, colour grade, antialiasing, depth of field, motion blur and the CRT tube through one value with one switch per effect. It lives in <a class="sym" href="post.html"><code>warp_sdk::post</code></a>. <a class="sym" href="#sym-Post"><code>Post</code></a> is a view of the post fields of <code>DisplaySettings</code>, grouped by effect, and a game sets it with one line from <code>new</code>, from <code>gui</code> or from a worker thread. A switch that is off skips the GPU passes of that effect.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> The <a href="art-direction.html#lighting-and-visuals" data-slug="art-direction">art direction</a> requires this module and not raw <code>DisplaySettings</code> fields.</p>
+<h2 id="the-effects">The effects</h2>
+<p>The fields of <a class="sym" href="#sym-Post"><code>Post</code></a> are in the order the frame runs them.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th><code>DisplaySettings</code> fields</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tonemap</code></td>
+<td><a class="sym" href="#sym-Tonemap"><code>Tonemap</code></a></td>
+<td><code>pp_enabled</code></td>
+<td>the HDR tonemap pass</td>
+</tr>
+<tr>
+<td><code>exposure</code></td>
+<td><a class="sym" href="#sym-Exposure"><code>Exposure</code></a></td>
+<td><code>pp_exposure</code></td>
+<td>linear gain before the curve; has no switch, 1.0 is no change</td>
+</tr>
+<tr>
+<td><code>bloom</code></td>
+<td><a class="sym" href="#sym-Bloom"><code>Bloom</code></a></td>
+<td><code>pp_bloom_*</code></td>
+<td>bright parts glow</td>
+</tr>
+<tr>
+<td><code>grade</code></td>
+<td><a class="sym" href="#sym-Grade"><code>Grade</code></a></td>
+<td><code>pp_grade_enabled</code>, <code>pp_saturation</code> and others</td>
+<td>colour grade after the curve</td>
+</tr>
+<tr>
+<td><code>fxaa</code></td>
+<td><a class="sym" href="#sym-Fxaa"><code>Fxaa</code></a></td>
+<td><code>fxaa_*</code></td>
+<td>removes stair-step edges</td>
+</tr>
+<tr>
+<td><code>z_dof</code></td>
+<td><a class="sym" href="#sym-ZDof"><code>ZDof</code></a></td>
+<td><code>z_dof_*</code></td>
+<td>depth of field from the scene depth buffer</td>
+</tr>
+<tr>
+<td><code>dof</code></td>
+<td><a class="sym" href="#sym-Dof"><code>Dof</code></a></td>
+<td><code>dof_*</code></td>
+<td>screen-space depth of field</td>
+</tr>
+<tr>
+<td><code>motion_blur</code></td>
+<td><a class="sym" href="#sym-MotionBlur"><code>MotionBlur</code></a></td>
+<td><code>motion_blur_*</code></td>
+<td>motion blur</td>
+</tr>
+<tr>
+<td><code>crt</code></td>
+<td><a class="sym" href="#sym-Crt"><code>Crt</code></a></td>
+<td><code>crt_*</code></td>
+<td>the CRT tube</td>
+</tr>
+</tbody>
+</table>
+<p>Exposure, bloom and grade run inside the tonemap pass, so they do nothing while <code>tonemap</code> is off.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> Bloom off records no bloom passes. With the bloom enabled, the pass count is one extract pass plus a downsample and an upsample chain across five mips, which is nine passes.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup> An intensity below <a class="sym" href="gpu.html#sym-BLOOM_MIN_INTENSITY"><code>BLOOM_MIN_INTENSITY</code></a> also records none. Grade off sends the identity grade.</p>
+<p><a class="sym" href="#sym-CrtTuning"><code>CrtTuning</code></a> keeps the tuning fields of the tube as one block. A game changes them by their <code>DisplaySettings</code> names through <a class="sym" href="#sym-CrtTuning-fields_mut"><code>CrtTuning::fields_mut</code></a>, for example <code>p.crt.tuning.fields_mut().crt_scanline_count = 240.0</code>. A change to a field that is not <code>crt_*</code> is dropped, and <code>crt_enabled</code> is <a class="sym" href="profile.html#sym-enabled"><code>enabled</code></a>.</p>
+<h2 id="presets">Presets</h2>
+<p>Each preset starts from the defaults, so a value that it does not name is the tuned default.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Preset</th>
+<th>Tonemap</th>
+<th>FXAA</th>
+<th>Bloom (intensity, threshold, radius)</th>
+<th>Grade (saturation, contrast, temperature, brightness)</th>
+<th>Other</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Post-off"><code>Post::off</code></a></td>
+<td>off</td>
+<td>off</td>
+<td>off</td>
+<td>off</td>
+<td>every switch off</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Post-clean"><code>Post::clean</code></a></td>
+<td>on</td>
+<td>on</td>
+<td>off</td>
+<td>off</td>
+<td></td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Post-cinematic"><code>Post::cinematic</code></a></td>
+<td>on</td>
+<td>on</td>
+<td>0.2, 1.0, 1.5</td>
+<td>1.1, 1.12, 0.15, -0.02</td>
+<td></td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Post-underwater"><code>Post::underwater</code></a></td>
+<td>on</td>
+<td>on</td>
+<td>0.3, 0.9, 2.5</td>
+<td>0.75, 0.9, -0.6, -0.03</td>
+<td>exposure 0.85</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Post-neon"><code>Post::neon</code></a></td>
+<td>on</td>
+<td>on</td>
+<td>0.7, 0.8, 1.8</td>
+<td>1.6, 1.15, 0, 0</td>
+<td></td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Post-retro_crt"><code>Post::retro_crt</code></a></td>
+<td>on</td>
+<td>off</td>
+<td>0.25, 0.0, 1.2</td>
+<td>1.5, 0.994, 0, 0</td>
+<td>CRT on at default tuning</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Post-retro_crt"><code>Post::retro_crt</code></a> is the one preset that builds on the default value and not on <a class="sym" href="#sym-Post-clean"><code>Post::clean</code></a>, so it keeps the bloom and grade switches of the default value and leaves FXAA off.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<h2 id="defaults">Defaults</h2>
+<p>The default <a class="sym" href="#sym-Post"><code>Post</code></a> value reads <code>DisplaySettings::DEFAULT</code>. A game that never calls <a class="sym" href="post.html"><code>post</code></a> gets the picture it got before this module, because <code>tonemap</code> is off and with it exposure, bloom and grade.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup> The bloom and grade switches themselves ship on, under the tonemap switch, and a test asserts that.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup> A game that turns on only <code>tonemap</code> therefore gets bloom and grade at the default values.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Default</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>exposure gain</td>
+<td>1.0</td>
+</tr>
+<tr>
+<td>bloom threshold, intensity, radius</td>
+<td>0.0, 0.25, 1.2</td>
+</tr>
+<tr>
+<td>grade saturation, contrast, temperature, brightness</td>
+<td>1.5, 0.994, 0.0, 0.0</td>
+</tr>
+<tr>
+<td>FXAA subpix, edge threshold</td>
+<td>0.75, 0.166</td>
+</tr>
+<tr>
+<td>motion blur intensity</td>
+<td>0.5</td>
+</tr>
+<tr>
+<td>z DOF aperture, max blur</td>
+<td>50.0, 40.0</td>
+</tr>
+<tr>
+<td>DOF aperture, focal radius, max blur</td>
+<td>0.3, 0.5, 15.0</td>
+</tr>
+</tbody>
+</table>
+<p>The default bloom threshold of 0.0 blooms every lit surface. The art direction asks for a threshold of 0.8 to 1.0, which the presets <a class="sym" href="#sym-Post-cinematic"><code>Post::cinematic</code></a>, <a class="sym" href="#sym-Post-underwater"><code>Post::underwater</code></a> and <a class="sym" href="#sym-Post-neon"><code>Post::neon</code></a> hold.</p>
+<p>CRT is opt-in. The engine boots with <code>crt_enabled</code> false, and the repository guidance says not to enable it unless the art direction calls for it.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<h2 id="when-a-change-shows">When a change shows</h2>
+<p><a class="sym" href="#sym-set"><code>post::set</code></a> and <a class="sym" href="#sym-replace"><code>post::replace</code></a> write a store in <code>warp_core</code>, and not the <code>DisplaySettings</code> global. The global is locked for the whole of a GUI frame, so a write from another thread would wait for the frame to end, and a read from inside <code>gui</code> would lock it a second time and hang the process.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup> The store avoids that lock.</p>
+<p>One frame runs in this order.<sup class="ref"><a href="#ref-10" id="cite-10">[10]</a></sup></p>
+<ol>
+<li>The game <code>gui</code> writes the <code>&amp;mut DisplaySettings</code>.</li>
+<li><a class="sym" href="types.html#sym-sync_post_store"><code>sync_post_store</code></a> runs on that same borrow. If a <a class="sym" href="post.html"><code>post</code></a> call happened since the last frame, the post fields of the store replace those of the global, so the newest <a class="sym" href="post.html"><code>post</code></a> call wins over what <code>gui</code> wrote. If none happened, the global is copied into the store, so <a class="sym" href="#sym-get"><code>post::get</code></a> shows what the editor and <code>gui</code> wrote.</li>
+<li>The global goes to the postprocess, FXAA, DOF and CRT parameters.</li>
+</ol>
+<p>A <a class="sym" href="#sym-set"><code>post::set</code></a> applies once, at the next frame. After that the value is in the global and the editor Post panel can move it again. The store holds no override that wins every frame, because that would make the panel dead.<sup class="ref"><a href="#ref-11" id="cite-11">[11]</a></sup> <code>lighting_wrap</code> and <code>light_z</code> are scene lighting, and neither <a class="sym" href="#sym-Post-apply_to"><code>Post::apply_to</code></a> nor the store writes them.</p>
+<p><a class="sym" href="#sym-revision"><code>post::revision</code></a> counts <a class="sym" href="#sym-set"><code>set</code></a> and <a class="sym" href="#sym-replace"><code>replace</code></a> calls in the process. A different number since the last read means the settings changed.</p>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::post::{<span class="k">self</span>, <span class="t">Post</span>};
+
+post::<span class="f">replace</span>(<span class="t">Post</span>::<span class="f">underwater</span>());              <span class="c">// in `new`: the game's look</span>
+post::<span class="f">set</span>(|p| p.bloom.enabled = <span class="k">false</span>);         <span class="c">// a settings toggle, from any thread</span>
+<span class="k">let</span> bloom_on = post::<span class="f">get</span>().bloom.enabled;</code></pre></div>
+<p>The store is locked while the closure of <a class="sym" href="#sym-set"><code>post::set</code></a> runs, so the closure must not call <a class="sym" href="#sym-get"><code>post::get</code></a>, <a class="sym" href="#sym-set"><code>post::set</code></a> or <a class="sym" href="#sym-replace"><code>post::replace</code></a>, or the thread hangs. <a class="sym" href="#sym-replace"><code>post::replace</code></a> is <a class="sym" href="#sym-set"><code>post::set</code></a> with a closure that assigns the whole value.</p>
+<p><a class="sym" href="#sym-Post-from_display"><code>Post::from_display</code></a> and <a class="sym" href="#sym-Post-apply_to"><code>Post::apply_to</code></a> convert to and from <code>DisplaySettings</code>, and a test requires the round trip to be exact. The <a href="lit2d.html" data-slug="lit2d">Lit2d</a> example calls <code>post::replace(Post::cinematic())</code> in <code>new</code>, so that its emissive lamps bloom and lit surfaces stay crisp.</p>
+<h2 id="history">History</h2>
+<p>The module was added on 2026-10-29 in the commit "sdk: add post, one switch per effect that any thread can set".</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 25 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-post" class="modhead"><code>warp_sdk::post</code></h3><h4>Functions</h4><div class="item" id="sym-get" data-name="get"><div class="sig"><a class="anchor" href="#sym-get" aria-label="Link to get">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">get</span>() -&gt; <span class="t">Post</span></code></div><div class="doc"><p>The newest post settings: the last <code>set</code> or <code>replace</code>, or what the
+frame last rendered. Callable from any thread, and from inside <code>gui</code>.</p></div></div><div class="item" id="sym-set" data-name="set"><div class="sig"><a class="anchor" href="#sym-set" aria-label="Link to set">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set</span>(f: <span class="k">impl</span> <span class="t">FnOnce</span>(&amp;<span class="k">mut</span> <span class="t">Post</span>))</code></div><div class="doc"><p>Change the post settings. The engine applies the change at its next frame.</p>
+<p>The store is locked while <code>f</code> runs, so <code>f</code> must not call <code>get</code>, <code>set</code> or
+<code>replace</code>.</p></div></div><div class="item" id="sym-replace" data-name="replace"><div class="sig"><a class="anchor" href="#sym-replace" aria-label="Link to replace">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">replace</span>(p: <span class="t">Post</span>)</code></div><div class="doc"><p>Replace the post settings whole, for example with a preset.</p></div></div><div class="item" id="sym-revision" data-name="revision"><div class="sig"><a class="anchor" href="#sym-revision" aria-label="Link to revision">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">revision</span>() -&gt; u64</code></div><div class="doc"><p>How many <code>set</code> and <code>replace</code> calls the process has made. A different
+number since the last read means the post settings changed.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Post" data-name="post"><div class="sig"><a class="anchor" href="#sym-Post" aria-label="Link to Post">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Post</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The HDR tonemap pass. Exposure, bloom and grade run inside it, so they</span>
+<span class="c">/// do nothing while it is off. `DisplaySettings::pp_enabled`.</span>
+<span class="k">pub</span> tonemap: <span class="t">Tonemap</span>,
+<span class="k">pub</span> exposure: <span class="t">Exposure</span>,
+<span class="k">pub</span> bloom: <span class="t">Bloom</span>,
+<span class="k">pub</span> grade: <span class="t">Grade</span>,
+<span class="k">pub</span> fxaa: <span class="t">Fxaa</span>,
+<span class="c">/// Depth of field from the scene depth buffer (`z_dof_*`).</span>
+<span class="k">pub</span> z_dof: <span class="t">ZDof</span>,
+<span class="c">/// Screen-space depth of field (`dof_*`).</span>
+<span class="k">pub</span> dof: <span class="t">Dof</span>,
+<span class="k">pub</span> motion_blur: <span class="t">MotionBlur</span>,
+<span class="k">pub</span> crt: <span class="t">Crt</span>,</code></pre></div><div class="doc"><p>Every post effect the engine runs, in the order the frame runs them.</p></div></div><details class="members"><summary>8 methods</summary><div class="item" id="sym-Post-from_display" data-name="post::from_display"><div class="sig"><a class="anchor" href="#sym-Post-from_display" aria-label="Link to Post::from_display">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_display</span>(d: &amp;<span class="t">DisplaySettings</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Read the post fields of <code>d</code>.</p></div></div><div class="item" id="sym-Post-apply_to" data-name="post::apply_to"><div class="sig"><a class="anchor" href="#sym-Post-apply_to" aria-label="Link to Post::apply_to">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">apply_to</span>(&amp;<span class="k">self</span>, d: &amp;<span class="k">mut</span> <span class="t">DisplaySettings</span>)</code></div><div class="doc"><p>Write the post fields into <code>d</code>. Scene lighting (<code>lighting_wrap</code>,
+<code>light_z</code>) is not a post field and is not changed.</p></div></div><div class="item" id="sym-Post-off" data-name="post::off"><div class="sig"><a class="anchor" href="#sym-Post-off" aria-label="Link to Post::off">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">off</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Every effect off. The frame as <code>render</code> submitted it.</p></div></div><div class="item" id="sym-Post-clean" data-name="post::clean"><div class="sig"><a class="anchor" href="#sym-Post-clean" aria-label="Link to Post::clean">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clean</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The tonemap curve and FXAA, with no glow and no grade.</p></div></div><div class="item" id="sym-Post-cinematic" data-name="post::cinematic"><div class="sig"><a class="anchor" href="#sym-Post-cinematic" aria-label="Link to Post::cinematic">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cinematic</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Soft glow on the highlights, more contrast, a little warm.</p></div></div><div class="item" id="sym-Post-underwater" data-name="post::underwater"><div class="sig"><a class="anchor" href="#sym-Post-underwater" aria-label="Link to Post::underwater">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">underwater</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Dim, cold and soft: wide bloom, low saturation, a blue shift.</p></div></div><div class="item" id="sym-Post-neon" data-name="post::neon"><div class="sig"><a class="anchor" href="#sym-Post-neon" aria-label="Link to Post::neon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">neon</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Strong glow and saturated colour, for emissive shapes on black.</p></div></div><div class="item" id="sym-Post-retro_crt" data-name="post::retro_crt"><div class="sig"><a class="anchor" href="#sym-Post-retro_crt" aria-label="Link to Post::retro_crt">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">retro_crt</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The engine's tuned HDR look through the CRT tube, at its default tuning.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Tonemap" data-name="tonemap"><div class="sig"><a class="anchor" href="#sym-Tonemap" aria-label="Link to Tonemap">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Tonemap</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> enabled: bool,</code></pre></div><div class="doc"><p>Off shows the frame as <code>render</code> submitted it, with no tonemap curve.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Exposure" data-name="exposure"><div class="sig"><a class="anchor" href="#sym-Exposure" aria-label="Link to Exposure">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Exposure</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> gain: f32,</code></pre></div><div class="doc"><p>A linear gain on the HDR scene before the tonemap curve. 1.0 is no change.</p>
+<p>No <code>enabled</code> switch: exposure has no pass of its own, and a gain of 1.0
+is off. <code>DisplaySettings::pp_exposure</code>.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Bloom" data-name="bloom"><div class="sig"><a class="anchor" href="#sym-Bloom" aria-label="Link to Bloom">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Bloom</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> enabled: bool,
+<span class="k">pub</span> intensity: f32,
+<span class="c">/// HDR brightness above which a pixel glows.</span>
+<span class="k">pub</span> threshold: f32,
+<span class="k">pub</span> radius: f32,</code></pre></div><div class="doc"><p>Bright parts of the scene glow. Off skips all nine bloom passes.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Grade" data-name="grade"><div class="sig"><a class="anchor" href="#sym-Grade" aria-label="Link to Grade">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Grade</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> enabled: bool,
+<span class="k">pub</span> saturation: f32,
+<span class="k">pub</span> contrast: f32,
+<span class="c">/// Negative is cool, positive is warm.</span>
+<span class="k">pub</span> temperature: f32,
+<span class="k">pub</span> brightness: f32,</code></pre></div><div class="doc"><p>The colour grade after the tonemap curve. Off is the identity grade.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Fxaa" data-name="fxaa"><div class="sig"><a class="anchor" href="#sym-Fxaa" aria-label="Link to Fxaa">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Fxaa</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> enabled: bool,
+<span class="k">pub</span> subpix: f32,
+<span class="k">pub</span> edge_threshold: f32,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-ZDof" data-name="zdof"><div class="sig"><a class="anchor" href="#sym-ZDof" aria-label="Link to ZDof">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">ZDof</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> enabled: bool,
+<span class="k">pub</span> aperture: f32,
+<span class="k">pub</span> max_blur: f32,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-Dof" data-name="dof"><div class="sig"><a class="anchor" href="#sym-Dof" aria-label="Link to Dof">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Dof</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> enabled: bool,
+<span class="k">pub</span> aperture: f32,
+<span class="k">pub</span> focal_radius: f32,
+<span class="k">pub</span> max_blur: f32,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-MotionBlur" data-name="motionblur"><div class="sig"><a class="anchor" href="#sym-MotionBlur" aria-label="Link to MotionBlur">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">MotionBlur</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> enabled: bool,
+<span class="k">pub</span> intensity: f32,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-Crt" data-name="crt"><div class="sig"><a class="anchor" href="#sym-Crt" aria-label="Link to Crt">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Crt</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> enabled: bool,
+<span class="k">pub</span> tuning: <span class="t">CrtTuning</span>,</code></pre></div><div class="doc"><p>The CRT tube. Off by default: see "CRT is opt-in" in the repo CLAUDE.md.</p></div></div></div><div class="typeblock"><div class="item" id="sym-CrtTuning" data-name="crttuning"><div class="sig"><a class="anchor" href="#sym-CrtTuning" aria-label="Link to CrtTuning">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">CrtTuning</span>(<span class="t">DisplaySettings</span>)</code></div><div class="doc"><p>The sixty-odd <code>crt_*</code> fields of the tube, kept as one block.</p>
+<p>A game that wants to tune the tube reads and writes them by their
+<code>DisplaySettings</code> names through [<code>CrtTuning::fields_mut</code>]. Only the
+<code>crt_*</code> fields of that value are kept; <code>crt_enabled</code> is <code>Crt::enabled</code>.</p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-CrtTuning-fields" data-name="crttuning::fields"><div class="sig"><a class="anchor" href="#sym-CrtTuning-fields" aria-label="Link to CrtTuning::fields">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">fields</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="t">DisplaySettings</span></code></div><div class="doc"><p>The tuning, as the <code>crt_*</code> fields of a <code>DisplaySettings</code>.</p></div></div><div class="item" id="sym-CrtTuning-fields_mut" data-name="crttuning::fields_mut"><div class="sig"><a class="anchor" href="#sym-CrtTuning-fields_mut" aria-label="Link to CrtTuning::fields_mut">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">fields_mut</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; &amp;<span class="k">mut</span> <span class="t">DisplaySettings</span></code></div><div class="doc"><p>Change the tuning by field name, for example
+<code>p.crt.tuning.fields_mut().crt_scanline_count = 240.0</code>.
+A change to a field that is not <code>crt_*</code> is dropped.</p></div></div></details></div><h2 id="see-also">See also</h2><ul><li><a href="visual.html" data-slug="visual">Visual language</a></li><li><a href="lit2d.html" data-slug="lit2d">Lit2d</a></li><li><a href="art-direction.html" data-slug="art-direction">Art direction</a></li><li><a href="render.html" data-slug="render">Render passes</a></li><li><a href="gpu.html" data-slug="gpu">GPU module</a></li><li><a href="types.html" data-slug="types">Types</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/post.rs</code> - <code>switch that is off skips that effect&#x27;s passes on the GPU</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/post.rs</code> - <code>Every post effect the engine runs, in the order the frame runs them.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/post.rs</code> - <code>Exposure, bloom and grade run inside it, so they</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/gpu/postprocess.rs</code> - <code>1 + 2 * (BLOOM_MIP_COUNT - 1)</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/post.rs</code> - <code>The engine&#x27;s tuned HDR look through the CRT tube, at its default tuning.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/post.rs</code> - <code>gets the picture it got before this module.</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/post.rs</code> - <code>both switches ship on</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>CLAUDE.md</code> - <code>CRT is opt-in, not a default</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_core/src/types/post_store.rs</code> - <code>inside `Renderer::gui` locks it a second time and hangs the process.</code></li><li id="ref-10"><a class="back" href="#cite-10" aria-label="Back to the text">^</a> <code>warp_core/src/types/post_store.rs</code> - <code>THE ORDER IN ONE FRAME</code></li><li id="ref-11"><a class="back" href="#cite-11" aria-label="Back to the text">^</a> <code>warp_core/src/types/post_store.rs</code> - <code>hold an override that wins every frame, because that makes the panel dead.</code></li></ol><table class="navbox"><tr><th><a href="category-look.html">Look</a></th></tr><tr><td><a href="visual.html" data-slug="visual">Visual language</a> · <a href="semiotics.html" data-slug="semiotics">Semiotics</a> · <a href="palette-kit.html" data-slug="palette-kit">Palette kit</a> · <b>Post effects</b> · <a href="camera.html" data-slug="camera">Camera</a> · <a href="juice.html" data-slug="juice">Juice</a> · <a href="lit2d.html" data-slug="lit2d">Lit2d</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-look.html">Look</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

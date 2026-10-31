@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Profiler - Warp Wiki</title>
+<meta name="description" content="named per-frame spans, the flame chart report, and the Profiler panel">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="profile">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#recording">Recording</a></li><li><a href="#interest-and-the-frame">Interest and the frame</a></li><li><a href="#threads">Threads</a></li><li><a href="#reports">Reports</a><ul><li><a href="#the-report-in-full">The report in full</a></li></ul></li><li><a href="#the-panel">The panel</a></li><li><a href="#across-processes">Across processes</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Profiler</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">named per-frame spans, the flame chart report, and the Profiler panel</p><table class="infobox"><caption>Profiler</caption><tr><th>Category</th><td><a href="category-editor-channels.html">Editor channels</a></td></tr><tr><th>Modules</th><td><code>warp_sdk::profile</code><br><code>warp_sdk::profile::draw</code><br><code>warp_sdk::profile::engine</code><br><code>warp_sdk::profile::engine::report</code></td></tr><tr><th>Source</th><td><code>warp_core/src/panels/profile/mod.rs</code><br><code>warp_core/src/panels/profile/draw.rs</code><br><code>warp_core/src/panels/profile/engine/mod.rs</code><br><code>warp_core/src/panels/profile/engine/report.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">104</a></td></tr></table><p><strong>The profiler</strong> is the <a class="sym" href="profile.html"><code>profile</code></a> module of <code>warp_core</code>, re-exported by <code>warp_sdk</code>, which records a stack of named spans per frame and rolls them into the report behind the Profiler panel. The Performance panel says how much a frame cost, but three phases and a population do not form a call tree, and nothing in the engine named the work. These spans are that naming.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<p>For budgets and warnings, a game normally uses <a href="perf.html" data-slug="perf">Perf</a>, whose <a class="sym" href="perf.html#sym-scope"><code>perf::scope</code></a> opens a <a class="sym" href="#sym-Scope"><code>profile::Scope</code></a> of the same name.</p>
+<h2 id="recording">Recording</h2>
+<p><a class="sym" href="#sym-Scope"><code>Scope</code></a> is an RAII guard for one span, and it records nothing unless someone is looking. A guard must be bound to a name, because a binding of <code>_</code> drops it at once.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> _span = warp_sdk::profile::<span class="t">Scope</span>::<span class="f">new</span>(<span class="s">"upload"</span>);</code></pre></div>
+<p>Inside <code>warp_core</code>, the <code>scope!</code> macro makes this binding. <code>warp_sdk</code> does not re-export that macro, so a game uses <a class="sym" href="#sym-Scope-new"><code>Scope::new</code></a> or <a class="sym" href="perf.html#sym-scope"><code>perf::scope</code></a>.</p>
+<p>A span is pushed when it opens, and its end is written when it closes, so the recording is already in pre-order. With a depth on each span, that encodes the whole tree with no pointers. RAII guarantees this: a guard drops at the end of its block, so spans nest strictly.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<p>The guard remembers whether it opened anything. Profiling turns on and off while frames are in flight, and a drop that popped a stack that its constructor never pushed would close another span. A toggle mid-frame therefore costs at most a partial frame.</p>
+<h2 id="interest-and-the-frame">Interest and the frame</h2>
+<p><a class="sym" href="#sym-want"><code>want</code></a> is the census brake in the same shape. A panel says that it is looking, and the claim runs out after <a class="sym" href="#sym-WANT_GRACE"><code>WANT_GRACE</code></a> frames, which is 3. The clock is <a class="sym" href="#sym-frame"><code>frame</code></a>, which the render loop calls once per frame, so a closed panel stops the instrumentation with no message. This is why a span can stay in a hot path of shipped code: off, it is one relaxed load and a branch.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Function</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-want"><code>want</code></a></td>
+<td>A reader says that it is looking</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-enabled"><code>enabled</code></a></td>
+<td>Whether a scope entered now would record</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-generation"><code>generation</code></a></td>
+<td>How many frames have closed</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-frame"><code>frame</code></a></td>
+<td>Close the frame and publish it, once, in the loop</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-take_frame"><code>take_frame</code></a></td>
+<td>The last published frame, once</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-reset"><code>reset</code></a></td>
+<td>Clear the state</td>
+</tr>
+</tbody>
+</table>
+<p><a href="perf.html" data-slug="perf">Perf</a> reads <a class="sym" href="#sym-generation"><code>generation</code></a> for its own frame clock.</p>
+<p><a class="sym" href="#sym-Frame"><code>Frame</code></a> holds its spans in pre-order. <a class="sym" href="#sym-Frame-children"><code>Frame::children</code></a> and <a class="sym" href="#sym-Frame-subtree_end"><code>Frame::subtree_end</code></a> walk the tree, <a class="sym" href="#sym-Frame-work_ns"><code>Frame::work_ns</code></a> gives the total, and <a class="sym" href="#sym-Frame-self_ns"><code>Frame::self_ns</code></a> gives the time in a span and not in its callees.</p>
+<p><a class="sym" href="#sym-Span"><code>Span</code></a> holds a static name, a depth, and start and end times in nanoseconds from the start of the frame. <a class="sym" href="#sym-MAX_SPANS"><code>MAX_SPANS</code></a> bounds a <code>scope!</code> inside a loop over many entities.</p>
+<h2 id="threads">Threads</h2>
+<p>Buffers are thread-local, and <a class="sym" href="#sym-frame"><code>frame</code></a> publishes the buffer of the thread that calls it. A worker thread that opens a span records into a buffer that nobody drains, so a recording is capped at <a class="sym" href="#sym-MAX_SPANS"><code>MAX_SPANS</code></a>, 4096, and the overflow is counted. The <a class="sym" href="audio.html#sym-dropped"><code>dropped</code></a> count is drawn by the panel, because a flame chart that lacks its tail looks like a frame that did less work.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<h2 id="reports">Reports</h2>
+<p><a class="sym" href="#sym-Window"><code>Window</code></a> takes frames with <a class="sym" href="#sym-Window-accept"><code>Window::accept</code></a> and produces a <a class="sym" href="#sym-Report"><code>Report</code></a> over <a class="sym" href="#sym-WINDOW_MS"><code>WINDOW_MS</code></a>, which is 250 ms, so four times a second. The panel draws a <a class="sym" href="#sym-Report"><code>Report</code></a> and nothing else, and so does the socket.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup> The local source goes through the wire type too, so a field that stops being filled breaks in front of whoever broke it.</p>
+<p>A window, and not the last frame, for two reasons. A flame chart laid out sixty times a second cannot be read, and a span tree at sixty hertz as JSON is the traffic that <a href="hostlink.html" data-slug="hostlink">Host link</a> refuses.</p>
+<p>The flame chart keeps one real frame, the most expensive in the window, and never a mean. A mean depicts a frame that did not run.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup> <a class="sym" href="#sym-Bar"><code>Bar</code></a> is one span of that frame. <a class="sym" href="#sym-Row"><code>Row</code></a> is one line of the ranked table, which holds at most <a class="sym" href="#sym-MAX_ROWS"><code>MAX_ROWS</code></a>, 96. <a class="sym" href="#sym-Report-fps"><code>Report::fps</code></a> gives the rate, and <a class="sym" href="#sym-Window-latest"><code>Window::latest</code></a> and <a class="sym" href="#sym-Window-take_fresh"><code>Window::take_fresh</code></a> read the result.</p>
+<h3 id="the-report-in-full">The report in full</h3>
+<p><a class="sym" href="#sym-Report"><code>Report</code></a> is the unit that the panel draws and the socket carries.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>frames</code></td>
+<td>Frames folded into this window</td>
+</tr>
+<tr>
+<td><code>span_ms</code></td>
+<td>Wall time that the window covered</td>
+</tr>
+<tr>
+<td><code>worst</code></td>
+<td>The most expensive frame, as <a class="sym" href="#sym-Bar"><code>Bar</code></a> values in pre-order</td>
+</tr>
+<tr>
+<td><code>worst_ms</code></td>
+<td>The instrumented work of that frame</td>
+</tr>
+<tr>
+<td><code>worst_period_ms</code></td>
+<td>The wall clock of that frame, gate included</td>
+</tr>
+<tr>
+<td><code>rows</code></td>
+<td>Every name seen, most self time first</td>
+</tr>
+<tr>
+<td><code>hidden_rows</code></td>
+<td>Rows past <a class="sym" href="#sym-MAX_ROWS"><code>MAX_ROWS</code></a> that were dropped</td>
+</tr>
+<tr>
+<td><a class="sym" href="audio.html#sym-dropped"><code>dropped</code></a></td>
+<td>Spans that the capture could not record</td>
+</tr>
+</tbody>
+</table>
+<p><code>worst_ms</code> and <code>worst_period_ms</code> travel together, because under the budget they differ by the slack that the presentation gate holds, and a panel with only one of them cannot tell a cheap frame from a late one.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<p><a class="sym" href="#sym-Row"><code>Row</code></a> totals one name over the window.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>The span name</td>
+</tr>
+<tr>
+<td><code>calls</code></td>
+<td>Entries across the whole window, not per frame</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Frame-self_ns"><code>self_ns</code></a></td>
+<td>Time with the children taken out</td>
+</tr>
+<tr>
+<td><code>total_ns</code></td>
+<td>Time with everything it called</td>
+</tr>
+<tr>
+<td><code>max_ns</code></td>
+<td>The most expensive single entry</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Bar"><code>Bar</code></a> holds a name, a depth, and start and end times in nanoseconds from the start of its frame. <a class="sym" href="#sym-Report-children"><code>Report::children</code></a> and <a class="sym" href="#sym-Report-subtree_end"><code>Report::subtree_end</code></a> walk the bars in the same pre-order as <a class="sym" href="#sym-Frame"><code>Frame</code></a>.</p>
+<h2 id="the-panel">The panel</h2>
+<p><a class="sym" href="#sym-ProfilerState"><code>ProfilerState</code></a> holds the panel state, and <a class="sym" href="#sym-draw"><code>draw</code></a> paints a flame chart of the worst frame with a table below that ranks each span by self time. <a class="sym" href="#sym-Source"><code>Source</code></a> chooses the editor or the game, because these are different processes, and a chart that did not say so would be read as the game's whatever it was.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<h2 id="across-processes">Across processes</h2>
+<p>The game keeps its own <a class="sym" href="#sym-Window"><code>Window</code></a>, and <a class="sym" href="hostlink.html#sym-pump_profile"><code>pump_profile</code></a> in <a class="sym" href="hostlink.html"><code>hostlink::child</code></a> sends one <a class="sym" href="#sym-Report"><code>Report</code></a> per window while the editor wants one. The Profile message from the editor re-arms the want, and the expiry stays with <a class="sym" href="#sym-want"><code>want</code></a>, counted in frames.</p>
+<h2 id="limitations">Limitations</h2>
+<p>There is no second timeline per thread. The source calls that the obvious next version, and a panel change as much as a capture change. The panel code compiles on native targets only, and the span engine also compiles on wasm.</p>
+<p>The Perf Monitor panel reads the timings of the render loop, so a game that records no spans still gets those.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 104 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-profile" class="modhead"><code>warp_sdk::profile</code></h3><h4>Functions</h4><div class="item" id="sym-want" data-name="want"><div class="sig"><a class="anchor" href="#sym-want" aria-label="Link to want">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">want</span>(on: bool)</code></div><div class="doc"><p>Say that something is reading. Call it every frame a reader is open.</p>
+<p><code>false</code> gives up at once. Not calling it at all gives up within
+<code>WANT_GRACE</code> frames, which is the path that carries the weight — a panel
+that was closed, or an editor that exited, says nothing at all.</p></div></div><div class="item" id="sym-enabled" data-name="enabled"><div class="sig"><a class="anchor" href="#sym-enabled" aria-label="Link to enabled">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">enabled</span>() -&gt; bool</code></div><div class="doc"><p>Whether a scope entered right now would record anything.</p></div></div><div class="item" id="sym-generation" data-name="generation"><div class="sig"><a class="anchor" href="#sym-generation" aria-label="Link to generation">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">generation</span>() -&gt; u64</code></div><div class="doc"><p>Frames closed since the process started.</p></div></div><div class="item" id="sym-frame" data-name="frame"><div class="sig"><a class="anchor" href="#sym-frame" aria-label="Link to frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">frame</span>()</code></div><div class="doc"><p>Close the frame on this thread, publish it, and start the next.</p>
+<p>Call once per frame from the loop, whether or not anything is reading. It
+is the clock <code>want</code> expires against, so a loop that only called it while a
+panel was open would leave the gate stuck at whatever it last was.</p>
+<p>Spans still open here are closed at this instant and counted. That is a
+caller putting <code>frame()</code> inside something it also timed, and the choice is
+between a well-formed tree with one span longer than it should be and a
+tree with a hole in it. The first can be read.</p></div></div><div class="item" id="sym-take_frame" data-name="take_frame"><div class="sig"><a class="anchor" href="#sym-take_frame" aria-label="Link to take_frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_frame</span>() -&gt; <span class="t">Option</span>&lt;<span class="t">Frame</span>&gt;</code></div><div class="doc"><p>The frame <code>frame()</code> last published, taken out of the slot.</p>
+<p>None when nothing has been published since the last call, which is the
+normal answer for a reader polling faster than the loop runs.</p></div></div><div class="item" id="sym-reset" data-name="reset"><div class="sig"><a class="anchor" href="#sym-reset" aria-label="Link to reset">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reset</span>()</code></div><div class="doc"><p>Drop the recording in progress and anything published. For tests, and for
+a reader that wants to be sure the next frame it sees began after a Clear.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Span" data-name="span"><div class="sig"><a class="anchor" href="#sym-Span" aria-label="Link to Span">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Span</span></code></div><div class="doc"><p>A block of named work, and where it sits in the frame's tree.</p>
+<p><code>&amp;'static str</code> and not a String, which is what keeps the recording free of
+allocation: the name of an instrumented block is a literal in the source.
+A caller with a name it computed has to leak it or pick a literal, and
+picking a literal is the right answer — a flame chart with one row per
+entity id is not a reading of anything.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Span-dur_ns" data-name="span::dur_ns"><div class="sig"><a class="anchor" href="#sym-Span-dur_ns" aria-label="Link to Span::dur_ns">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">dur_ns</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div><div class="doc"><p>What the span cost, in nanoseconds.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Frame" data-name="frame"><div class="sig"><a class="anchor" href="#sym-Frame" aria-label="Link to Frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Frame</span></code></div><div class="doc"><p>One frame's spans, in pre-order.</p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-Frame-children" data-name="frame::children"><div class="sig"><a class="anchor" href="#sym-Frame-children" aria-label="Link to Frame::children">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">children</span>(&amp;<span class="k">self</span>, i: usize) -&gt; <span class="k">impl</span> <span class="t">Iterator</span>&lt;<span class="t">Item</span> = usize&gt; + <span class="a">'_</span></code></div><div class="doc"><p>The direct children of the span at <code>i</code>.</p>
+<p>The pre-order walk the header describes: everything after <code>i</code> that is
+deeper, stopping at the first that is not, and of those only the ones
+exactly one level down.</p></div></div><div class="item" id="sym-Frame-subtree_end" data-name="frame::subtree_end"><div class="sig"><a class="anchor" href="#sym-Frame-subtree_end" aria-label="Link to Frame::subtree_end">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">subtree_end</span>(&amp;<span class="k">self</span>, i: usize) -&gt; usize</code></div><div class="doc"><p>One past the last span of the subtree rooted at <code>i</code>.</p></div></div><div class="item" id="sym-Frame-work_ns" data-name="frame::work_ns"><div class="sig"><a class="anchor" href="#sym-Frame-work_ns" aria-label="Link to Frame::work_ns">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">work_ns</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div><div class="doc"><p>The instrumented work of the frame: every top-level span added up.</p>
+<p>NOT <code>total_ns</code>, and the difference decides which frame a window keeps.
+<code>total_ns</code> is the PERIOD — the wall clock from one <code>frame()</code> to the
+next — and the Performance panel next door spends a section header on
+why that is a different quantity: submissions are gated at the frame
+budget, so the period bottoms out there however cheap the frame was.</p>
+<p>Ranking by period therefore picks the frame that WAITED longest, which
+is usually the one that did least. Worse, the first frame after
+profiling is turned on has a period stretching back to whenever the
+loop last called <code>frame()</code> and contains no spans at all, so it wins its
+window outright and the flame chart is empty with a large number over
+it. Work is zero for that frame, which is the right answer.</p></div></div><div class="item" id="sym-Frame-self_ns" data-name="frame::self_ns"><div class="sig"><a class="anchor" href="#sym-Frame-self_ns" aria-label="Link to Frame::self_ns">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">self_ns</span>(&amp;<span class="k">self</span>, i: usize) -&gt; u32</code></div><div class="doc"><p>What the span at <code>i</code> cost with its children's time taken out.</p>
+<p>The number a profiler is actually read for. Total time on a span near
+the root is the frame restated — it is large because everything is
+inside it, not because anything in it is slow.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Scope" data-name="scope"><div class="sig"><a class="anchor" href="#sym-Scope" aria-label="Link to Scope">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Scope</span></code></div><div class="doc"><p>Time the block this is dropped at the end of.</p>
+<p>Constructed by <code>scope!</code>, which is how it should be reached — a guard bound
+to a named variable is a guard somebody can accidentally drop early, and a
+guard bound to <code>_</code> is dropped IMMEDIATELY, which times nothing and is the
+classic way to get a flame chart full of zero-width spans.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Scope-new" data-name="scope::new"><div class="sig"><a class="anchor" href="#sym-Scope-new" aria-label="Link to Scope::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(name: &amp;<span class="a">'static</span> str) -&gt; <span class="t">Scope</span></code></div></div></details></div><div class="typeblock"><div class="item" id="sym-Bar" data-name="bar"><div class="sig"><a class="anchor" href="#sym-Bar" aria-label="Link to Bar">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Bar</span></code></div><div class="doc"><p>One bar of the flame chart: a span of the worst frame in the window.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Bar-dur_ns" data-name="bar::dur_ns"><div class="sig"><a class="anchor" href="#sym-Bar-dur_ns" aria-label="Link to Bar::dur_ns">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">dur_ns</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div></div></details></div><div class="typeblock"><div class="item" id="sym-Report" data-name="report"><div class="sig"><a class="anchor" href="#sym-Report" aria-label="Link to Report">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Report</span></code></div><div class="doc"><p>What a quarter second of frames came to.</p>
+<p>The unit the panel draws and the unit the socket carries. See the header:
+deliberately one type for both.</p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-Report-is_empty" data-name="report::is_empty"><div class="sig"><a class="anchor" href="#sym-Report-is_empty" aria-label="Link to Report::is_empty">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_empty</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div></div><div class="item" id="sym-Report-fps" data-name="report::fps"><div class="sig"><a class="anchor" href="#sym-Report-fps" aria-label="Link to Report::fps">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">fps</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;f32&gt;</code></div><div class="doc"><p>Frames per second over the window. None before a window has closed.</p></div></div><div class="item" id="sym-Report-children" data-name="report::children"><div class="sig"><a class="anchor" href="#sym-Report-children" aria-label="Link to Report::children">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">children</span>(&amp;<span class="k">self</span>, i: usize) -&gt; <span class="k">impl</span> <span class="t">Iterator</span>&lt;<span class="t">Item</span> = usize&gt; + <span class="a">'_</span></code></div><div class="doc"><p>The direct children of bar <code>i</code> of the worst frame.</p>
+<p>The same pre-order walk <code>Frame::children</code> does, over the wire form.</p></div></div><div class="item" id="sym-Report-subtree_end" data-name="report::subtree_end"><div class="sig"><a class="anchor" href="#sym-Report-subtree_end" aria-label="Link to Report::subtree_end">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">subtree_end</span>(&amp;<span class="k">self</span>, i: usize) -&gt; usize</code></div></div><div class="item" id="sym-Report-depth" data-name="report::depth"><div class="sig"><a class="anchor" href="#sym-Report-depth" aria-label="Link to Report::depth">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">depth</span>(&amp;<span class="k">self</span>) -&gt; u16</code></div><div class="doc"><p>The deepest level the worst frame reached, counting the root as one.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Row" data-name="row"><div class="sig"><a class="anchor" href="#sym-Row" aria-label="Link to Row">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Row</span></code></div><div class="doc"><p>One name, totalled over every frame of the window.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Window" data-name="window"><div class="sig"><a class="anchor" href="#sym-Window" aria-label="Link to Window">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Window</span></code></div><div class="doc"><p>Frames in, a Report every <code>WINDOW_MS</code>.</p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-Window-new" data-name="window::new"><div class="sig"><a class="anchor" href="#sym-Window-new" aria-label="Link to Window::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="t">Window</span></code></div></div><div class="item" id="sym-Window-accept" data-name="window::accept"><div class="sig"><a class="anchor" href="#sym-Window-accept" aria-label="Link to Window::accept">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">accept</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, frame: <span class="t">Frame</span>)</code></div><div class="doc"><p>Fold one captured frame in, rolling the window if it is time.</p>
+<p>Rolling here and not on a timer of its own, because a window that
+closed while no frames were arriving would publish an empty Report over
+a live one — a game that stalled would look like a game that stopped
+doing anything, which is the opposite of the reading.</p></div></div><div class="item" id="sym-Window-latest" data-name="window::latest"><div class="sig"><a class="anchor" href="#sym-Window-latest" aria-label="Link to Window::latest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">latest</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Report</span>&gt;</code></div><div class="doc"><p>The Report from the last window that closed. None until one has.</p>
+<p>The same Report for every frame of the window it covers, which is what
+a panel wants: the picture holds still to be read.</p></div></div><div class="item" id="sym-Window-take_fresh" data-name="window::take_fresh"><div class="sig"><a class="anchor" href="#sym-Window-take_fresh" aria-label="Link to Window::take_fresh">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_fresh</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Report</span>&gt;</code></div><div class="doc"><p>The Report from the last window that closed, ONCE.</p>
+<p>For a reader that forwards rather than draws. See the <code>fresh</code> field:
+answering <code>latest</code> there would put the same quarter second on the
+socket sixty times over.</p></div></div><div class="item" id="sym-Window-clear" data-name="window::clear"><div class="sig"><a class="anchor" href="#sym-Window-clear" aria-label="Link to Window::clear">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Drop everything: the window in progress and the last Report with it.</p>
+<p>The Report goes too, because a Clear that left the picture standing has
+not cleared the thing the person was looking at.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-ProfilerState" data-name="profilerstate"><div class="sig"><a class="anchor" href="#sym-ProfilerState" aria-label="Link to ProfilerState">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">ProfilerState</span></code></div><div class="doc"><p>The panel's own memory: two sources, and where the pointer is.</p></div></div><details class="members"><summary>8 methods</summary><div class="item" id="sym-ProfilerState-new" data-name="profilerstate::new"><div class="sig"><a class="anchor" href="#sym-ProfilerState-new" aria-label="Link to ProfilerState::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="t">ProfilerState</span></code></div></div><div class="item" id="sym-ProfilerState-poll" data-name="profilerstate::poll"><div class="sig"><a class="anchor" href="#sym-ProfilerState-poll" aria-label="Link to ProfilerState::poll">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">poll</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Arm the capture if the panel is being looked at, and take whatever it
+published. Once a frame, from the host.</p>
+<p>Unlike the Performance panel's <code>poll</code> this does NOT run the measurement
+while the panel is closed. See the header: instrumentation costs a
+timestamp per span per frame and a monitor is not worth that when
+nobody has it open.</p></div></div><div class="item" id="sym-ProfilerState-wants_profile" data-name="profilerstate::wants_profile"><div class="sig"><a class="anchor" href="#sym-ProfilerState-wants_profile" aria-label="Link to ProfilerState::wants_profile">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">wants_profile</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>Whether the game should be instrumenting itself.</p>
+<p>For whoever owns the <code>hostlink::Host</code>: this is what goes in
+<code>ToGame::Profile</code>. It is a want and not a start/stop, so sending it
+every frame is correct and cheap.</p></div></div><div class="item" id="sym-ProfilerState-accept_game" data-name="profilerstate::accept_game"><div class="sig"><a class="anchor" href="#sym-ProfilerState-accept_game" aria-label="Link to ProfilerState::accept_game">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">accept_game</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, report: <span class="t">Report</span>)</code></div><div class="doc"><p>A Report that arrived from the game.</p></div></div><div class="item" id="sym-ProfilerState-game_lost" data-name="profilerstate::game_lost"><div class="sig"><a class="anchor" href="#sym-ProfilerState-game_lost" aria-label="Link to ProfilerState::game_lost">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">game_lost</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>The game process went away — stopped, or died.</p>
+<p>The last Report is KEPT and marked, not dropped. The moment a game
+stops is the moment somebody wants to see what it was doing, and a
+panel that blanked itself on Stop would take that away exactly then.</p></div></div><div class="item" id="sym-ProfilerState-source" data-name="profilerstate::source"><div class="sig"><a class="anchor" href="#sym-ProfilerState-source" aria-label="Link to ProfilerState::source">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">source</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Source</span></code></div><div class="doc"><p>Which program the panel is showing.</p></div></div><div class="item" id="sym-ProfilerState-showing" data-name="profilerstate::showing"><div class="sig"><a class="anchor" href="#sym-ProfilerState-showing" aria-label="Link to ProfilerState::showing">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">showing</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Report</span>&gt;</code></div><div class="doc"><p>The Report the panel is drawing, if there is one.</p></div></div><div class="item" id="sym-ProfilerState-reset" data-name="profilerstate::reset"><div class="sig"><a class="anchor" href="#sym-ProfilerState-reset" aria-label="Link to ProfilerState::reset">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reset</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Drop both sources and the freeze with them.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Source" data-name="source"><div class="sig"><a class="anchor" href="#sym-Source" aria-label="Link to Source">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Source</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// This process — the editor's own chrome, egui and all.</span>
+<span class="t">Editor</span>,
+<span class="c">/// The child process the editor launched, measured in the child.</span>
+<span class="t">Game</span>,</code></pre></div><div class="doc"><p>Which program's frames the panel is showing.</p>
+<p>The whole reason this control exists: the two are different processes now,
+and a chart that did not say which one it came from would be read as the
+game's whatever it was.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Source-label" data-name="source::label"><div class="sig"><a class="anchor" href="#sym-Source-label" aria-label="Link to Source::label">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">label</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div></div></details></div><h4>Constants</h4><div class="item" id="sym-MAX_SPANS" data-name="max_spans"><div class="sig"><a class="anchor" href="#sym-MAX_SPANS" aria-label="Link to MAX_SPANS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MAX_SPANS</span>: usize = <span class="n">4096</span></code></div><div class="doc"><p>Spans one thread will record in one frame before it stops recording.</p>
+<p>Four thousand is far past what an instrumented frame loop produces and far
+short of what would cost memory worth thinking about. It is here for the
+unbounded case — a <code>scope!</code> inside a loop over ten thousand entities, or a
+worker thread whose buffer nothing drains — where the alternative is a Vec
+that grows until the process dies.</p></div></div><div class="item" id="sym-WANT_GRACE" data-name="want_grace"><div class="sig"><a class="anchor" href="#sym-WANT_GRACE" aria-label="Link to WANT_GRACE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">WANT_GRACE</span>: u64 = <span class="n">3</span></code></div><div class="doc"><p>How many frames a reader's interest outlives its last <code>want(true)</code>.</p>
+<p>The census's constant and the census's reason: a reader that stops asking
+gives up within a few frames rather than at once, so interest survives a
+frame where the panel did not happen to draw.</p></div></div><h3 id="mod-profile--draw" class="modhead"><code>warp_sdk::profile::draw</code></h3><h4>Functions</h4><div class="item" id="sym-draw" data-name="draw"><div class="sig"><a class="anchor" href="#sym-draw" aria-label="Link to draw">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw</span>(ui: &amp;<span class="k">mut</span> <span class="t">Ui</span>, state: &amp;<span class="k">mut</span> <span class="t">ProfilerState</span>)</code></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Source" data-name="source"><div class="sig"><a class="anchor" href="#sym-Source" aria-label="Link to Source">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Source</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// This process — the editor's own chrome, egui and all.</span>
+<span class="t">Editor</span>,
+<span class="c">/// The child process the editor launched, measured in the child.</span>
+<span class="t">Game</span>,</code></pre></div><div class="doc"><p>Which program's frames the panel is showing.</p>
+<p>The whole reason this control exists: the two are different processes now,
+and a chart that did not say which one it came from would be read as the
+game's whatever it was.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Source-label" data-name="source::label"><div class="sig"><a class="anchor" href="#sym-Source-label" aria-label="Link to Source::label">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">label</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div></div></details></div><div class="typeblock"><div class="item" id="sym-ProfilerState" data-name="profilerstate"><div class="sig"><a class="anchor" href="#sym-ProfilerState" aria-label="Link to ProfilerState">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">ProfilerState</span></code></div><div class="doc"><p>The panel's own memory: two sources, and where the pointer is.</p></div></div><details class="members"><summary>8 methods</summary><div class="item" id="sym-ProfilerState-new" data-name="profilerstate::new"><div class="sig"><a class="anchor" href="#sym-ProfilerState-new" aria-label="Link to ProfilerState::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="t">ProfilerState</span></code></div></div><div class="item" id="sym-ProfilerState-poll" data-name="profilerstate::poll"><div class="sig"><a class="anchor" href="#sym-ProfilerState-poll" aria-label="Link to ProfilerState::poll">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">poll</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Arm the capture if the panel is being looked at, and take whatever it
+published. Once a frame, from the host.</p>
+<p>Unlike the Performance panel's <code>poll</code> this does NOT run the measurement
+while the panel is closed. See the header: instrumentation costs a
+timestamp per span per frame and a monitor is not worth that when
+nobody has it open.</p></div></div><div class="item" id="sym-ProfilerState-wants_profile" data-name="profilerstate::wants_profile"><div class="sig"><a class="anchor" href="#sym-ProfilerState-wants_profile" aria-label="Link to ProfilerState::wants_profile">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">wants_profile</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>Whether the game should be instrumenting itself.</p>
+<p>For whoever owns the <code>hostlink::Host</code>: this is what goes in
+<code>ToGame::Profile</code>. It is a want and not a start/stop, so sending it
+every frame is correct and cheap.</p></div></div><div class="item" id="sym-ProfilerState-accept_game" data-name="profilerstate::accept_game"><div class="sig"><a class="anchor" href="#sym-ProfilerState-accept_game" aria-label="Link to ProfilerState::accept_game">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">accept_game</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, report: <span class="t">Report</span>)</code></div><div class="doc"><p>A Report that arrived from the game.</p></div></div><div class="item" id="sym-ProfilerState-game_lost" data-name="profilerstate::game_lost"><div class="sig"><a class="anchor" href="#sym-ProfilerState-game_lost" aria-label="Link to ProfilerState::game_lost">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">game_lost</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>The game process went away — stopped, or died.</p>
+<p>The last Report is KEPT and marked, not dropped. The moment a game
+stops is the moment somebody wants to see what it was doing, and a
+panel that blanked itself on Stop would take that away exactly then.</p></div></div><div class="item" id="sym-ProfilerState-source" data-name="profilerstate::source"><div class="sig"><a class="anchor" href="#sym-ProfilerState-source" aria-label="Link to ProfilerState::source">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">source</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Source</span></code></div><div class="doc"><p>Which program the panel is showing.</p></div></div><div class="item" id="sym-ProfilerState-showing" data-name="profilerstate::showing"><div class="sig"><a class="anchor" href="#sym-ProfilerState-showing" aria-label="Link to ProfilerState::showing">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">showing</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Report</span>&gt;</code></div><div class="doc"><p>The Report the panel is drawing, if there is one.</p></div></div><div class="item" id="sym-ProfilerState-reset" data-name="profilerstate::reset"><div class="sig"><a class="anchor" href="#sym-ProfilerState-reset" aria-label="Link to ProfilerState::reset">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reset</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Drop both sources and the freeze with them.</p></div></div></details></div><h3 id="mod-profile--engine" class="modhead"><code>warp_sdk::profile::engine</code></h3><h4>Functions</h4><div class="item" id="sym-want" data-name="want"><div class="sig"><a class="anchor" href="#sym-want" aria-label="Link to want">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">want</span>(on: bool)</code></div><div class="doc"><p>Say that something is reading. Call it every frame a reader is open.</p>
+<p><code>false</code> gives up at once. Not calling it at all gives up within
+<code>WANT_GRACE</code> frames, which is the path that carries the weight — a panel
+that was closed, or an editor that exited, says nothing at all.</p></div></div><div class="item" id="sym-enabled" data-name="enabled"><div class="sig"><a class="anchor" href="#sym-enabled" aria-label="Link to enabled">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">enabled</span>() -&gt; bool</code></div><div class="doc"><p>Whether a scope entered right now would record anything.</p></div></div><div class="item" id="sym-generation" data-name="generation"><div class="sig"><a class="anchor" href="#sym-generation" aria-label="Link to generation">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">generation</span>() -&gt; u64</code></div><div class="doc"><p>Frames closed since the process started.</p></div></div><div class="item" id="sym-frame" data-name="frame"><div class="sig"><a class="anchor" href="#sym-frame" aria-label="Link to frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">frame</span>()</code></div><div class="doc"><p>Close the frame on this thread, publish it, and start the next.</p>
+<p>Call once per frame from the loop, whether or not anything is reading. It
+is the clock <code>want</code> expires against, so a loop that only called it while a
+panel was open would leave the gate stuck at whatever it last was.</p>
+<p>Spans still open here are closed at this instant and counted. That is a
+caller putting <code>frame()</code> inside something it also timed, and the choice is
+between a well-formed tree with one span longer than it should be and a
+tree with a hole in it. The first can be read.</p></div></div><div class="item" id="sym-take_frame" data-name="take_frame"><div class="sig"><a class="anchor" href="#sym-take_frame" aria-label="Link to take_frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_frame</span>() -&gt; <span class="t">Option</span>&lt;<span class="t">Frame</span>&gt;</code></div><div class="doc"><p>The frame <code>frame()</code> last published, taken out of the slot.</p>
+<p>None when nothing has been published since the last call, which is the
+normal answer for a reader polling faster than the loop runs.</p></div></div><div class="item" id="sym-reset" data-name="reset"><div class="sig"><a class="anchor" href="#sym-reset" aria-label="Link to reset">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reset</span>()</code></div><div class="doc"><p>Drop the recording in progress and anything published. For tests, and for
+a reader that wants to be sure the next frame it sees began after a Clear.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Span" data-name="span"><div class="sig"><a class="anchor" href="#sym-Span" aria-label="Link to Span">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Span</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> name: &amp;<span class="a">'static</span> str,
+<span class="c">/// 0 for a span opened at the top of the frame.</span>
+<span class="k">pub</span> depth: u16,
+<span class="c">/// Nanoseconds from the start of the frame.</span>
+<span class="k">pub</span> start_ns: u32,
+<span class="c">/// Nanoseconds from the start of the frame. Never less than `start_ns`.</span>
+<span class="k">pub</span> end_ns: u32,</code></pre></div><div class="doc"><p>A block of named work, and where it sits in the frame's tree.</p>
+<p><code>&amp;'static str</code> and not a String, which is what keeps the recording free of
+allocation: the name of an instrumented block is a literal in the source.
+A caller with a name it computed has to leak it or pick a literal, and
+picking a literal is the right answer — a flame chart with one row per
+entity id is not a reading of anything.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Span-dur_ns" data-name="span::dur_ns"><div class="sig"><a class="anchor" href="#sym-Span-dur_ns" aria-label="Link to Span::dur_ns">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">dur_ns</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div><div class="doc"><p>What the span cost, in nanoseconds.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Frame" data-name="frame"><div class="sig"><a class="anchor" href="#sym-Frame" aria-label="Link to Frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Frame</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> spans: <span class="t">Vec</span>&lt;<span class="t">Span</span>&gt;,
+<span class="c">/// Wall time from the first span of the frame to `frame()`, in ns.</span>
+<span class="k">pub</span> total_ns: u32,
+<span class="c">/// Spans lost to `MAX_SPANS`. Non-zero means this frame is incomplete and</span>
+<span class="c">/// the panel says so rather than drawing a short tree as a cheap frame.</span>
+<span class="k">pub</span> dropped: u32,</code></pre></div><div class="doc"><p>One frame's spans, in pre-order.</p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-Frame-children" data-name="frame::children"><div class="sig"><a class="anchor" href="#sym-Frame-children" aria-label="Link to Frame::children">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">children</span>(&amp;<span class="k">self</span>, i: usize) -&gt; <span class="k">impl</span> <span class="t">Iterator</span>&lt;<span class="t">Item</span> = usize&gt; + <span class="a">'_</span></code></div><div class="doc"><p>The direct children of the span at <code>i</code>.</p>
+<p>The pre-order walk the header describes: everything after <code>i</code> that is
+deeper, stopping at the first that is not, and of those only the ones
+exactly one level down.</p></div></div><div class="item" id="sym-Frame-subtree_end" data-name="frame::subtree_end"><div class="sig"><a class="anchor" href="#sym-Frame-subtree_end" aria-label="Link to Frame::subtree_end">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">subtree_end</span>(&amp;<span class="k">self</span>, i: usize) -&gt; usize</code></div><div class="doc"><p>One past the last span of the subtree rooted at <code>i</code>.</p></div></div><div class="item" id="sym-Frame-work_ns" data-name="frame::work_ns"><div class="sig"><a class="anchor" href="#sym-Frame-work_ns" aria-label="Link to Frame::work_ns">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">work_ns</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div><div class="doc"><p>The instrumented work of the frame: every top-level span added up.</p>
+<p>NOT <code>total_ns</code>, and the difference decides which frame a window keeps.
+<code>total_ns</code> is the PERIOD — the wall clock from one <code>frame()</code> to the
+next — and the Performance panel next door spends a section header on
+why that is a different quantity: submissions are gated at the frame
+budget, so the period bottoms out there however cheap the frame was.</p>
+<p>Ranking by period therefore picks the frame that WAITED longest, which
+is usually the one that did least. Worse, the first frame after
+profiling is turned on has a period stretching back to whenever the
+loop last called <code>frame()</code> and contains no spans at all, so it wins its
+window outright and the flame chart is empty with a large number over
+it. Work is zero for that frame, which is the right answer.</p></div></div><div class="item" id="sym-Frame-self_ns" data-name="frame::self_ns"><div class="sig"><a class="anchor" href="#sym-Frame-self_ns" aria-label="Link to Frame::self_ns">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">self_ns</span>(&amp;<span class="k">self</span>, i: usize) -&gt; u32</code></div><div class="doc"><p>What the span at <code>i</code> cost with its children's time taken out.</p>
+<p>The number a profiler is actually read for. Total time on a span near
+the root is the frame restated — it is large because everything is
+inside it, not because anything in it is slow.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Scope" data-name="scope"><div class="sig"><a class="anchor" href="#sym-Scope" aria-label="Link to Scope">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Scope</span></code></div><div class="doc"><p>Time the block this is dropped at the end of.</p>
+<p>Constructed by <code>scope!</code>, which is how it should be reached — a guard bound
+to a named variable is a guard somebody can accidentally drop early, and a
+guard bound to <code>_</code> is dropped IMMEDIATELY, which times nothing and is the
+classic way to get a flame chart full of zero-width spans.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Scope-new" data-name="scope::new"><div class="sig"><a class="anchor" href="#sym-Scope-new" aria-label="Link to Scope::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(name: &amp;<span class="a">'static</span> str) -&gt; <span class="t">Scope</span></code></div></div></details></div><div class="typeblock"><div class="item" id="sym-Bar" data-name="bar"><div class="sig"><a class="anchor" href="#sym-Bar" aria-label="Link to Bar">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Bar</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> name: <span class="t">String</span>,
+<span class="k">pub</span> depth: u16,
+<span class="c">/// Nanoseconds from the start of the frame this bar belongs to.</span>
+<span class="k">pub</span> start_ns: u32,
+<span class="k">pub</span> end_ns: u32,</code></pre></div><div class="doc"><p>One bar of the flame chart: a span of the worst frame in the window.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Bar-dur_ns" data-name="bar::dur_ns"><div class="sig"><a class="anchor" href="#sym-Bar-dur_ns" aria-label="Link to Bar::dur_ns">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">dur_ns</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div></div></details></div><div class="typeblock"><div class="item" id="sym-Report" data-name="report"><div class="sig"><a class="anchor" href="#sym-Report" aria-label="Link to Report">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Report</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Frames folded into this window.</span>
+<span class="k">pub</span> frames: u32,
+<span class="c">/// Wall time the window covered, in milliseconds.</span>
+<span class="k">pub</span> span_ms: f32,
+<span class="c">/// The most expensive frame in the window, in pre-order. Empty when the</span>
+<span class="c">/// window caught no spans.</span>
+<span class="k">pub</span> worst: <span class="t">Vec</span>&lt;<span class="t">Bar</span>&gt;,
+<span class="c">/// The instrumented work of that frame, in milliseconds. Its top-level</span>
+<span class="c">/// spans added up, which is what the flame chart's bars come to.</span>
+<span class="k">pub</span> worst_ms: f32,
+<span class="c">/// The wall clock that frame occupied, in milliseconds — the period from</span>
+<span class="c">/// one frame to the next, gate and all.</span>
+<span class="c">/// </span>
+<span class="c">/// Carried beside the work rather than instead of it, for the reason the</span>
+<span class="c">/// Performance panel gives: under the budget the two differ by slack the</span>
+<span class="c">/// presentation gate is holding, and a panel showing only one of them</span>
+<span class="c">/// cannot tell a cheap frame from a late one.</span>
+<span class="k">pub</span> worst_period_ms: f32,
+<span class="c">/// Every name seen, most self time first.</span>
+<span class="k">pub</span> rows: <span class="t">Vec</span>&lt;<span class="t">Row</span>&gt;,
+<span class="c">/// Rows past `MAX_ROWS` that were dropped from `rows`.</span>
+<span class="k">pub</span> hidden_rows: u32,
+<span class="c">/// Spans the capture could not record. Non-zero means the trees in here</span>
+<span class="c">/// are incomplete and the panel says so.</span>
+<span class="k">pub</span> dropped: u32,</code></pre></div><div class="doc"><p>What a quarter second of frames came to.</p>
+<p>The unit the panel draws and the unit the socket carries. See the header:
+deliberately one type for both.</p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-Report-is_empty" data-name="report::is_empty"><div class="sig"><a class="anchor" href="#sym-Report-is_empty" aria-label="Link to Report::is_empty">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_empty</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div></div><div class="item" id="sym-Report-fps" data-name="report::fps"><div class="sig"><a class="anchor" href="#sym-Report-fps" aria-label="Link to Report::fps">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">fps</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;f32&gt;</code></div><div class="doc"><p>Frames per second over the window. None before a window has closed.</p></div></div><div class="item" id="sym-Report-children" data-name="report::children"><div class="sig"><a class="anchor" href="#sym-Report-children" aria-label="Link to Report::children">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">children</span>(&amp;<span class="k">self</span>, i: usize) -&gt; <span class="k">impl</span> <span class="t">Iterator</span>&lt;<span class="t">Item</span> = usize&gt; + <span class="a">'_</span></code></div><div class="doc"><p>The direct children of bar <code>i</code> of the worst frame.</p>
+<p>The same pre-order walk <code>Frame::children</code> does, over the wire form.</p></div></div><div class="item" id="sym-Report-subtree_end" data-name="report::subtree_end"><div class="sig"><a class="anchor" href="#sym-Report-subtree_end" aria-label="Link to Report::subtree_end">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">subtree_end</span>(&amp;<span class="k">self</span>, i: usize) -&gt; usize</code></div></div><div class="item" id="sym-Report-depth" data-name="report::depth"><div class="sig"><a class="anchor" href="#sym-Report-depth" aria-label="Link to Report::depth">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">depth</span>(&amp;<span class="k">self</span>) -&gt; u16</code></div><div class="doc"><p>The deepest level the worst frame reached, counting the root as one.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Row" data-name="row"><div class="sig"><a class="anchor" href="#sym-Row" aria-label="Link to Row">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Row</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> name: <span class="t">String</span>,
+<span class="c">/// Times the span was entered across the whole window, not per frame.</span>
+<span class="c">/// The panel divides; the wire carries what was counted.</span>
+<span class="k">pub</span> calls: u32,
+<span class="c">/// Time in this span with its children's time taken out.</span>
+<span class="k">pub</span> self_ns: u64,
+<span class="c">/// Time in this span including everything it called.</span>
+<span class="k">pub</span> total_ns: u64,
+<span class="c">/// The most expensive single entry seen.</span>
+<span class="k">pub</span> max_ns: u32,</code></pre></div><div class="doc"><p>One name, totalled over every frame of the window.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Window" data-name="window"><div class="sig"><a class="anchor" href="#sym-Window" aria-label="Link to Window">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Window</span></code></div><div class="doc"><p>Frames in, a Report every <code>WINDOW_MS</code>.</p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-Window-new" data-name="window::new"><div class="sig"><a class="anchor" href="#sym-Window-new" aria-label="Link to Window::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="t">Window</span></code></div></div><div class="item" id="sym-Window-accept" data-name="window::accept"><div class="sig"><a class="anchor" href="#sym-Window-accept" aria-label="Link to Window::accept">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">accept</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, frame: <span class="t">Frame</span>)</code></div><div class="doc"><p>Fold one captured frame in, rolling the window if it is time.</p>
+<p>Rolling here and not on a timer of its own, because a window that
+closed while no frames were arriving would publish an empty Report over
+a live one — a game that stalled would look like a game that stopped
+doing anything, which is the opposite of the reading.</p></div></div><div class="item" id="sym-Window-latest" data-name="window::latest"><div class="sig"><a class="anchor" href="#sym-Window-latest" aria-label="Link to Window::latest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">latest</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Report</span>&gt;</code></div><div class="doc"><p>The Report from the last window that closed. None until one has.</p>
+<p>The same Report for every frame of the window it covers, which is what
+a panel wants: the picture holds still to be read.</p></div></div><div class="item" id="sym-Window-take_fresh" data-name="window::take_fresh"><div class="sig"><a class="anchor" href="#sym-Window-take_fresh" aria-label="Link to Window::take_fresh">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_fresh</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Report</span>&gt;</code></div><div class="doc"><p>The Report from the last window that closed, ONCE.</p>
+<p>For a reader that forwards rather than draws. See the <code>fresh</code> field:
+answering <code>latest</code> there would put the same quarter second on the
+socket sixty times over.</p></div></div><div class="item" id="sym-Window-clear" data-name="window::clear"><div class="sig"><a class="anchor" href="#sym-Window-clear" aria-label="Link to Window::clear">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Drop everything: the window in progress and the last Report with it.</p>
+<p>The Report goes too, because a Clear that left the picture standing has
+not cleared the thing the person was looking at.</p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-MAX_SPANS" data-name="max_spans"><div class="sig"><a class="anchor" href="#sym-MAX_SPANS" aria-label="Link to MAX_SPANS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MAX_SPANS</span>: usize = <span class="n">4096</span></code></div><div class="doc"><p>Spans one thread will record in one frame before it stops recording.</p>
+<p>Four thousand is far past what an instrumented frame loop produces and far
+short of what would cost memory worth thinking about. It is here for the
+unbounded case — a <code>scope!</code> inside a loop over ten thousand entities, or a
+worker thread whose buffer nothing drains — where the alternative is a Vec
+that grows until the process dies.</p></div></div><div class="item" id="sym-WANT_GRACE" data-name="want_grace"><div class="sig"><a class="anchor" href="#sym-WANT_GRACE" aria-label="Link to WANT_GRACE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">WANT_GRACE</span>: u64 = <span class="n">3</span></code></div><div class="doc"><p>How many frames a reader's interest outlives its last <code>want(true)</code>.</p>
+<p>The census's constant and the census's reason: a reader that stops asking
+gives up within a few frames rather than at once, so interest survives a
+frame where the panel did not happen to draw.</p></div></div><h3 id="mod-profile--engine--report" class="modhead"><code>warp_sdk::profile::engine::report</code></h3><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Bar" data-name="bar"><div class="sig"><a class="anchor" href="#sym-Bar" aria-label="Link to Bar">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Bar</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> name: <span class="t">String</span>,
+<span class="k">pub</span> depth: u16,
+<span class="c">/// Nanoseconds from the start of the frame this bar belongs to.</span>
+<span class="k">pub</span> start_ns: u32,
+<span class="k">pub</span> end_ns: u32,</code></pre></div><div class="doc"><p>One bar of the flame chart: a span of the worst frame in the window.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Bar-dur_ns" data-name="bar::dur_ns"><div class="sig"><a class="anchor" href="#sym-Bar-dur_ns" aria-label="Link to Bar::dur_ns">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">dur_ns</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div></div></details></div><div class="typeblock"><div class="item" id="sym-Row" data-name="row"><div class="sig"><a class="anchor" href="#sym-Row" aria-label="Link to Row">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Row</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> name: <span class="t">String</span>,
+<span class="c">/// Times the span was entered across the whole window, not per frame.</span>
+<span class="c">/// The panel divides; the wire carries what was counted.</span>
+<span class="k">pub</span> calls: u32,
+<span class="c">/// Time in this span with its children's time taken out.</span>
+<span class="k">pub</span> self_ns: u64,
+<span class="c">/// Time in this span including everything it called.</span>
+<span class="k">pub</span> total_ns: u64,
+<span class="c">/// The most expensive single entry seen.</span>
+<span class="k">pub</span> max_ns: u32,</code></pre></div><div class="doc"><p>One name, totalled over every frame of the window.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Report" data-name="report"><div class="sig"><a class="anchor" href="#sym-Report" aria-label="Link to Report">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Report</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Frames folded into this window.</span>
+<span class="k">pub</span> frames: u32,
+<span class="c">/// Wall time the window covered, in milliseconds.</span>
+<span class="k">pub</span> span_ms: f32,
+<span class="c">/// The most expensive frame in the window, in pre-order. Empty when the</span>
+<span class="c">/// window caught no spans.</span>
+<span class="k">pub</span> worst: <span class="t">Vec</span>&lt;<span class="t">Bar</span>&gt;,
+<span class="c">/// The instrumented work of that frame, in milliseconds. Its top-level</span>
+<span class="c">/// spans added up, which is what the flame chart's bars come to.</span>
+<span class="k">pub</span> worst_ms: f32,
+<span class="c">/// The wall clock that frame occupied, in milliseconds — the period from</span>
+<span class="c">/// one frame to the next, gate and all.</span>
+<span class="c">/// </span>
+<span class="c">/// Carried beside the work rather than instead of it, for the reason the</span>
+<span class="c">/// Performance panel gives: under the budget the two differ by slack the</span>
+<span class="c">/// presentation gate is holding, and a panel showing only one of them</span>
+<span class="c">/// cannot tell a cheap frame from a late one.</span>
+<span class="k">pub</span> worst_period_ms: f32,
+<span class="c">/// Every name seen, most self time first.</span>
+<span class="k">pub</span> rows: <span class="t">Vec</span>&lt;<span class="t">Row</span>&gt;,
+<span class="c">/// Rows past `MAX_ROWS` that were dropped from `rows`.</span>
+<span class="k">pub</span> hidden_rows: u32,
+<span class="c">/// Spans the capture could not record. Non-zero means the trees in here</span>
+<span class="c">/// are incomplete and the panel says so.</span>
+<span class="k">pub</span> dropped: u32,</code></pre></div><div class="doc"><p>What a quarter second of frames came to.</p>
+<p>The unit the panel draws and the unit the socket carries. See the header:
+deliberately one type for both.</p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-Report-is_empty" data-name="report::is_empty"><div class="sig"><a class="anchor" href="#sym-Report-is_empty" aria-label="Link to Report::is_empty">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_empty</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div></div><div class="item" id="sym-Report-fps" data-name="report::fps"><div class="sig"><a class="anchor" href="#sym-Report-fps" aria-label="Link to Report::fps">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">fps</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;f32&gt;</code></div><div class="doc"><p>Frames per second over the window. None before a window has closed.</p></div></div><div class="item" id="sym-Report-children" data-name="report::children"><div class="sig"><a class="anchor" href="#sym-Report-children" aria-label="Link to Report::children">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">children</span>(&amp;<span class="k">self</span>, i: usize) -&gt; <span class="k">impl</span> <span class="t">Iterator</span>&lt;<span class="t">Item</span> = usize&gt; + <span class="a">'_</span></code></div><div class="doc"><p>The direct children of bar <code>i</code> of the worst frame.</p>
+<p>The same pre-order walk <code>Frame::children</code> does, over the wire form.</p></div></div><div class="item" id="sym-Report-subtree_end" data-name="report::subtree_end"><div class="sig"><a class="anchor" href="#sym-Report-subtree_end" aria-label="Link to Report::subtree_end">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">subtree_end</span>(&amp;<span class="k">self</span>, i: usize) -&gt; usize</code></div></div><div class="item" id="sym-Report-depth" data-name="report::depth"><div class="sig"><a class="anchor" href="#sym-Report-depth" aria-label="Link to Report::depth">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">depth</span>(&amp;<span class="k">self</span>) -&gt; u16</code></div><div class="doc"><p>The deepest level the worst frame reached, counting the root as one.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Window" data-name="window"><div class="sig"><a class="anchor" href="#sym-Window" aria-label="Link to Window">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Window</span></code></div><div class="doc"><p>Frames in, a Report every <code>WINDOW_MS</code>.</p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-Window-new" data-name="window::new"><div class="sig"><a class="anchor" href="#sym-Window-new" aria-label="Link to Window::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="t">Window</span></code></div></div><div class="item" id="sym-Window-accept" data-name="window::accept"><div class="sig"><a class="anchor" href="#sym-Window-accept" aria-label="Link to Window::accept">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">accept</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, frame: <span class="t">Frame</span>)</code></div><div class="doc"><p>Fold one captured frame in, rolling the window if it is time.</p>
+<p>Rolling here and not on a timer of its own, because a window that
+closed while no frames were arriving would publish an empty Report over
+a live one — a game that stalled would look like a game that stopped
+doing anything, which is the opposite of the reading.</p></div></div><div class="item" id="sym-Window-latest" data-name="window::latest"><div class="sig"><a class="anchor" href="#sym-Window-latest" aria-label="Link to Window::latest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">latest</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Report</span>&gt;</code></div><div class="doc"><p>The Report from the last window that closed. None until one has.</p>
+<p>The same Report for every frame of the window it covers, which is what
+a panel wants: the picture holds still to be read.</p></div></div><div class="item" id="sym-Window-take_fresh" data-name="window::take_fresh"><div class="sig"><a class="anchor" href="#sym-Window-take_fresh" aria-label="Link to Window::take_fresh">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_fresh</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Report</span>&gt;</code></div><div class="doc"><p>The Report from the last window that closed, ONCE.</p>
+<p>For a reader that forwards rather than draws. See the <code>fresh</code> field:
+answering <code>latest</code> there would put the same quarter second on the
+socket sixty times over.</p></div></div><div class="item" id="sym-Window-clear" data-name="window::clear"><div class="sig"><a class="anchor" href="#sym-Window-clear" aria-label="Link to Window::clear">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Drop everything: the window in progress and the last Report with it.</p>
+<p>The Report goes too, because a Clear that left the picture standing has
+not cleared the thing the person was looking at.</p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-WINDOW_MS" data-name="window_ms"><div class="sig"><a class="anchor" href="#sym-WINDOW_MS" aria-label="Link to WINDOW_MS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">WINDOW_MS</span>: f32 = <span class="n">250.0</span></code></div><div class="doc"><p>How long a window covers before it becomes a Report, in milliseconds.</p>
+<p>Four a second. Slow enough that the picture holds still to be read, fast
+enough that a change made in the game shows up while the person who made it
+is still looking at the panel.</p></div></div><div class="item" id="sym-MAX_ROWS" data-name="max_rows"><div class="sig"><a class="anchor" href="#sym-MAX_ROWS" aria-label="Link to MAX_ROWS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MAX_ROWS</span>: usize = <span class="n">96</span></code></div><div class="doc"><p>Rows a Report carries. Beyond this the tail is dropped and COUNTED — see
+<code>Report::hidden_rows</code>, which the panel prints rather than leaving a
+truncated table looking complete.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="perf.html" data-slug="perf">Perf</a></li><li><a href="editor-panels.html" data-slug="editor-panels">Editor panels</a></li><li><a href="hostlink.html" data-slug="hostlink">Host link</a></li><li><a href="types.html" data-slug="types">Types</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/panels/profile/engine/mod.rs</code> - <code>Nothing in the engine NAMES the work</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_core/src/panels/profile/engine/mod.rs</code> - <code>PRE-ORDER AND A DEPTH IS THE WHOLE TREE</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/panels/profile/engine/mod.rs</code> - <code>That expiry is the reason a `scope!` can be left in the hot path of shipped</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/panels/profile/engine/mod.rs</code> - <code>Counted and not silently dropped</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_core/src/panels/profile/engine/report.rs</code> - <code>The panel draws a Report and nothing else; so does</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_core/src/panels/profile/engine/report.rs</code> - <code>IT KEEPS THE WORST FRAME, NOT AN AVERAGE ONE</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_core/src/panels/profile/engine/report.rs</code> - <code>cannot tell a cheap frame from a late one.</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_core/src/panels/profile/draw.rs</code> - <code>The whole reason this control exists: the two are different processes</code></li></ol><table class="navbox"><tr><th><a href="category-editor-channels.html">Editor channels</a></th></tr><tr><td><a href="editor-panels.html" data-slug="editor-panels">Editor panels</a> · <a href="census.html" data-slug="census">Census</a> · <a href="devconsole.html" data-slug="devconsole">Dev console</a> · <a href="bindings.html" data-slug="bindings">Bindings</a> · <a href="audio.html" data-slug="audio">Audio</a> · <a href="palette.html" data-slug="palette">Palette roles</a> · <b>Profiler</b> · <a href="hostlink.html" data-slug="hostlink">Host link</a> · <a href="window.html" data-slug="window">Custom windows</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-editor-channels.html">Editor channels</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

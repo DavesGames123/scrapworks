@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Application icon - Warp Wiki</title>
+<meta name="description" content="An icon drawn in code for the window, the files, and the executable">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="icon">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#usage">Usage</a></li><li><a href="#the-three-places-an-icon-goes">The three places an icon goes</a></li><li><a href="#iconspec">IconSpec</a><ul><li><a href="#a-distinct-icon-from-a-name">A distinct icon from a name</a></li></ul></li><li><a href="#how-an-icon-is-drawn">How an icon is drawn</a><ul><li><a href="#a-glyph-of-your-own">A glyph of your own</a></li></ul></li><li><a href="#images-and-files">Images and files</a></li><li><a href="#the-window">The window</a></li><li><a href="#the-executable">The executable</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Application icon</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">An icon drawn in code for the window, the files, and the executable</p><table class="infobox"><caption>Application icon</caption><tr><th>Category</th><td><a href="category-front-end.html">Front end</a></td></tr><tr><th>Module</th><td><code>warp_sdk::icon</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/icon.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">47</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example icon</code></td></tr></table><p><strong>The application icon</strong> kit draws an icon in code, so that no Warp application ships without one, in the <a class="sym" href="visual.html#sym-icon"><code>warp_sdk::icon</code></a> module. <a class="sym" href="#sym-IconSpec-from_name"><code>IconSpec::from_name</code></a> makes a distinct icon from the application name, and a game that wants its own look sets the fields of an <a class="sym" href="#sym-IconSpec"><code>IconSpec</code></a>. One drawing goes to three places: the window, the <code>.png</code> and <code>.ico</code> files, and the <code>.exe</code> file. The renderer runs on the CPU and needs no GPU and no image crate.</p>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::icon::{<span class="k">self</span>, <span class="t">Glyph</span>, <span class="t">IconSpec</span>, <span class="t">Shape</span>};
+
+<span class="k">fn</span> <span class="f">main</span>() {
+    <span class="k">let</span> spec = <span class="t">IconSpec</span>::<span class="f">new</span>()
+        .<span class="f">shape</span>(<span class="t">Shape</span>::<span class="t">Squircle</span>)
+        .<span class="f">gradient</span>([<span class="n">40</span>, <span class="n">190</span>, <span class="n">210</span>], [<span class="n">20</span>, <span class="n">70</span>, <span class="n">150</span>])
+        .<span class="f">glyph</span>(<span class="t">Glyph</span>::<span class="t">Star</span> { points: <span class="n">5</span> })
+        .<span class="f">glyph_color</span>([<span class="n">255</span>, <span class="n">250</span>, <span class="n">235</span>]);
+    icon::<span class="f">set_window_icon</span>(&amp;spec);                     <span class="c">// or IconSpec::from_name("Reef", 0)</span>
+    warp_sdk::run::&lt;<span class="t">Game</span>&gt;(warp_sdk::<span class="t">Config</span> { window_title: <span class="s">"Reef"</span>, ..<span class="t">Default</span>::<span class="f">default</span>() });
+}</code></pre></div>
+<p>The starter uses the one-line form, with its game name and seed:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust">warp_sdk::icon::<span class="f">set_window_icon</span>(&amp;warp_sdk::icon::<span class="t">IconSpec</span>::<span class="f">from_name</span>(<span class="t">GAME</span>, <span class="t">SEED</span>));</code></pre></div>
+<h2 id="the-three-places-an-icon-goes">The three places an icon goes</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Place</th>
+<th>Call</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Files</td>
+<td><a class="sym" href="#sym-write_set"><code>write_set</code></a></td>
+<td><code>icon_16.png</code> to <code>icon_256.png</code>, and one multi-size <code>icon.ico</code></td>
+</tr>
+<tr>
+<td>The window</td>
+<td><a class="sym" href="#sym-set_window_icon"><code>set_window_icon</code></a></td>
+<td>The engine puts the icon on every window it opens</td>
+</tr>
+<tr>
+<td>The executable</td>
+<td><code>embed_windows_icon</code></td>
+<td>The icon goes into the <code>.exe</code>, so Explorer shows it</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-SIZES"><code>SIZES</code></a> lists the sizes that <a class="sym" href="#sym-write_set"><code>write_set</code></a> makes: 16, 24, 32, 48, 64, 128 and 256. Windows uses 16 to 48 in Explorer and on the task bar, and 256 for large tiles. 64 and 128 are for store pages and the dock.[[src:warp_sdk/src/icon.rs|pub const SIZES: [u32; 7] = [16, 24, 32, 48, 64, 128, 256];]]</p>
+<h2 id="iconspec">IconSpec</h2>
+<p><a class="sym" href="#sym-IconSpec-new"><code>IconSpec::new</code></a> gives a squircle with a blue gradient, a white star, a rim light and a shadow.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Builder</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-IconSpec-shape"><code>shape</code></a></td>
+<td><a class="sym" href="#sym-IconSpec-shape"><code>shape</code></a></td>
+<td>Shape::Squircle</td>
+<td>Background shape</td>
+</tr>
+<tr>
+<td><code>top</code>, <code>bottom</code></td>
+<td><a class="sym" href="#sym-IconSpec-gradient"><code>gradient</code></a></td>
+<td>74, 144, 226 and 32, 64, 150</td>
+<td>Gradient colours</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-IconSpec-glyph"><code>glyph</code></a></td>
+<td><a class="sym" href="#sym-IconSpec-glyph"><code>glyph</code></a>, <a class="sym" href="#sym-IconSpec-glyph_sdf"><code>glyph_sdf</code></a></td>
+<td><code>Star { points: 5 }</code></td>
+<td>Foreground mark</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-IconSpec-glyph_color"><code>glyph_color</code></a></td>
+<td><a class="sym" href="#sym-IconSpec-glyph_color"><code>glyph_color</code></a></td>
+<td>255, 255, 255</td>
+<td>Colour of the glyph</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-IconSpec-glyph_scale"><code>glyph_scale</code></a></td>
+<td><a class="sym" href="#sym-IconSpec-glyph_scale"><code>glyph_scale</code></a></td>
+<td>1.0</td>
+<td>Multiple of the built-in size</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-IconSpec-rim"><code>rim</code></a></td>
+<td><a class="sym" href="#sym-IconSpec-rim"><code>rim</code></a></td>
+<td>0.6</td>
+<td>Light on the top edge, 0 to 1</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-IconSpec-shadow"><code>shadow</code></a></td>
+<td><a class="sym" href="#sym-IconSpec-shadow"><code>shadow</code></a></td>
+<td>0.5</td>
+<td>Opacity of the drop shadow, 0 to 1</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Shape"><code>Shape</code></a> has three forms: Squircle, a superellipse and the default; Circle; and RoundedSquare(r), with a corner radius from 0 to 1.</p>
+<p><a class="sym" href="#sym-Glyph"><code>Glyph</code></a> has the built-in marks Dot, Ring, Diamond, Plus, Play, Star, Chevron, Crescent, Bars and Wave, and <code>None</code> for a shape with no mark. Star clamps <a class="sym" href="squircle.html#sym-points"><code>points</code></a> to the range 3 to 12. <a class="sym" href="world-collide.html#sym-Sdf"><code>Sdf</code></a> holds a glyph of the game's own.</p>
+<h3 id="a-distinct-icon-from-a-name">A distinct icon from a name</h3>
+<p><a class="sym" href="#sym-IconSpec-from_name"><code>IconSpec::from_name</code></a> takes a name and a seed. The same pair always gives the same icon, and a new seed gives a different icon for the same name. The hue, the hue shift of the gradient, the saturation, the shape and the glyph come from a hash of the name.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> About one icon in four is a circle, and the others are squircles. The glyph colour is white or near black, whichever has the higher contrast with the worse end of the gradient, measured as a WCAG contrast ratio.</p>
+<h2 id="how-an-icon-is-drawn">How an icon is drawn</h2>
+<p>Each pixel takes 4x4 to 8x8 samples, so the edges are smooth without a GPU. Each sample evaluates three signed distance functions (SDF): the background shape, the glyph and the shadow. A negative distance is inside.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<p>Small sizes get three changes, because a 16 px icon is a different drawing and not a smaller one.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<ul>
+<li>The shape inset is a whole number of pixels, so the straight edges land on pixel boundaries and stay sharp.</li>
+<li>The glyph grows by a fraction of a pixel, so thin strokes stay visible.</li>
+<li>The drop shadow is off at 24 px and below, because it only makes the edge muddy.</li>
+</ul>
+<h3 id="a-glyph-of-your-own">A glyph of your own</h3>
+<p>A glyph SDF takes a point in shape space: the origin is the centre of the shape, x goes right, y goes down, and 1.0 is the edge of the shape. The built-in glyphs fit in a radius of about 0.55. The <code>sdf</code> module holds helpers: <code>circle</code>, <code>boxed</code>, <code>segment</code> and <code>star</code>.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::icon::{sdf, <span class="t">IconSpec</span>, <span class="t">Shape</span>};
+<span class="k">use</span> warp_sdk::ultraviolet::<span class="t">Vec2</span>;
+
+<span class="t">IconSpec</span>::<span class="f">new</span>()
+    .<span class="f">shape</span>(<span class="t">Shape</span>::<span class="t">Squircle</span>)
+    .<span class="f">gradient</span>([<span class="n">46</span>, <span class="n">196</span>, <span class="n">214</span>], [<span class="n">18</span>, <span class="n">62</span>, <span class="n">140</span>])
+    .<span class="f">glyph_color</span>([<span class="n">255</span>, <span class="n">246</span>, <span class="n">228</span>])
+    .<span class="f">glyph_sdf</span>(|p: <span class="t">Vec2</span>| {
+        <span class="k">let</span> body = sdf::<span class="f">circle</span>(<span class="t">Vec2</span>::<span class="f">new</span>((p.x + <span class="n">0.08</span>) * <span class="n">0.8</span>, p.y), <span class="n">0.30</span>);
+        <span class="k">let</span> t = p - <span class="t">Vec2</span>::<span class="f">new</span>(<span class="n">0.36</span>, <span class="n">0.0</span>);
+        <span class="c">// A wedge that opens to the right, cut at x = +-0.14.</span>
+        <span class="k">let</span> tail = (t.x.<span class="f">abs</span>() - <span class="n">0.14</span>).<span class="f">max</span>((t.y.<span class="f">abs</span>() - (t.x + <span class="n">0.14</span>)) * <span class="n">0.7</span>);
+        body.<span class="f">min</span>(tail)
+    })</code></pre></div>
+<h2 id="images-and-files">Images and files</h2>
+<p><a class="sym" href="#sym-render"><code>render</code></a> draws a spec at one size and gives an <a class="sym" href="#sym-IconImage"><code>IconImage</code></a> of RGBA bytes. <a class="sym" href="#sym-IconSet-render"><code>IconSet::render</code></a> draws every size in <a class="sym" href="#sym-SIZES"><code>SIZES</code></a>, and <a class="sym" href="#sym-IconSet-render_sizes"><code>IconSet::render_sizes</code></a> draws a chosen list. <a class="sym" href="#sym-png_bytes"><code>png_bytes</code></a> and <a class="sym" href="#sym-IconSet-ico_bytes"><code>ico_bytes</code></a> encode to memory.</p>
+<p>warp_core links <a class="sym" href="image.html"><code>image</code></a>, but warp_sdk does not export it, so this module has its own small PNG encoder, with stored deflate blocks, and its own ICO encoder.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup> Icons are small, so the files are a few hundred kilobytes at most.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::icon::{write_set, <span class="t">IconSpec</span>};
+<span class="k">let</span> files = <span class="f">write_set</span>(&amp;<span class="t">IconSpec</span>::<span class="f">from_name</span>(<span class="s">"Reef"</span>, <span class="n">0</span>), <span class="s">"target/icons"</span>.<span class="f">as_ref</span>()).<span class="f">unwrap</span>();
+println!(<span class="s">"{}"</span>, files.ico.<span class="f">display</span>());</code></pre></div>
+<p><a class="sym" href="#sym-write_set"><code>write_set</code></a> creates the directory if it does not exist, and returns the paths in an <a class="sym" href="#sym-IconFiles"><code>IconFiles</code></a>.</p>
+<h2 id="the-window">The window</h2>
+<p><a class="sym" href="#sym-set_window_icon"><code>set_window_icon</code></a> renders the spec at <a class="sym" href="#sym-ENGINE_ICON_PX"><code>ENGINE_ICON_PX</code></a>, 64 pixels, and gives it to the engine. Call it once, before <a class="sym" href="renderer.html#sym-run"><code>run</code></a>. A game that does not call it still gets an icon: the engine draws a plainer default from the window title, a rounded square with a gradient and one of four glyphs.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup> The icon is not a field of <code>Config</code>, for reasons given in <a href="renderer.html#config" data-slug="renderer">Config</a>.</p>
+<p><a class="sym" href="#sym-window_icon"><code>window_icon</code></a> gives a winit icon at <a class="sym" href="#sym-WINDOW_ICON_PX"><code>WINDOW_ICON_PX</code></a>, 32 pixels, for a window that a game makes itself. <a class="sym" href="#sym-window_icon_px"><code>window_icon_px</code></a> takes a size. <a class="sym" href="#sym-rgba_icon"><code>rgba_icon</code></a> gives the plain <code>(rgba, width, height)</code> form.</p>
+<h2 id="the-executable">The executable</h2>
+<p><code>embed_windows_icon</code> runs in the <code>build.rs</code> of a game. It reads <code>OUT_DIR</code> and the target variables that cargo sets, so it works from <code>build.rs</code> only. It writes <code>app.ico</code>, <code>app.rc</code> and <code>app.res</code> into <code>OUT_DIR</code>.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<p>On the MSVC toolchain no other dependency is necessary. <code>link.exe</code> reads <code>.res</code> files directly, so the function tells cargo to link <code>app.res</code> into every binary of the package, and sets <code>linked</code> in the returned EmbedFiles.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">fn</span> <span class="f">main</span>() {
+    <span class="k">let</span> spec = warp_sdk::icon::<span class="t">IconSpec</span>::<span class="f">from_name</span>(<span class="s">"Reef"</span>, <span class="n">0</span>);
+    warp_sdk::icon::build::<span class="f">embed_windows_icon</span>(&amp;spec).<span class="f">unwrap</span>();
+}</code></pre></div>
+<p>The game also lists <code>warp_sdk</code> under <code>[build-dependencies]</code>, with <code>default-features = false</code>.</p>
+<p>On the GNU toolchain the linker does not read <code>.res</code> files. The function writes <code>app.rc</code> for that case, and the game compiles it with <code>embed-resource</code>:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> files = warp_sdk::icon::build::<span class="f">embed_windows_icon</span>(&amp;spec).<span class="f">unwrap</span>();
+<span class="k">if</span> !files.linked {
+    embed_resource::<span class="f">compile</span>(&amp;files.rc, embed_resource::<span class="t">NONE</span>);
+}</code></pre></div>
+<p><code>write_files</code> writes the same three files to any directory, and the example <a class="sym" href="visual.html#sym-icon"><code>icon</code></a> uses it.</p>
+<h2 id="history">History</h2>
+<p>The kit was added on 2026-10-29.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 47 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-icon" class="modhead"><code>warp_sdk::icon</code></h3><h4>Functions</h4><div class="item" id="sym-render" data-name="render"><div class="sig"><a class="anchor" href="#sym-render" aria-label="Link to render">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">render</span>(spec: &amp;<span class="t">IconSpec</span>, px: u32) -&gt; <span class="t">IconImage</span></code></div><div class="doc"><p>Draw <code>spec</code> at <code>px</code> x <code>px</code> pixels.</p>
+<p><code>use warp_sdk::icon::{render, IconSpec};
+let image = render(&amp;IconSpec::from_name("Reef", 0), 48);
+assert_eq!(image.rgba.len(), 48 * 48 * 4);</code></p></div></div><div class="item" id="sym-png_bytes" data-name="png_bytes"><div class="sig"><a class="anchor" href="#sym-png_bytes" aria-label="Link to png_bytes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">png_bytes</span>(image: &amp;<span class="t">IconImage</span>) -&gt; <span class="t">Vec</span>&lt;u8&gt;</code></div><div class="doc"><p>The image as a PNG file: 8-bit RGBA, no compression.</p>
+<p><code>use warp_sdk::icon::{png_bytes, render, IconSpec};
+let png = png_bytes(&amp;render(&amp;IconSpec::new(), 16));
+assert_eq!(&amp;png[..8], b"\x89PNG\r\n\x1a\n");</code></p></div></div><div class="item" id="sym-ico_bytes" data-name="ico_bytes"><div class="sig"><a class="anchor" href="#sym-ico_bytes" aria-label="Link to ico_bytes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">ico_bytes</span>(images: &amp;[<span class="t">IconImage</span>]) -&gt; <span class="t">Vec</span>&lt;u8&gt;</code></div><div class="doc"><p>A multi-size <code>.ico</code> file. Each entry holds a PNG, which Windows Vista and
+later read. Images above 256 px are not valid in an ICO file.</p>
+<p><code>use warp_sdk::icon::{ico_bytes, IconSet, IconSpec};
+let ico = IconSet::render_sizes(&amp;IconSpec::new(), &amp;[16, 32]).ico_bytes();
+assert_eq!(&amp;ico[..6], &amp;[0, 0, 1, 0, 2, 0]);</code></p></div></div><div class="item" id="sym-write_set" data-name="write_set"><div class="sig"><a class="anchor" href="#sym-write_set" aria-label="Link to write_set">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">write_set</span>(spec: &amp;<span class="t">IconSpec</span>, dir: &amp;<span class="t">Path</span>) -&gt; io::<span class="t">Result</span>&lt;<span class="t">IconFiles</span>&gt;</code></div><div class="doc"><p>Draw <code>spec</code> at every size in [<code>SIZES</code>] and write <code>icon_&lt;size&gt;.png</code> and
+<code>icon.ico</code> into <code>dir</code>. The function makes <code>dir</code> if it does not exist.</p>
+<p><code>no_run
+use warp_sdk::icon::{write_set, IconSpec};
+let files = write_set(&amp;IconSpec::from_name("Reef", 0), "target/icons".as_ref()).unwrap();
+println!("{}", files.ico.display());</code></p></div></div><div class="item" id="sym-window_icon" data-name="window_icon"><div class="sig"><a class="anchor" href="#sym-window_icon" aria-label="Link to window_icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">window_icon</span>(spec: &amp;<span class="t">IconSpec</span>) -&gt; <span class="k">crate</span>::winit::window::<span class="t">Icon</span></code></div><div class="doc"><p>The icon for the title bar and the task bar, as a <code>winit</code> icon.</p>
+<p>Give it to <code>WindowBuilder::with_window_icon</code> or to
+<code>Window::set_window_icon</code>. On Windows, also give a 256 px icon from
+[<code>window_icon_px</code>] to <code>WindowBuilderExtWindows::with_taskbar_icon</code> for a
+sharp task bar.</p>
+<p><code>no_run
+use warp_sdk::icon::{window_icon, IconSpec};
+let icon = window_icon(&amp;IconSpec::from_name("Reef", 0));
+// window.set_window_icon(Some(icon));</code></p></div></div><div class="item" id="sym-window_icon_px" data-name="window_icon_px"><div class="sig"><a class="anchor" href="#sym-window_icon_px" aria-label="Link to window_icon_px">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">window_icon_px</span>(spec: &amp;<span class="t">IconSpec</span>, px: u32) -&gt; <span class="k">crate</span>::winit::window::<span class="t">Icon</span></code></div><div class="doc"><p>The same as [<code>window_icon</code>], at <code>px</code> pixels.</p></div></div><div class="item" id="sym-set_window_icon" data-name="set_window_icon"><div class="sig"><a class="anchor" href="#sym-set_window_icon" aria-label="Link to set_window_icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_window_icon</span>(spec: &amp;<span class="t">IconSpec</span>)</code></div><div class="doc"><p>Use this icon for every window that <code>warp_sdk::run</code> opens.</p>
+<p>Call it once, before <code>run</code>. Without it, the engine draws a default icon
+from the window title (<code>warp_core::default_window_icon</code>), so no window is
+without an icon. This icon is the same drawing as the <code>.ico</code> file from
+[<code>write_set</code>], so the window, the files and the <code>.exe</code> file agree.</p>
+<p>```no_run
+use warp_sdk::icon::{self, IconSpec};</p>
+<h1>struct Game;</h1>
+<p>icon::set_window_icon(&amp;IconSpec::from_name("Reef", 0));
+// warp_sdk::run::<Game>(warp_sdk::Config { window_title: "Reef", ..Default::default() });
+```</p></div></div><div class="item" id="sym-rgba_icon" data-name="rgba_icon"><div class="sig"><a class="anchor" href="#sym-rgba_icon" aria-label="Link to rgba_icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">rgba_icon</span>(spec: &amp;<span class="t">IconSpec</span>, px: u32) -&gt; (<span class="t">Vec</span>&lt;u8&gt;, u32, u32)</code></div><div class="doc"><p>The icon as <code>(rgba, px, px)</code>: the plain form that
+<code>warp_core::set_window_icon</code> takes.</p>
+<p><code>no_run
+use warp_sdk::icon::{rgba_icon, IconSpec};
+let (rgba, w, h) = rgba_icon(&amp;IconSpec::from_name("Reef", 0), 64);
+assert_eq!(rgba.len(), (w * h * 4) as usize);</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Shape" data-name="shape"><div class="sig"><a class="anchor" href="#sym-Shape" aria-label="Link to Shape">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Shape</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A superellipse. The usual desktop app shape. This is the default.</span>
+<span class="t">Squircle</span>,
+<span class="c">/// A disc.</span>
+<span class="t">Circle</span>,
+<span class="c">/// A square with round corners. The value is the corner radius, from</span>
+<span class="c">/// 0.0 (sharp) to 1.0 (a disc).</span>
+<span class="t">RoundedSquare</span>(f32),</code></pre></div><div class="doc"><p>The background shape of the icon.</p>
+<p><code>use warp_sdk::icon::{IconSpec, Shape};
+let spec = IconSpec::new().shape(Shape::Circle);</code></p></div></div><details class="members"><summary>3 methods</summary><div class="item" id="sym-Shape-frame" data-name="shape::frame"><div class="sig"><a class="anchor" href="#sym-Shape-frame" aria-label="Link to Shape::frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">frame</span>(<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">Frame</span>&gt;</code></div><div class="doc"><p>The frame of the semiotic standard that this shape draws, or <code>None</code>
+when the standard has no frame of this shape.</p>
+<p><code>ignore
+assert_eq!(Shape::House.frame(), Some(semiotics::Frame::House));</code></p></div></div><div class="item" id="sym-Shape-outline" data-name="shape::outline"><div class="sig"><a class="anchor" href="#sym-Shape-outline" aria-label="Link to Shape::outline">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">outline</span>(<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;[f32; <span class="n">2</span>]&gt;</code></div><div class="doc"><p>The outline of the shape in the unit box (-1..1 on both axes, y down).
+For [<code>Shape::Ring</code>] this is the outer edge; the hole has radius
+[<code>RING_HOLE</code>].</p>
+<p><code>ignore
+let pts = Shape::Star.outline();</code></p></div></div><div class="item" id="sym-Shape-contains" data-name="shape::contains"><div class="sig"><a class="anchor" href="#sym-Shape-contains" aria-label="Link to Shape::contains">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">contains</span>(<span class="k">self</span>, p: [f32; <span class="n">2</span>]) -&gt; bool</code></div><div class="doc"><p>True when the unit-box point <code>p</code> is inside the shape. For
+[<code>Shape::Ring</code>] the point must be on one of the ten dashes.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-GlyphFn" data-name="glyphfn"><div class="sig"><a class="anchor" href="#sym-GlyphFn" aria-label="Link to GlyphFn">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">type</span> <span class="t">GlyphFn</span> = <span class="t">Arc</span>&lt;<span class="k">dyn</span> <span class="t">Fn</span>(<span class="t">Vec2</span>) -&gt; f32 + <span class="t">Send</span> + <span class="t">Sync</span>&gt;</code></div><div class="doc"><p>A glyph SDF closure. The point is in shape space; negative is inside.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Glyph" data-name="glyph"><div class="sig"><a class="anchor" href="#sym-Glyph" aria-label="Link to Glyph">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Glyph</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// No glyph. The icon is the shape and the gradient only.</span>
+<span class="t">None</span>,
+<span class="c">/// A filled disc.</span>
+<span class="t">Dot</span>,
+<span class="c">/// A circle line.</span>
+<span class="t">Ring</span>,
+<span class="c">/// A square on its corner.</span>
+<span class="t">Diamond</span>,
+<span class="c">/// A plus sign.</span>
+<span class="t">Plus</span>,
+<span class="c">/// A triangle that points right.</span>
+<span class="t">Play</span>,
+<span class="c">/// A star. `points` is clamped to 3..=12.</span>
+<span class="t">Star</span> { points: u32 },
+<span class="c">/// An arrow head that points up.</span>
+<span class="t">Chevron</span>,
+<span class="c">/// A new moon shape.</span>
+<span class="t">Crescent</span>,
+<span class="c">/// Three vertical bars of different heights.</span>
+<span class="t">Bars</span>,
+<span class="c">/// A sine wave line.</span>
+<span class="t">Wave</span>,
+<span class="c">/// A glyph of your own. See [`IconSpec::glyph_sdf`].</span>
+<span class="t">Sdf</span>(<span class="t">GlyphFn</span>),</code></pre></div><div class="doc"><p>The foreground mark on the icon.</p>
+<p>```
+use warp_sdk::icon::{Glyph, IconSpec};
+use warp_sdk::ultraviolet::Vec2;</p>
+<p>// A built-in glyph.
+let a = IconSpec::new().glyph(Glyph::Crescent);</p>
+<p>// A glyph of your own: a bar, 0.8 wide and 0.3 high.
+let b = IconSpec::new().glyph_sdf(|p: Vec2| {
+warp_sdk::icon::sdf::boxed(p, Vec2::new(0.4, 0.15))
+});
+```</p></div></div><details class="members"><summary>11 methods</summary><div class="item" id="sym-Glyph-distance" data-name="glyph::distance"><div class="sig"><a class="anchor" href="#sym-Glyph-distance" aria-label="Link to Glyph::distance">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">distance</span>(&amp;<span class="k">self</span>, p: <span class="t">Vec2</span>) -&gt; f32</code></div><div class="doc"><p>The signed distance from <code>p</code> to the glyph, in shape space.
+<code>f32::INFINITY</code> for [<code>Glyph::None</code>].</p>
+<p><code>use warp_sdk::icon::Glyph;
+use warp_sdk::ultraviolet::Vec2;
+assert!(Glyph::Dot.distance(Vec2::zero()) &lt; 0.0);</code></p></div></div><div class="item" id="sym-Glyph-builtins" data-name="glyph::builtins"><div class="sig"><a class="anchor" href="#sym-Glyph-builtins" aria-label="Link to Glyph::builtins">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">builtins</span>() -&gt; <span class="t">Vec</span>&lt;<span class="t">Glyph</span>&gt;</code></div><div class="doc"><p>The built-in glyphs, in a fixed order. [<code>IconSpec::from_name</code>] picks
+one of them.</p>
+<p><code>assert!(warp_sdk::icon::Glyph::builtins().len() &gt;= 10);</code></p></div></div><div class="item" id="sym-Glyph-action" data-name="glyph::action"><div class="sig"><a class="anchor" href="#sym-Glyph-action" aria-label="Link to Glyph::action">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">action</span>(id: &amp;<span class="a">'static</span> str) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>The bound control of an action, pressed.</p>
+<p><code>ignore
+Glyph::action("jump")</code></p></div></div><div class="item" id="sym-Glyph-action_hold" data-name="glyph::action_hold"><div class="sig"><a class="anchor" href="#sym-Glyph-action_hold" aria-label="Link to Glyph::action_hold">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">action_hold</span>(id: &amp;<span class="a">'static</span> str) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>The bound control of an action, held.</p>
+<p><code>ignore
+Glyph::action_hold("grab")</code></p></div></div><div class="item" id="sym-Glyph-cross" data-name="glyph::cross"><div class="sig"><a class="anchor" href="#sym-Glyph-cross" aria-label="Link to Glyph::cross">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cross</span>(up: &amp;<span class="a">'static</span> str, left: &amp;<span class="a">'static</span> str, down: &amp;<span class="a">'static</span> str, right: &amp;<span class="a">'static</span> str) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>Four actions as an inverted T of keycaps, for movement.</p>
+<p><code>ignore
+Glyph::cross("up", "left", "down", "right")</code></p></div></div><div class="item" id="sym-Glyph-key" data-name="glyph::key"><div class="sig"><a class="anchor" href="#sym-Glyph-key" aria-label="Link to Glyph::key">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">key</span>(label: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, gesture: <span class="t">Gesture</span>) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>A keycap with a fixed label, for a key that is not an action.</p>
+<p><code>ignore
+Glyph::key("Esc", Gesture::Press)</code></p></div></div><div class="item" id="sym-Glyph-mouse" data-name="glyph::mouse"><div class="sig"><a class="anchor" href="#sym-Glyph-mouse" aria-label="Link to Glyph::mouse">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">mouse</span>(button: <span class="t">MouseButton</span>, gesture: <span class="t">Gesture</span>) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>A mouse button.</p>
+<p><code>ignore
+Glyph::mouse(MouseButton::Right, Gesture::Press)</code></p></div></div><div class="item" id="sym-Glyph-pad" data-name="glyph::pad"><div class="sig"><a class="anchor" href="#sym-Glyph-pad" aria-label="Link to Glyph::pad">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pad</span>(button: <span class="t">Pad</span>, gesture: <span class="t">Gesture</span>) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>A gamepad control.</p>
+<p><code>ignore
+Glyph::pad(Pad::RightTrigger, Gesture::Hold)</code></p></div></div><div class="item" id="sym-Glyph-row" data-name="glyph::row"><div class="sig"><a class="anchor" href="#sym-Glyph-row" aria-label="Link to Glyph::row">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">row</span>(glyphs: <span class="t">Vec</span>&lt;<span class="t">Glyph</span>&gt;) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>Alternatives side by side, for example keyboard and gamepad.</p>
+<p><code>ignore
+Glyph::row(vec![Glyph::action("jump"), Glyph::pad(Pad::South, Gesture::Press)])</code></p></div></div><div class="item" id="sym-Glyph-from_chord" data-name="glyph::from_chord"><div class="sig"><a class="anchor" href="#sym-Glyph-from_chord" aria-label="Link to Glyph::from_chord">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_chord</span>(chord: <span class="t">Chord</span>, gesture: <span class="t">Gesture</span>) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>The glyph for one chord: a keycap, a mouse button or the wheel.</p>
+<p><code>ignore
+let g = Glyph::from_chord(Chord::key(RawKey::E), Gesture::Press);</code></p></div></div><div class="item" id="sym-Glyph-resolved" data-name="glyph::resolved"><div class="sig"><a class="anchor" href="#sym-Glyph-resolved" aria-label="Link to Glyph::resolved">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">resolved</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Glyph</span></code></div><div class="doc"><p>This glyph with every <code>Action</code> replaced by its bound control now.
+An action with no binding shows a <code>?</code> keycap.</p>
+<p><code>ignore
+let now = Glyph::action("grab").resolved();</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-IconSpec" data-name="iconspec"><div class="sig"><a class="anchor" href="#sym-IconSpec" aria-label="Link to IconSpec">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">IconSpec</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The background shape.</span>
+<span class="k">pub</span> shape: <span class="t">Shape</span>,
+<span class="c">/// The gradient colour at the top of the shape.</span>
+<span class="k">pub</span> top: [u8; <span class="n">3</span>],
+<span class="c">/// The gradient colour at the bottom of the shape.</span>
+<span class="k">pub</span> bottom: [u8; <span class="n">3</span>],
+<span class="c">/// The foreground mark.</span>
+<span class="k">pub</span> glyph: <span class="t">Glyph</span>,
+<span class="c">/// The colour of the glyph.</span>
+<span class="k">pub</span> glyph_color: [u8; <span class="n">3</span>],
+<span class="c">/// The glyph size, as a multiple of its built-in size. 1.0 is the default.</span>
+<span class="k">pub</span> glyph_scale: f32,
+<span class="c">/// The strength of the light on the top edge of the shape, 0.0 to 1.0.</span>
+<span class="k">pub</span> rim: f32,
+<span class="c">/// The opacity of the drop shadow under the shape, 0.0 to 1.0.</span>
+<span class="k">pub</span> shadow: f32,</code></pre></div><div class="doc"><p>Everything that sets how an icon looks. Colours are sRGB bytes.</p>
+<p><code>use warp_sdk::icon::{Glyph, IconSpec};
+let spec = IconSpec::from_name("Reef", 0).glyph(Glyph::Wave).shadow(0.0);
+let image = warp_sdk::icon::render(&amp;spec, 32);
+assert_eq!(image.rgba.len(), 32 * 32 * 4);</code></p></div></div><details class="members"><summary>10 methods</summary><div class="item" id="sym-IconSpec-new" data-name="iconspec::new"><div class="sig"><a class="anchor" href="#sym-IconSpec-new" aria-label="Link to IconSpec::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A squircle with a blue gradient, a white star, a rim light and a
+shadow. Change the fields with the builder methods.</p>
+<p><code>let spec = warp_sdk::icon::IconSpec::new();</code></p></div></div><div class="item" id="sym-IconSpec-from_name" data-name="iconspec::from_name"><div class="sig"><a class="anchor" href="#sym-IconSpec-from_name" aria-label="Link to IconSpec::from_name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_name</span>(name: &amp;str, seed: u64) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A distinct icon from the app name. The same name and seed always give
+the same icon. Change <code>seed</code> to get a different icon for the same
+name.</p>
+<p>The hue, the hue shift of the gradient, the shape and the glyph come
+from a hash of the name. The glyph colour is white or near black,
+whichever has the higher contrast with the gradient.</p>
+<p><code>use warp_sdk::icon::IconSpec;
+let a = IconSpec::from_name("Reef", 0);
+let b = IconSpec::from_name("Reef", 0);
+assert_eq!(a.top, b.top);</code></p></div></div><div class="item" id="sym-IconSpec-shape" data-name="iconspec::shape"><div class="sig"><a class="anchor" href="#sym-IconSpec-shape" aria-label="Link to IconSpec::shape">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">shape</span>(<span class="k">mut</span> <span class="k">self</span>, shape: <span class="t">Shape</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the background shape.</p></div></div><div class="item" id="sym-IconSpec-gradient" data-name="iconspec::gradient"><div class="sig"><a class="anchor" href="#sym-IconSpec-gradient" aria-label="Link to IconSpec::gradient">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">gradient</span>(<span class="k">mut</span> <span class="k">self</span>, top: [u8; <span class="n">3</span>], bottom: [u8; <span class="n">3</span>]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the gradient, top colour first.</p></div></div><div class="item" id="sym-IconSpec-glyph" data-name="iconspec::glyph"><div class="sig"><a class="anchor" href="#sym-IconSpec-glyph" aria-label="Link to IconSpec::glyph">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">glyph</span>(<span class="k">mut</span> <span class="k">self</span>, glyph: <span class="t">Glyph</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set a built-in glyph, or [<code>Glyph::Sdf</code>].</p></div></div><div class="item" id="sym-IconSpec-glyph_sdf" data-name="iconspec::glyph_sdf"><div class="sig"><a class="anchor" href="#sym-IconSpec-glyph_sdf" aria-label="Link to IconSpec::glyph_sdf">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">glyph_sdf</span>(<span class="k">mut</span> <span class="k">self</span>, f: <span class="k">impl</span> <span class="t">Fn</span>(<span class="t">Vec2</span>) -&gt; f32 + <span class="t">Send</span> + <span class="t">Sync</span> + <span class="a">'static</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set a glyph of your own as an SDF closure in shape space.
+See the module header for the coordinates.</p></div></div><div class="item" id="sym-IconSpec-glyph_color" data-name="iconspec::glyph_color"><div class="sig"><a class="anchor" href="#sym-IconSpec-glyph_color" aria-label="Link to IconSpec::glyph_color">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">glyph_color</span>(<span class="k">mut</span> <span class="k">self</span>, color: [u8; <span class="n">3</span>]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the glyph colour.</p></div></div><div class="item" id="sym-IconSpec-glyph_scale" data-name="iconspec::glyph_scale"><div class="sig"><a class="anchor" href="#sym-IconSpec-glyph_scale" aria-label="Link to IconSpec::glyph_scale">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">glyph_scale</span>(<span class="k">mut</span> <span class="k">self</span>, scale: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the glyph size, as a multiple of its built-in size.</p></div></div><div class="item" id="sym-IconSpec-rim" data-name="iconspec::rim"><div class="sig"><a class="anchor" href="#sym-IconSpec-rim" aria-label="Link to IconSpec::rim">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">rim</span>(<span class="k">mut</span> <span class="k">self</span>, rim: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the rim light strength, 0.0 to 1.0.</p></div></div><div class="item" id="sym-IconSpec-shadow" data-name="iconspec::shadow"><div class="sig"><a class="anchor" href="#sym-IconSpec-shadow" aria-label="Link to IconSpec::shadow">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">shadow</span>(<span class="k">mut</span> <span class="k">self</span>, shadow: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the drop shadow opacity, 0.0 to 1.0.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-IconImage" data-name="iconimage"><div class="sig"><a class="anchor" href="#sym-IconImage" aria-label="Link to IconImage">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">IconImage</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The width and the height in pixels.</span>
+<span class="k">pub</span> size: u32,
+<span class="c">/// `size * size * 4` bytes.</span>
+<span class="k">pub</span> rgba: <span class="t">Vec</span>&lt;u8&gt;,</code></pre></div><div class="doc"><p>One square icon image: straight (not premultiplied) sRGB RGBA, row major,
+top row first.</p>
+<p><code>let image = warp_sdk::icon::render(&amp;warp_sdk::icon::IconSpec::new(), 16);
+assert_eq!(image.size, 16);
+let [r, g, b, a] = image.pixel(8, 8);</code></p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-IconImage-pixel" data-name="iconimage::pixel"><div class="sig"><a class="anchor" href="#sym-IconImage-pixel" aria-label="Link to IconImage::pixel">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pixel</span>(&amp;<span class="k">self</span>, x: u32, y: u32) -&gt; [u8; <span class="n">4</span>]</code></div><div class="doc"><p>The RGBA bytes of the pixel at column <code>x</code>, row <code>y</code>.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-IconSet" data-name="iconset"><div class="sig"><a class="anchor" href="#sym-IconSet" aria-label="Link to IconSet">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">IconSet</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The images, smallest first.</span>
+<span class="k">pub</span> images: <span class="t">Vec</span>&lt;<span class="t">IconImage</span>&gt;,</code></pre></div><div class="doc"><p>One image for each size in [<code>SIZES</code>].</p>
+<p><code>no_run
+use warp_sdk::icon::{IconSet, IconSpec};
+let set = IconSet::render(&amp;IconSpec::from_name("Reef", 0));
+std::fs::write("icon.ico", set.ico_bytes()).unwrap();</code></p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-IconSet-render" data-name="iconset::render"><div class="sig"><a class="anchor" href="#sym-IconSet-render" aria-label="Link to IconSet::render">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">render</span>(spec: &amp;<span class="t">IconSpec</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Draw <code>spec</code> at every size in [<code>SIZES</code>].</p></div></div><div class="item" id="sym-IconSet-render_sizes" data-name="iconset::render_sizes"><div class="sig"><a class="anchor" href="#sym-IconSet-render_sizes" aria-label="Link to IconSet::render_sizes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">render_sizes</span>(spec: &amp;<span class="t">IconSpec</span>, sizes: &amp;[u32]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Draw <code>spec</code> at the sizes you give. Sizes above 256 are clamped to
+256, because the ICO format stops there.</p></div></div><div class="item" id="sym-IconSet-get" data-name="iconset::get"><div class="sig"><a class="anchor" href="#sym-IconSet-get" aria-label="Link to IconSet::get">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">get</span>(&amp;<span class="k">self</span>, px: u32) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">IconImage</span>&gt;</code></div><div class="doc"><p>The image of size <code>px</code>, if the set has one.</p></div></div><div class="item" id="sym-IconSet-ico_bytes" data-name="iconset::ico_bytes"><div class="sig"><a class="anchor" href="#sym-IconSet-ico_bytes" aria-label="Link to IconSet::ico_bytes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">ico_bytes</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;u8&gt;</code></div><div class="doc"><p>The whole set as one multi-size <code>.ico</code> file.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-IconFiles" data-name="iconfiles"><div class="sig"><a class="anchor" href="#sym-IconFiles" aria-label="Link to IconFiles">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">IconFiles</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// One `icon_&lt;size&gt;.png` for each size, smallest first.</span>
+<span class="k">pub</span> pngs: <span class="t">Vec</span>&lt;<span class="t">PathBuf</span>&gt;,
+<span class="c">/// The multi-size `icon.ico`.</span>
+<span class="k">pub</span> ico: <span class="t">PathBuf</span>,</code></pre></div><div class="doc"><p>The paths that [<code>write_set</code>] wrote.</p></div></div></div><h4>Constants</h4><div class="item" id="sym-SIZES" data-name="sizes"><div class="sig"><a class="anchor" href="#sym-SIZES" aria-label="Link to SIZES">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SIZES</span>: [u32; <span class="n">7</span>] = [<span class="n">16</span>, <span class="n">24</span>, <span class="n">32</span>, <span class="n">48</span>, <span class="n">64</span>, <span class="n">128</span>, <span class="n">256</span>]</code></div><div class="doc"><p>The pixel sizes that [<code>IconSet::render</code>] and [<code>write_set</code>] make.</p>
+<p>Windows uses 16, 24, 32 and 48 in Explorer and on the task bar, and 256
+for the large tiles. 64 and 128 are for store pages and the dock.</p>
+<p><code>assert_eq!(warp_sdk::icon::SIZES.len(), 7);</code></p></div></div><div class="item" id="sym-WINDOW_ICON_PX" data-name="window_icon_px"><div class="sig"><a class="anchor" href="#sym-WINDOW_ICON_PX" aria-label="Link to WINDOW_ICON_PX">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">WINDOW_ICON_PX</span>: u32 = <span class="n">32</span></code></div><div class="doc"><p>The pixel size of [<code>window_icon</code>]. Windows draws the title bar icon at
+16 to 24 px and scales this one down, so 32 keeps it sharp at 200 %.</p></div></div><div class="item" id="sym-ENGINE_ICON_PX" data-name="engine_icon_px"><div class="sig"><a class="anchor" href="#sym-ENGINE_ICON_PX" aria-label="Link to ENGINE_ICON_PX">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ENGINE_ICON_PX</span>: u32 = <span class="n">64</span></code></div><div class="doc"><p>The pixel size of the icon that [<code>set_window_icon</code>] gives the engine.
+The platform scales it down for the title bar and the task bar.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="boot.html" data-slug="boot">Boot splash and screenshots</a></li><li><a href="renderer.html" data-slug="renderer">Renderer and run</a></li><li><a href="semiotics.html" data-slug="semiotics">Semiotics</a></li><li><a href="visual.html" data-slug="visual">Visual language</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/icon.rs</code> - <code>/// The hue, the hue shift of the gradient, the shape and the glyph come</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/icon.rs</code> - <code>//! The renderer runs on the CPU. Each pixel takes 4x4 to 8x8 samples, so the</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/icon.rs</code> - <code>//! Small sizes get three changes, because a 16 px icon is a different</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/icon.rs</code> - <code>//! warp_core links `image`, but warp_sdk does not export it. This module</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_core/src/lib.rs</code> - <code>//   2. Else `default_window_icon(window_title)`: a rounded square with a</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/icon.rs</code> - <code>pub fn embed_windows_icon(spec: &amp;IconSpec) -&gt; io::Result&lt;EmbedFiles&gt; {</code></li></ol><table class="navbox"><tr><th><a href="category-front-end.html">Front end</a></th></tr><tr><td><a href="front.html" data-slug="front">Front end</a> · <a href="front-menu.html" data-slug="front-menu">Menu screens</a> · <a href="front-save.html" data-slug="front-save">Save slots</a> · <a href="front-settings.html" data-slug="front-settings">Settings</a> · <a href="fonts.html" data-slug="fonts">Fonts</a> · <a href="cine.html" data-slug="cine">Cine</a> · <b>Application icon</b> · <a href="boot.html" data-slug="boot">Boot splash and screenshots</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-front-end.html">Front end</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

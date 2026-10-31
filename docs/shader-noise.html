@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Noise shaders - Warp Wiki</title>
+<meta name="description" content="WGSL hashes, lattice noise, fBm, curl, domain warp and dither">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="shader-noise">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#files">Files</a></li><li><a href="#parameter-conventions">Parameter conventions</a></li><li><a href="#hashes">Hashes</a></li><li><a href="#lattice-noise">Lattice noise</a></li><li><a href="#cellular-noise">Cellular noise</a></li><li><a href="#fractal-sums">Fractal sums</a></li><li><a href="#curl-and-warp">Curl and warp</a></li><li><a href="#dither">Dither</a></li><li><a href="#usage">Usage</a></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Noise shaders</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">WGSL hashes, lattice noise, fBm, curl, domain warp and dither</p><p><strong>Noise shaders</strong> are the <code>noise/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL files that give hashes, lattice and cellular noise, fractal sums, curl fields, domain warp and per-pixel dither. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::noise</code></a>. The terrain, post and pattern categories build on it, and every other noise in the library rests on its hash file. All functions start with <code>noise_</code>.</p>
+<h2 id="files">Files</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>File</th>
+<th>Provides</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>noise/hash.wgsl</code></td>
+<td>PCG hashes, seeded lattice hashes, cell wrap, quintic fade, unit gradients</td>
+<td>Floats in [0, 1)</td>
+</tr>
+<tr>
+<td><code>noise/value.wgsl</code></td>
+<td>Value noise in 2D and 3D, with derivative, tileable</td>
+<td>[0, 1]</td>
+</tr>
+<tr>
+<td><code>noise/gradient.wgsl</code></td>
+<td>Perlin gradient noise in 2D and 3D, with derivative, tileable</td>
+<td>[-1, 1], 0 on lattice points</td>
+</tr>
+<tr>
+<td><code>noise/simplex.wgsl</code></td>
+<td>Simplex noise in 2D and 3D, with derivative</td>
+<td>[-1, 1]</td>
+</tr>
+<tr>
+<td><code>noise/cellular.wgsl</code></td>
+<td>Worley noise, cell border distance, smooth F1</td>
+<td>F1 and F2 about 0..1.5, cell id in [0, 1)</td>
+</tr>
+<tr>
+<td><code>noise/fbm.wgsl</code></td>
+<td>fBm, ridged, billow, eroded terrain form, tileable fBm</td>
+<td>About [-1, 1], or [0, 1] for ridged and billow</td>
+</tr>
+<tr>
+<td><code>noise/curl.wgsl</code></td>
+<td>Divergence-free velocity fields</td>
+<td>A vector, not unit length</td>
+</tr>
+<tr>
+<td><code>noise/warp.wgsl</code></td>
+<td>One-stage and two-stage domain warp</td>
+<td>A warped point, or a struct</td>
+</tr>
+<tr>
+<td><code>noise/dither.wgsl</code></td>
+<td>Interleaved gradient noise, R2, Bayer, triangle dither</td>
+<td>[0, 1), or (-1, 1) for the triangle form</td>
+</tr>
+</tbody>
+</table>
+<p><code>noise/hash.wgsl</code> requires nothing. The value, gradient, simplex, cellular and dither files require it. <code>noise/fbm.wgsl</code> requires the gradient file, <code>noise/warp.wgsl</code> requires fBm, and <code>noise/curl.wgsl</code> requires both simplex and fBm.</p>
+<h2 id="parameter-conventions">Parameter conventions</h2>
+<p>The files share these parameters:</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>p</code></td>
+<td>Any position, in cells. One unit is about one feature. The headers advise keeping <code>\|p\|</code> below about 1e5</td>
+</tr>
+<tr>
+<td><code>seed</code></td>
+<td>Any <code>u32</code>. Two seeds give two unrelated fields</td>
+</tr>
+<tr>
+<td><code>period</code></td>
+<td>Cells before the noise repeats, <code>&gt; 0</code>, in tiled forms only</td>
+</tr>
+<tr>
+<td><code>octaves</code></td>
+<td>1..16. Each octave costs one gradient noise</td>
+</tr>
+<tr>
+<td><code>lacunarity</code></td>
+<td>Frequency step per octave. 2.0 is usual</td>
+</tr>
+<tr>
+<td><code>gain</code></td>
+<td>Amplitude step per octave. 0.5 is usual. Higher is rougher</td>
+</tr>
+<tr>
+<td><code>jitter</code></td>
+<td>0..1 for cellular noise. 0 gives a square grid, 1 gives fully random points</td>
+</tr>
+</tbody>
+</table>
+<p>A name ending in <code>d</code> returns the value with its analytic slope: <code>vec3&lt;f32&gt;</code> as (value, d/dx, d/dy) in 2D, and <code>vec4&lt;f32&gt;</code> in 3D. The header of the gradient file gives the normal of a height field <code>k * value</code> as <code>normalize(vec3(-k * d.yz, 1.0))</code>.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<h2 id="hashes">Hashes</h2>
+<p><code>noise_pcg</code> hashes one <code>u32</code> lane, and <code>noise_pcg3d</code> hashes three lanes. <code>noise_u2f</code> converts a hash to a float. <code>noise_hash11</code>, <code>noise_hash21</code>, <code>noise_hash22</code>, <code>noise_hash31</code> and <code>noise_hash33</code> take floats and hash their bits. The lattice forms take an integer cell and a seed:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">noise_lattice2</span>(c: vec2&lt;i32&gt;, seed: u32) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">noise_wrap2</span>(c: vec2&lt;i32&gt;, period: vec2&lt;i32&gt;) -&gt; vec2&lt;i32&gt;
+<span class="k">fn</span> <span class="f">noise_fade2</span>(t: vec2&lt;f32&gt;) -&gt; vec2&lt;f32&gt;
+<span class="k">fn</span> <span class="f">noise_grad2</span>(c: vec2&lt;i32&gt;, seed: u32) -&gt; vec2&lt;f32&gt;</code></pre></div>
+<p>The fade is the quintic <code>6t^5 - 15t^4 + 10t^3</code>. Its first and second derivatives are zero at 0 and 1, so lattice noise has no creases.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup> Gradients are random directions on the circle or sphere and not a fixed set, so no direction is preferred.</p>
+<h2 id="lattice-noise">Lattice noise</h2>
+<p>Each of the three lattice families has a value form, a derivative form, and a 3D pair. The value and gradient families also have tiled forms.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">noise_value2</span>(p: vec2&lt;f32&gt;, seed: u32) -&gt; f32
+<span class="k">fn</span> <span class="f">noise_perlin2</span>(p: vec2&lt;f32&gt;, seed: u32) -&gt; f32
+<span class="k">fn</span> <span class="f">noise_perlin2d</span>(p: vec2&lt;f32&gt;, seed: u32) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">noise_perlin3</span>(p: vec3&lt;f32&gt;, seed: u32) -&gt; f32
+<span class="k">fn</span> <span class="f">noise_simplex2</span>(p: vec2&lt;f32&gt;, seed: u32) -&gt; f32
+<span class="k">fn</span> <span class="f">noise_simplex3d</span>(p: vec3&lt;f32&gt;, seed: u32) -&gt; vec4&lt;f32&gt;</code></pre></div>
+<p>Simplex noise uses the PCG lattice hash in place of the common mod-289 permutation, so the field does not repeat and it accepts a seed. Its kernel radius squared is 0.5, which keeps the field fully continuous.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> The 3D forms suit animation: time goes in the z coordinate, and the field changes in place.</p>
+<h2 id="cellular-noise">Cellular noise</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">noise_worley2</span>(p: vec2&lt;f32&gt;, jitter: f32, seed: u32) -&gt; vec4&lt;f32&gt;
+<span class="k">fn</span> <span class="f">noise_worley2_border</span>(p: vec2&lt;f32&gt;, jitter: f32, seed: u32) -&gt; vec4&lt;f32&gt;
+<span class="k">fn</span> <span class="f">noise_worley2_smooth</span>(p: vec2&lt;f32&gt;, jitter: f32, k: f32, seed: u32) -&gt; f32</code></pre></div>
+<p><code>noise_worley2</code> and <code>noise_worley3</code> return (F1, F2, F2 - F1, cell id). The header advises F1 for pebbles and scales, F2 - F1 for cracks and cell walls, and the cell id for a random colour per cell.</p>
+<p><code>noise_worley2_border</code> gives the true distance to the nearest cell border and not the F2 - F1 estimate, so cracks keep a constant width. It returns (border distance, vector to the nearest point, cell id) and costs 9 + 25 hashes.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup> <code>noise_worley2_smooth</code> takes a soft minimum of the distances and has no creases at borders. Its <code>k</code> is 8 for a soft result and 32 for a result near F1.</p>
+<h2 id="fractal-sums">Fractal sums</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">noise_fbm2</span>(p: vec2&lt;f32&gt;, octaves: i32, lacunarity: f32, gain: f32, seed: u32) -&gt; f32
+<span class="k">fn</span> <span class="f">noise_fbm3</span>(p: vec3&lt;f32&gt;, octaves: i32, lacunarity: f32, gain: f32, seed: u32) -&gt; f32
+<span class="k">fn</span> <span class="f">noise_ridged2</span>(p: vec2&lt;f32&gt;, octaves: i32, lacunarity: f32, gain: f32, seed: u32) -&gt; f32
+<span class="k">fn</span> <span class="f">noise_billow2</span>(p: vec2&lt;f32&gt;, octaves: i32, lacunarity: f32, gain: f32, seed: u32) -&gt; f32
+<span class="k">fn</span> <span class="f">noise_fbm2_terrain</span>(p: vec2&lt;f32&gt;, octaves: i32, erosion: f32, seed: u32) -&gt; f32
+<span class="k">fn</span> <span class="f">noise_fbm2_tiled</span>(p: vec2&lt;f32&gt;, period: vec2&lt;i32&gt;, octaves: i32, gain: f32, seed: u32) -&gt; f32</code></pre></div>
+<p>Each octave rotates and shifts the domain, so the octave lattices do not line up and no grid artefact shows.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup> Sums are divided by the total amplitude. Each form clamps the loop to 16 octaves.</p>
+<ul>
+<li><code>noise_ridged2</code> and <code>noise_ridged3</code> make sharp crests from <code>1 - |n|</code>, squared. Each octave is weighted by the one before it, so detail gathers on ridges.</li>
+<li><code>noise_billow2</code> and <code>noise_billow3</code> sum <code>|n|</code>, which gives round puffs with sharp creases.</li>
+<li><code>noise_fbm2_terrain</code> divides each octave by <code>1 + |slope so far|^2</code>. Steep slopes get less fine detail, as with real erosion. <code>erosion</code> 0 gives plain fBm, and 1 is strong.</li>
+<li>The tiled forms fix lacunarity at 2 and do not rotate, so that each octave tiles inside <code>period</code>.</li>
+</ul>
+<h2 id="curl-and-warp">Curl and warp</h2>
+<p><code>noise_curl2</code> builds velocity from the slope of a simplex potential, as <code>v = (d psi / dy, -d psi / dx)</code>. The field has zero divergence, so particles swirl and do not bunch up. The vector is not unit length, because the slow zones and fast lanes are part of the look.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">noise_curl2</span>(p: vec2&lt;f32&gt;, seed: u32) -&gt; vec2&lt;f32&gt;
+<span class="k">fn</span> <span class="f">noise_curl2_fbm</span>(p: vec2&lt;f32&gt;, octaves: i32, seed: u32) -&gt; vec2&lt;f32&gt;
+<span class="k">fn</span> <span class="f">noise_warp2</span>(p: vec2&lt;f32&gt;, amount: f32, octaves: i32, seed: u32) -&gt; vec2&lt;f32&gt;
+<span class="k">fn</span> <span class="f">noise_warp2_iq</span>(p: vec2&lt;f32&gt;, amount: f32, octaves: i32, seed: u32) -&gt; noise_Warp2</code></pre></div>
+<p><code>noise_warp2</code> returns a moved point, and the caller samples any noise there. <code>amount</code> is in units of <code>p</code>: 0.5..1 is subtle and 4 is the strong look. <code>noise_warp2_iq</code> is the two-stage form <code>f(p + a r(p + a q(p)))</code>. It costs five fBm calls and returns the final value with the two warp vectors <code>q</code> and <code>r</code>, which the header recommends as inputs for a colour ramp.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<h2 id="dither">Dither</h2>
+<p>The dither file needs no texture. <code>pixel</code> is an integer pixel position such as <code>floor(frag_coord.xy)</code>.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">noise_ign</span>(pixel: vec2&lt;f32&gt;) -&gt; f32
+<span class="k">fn</span> <span class="f">noise_ign_frame</span>(pixel: vec2&lt;f32&gt;, frame: u32) -&gt; f32
+<span class="k">fn</span> <span class="f">noise_r2</span>(pixel: vec2&lt;f32&gt;) -&gt; f32
+<span class="k">fn</span> <span class="f">noise_r2_point</span>(n: u32) -&gt; vec2&lt;f32&gt;
+<span class="k">fn</span> <span class="f">noise_bayer8</span>(pixel: vec2&lt;f32&gt;) -&gt; f32
+<span class="k">fn</span> <span class="f">noise_dither_tpdf</span>(pixel: vec2&lt;f32&gt;, frame: u32) -&gt; f32
+<span class="k">fn</span> <span class="f">noise_dither_rgb</span>(pixel: vec2&lt;f32&gt;, frame: u32, levels: f32) -&gt; vec3&lt;f32&gt;</code></pre></div>
+<p><code>noise_ign_frame</code> advances by a step of 5.588238 and repeats every 64 frames. <code>noise_dither_rgb</code> gives an offset to add to a colour in [0, 1] before quantising to <code>levels</code> steps, for example 255.0 for 8 bit. Triangle dither removes banding and also the noise modulation that uniform dither leaves in dark gradients.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<p>A similar set for final output is in <a href="shader-post.html" data-slug="shader-post">Post shaders</a>, in <code>post/dither.wgsl</code>.</p>
+<h2 id="usage">Usage</h2>
+<p>The sample below shades a fragment with animated fBm. It composes <code>noise/fbm.wgsl</code>, which pulls in the gradient and hash files.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> wgsl = warp_sdk::shaderlib::<span class="f">compose</span>(&amp;[<span class="s">"noise/fbm.wgsl"</span>]);</code></pre></div>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">let</span> v = <span class="f">noise_fbm3</span>(vec3&lt;f32&gt;(uv * <span class="n">5.0</span>, time * <span class="n">0.3</span>), <span class="n">5</span>, <span class="n">2.0</span>, <span class="n">0.5</span>, <span class="n">7u</span>);
+<span class="k">let</span> grey = <span class="n">0.5</span> + <span class="n">0.5</span> * v;</code></pre></div>
+<p>The output of <code>noise_fbm3</code> is about -1..1, so a display maps it to 0..1.</p>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<ul>
+<li><code>noise/fbm.wgsl</code> is required by the terrain files <code>cave</code>, <code>dla</code> and <code>strata</code>, and by <code>post/fire.wgsl</code>.</li>
+<li><code>noise/hash.wgsl</code> is required by the material, organic, creature, pattern and water categories.</li>
+<li>The <a href="lit2d.html" data-slug="lit2d">Lit2d</a> example composes <code>noise/fbm.wgsl</code> for its material.</li>
+<li>CPU-side generation is a separate system. See <a href="procgen.html" data-slug="procgen">Procedural generation</a>.</li>
+</ul><h2 id="see-also">See also</h2><ul><li><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></li><li><a href="shader-material.html" data-slug="shader-material">Material shaders</a></li><li><a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a></li><li><a href="shader-water.html" data-slug="shader-water">Water shaders</a></li><li><a href="procgen.html" data-slug="procgen">Procedural generation</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/noise/gradient.wgsl</code> - <code>// n = normalize(vec3(-k * d.yz, 1.0)) for a height field k * value.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/noise/hash.wgsl</code> - <code>// Quintic fade 6t^5 - 15t^4 + 10t^3 and its derivative.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/noise/simplex.wgsl</code> - <code>// not repeat and works with a seed. Kernel radius squared is 0.5, so</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/noise/cellular.wgsl</code> - <code>// True distance to the nearest cell border, not the F2 - F1 estimate.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/noise/fbm.wgsl</code> - <code>// shifts the domain, so the lattices of the octaves do not line up and</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/noise/curl.wgsl</code> - <code>// Output: a velocity vector. The vector is not unit length: slow zones</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/noise/warp.wgsl</code> - <code>// Two-stage warp f(p + a r(p + a q(p))). Costs five fBm calls.</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/noise/dither.wgsl</code> - <code>// Triangle-distributed white noise in (-1, 1). Triangle dither removes</code></li></ol><table class="navbox"><tr><th><a href="category-shader-library.html">Shader library</a></th></tr><tr><td><a href="shaderlib.html" data-slug="shaderlib">Shader library</a> · <b>Noise shaders</b> · <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> · <a href="shader-material.html" data-slug="shader-material">Material shaders</a> · <a href="shader-water.html" data-slug="shader-water">Water shaders</a> · <a href="shader-post.html" data-slug="shader-post">Post shaders</a> · <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> · <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> · <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> · <a href="shader-pattern.html" data-slug="shader-pattern">Pattern shaders</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-shader-library.html">Shader library</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

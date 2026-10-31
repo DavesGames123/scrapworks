@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Census - Warp Wiki</title>
+<meta name="description" content="the rows a game publishes for the Hierarchy and Inspector panels">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="census">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#design">Design</a><ul><li><a href="#the-panel-asks-for-what-it-draws">The panel asks for what it draws</a></li></ul></li><li><a href="#usage">Usage</a></li><li><a href="#rows">Rows</a></li><li><a href="#generations">Generations</a></li><li><a href="#going-back">Going back</a></li><li><a href="#values">Values</a></li><li><a href="#across-processes">Across processes</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Census</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">the rows a game publishes for the Hierarchy and Inspector panels</p><table class="infobox"><caption>Census</caption><tr><th>Category</th><td><a href="category-editor-channels.html">Editor channels</a></td></tr><tr><th>Module</th><td><code>warp_sdk::census</code></td></tr><tr><th>Source</th><td><code>warp_core/src/panels/census/mod.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">51</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example pong</code><br><code>cargo run -p warp_sdk --example starter</code></td></tr></table><p><strong>The census</strong> is the channel through which a running application tells the Hierarchy and Inspector panels what exists. The <a class="sym" href="census.html"><code>census</code></a> module of <code>warp_core</code>, re-exported by <code>warp_sdk</code>, carries rows from the application to the panel, and clicks and edits back. A hierarchy panel needs a list of what is alive and a way to say "that one" to its owner, and the engine can supply neither. Each row is a string, an id and a flag word, so the engine never learns what a planet is.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<h2 id="design">Design</h2>
+<p>The census is a channel, and the truth lives in the application. The <a href="scene.html" data-slug="scene">Scene</a> module looks similar and is the opposite: it owns its objects. A hosted game keeps publishing a census of its own world.</p>
+<h3 id="the-panel-asks-for-what-it-draws">The panel asks for what it draws</h3>
+<p>The source gives the scale that shaped the channel: the selectables cache of Stella Nova has about forty-two thousand rows, and publishing these every frame would be a hundred thousand string allocations a second for a panel with room for forty lines.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<p>The flow is therefore inverted. <a class="sym" href="#sym-census_wanted"><code>census_wanted</code></a> says whether anyone is looking, and <a class="sym" href="#sym-is_expanded"><code>is_expanded</code></a> says which nodes are open. A publisher sends full rows for open nodes and a count for closed ones, so a closed tree costs one row per category. Nothing enforces this. A publisher that ignores the expanded set is correct and slow.</p>
+<p><a class="sym" href="#sym-want_census"><code>want_census</code></a> is what the panel calls on each frame that it draws. The claim expires after <a class="sym" href="#sym-WANT_GRACE"><code>WANT_GRACE</code></a> publishes, which is 3, not 1, because the panel and the publisher run in an order that neither controls.</p>
+<h2 id="usage">Usage</h2>
+<p>Publish once per frame, gated on interest.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">if</span> census::<span class="f">census_wanted</span>() {
+    <span class="k">let</span> w = &amp;<span class="k">self</span>.world;
+    <span class="k">let</span> <span class="k">mut</span> row = census::<span class="t">Entity</span>::<span class="f">new</span>(<span class="n">1</span>, <span class="n">0</span>, <span class="s">"Drifter"</span>);
+    row.params = vec![
+        census::<span class="t">Param</span>::<span class="f">new</span>(<span class="s">"x"</span>, census::<span class="t">Value</span>::<span class="t">Float</span>(w.pos.x)),
+        census::<span class="t">Param</span>::<span class="f">new</span>(<span class="s">"y"</span>, census::<span class="t">Value</span>::<span class="t">Float</span>(w.pos.y)),
+        census::<span class="t">Param</span>::<span class="f">new</span>(<span class="s">"energy"</span>, census::<span class="t">Value</span>::<span class="t">Float</span>(w.energy)),
+    ];
+    census::<span class="f">publish</span>(census::<span class="t">Census</span> {
+        kinds: vec![census::<span class="t">Kind</span>::<span class="f">new</span>(<span class="s">"Drifter"</span>, [<span class="n">226</span>, <span class="n">159</span>, <span class="n">62</span>], census::<span class="t">Focus</span>::<span class="t">World</span>)],
+        rows: vec![row],
+        ..<span class="t">Default</span>::<span class="f">default</span>()
+    });
+}</code></pre></div>
+<p><a class="sym" href="#sym-publish"><code>census::publish</code></a> overwrites the generation of the snapshot and returns the new value, because the publisher must file its key table under that number.</p>
+<h2 id="rows">Rows</h2>
+<p><a class="sym" href="#sym-Census"><code>Census</code></a> holds <code>kinds</code>, <code>rows</code>, a <a class="sym" href="#sym-generation"><code>generation</code></a> and a <code>note</code>. A publisher that caps a category says so in <code>note</code>, because a silent cap reads as "that is all there is".</p>
+<p><a class="sym" href="#sym-Kind"><code>Kind</code></a> is one category, named once: a plural <code>name</code>, a <a class="sym" href="palette.html#sym-color"><code>color</code></a> for the dot, and a <a class="sym" href="#sym-Focus"><code>Focus</code></a>. <a class="sym" href="#sym-Focus"><code>Focus</code></a> decides what the panel draws, a crosshair for a world row or a frame for a screen row. The engine does not act on it.</p>
+<p><a class="sym" href="#sym-Entity"><code>Entity</code></a> is one row.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>The publisher's <a class="sym" href="#sym-EntityId"><code>EntityId</code></a></td>
+</tr>
+<tr>
+<td><a class="sym" href="teach.html#sym-kind"><code>kind</code></a></td>
+<td>Index into the <code>kinds</code> list; out of range draws unstyled</td>
+</tr>
+<tr>
+<td><code>parent</code></td>
+<td><a class="sym" href="#sym-ROOT"><code>ROOT</code></a> for a top-level row</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>The label</td>
+</tr>
+<tr>
+<td><code>detail</code></td>
+<td>The short right-hand column</td>
+</tr>
+<tr>
+<td><code>flags</code></td>
+<td><a class="sym" href="#sym-SELECTED"><code>SELECTED</code></a>, <a class="sym" href="#sym-HIDDEN"><code>HIDDEN</code></a>, <a class="sym" href="#sym-FOCUSABLE"><code>FOCUSABLE</code></a>, <a class="sym" href="#sym-EXPANDABLE"><code>EXPANDABLE</code></a></td>
+</tr>
+<tr>
+<td><code>children</code></td>
+<td>How many children exist, whether sent or not</td>
+</tr>
+<tr>
+<td><code>params</code></td>
+<td>Editable values, filled only for open rows</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-ROOT"><code>ROOT</code></a> is 0, so a publisher that hands out indices starts at 1. A row with a parent that is not in <code>rows</code> draws at the top level and is not dropped. Rows may arrive in any order. <a class="sym" href="#sym-HIDDEN"><code>HIDDEN</code></a> rows draw dimmed, because "it is there and it is off" is what a person opens a hierarchy to learn. <a class="sym" href="#sym-EXPANDABLE"><code>EXPANDABLE</code></a> applies even when no child rows were sent.</p>
+<h2 id="generations">Generations</h2>
+<p>Ids belong to the publisher, and the useful ones are indices into a table that it rebuilds on each publish. An index means something only against the table that produced it, and a click always arrives at least one frame after that table. So each <a class="sym" href="#sym-Request"><code>Request</code></a> carries the generation that it was drawn from. The publisher keeps its last few tables, resolves against the one named, and refuses what has aged out.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<p>Without this, a click lands on whatever now occupies that index, and the camera flies to the wrong thing.</p>
+<h2 id="going-back">Going back</h2>
+<p><a class="sym" href="#sym-Request"><code>Request</code></a> is a click, with an <a class="sym" href="#sym-Action"><code>Action</code></a> of Select, Focus, Extend or Toggle. The panel calls <a class="sym" href="#sym-request"><code>request</code></a>, and the publisher calls <a class="sym" href="#sym-drain_requests"><code>drain_requests</code></a>. The queue holds <a class="sym" href="#sym-REQUEST_LIMIT"><code>REQUEST_LIMIT</code></a> entries, 64, and drops the oldest, which keeps the most recent intent.</p>
+<p><a class="sym" href="#sym-Edit"><code>Edit</code></a> is a changed value. <a class="sym" href="#sym-set_param"><code>set_param</code></a> and <a class="sym" href="#sym-drain_edits"><code>drain_edits</code></a> are its queue, separate from requests because <a class="sym" href="#sym-Value"><code>Value</code></a> can hold a string. Edits coalesce on the row and parameter index, where requests do not. A slider held for a second gives sixty values and only the last is wanted, but a click pressed twice is two clicks.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup> <a class="sym" href="#sym-EDIT_LIMIT"><code>EDIT_LIMIT</code></a> is 256 distinct parameters.</p>
+<p><a class="sym" href="#sym-set_highlight"><code>set_highlight</code></a> and <a class="sym" href="#sym-highlight"><code>highlight</code></a> carry hover, so that a game can draw its own highlight. <a class="sym" href="#sym-set_reveal"><code>set_reveal</code></a> runs the other way: the publisher names what just became selected, and the panel scrolls to it once. It is a one-shot and not a state, because a level that kept asserting would fight the mouse wheel. <a class="sym" href="#sym-inspect"><code>inspect</code></a>, <a class="sym" href="#sym-inspecting"><code>inspecting</code></a>, <a class="sym" href="#sym-set_inspect"><code>set_inspect</code></a> and <a class="sym" href="#sym-take_inspect_reveal"><code>take_inspect_reveal</code></a> manage which row the Inspector shows.</p>
+<h2 id="values">Values</h2>
+<p><a class="sym" href="#sym-Param"><code>Param</code></a> is one named value on a row, with <code>name</code>, <code>value</code>, <a class="sym" href="#sym-Param-range"><code>range</code></a>, <a class="sym" href="#sym-Param-unit"><code>unit</code></a>, <a class="sym" href="#sym-Param-readonly"><code>readonly</code></a> and <a class="sym" href="#sym-Param-group"><code>group</code></a>. <a class="sym" href="#sym-Value"><code>Value</code></a> is deliberately short: Bool, Int, Float, Color, Text and Vec2. Each variant has one obvious control. A value that fits none is sent as Text, and the publisher owns the parse. A publisher checks <a class="sym" href="#sym-Value-same_type"><code>Value::same_type</code></a> before it applies an edit, because an edit of another type means that the two sides disagree about a parameter.</p>
+<p>A range of none draws a drag field with no stops. <a class="sym" href="#sym-Param-readonly"><code>readonly</code></a> draws a greyed value that the publisher computes. <a class="sym" href="#sym-Param-group"><code>group</code></a> is a free heading string such as "Transform", because the engine does not know the categories of an application. Textures are not a variant. A publisher sends a path as Text, and the panel decides that it is a picture.</p>
+<p>Params count as nothing in the <code>children</code> field, and they are filled only for open rows, so a closed tree costs the same as before they existed.</p>
+<h2 id="across-processes">Across processes</h2>
+<p><a class="sym" href="#sym-install"><code>install</code></a> takes a snapshot published in another process and keeps its generation. Renumbering on arrival would send back a generation that the publisher never issued, and each click would be refused. <a class="sym" href="#sym-install"><code>install</code></a> refuses a generation of 0 and a generation that goes backwards, so a restarted transport cannot resolve ids against a world that is gone. <a class="sym" href="#sym-reset_generation"><code>reset_generation</code></a> is the separate call for a forwarder when a world ends. <a class="sym" href="#sym-clear"><code>clear</code></a> drops the snapshot and leaves the counter alone, so that a local publisher never reissues a number.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<p><a href="hostlink.html" data-slug="hostlink">Host link</a> does the forwarding in <a class="sym" href="hostlink.html#sym-pump_census"><code>pump_census</code></a>.</p>
+<p><a class="sym" href="#sym-with_census"><code>with_census</code></a> reads the snapshot through a closure, because cloning forty thousand strings to draw forty is the cost this design avoids.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 51 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-census" class="modhead"><code>warp_sdk::census</code></h3><h4>Functions</h4><div class="item" id="sym-set_param" data-name="set_param"><div class="sig"><a class="anchor" href="#sym-set_param" aria-label="Link to set_param">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_param</span>(e: <span class="t">Edit</span>)</code></div><div class="doc"><p>Panel: set a parameter.</p>
+<p>COALESCES on <code>(id, param)</code>. A slider dragged for a second is sixty calls
+naming one parameter, and every one of them but the last describes a value
+the person has already moved past. Queuing them makes the publisher apply
+a recording of the drag, one frame per frame, and the knob keeps moving
+after the mouse has stopped.</p>
+<p>The id is enough to key on WITHOUT the generation, and it has to be: an
+edit made against generation 12 and a correction made against 13 are the
+same knob, and keeping both would apply the older one second.</p></div></div><div class="item" id="sym-drain_edits" data-name="drain_edits"><div class="sig"><a class="anchor" href="#sym-drain_edits" aria-label="Link to drain_edits">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drain_edits</span>() -&gt; <span class="t">Vec</span>&lt;<span class="t">Edit</span>&gt;</code></div><div class="doc"><p>Publisher: take every edit made since the last call.</p></div></div><div class="item" id="sym-inspect" data-name="inspect"><div class="sig"><a class="anchor" href="#sym-inspect" aria-label="Link to inspect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">inspect</span>(id: <span class="t">EntityId</span>)</code></div><div class="doc"><p>Panel: this row is what the Inspector is about, and show the Inspector.</p>
+<p>Both, because there is one caller and it means both — a click on a row in
+the tree. A caller that means only the first writes <code>set_reveal</code>.</p></div></div><div class="item" id="sym-inspecting" data-name="inspecting"><div class="sig"><a class="anchor" href="#sym-inspecting" aria-label="Link to inspecting">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">inspecting</span>() -&gt; <span class="t">Option</span>&lt;<span class="t">EntityId</span>&gt;</code></div><div class="doc"><p>Panel: the row to draw, if anything has named one.</p></div></div><div class="item" id="sym-set_inspect" data-name="set_inspect"><div class="sig"><a class="anchor" href="#sym-set_inspect" aria-label="Link to set_inspect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_inspect</span>(id: <span class="t">EntityId</span>)</code></div><div class="doc"><p>Publisher: the subject is now THIS row. <code>ROOT</code> for "it is gone".</p>
+<p>AN ID IS NOT A HANDLE, AND THIS IS WHERE THAT BITES. A publisher whose ids
+are indices into a table it rebuilds — which is the arrangement this
+channel was designed around — hands out an id that names a different thing
+on the next publish. A request survives that because it carries the
+generation it was drawn from and is resolved once, immediately. The
+Inspector's subject cannot: it is a LEVEL, read every frame, for as long as
+somebody leaves the panel open.</p>
+<p>So the publisher owes it a correction. Every publish, resolve the id the
+panel is holding against the table it came from, find that same thing in
+the table being sent, and say so here. The subject then follows the OBJECT
+while the numbering moves under it, which is the same guarantee
+<code>set_expanded</code> asks for and gets for expandable rows.</p>
+<p>A publisher whose ids are already stable never has to call this.</p>
+<p>It does not scroll and does not open a panel — the only thing it changes is
+what the Inspector is about. <code>set_reveal</code> is the one that moves a list.</p></div></div><div class="item" id="sym-take_inspect_reveal" data-name="take_inspect_reveal"><div class="sig"><a class="anchor" href="#sym-take_inspect_reveal" aria-label="Link to take_inspect_reveal">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_inspect_reveal</span>() -&gt; <span class="t">Option</span>&lt;<span class="t">EntityId</span>&gt;</code></div><div class="doc"><p>Host: a click asked for the Inspector. Consumed, so the pane opens once.</p>
+<p>A one-shot for <code>take_reveal</code>'s reason and one more: the host answers it by
+splitting the layout, and a flag that stayed set would re-split every frame.</p></div></div><div class="item" id="sym-want_census" data-name="want_census"><div class="sig"><a class="anchor" href="#sym-want_census" aria-label="Link to want_census">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">want_census</span>(on: bool)</code></div><div class="doc"><p>Panel: I am drawing this. Call it on every frame the panel draws.</p>
+<p><code>false</code> gives up immediately, for a host that knows the panel has gone.
+Not calling it at all gives up within <code>WANT_GRACE</code> publishes, which is the
+path that actually carries the weight — see the static above.</p>
+<p>A panel torn off into another window still writes this: the census is
+process memory, so the panel works anywhere in this process.</p></div></div><div class="item" id="sym-census_wanted" data-name="census_wanted"><div class="sig"><a class="anchor" href="#sym-census_wanted" aria-label="Link to census_wanted">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">census_wanted</span>() -&gt; bool</code></div><div class="doc"><p>Publisher: is it worth building a census at all.</p>
+<p>One relaxed load per frame when the answer is no, which is the common case
+and the one that had to be free.</p></div></div><div class="item" id="sym-set_expanded" data-name="set_expanded"><div class="sig"><a class="anchor" href="#sym-set_expanded" aria-label="Link to set_expanded">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_expanded</span>(ids: <span class="k">impl</span> <span class="t">IntoIterator</span>&lt;<span class="t">Item</span> = <span class="t">EntityId</span>&gt;)</code></div><div class="doc"><p>Panel: replace the open set.</p>
+<p>THE PUBLISHER'S SIDE OF THIS IS A CONTRACT, and it is easy to break by
+accident. The ids of EXPANDABLE rows must be stable from publish to
+publish, or the set the panel hands back names different rows every time
+and the tree opens and shuts on its own.</p>
+<p>It is easy to break because the obvious implementation — mint an id per row
+as the rows are built — makes a heading's id depend on how many rows came
+before it, and therefore on which OTHER headings are open. Opening Planets
+then renumbers Stations, and Stations collapses.</p>
+<p>A publisher that reserves a fixed slot per heading, filled whether or not
+that heading appears, has no such coupling. Rows that are not expandable
+may be numbered however is convenient — a click carries its generation, so
+those only have to be stable within one publish.</p>
+<p>What arrives is the EFFECTIVE open set and not the clicked one. The panel's
+tree is open until a person shuts it, so almost every id in here got there
+without a click; a publisher told only about the clicks would send no
+children for the whole of a tree the panel is drawing wide open.</p></div></div><div class="item" id="sym-is_expanded" data-name="is_expanded"><div class="sig"><a class="anchor" href="#sym-is_expanded" aria-label="Link to is_expanded">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_expanded</span>(id: <span class="t">EntityId</span>) -&gt; bool</code></div><div class="doc"><p>Publisher: should this node's children and values be sent.</p>
+<p>THE INSPECTED ROW IS ALWAYS OPEN, whatever the tree says. Its values are
+the whole content of a panel that can be the only one on screen — the tree
+may be behind another tab, in another window, or shut — and a publisher
+that filled params for the tree's open set alone would leave that panel
+permanently empty for the case it exists to serve.</p>
+<p>One extra relaxed load per call, against a lock this already takes.</p></div></div><div class="item" id="sym-expanded" data-name="expanded"><div class="sig"><a class="anchor" href="#sym-expanded" aria-label="Link to expanded">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">expanded</span>() -&gt; <span class="t">HashSet</span>&lt;<span class="t">EntityId</span>&gt;</code></div><div class="doc"><p>Publisher: the whole open set, for a builder that would otherwise take the
+lock once per candidate node.</p>
+<p>Carries the inspected row for the reason <code>is_expanded</code> does, so the two
+cannot disagree — a publisher that switched from one to the other would
+otherwise silently stop filling the panel.</p></div></div><div class="item" id="sym-request" data-name="request"><div class="sig"><a class="anchor" href="#sym-request" aria-label="Link to request">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">request</span>(r: <span class="t">Request</span>)</code></div><div class="doc"><p>Panel: ask for something.</p></div></div><div class="item" id="sym-drain_requests" data-name="drain_requests"><div class="sig"><a class="anchor" href="#sym-drain_requests" aria-label="Link to drain_requests">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drain_requests</span>() -&gt; <span class="t">Vec</span>&lt;<span class="t">Request</span>&gt;</code></div><div class="doc"><p>Publisher: take everything asked since the last call.</p></div></div><div class="item" id="sym-set_highlight" data-name="set_highlight"><div class="sig"><a class="anchor" href="#sym-set_highlight" aria-label="Link to set_highlight">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_highlight</span>(id: <span class="t">Option</span>&lt;<span class="t">EntityId</span>&gt;)</code></div><div class="doc"><p>Panel: the pointer is over this row, or over nothing.</p></div></div><div class="item" id="sym-highlight" data-name="highlight"><div class="sig"><a class="anchor" href="#sym-highlight" aria-label="Link to highlight">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">highlight</span>() -&gt; <span class="t">Option</span>&lt;<span class="t">EntityId</span>&gt;</code></div><div class="doc"><p>Publisher: which row is hovered, so the world can draw its own emphasis on
+the same thing the list is emphasising.</p></div></div><div class="item" id="sym-set_reveal" data-name="set_reveal"><div class="sig"><a class="anchor" href="#sym-set_reveal" aria-label="Link to set_reveal">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_reveal</span>(id: <span class="t">EntityId</span>)</code></div><div class="doc"><p>Publisher: point the panel at a row. Selection made in the viewport.</p>
+<p>It aims the Inspector too, and does NOT raise it. Those are deliberately
+different: a person who clicked a planet in the game window wants the panel
+they already have to be about that planet, and does not want a pane
+appearing over what they are looking at. Only a click in the tree opens one.</p></div></div><div class="item" id="sym-take_reveal" data-name="take_reveal"><div class="sig"><a class="anchor" href="#sym-take_reveal" aria-label="Link to take_reveal">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_reveal</span>() -&gt; <span class="t">Option</span>&lt;<span class="t">EntityId</span>&gt;</code></div><div class="doc"><p>Panel: a row to scroll to, consumed. See the banner for why it is a
+one-shot: the panel owns its scroll once it has honoured this.</p></div></div><div class="item" id="sym-publish" data-name="publish"><div class="sig"><a class="anchor" href="#sym-publish" aria-label="Link to publish">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">publish</span>(<span class="k">mut</span> c: <span class="t">Census</span>) -&gt; u64</code></div><div class="doc"><p>Publisher: install a new snapshot.</p>
+<p>The generation field of <code>c</code> is overwritten with the next value, so a
+publisher does not track it. The value it gets is returned, because the
+publisher's key table has to be filed under exactly that number.</p></div></div><div class="item" id="sym-generation" data-name="generation"><div class="sig"><a class="anchor" href="#sym-generation" aria-label="Link to generation">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">generation</span>() -&gt; u64</code></div><div class="doc"><p>The generation of the snapshot now installed, without taking the lock.</p></div></div><div class="item" id="sym-install" data-name="install"><div class="sig"><a class="anchor" href="#sym-install" aria-label="Link to install">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">install</span>(c: <span class="t">Census</span>) -&gt; bool</code></div><div class="doc"><p>Forwarder: install a snapshot that was published somewhere ELSE, keeping
+the generation the publisher minted.</p>
+<p>The difference from <code>publish</code> is the whole reason this exists. <code>publish</code>
+overwrites the generation because the publisher and the reader share this
+counter — one process, one sequence. When the publisher is a game in
+another process, they do NOT: the game's key table is filed under the
+game's number, and a request the panel draws from this snapshot has to name
+that number for the game to resolve it. Renumbering on arrival would send
+back a generation the publisher has never issued, and every click would be
+refused as aged out.</p>
+<p>So the wire is the authority and this end follows it. <code>GENERATION</code> is set
+rather than incremented, which is also what keeps <code>census_wanted</code> working
+on this side: the panel's claim expires against a counter that only moves
+when a census actually arrives, so a game that stops publishing lets the
+interest go stale exactly as a local publisher would.</p>
+<p>Going BACKWARDS is refused. Sockets deliver in order, but a transport that
+restarts gives the next game a generation of one while the panel is holding
+rows from the last one's thousandth, and installing that would make every
+id in flight resolve against a table from a world that is gone. A caller
+that means "new world" calls <code>clear</code> first, which resets nothing here —
+see the note there — so the guard is on the number and not on the caller.</p>
+<p>Returns whether the snapshot was taken.</p></div></div><div class="item" id="sym-reset_generation" data-name="reset_generation"><div class="sig"><a class="anchor" href="#sym-reset_generation" aria-label="Link to reset_generation">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reset_generation</span>()</code></div><div class="doc"><p>Forwarder: forget the generation, for a world that has ended.</p>
+<p><code>clear</code> empties the snapshot but deliberately leaves the counter where it
+is, because a local publisher's next <code>publish</code> must not reissue a number a
+request in flight was drawn from. A forwarder has the opposite problem: the
+next world is a different process that starts its own sequence at one, and
+<code>install</code> refuses anything below what the last one reached.</p>
+<p>Separate from <code>clear</code> so the ordinary path cannot reach it by accident.
+Calling this while a local publisher is running would let it mint a
+generation twice.</p></div></div><div class="item" id="sym-with_census" data-name="with_census"><div class="sig"><a class="anchor" href="#sym-with_census" aria-label="Link to with_census">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> with_census&lt;<span class="t">R</span>&gt;(f: <span class="k">impl</span> <span class="t">FnOnce</span>(&amp;<span class="t">Census</span>) -&gt; <span class="t">R</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">R</span>&gt;</code></div><div class="doc"><p>Panel: read the snapshot.</p>
+<p>A closure rather than a clone, because the panel reads it once per frame
+and cloning forty thousand Strings to draw forty of them is the cost this
+whole file is arranged to avoid.</p></div></div><div class="item" id="sym-clear" data-name="clear"><div class="sig"><a class="anchor" href="#sym-clear" aria-label="Link to clear">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear</span>()</code></div><div class="doc"><p>Drop the snapshot and reset the ask.</p>
+<p>For a transport that goes back to Stopped: the world is gone, and a panel
+still listing its planets would be reporting a world that no longer exists.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Edit" data-name="edit"><div class="sig"><a class="anchor" href="#sym-Edit" aria-label="Link to Edit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Edit</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> id: <span class="t">EntityId</span>,
+<span class="c">/// The generation the row was drawn from. Resolved the same way a request</span>
+<span class="c">/// is, and refused the same way when it has aged out — a stale index</span>
+<span class="c">/// writing into a fresh table sets a parameter on the wrong thing.</span>
+<span class="k">pub</span> generation: u64,
+<span class="c">/// Index into that row's `params`.</span>
+<span class="k">pub</span> param: u16,
+<span class="k">pub</span> value: <span class="t">Value</span>,</code></pre></div><div class="doc"><p>One parameter set to one value, and the census the row was drawn from.</p>
+<p>Not <code>Copy</code>, because <code>Value</code> holds a String. That is why this is a queue of
+its own rather than a variant of <code>Action</code>: <code>Request</code> is a small Copy struct
+that a whole file's worth of code passes by value, and widening it to carry
+a String would cost every click a clone to serve the one case that needs
+one.</p></div></div></div><div class="typeblock"><div class="item" id="sym-EntityId" data-name="entityid"><div class="sig"><a class="anchor" href="#sym-EntityId" aria-label="Link to EntityId">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">type</span> <span class="t">EntityId</span> = u64</code></div><div class="doc"><p>A handle to one thing the application says exists.</p>
+<p>Opaque here. The publisher mints it and the publisher reads it back; the
+engine only carries it. Zero is reserved for "no parent", so a publisher
+that hands out indices must start at one.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Focus" data-name="focus"><div class="sig"><a class="anchor" href="#sym-Focus" aria-label="Link to Focus">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Focus</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Nothing to go to. Category headers and grouping rows.</span>
+<span class="t">None</span>,
+<span class="c">/// It has a position in the world. The camera can fly to it.</span>
+<span class="t">World</span>,
+<span class="c">/// It has a rect on the screen. Going to it means showing it.</span>
+<span class="t">Screen</span>,</code></pre></div><div class="doc"><p>What pointing at a kind of thing means.</p>
+<p>The engine does not act on this. It decides what the panel DRAWS — a world
+row gets a crosshair and a screen row gets a frame — and the publisher is
+still the one that moves anything.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Kind" data-name="kind"><div class="sig"><a class="anchor" href="#sym-Kind" aria-label="Link to Kind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Kind</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Plural, and shown as the category header: "Planets", "Stations".</span>
+<span class="k">pub</span> name: <span class="t">String</span>,
+<span class="c">/// The dot beside every row of this kind.</span>
+<span class="k">pub</span> color: [u8; <span class="n">3</span>],
+<span class="c">/// What clicking a row of this kind can do.</span>
+<span class="k">pub</span> focus: <span class="t">Focus</span>,</code></pre></div><div class="doc"><p>One category of thing, named once instead of on every row.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Kind-new" data-name="kind::new"><div class="sig"><a class="anchor" href="#sym-Kind-new" aria-label="Link to Kind::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(name: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, color: [u8; <span class="n">3</span>], focus: <span class="t">Focus</span>) -&gt; <span class="k">Self</span></code></div></div></details></div><div class="typeblock"><div class="item" id="sym-Entity" data-name="entity"><div class="sig"><a class="anchor" href="#sym-Entity" aria-label="Link to Entity">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Entity</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> id: <span class="t">EntityId</span>,
+<span class="c">/// Index into `Census::kinds`. Out of range draws unstyled rather than</span>
+<span class="c">/// panicking — a census is data from another crate, not an invariant.</span>
+<span class="k">pub</span> kind: u16,
+<span class="c">/// `ROOT` for a top-level row. A parent that is not in `rows` orphans the</span>
+<span class="c">/// row, and the panel draws it at the top level rather than dropping it.</span>
+<span class="k">pub</span> parent: <span class="t">EntityId</span>,
+<span class="k">pub</span> name: <span class="t">String</span>,
+<span class="c">/// The right-hand column: a position, a count, a state. Short. The panel</span>
+<span class="c">/// clips it before it clips the name.</span>
+<span class="k">pub</span> detail: <span class="t">String</span>,
+<span class="k">pub</span> flags: u8,
+<span class="c">/// How many children exist, whether or not any were sent. A closed</span>
+<span class="c">/// category is one row that can still say how much is behind it.</span>
+<span class="c">/// </span>
+<span class="c">/// Params are NOT counted here. The count answers "how much is behind</span>
+<span class="c">/// this heading", and a person reading "Sand 5" wants that to mean five</span>
+<span class="c">/// things and not five knobs on one thing.</span>
+<span class="k">pub</span> children: u32,
+<span class="c">/// The values this row exposes, in the order they should be drawn.</span>
+<span class="c">/// </span>
+<span class="c">/// Filled only for rows the panel has open — see the banner. A row with</span>
+<span class="c">/// params is EXPANDABLE like one with children, and the two mix: params</span>
+<span class="c">/// are drawn first, then child rows.</span>
+<span class="k">pub</span> params: <span class="t">Vec</span>&lt;<span class="t">Param</span>&gt;,</code></pre></div><div class="doc"><p>One row.</p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-Entity-new" data-name="entity::new"><div class="sig"><a class="anchor" href="#sym-Entity-new" aria-label="Link to Entity::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(id: <span class="t">EntityId</span>, kind: u16, name: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A row with no detail, no flags and no params. Fields are public; set
+what applies.</p></div></div><div class="item" id="sym-Entity-has" data-name="entity::has"><div class="sig"><a class="anchor" href="#sym-Entity-has" aria-label="Link to Entity::has">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">has</span>(&amp;<span class="k">self</span>, flag: u8) -&gt; bool</code></div></div></details></div><div class="typeblock"><div class="item" id="sym-Action" data-name="action"><div class="sig"><a class="anchor" href="#sym-Action" aria-label="Link to Action">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Action</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Make it the selection, and nothing else.</span>
+<span class="t">Select</span>,
+<span class="c">/// Make it the selection and go there — fly the camera, open the panel.</span>
+<span class="t">Focus</span>,
+<span class="c">/// Add to or remove from the selection. Ctrl-click.</span>
+<span class="t">Extend</span>,
+<span class="c">/// Show it or hide it, for a kind where that means something.</span>
+<span class="t">Toggle</span>,</code></pre></div><div class="doc"><p>What a click on a row means.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Request" data-name="request"><div class="sig"><a class="anchor" href="#sym-Request" aria-label="Link to Request">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Request</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> id: <span class="t">EntityId</span>,
+<span class="c">/// The generation the row was drawn from. See the banner: the publisher</span>
+<span class="c">/// resolves against this table, not the current one.</span>
+<span class="k">pub</span> generation: u64,
+<span class="k">pub</span> action: <span class="t">Action</span>,</code></pre></div><div class="doc"><p>One thing the panel wants done, and the census it was asked from.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Census" data-name="census"><div class="sig"><a class="anchor" href="#sym-Census" aria-label="Link to Census">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Census</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Bumped by `publish`. A request carries the generation it was drawn</span>
+<span class="c">/// from, and the publisher resolves against that one.</span>
+<span class="k">pub</span> generation: u64,
+<span class="k">pub</span> kinds: <span class="t">Vec</span>&lt;<span class="t">Kind</span>&gt;,
+<span class="c">/// Any order. The panel builds the tree from `parent`, and draws rows of</span>
+<span class="c">/// one parent in the order they appear here.</span>
+<span class="k">pub</span> rows: <span class="t">Vec</span>&lt;<span class="t">Entity</span>&gt;,
+<span class="c">/// Why this snapshot is not everything, when it is not.</span>
+<span class="c">/// </span>
+<span class="c">/// A publisher that caps a category at a thousand rows says so here, and</span>
+<span class="c">/// the panel puts it under the tree. A cap nobody is told about reads as</span>
+<span class="c">/// "that is all there is", which is the one thing a census must not say</span>
+<span class="c">/// by accident.</span>
+<span class="k">pub</span> note: <span class="t">String</span>,</code></pre></div><div class="doc"><p>One snapshot of what exists.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Value" data-name="value"><div class="sig"><a class="anchor" href="#sym-Value" aria-label="Link to Value">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Value</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Bool</span>(bool),
+<span class="c">/// Whole numbers: counts, columns, indices.</span>
+<span class="t">Int</span>(i64),
+<span class="t">Float</span>(f32),
+<span class="c">/// Straight RGBA, unmultiplied. The panel draws a swatch and a picker.</span>
+<span class="t">Color</span>([u8; <span class="n">4</span>]),
+<span class="t">Text</span>(<span class="t">String</span>),
+<span class="c">/// A size or a position, edited as two fields on one row.</span>
+<span class="t">Vec2</span>([f32; <span class="n">2</span>]),</code></pre></div><div class="doc"><p>One editable value, and the only vocabulary the panel knows how to draw.</p>
+<p>Deliberately short. Every variant here has ONE obvious control — a
+checkbox, a drag field, a swatch — and a type with no obvious control
+would have to be drawn as something, which means guessing. A publisher
+with a value that does not fit sends it as <code>Text</code> and owns the parse, or
+splits it into values that do.</p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-Value-type_name" data-name="value::type_name"><div class="sig"><a class="anchor" href="#sym-Value-type_name" aria-label="Link to Value::type_name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">type_name</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>The name of the variant, for a readout that has to say what a value is
+without showing it.</p></div></div><div class="item" id="sym-Value-same_type" data-name="value::same_type"><div class="sig"><a class="anchor" href="#sym-Value-same_type" aria-label="Link to Value::same_type">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">same_type</span>(&amp;<span class="k">self</span>, other: &amp;<span class="t">Value</span>) -&gt; bool</code></div><div class="doc"><p>Whether two values could be the same parameter.</p>
+<p>An edit that arrives as a different type than the row holds is a
+publisher and panel that disagree about what a parameter is, and
+applying it would write a float into a count. The publisher checks
+this before it writes.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Param" data-name="param"><div class="sig"><a class="anchor" href="#sym-Param" aria-label="Link to Param">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Param</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Short. It shares a row with its editor, so it is a label and not a</span>
+<span class="c">/// sentence — "Count", "Drift", "Grid columns".</span>
+<span class="k">pub</span> name: <span class="t">String</span>,
+<span class="k">pub</span> value: <span class="t">Value</span>,
+<span class="c">/// Inclusive bounds for `Int`, `Float` and `Vec2`. `None` draws a drag</span>
+<span class="c">/// field with no stops, which is right for a value with no natural range</span>
+<span class="c">/// and wrong for one that has one — a particle count dragged to negative</span>
+<span class="c">/// is a publisher's crash, not a person's mistake.</span>
+<span class="k">pub</span> range: <span class="t">Option</span>&lt;[f32; <span class="n">2</span>]&gt;,
+<span class="c">/// A suffix for the readout: "px", "/s", "°". Empty for a bare number.</span>
+<span class="k">pub</span> unit: <span class="t">String</span>,
+<span class="c">/// Drawn, and not editable. For a value the publisher computes and wants</span>
+<span class="c">/// SEEN — a measured width, a live count — beside the ones it accepts</span>
+<span class="c">/// back. Greyed rather than hidden: the number is the point.</span>
+<span class="k">pub</span> readonly: bool,
+<span class="c">/// The heading this value belongs under: "Transform", "Material", "Audio".</span>
+<span class="c">/// </span>
+<span class="c">/// Empty for a value that belongs to the object at large, which is what a</span>
+<span class="c">/// publisher that has never heard of this field sends. The Inspector draws</span>
+<span class="c">/// those first, under no heading, and every named group after them in the</span>
+<span class="c">/// order the params arrive — so grouping is opt-in and ordering is the</span>
+<span class="c">/// publisher's, not this file's.</span>
+<span class="k">pub</span> group: <span class="t">String</span>,</code></pre></div><div class="doc"><p>One named value on a row.</p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-Param-new" data-name="param::new"><div class="sig"><a class="anchor" href="#sym-Param-new" aria-label="Link to Param::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(name: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, value: <span class="t">Value</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>An editable value with no range, no unit and no group.</p></div></div><div class="item" id="sym-Param-range" data-name="param::range"><div class="sig"><a class="anchor" href="#sym-Param-range" aria-label="Link to Param::range">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">range</span>(<span class="k">mut</span> <span class="k">self</span>, lo: f32, hi: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Bounds, for the kinds of value that take them.</p></div></div><div class="item" id="sym-Param-unit" data-name="param::unit"><div class="sig"><a class="anchor" href="#sym-Param-unit" aria-label="Link to Param::unit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">unit</span>(<span class="k">mut</span> <span class="k">self</span>, unit: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Param-readonly" data-name="param::readonly"><div class="sig"><a class="anchor" href="#sym-Param-readonly" aria-label="Link to Param::readonly">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">readonly</span>(<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Param-group" data-name="param::group"><div class="sig"><a class="anchor" href="#sym-Param-group" aria-label="Link to Param::group">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">group</span>(<span class="k">mut</span> <span class="k">self</span>, group: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Put this value under a heading in the Inspector.</p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-EDIT_LIMIT" data-name="edit_limit"><div class="sig"><a class="anchor" href="#sym-EDIT_LIMIT" aria-label="Link to EDIT_LIMIT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">EDIT_LIMIT</span>: usize = <span class="n">256</span></code></div><div class="doc"><p>How many DISTINCT parameters can be mid-edit before the oldest is dropped.</p>
+<p>Higher than the request limit and it barely matters, because coalescing
+means the queue grows with the number of parameters touched and not with
+the length of the drag. A person cannot have two hundred and fifty six
+knobs in flight; a publisher that has stopped draining can.</p></div></div><div class="item" id="sym-ROOT" data-name="root"><div class="sig"><a class="anchor" href="#sym-ROOT" aria-label="Link to ROOT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ROOT</span>: <span class="t">EntityId</span> = <span class="n">0</span></code></div><div class="doc"><p>The parent of a top-level row. Never a valid entity.</p></div></div><div class="item" id="sym-SELECTED" data-name="selected"><div class="sig"><a class="anchor" href="#sym-SELECTED" aria-label="Link to SELECTED">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SELECTED</span>: u8 = <span class="n">1</span> &lt;&lt; <span class="n">0</span>; <span class="c">/// The row exists but is not being drawn — a closed panel, a culled body. /// Drawn dimmed rather than hidden, because "it is there and it is off" is /// the thing a person opens a hierarchy to find out. pub const HIDDEN: u8 = 1 &lt;&lt; 1; /// Clicking this row can go somewhere. A category header usually cannot. pub const FOCUSABLE: u8 = 1 &lt;&lt; 2; /// The row has children worth asking for, so the panel draws a triangle. /// Set it even when `children` is a count and no child rows were sent — that /// is exactly the case the triangle exists to resolve. pub const EXPANDABLE: u8 = 1 &lt;&lt; 3; //</span></code></div><div class="doc"><p>The row is part of the application's current selection.</p></div></div><div class="item" id="sym-HIDDEN" data-name="hidden"><div class="sig"><a class="anchor" href="#sym-HIDDEN" aria-label="Link to HIDDEN">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">HIDDEN</span>: u8 = <span class="n">1</span> &lt;&lt; <span class="n">1</span>; <span class="c">/// Clicking this row can go somewhere. A category header usually cannot. pub const FOCUSABLE: u8 = 1 &lt;&lt; 2; /// The row has children worth asking for, so the panel draws a triangle. /// Set it even when `children` is a count and no child rows were sent — that /// is exactly the case the triangle exists to resolve. pub const EXPANDABLE: u8 = 1 &lt;&lt; 3; // // Bit 4 was OPEN, "this row starts open". It existed for one revision, between // making grouping rows possible and making the tree open by default, and the // second removed every question the first could answer. It is not reserved: // there is no persisted flag byte anywhere, so the next flag takes the bit.</span></code></div><div class="doc"><p>The row exists but is not being drawn — a closed panel, a culled body.
+Drawn dimmed rather than hidden, because "it is there and it is off" is
+the thing a person opens a hierarchy to find out.</p></div></div><div class="item" id="sym-FOCUSABLE" data-name="focusable"><div class="sig"><a class="anchor" href="#sym-FOCUSABLE" aria-label="Link to FOCUSABLE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">FOCUSABLE</span>: u8 = <span class="n">1</span> &lt;&lt; <span class="n">2</span>; <span class="c">/// The row has children worth asking for, so the panel draws a triangle. /// Set it even when `children` is a count and no child rows were sent — that /// is exactly the case the triangle exists to resolve. pub const EXPANDABLE: u8 = 1 &lt;&lt; 3; // // Bit 4 was OPEN, "this row starts open". It existed for one revision, between // making grouping rows possible and making the tree open by default, and the // second removed every question the first could answer. It is not reserved: // there is no persisted flag byte anywhere, so the next flag takes the bit. //   grep -n "EVERYTHING IS OPEN UNTIL IT IS SHUT"  warp_core/src/panels/hierarchy/draw.rs</span></code></div><div class="doc"><p>Clicking this row can go somewhere. A category header usually cannot.</p></div></div><div class="item" id="sym-EXPANDABLE" data-name="expandable"><div class="sig"><a class="anchor" href="#sym-EXPANDABLE" aria-label="Link to EXPANDABLE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">EXPANDABLE</span>: u8 = <span class="n">1</span> &lt;&lt; <span class="n">3</span>; <span class="c">// // Bit 4 was OPEN, "this row starts open". It existed for one revision, between // making grouping rows possible and making the tree open by default, and the // second removed every question the first could answer. It is not reserved: // there is no persisted flag byte anywhere, so the next flag takes the bit. //   grep -n "EVERYTHING IS OPEN UNTIL IT IS SHUT"  warp_core/src/panels/hierarchy/draw.rs  /// What pointing at a kind of thing means. /// /// The engine does not act on this. It decides what the panel DRAWS — a world /// row gets a crosshair and a screen row gets a frame — and the publisher is</span></code></div><div class="doc"><p>The row has children worth asking for, so the panel draws a triangle.
+Set it even when <code>children</code> is a count and no child rows were sent — that
+is exactly the case the triangle exists to resolve.</p></div></div><div class="item" id="sym-WANT_GRACE" data-name="want_grace"><div class="sig"><a class="anchor" href="#sym-WANT_GRACE" aria-label="Link to WANT_GRACE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">WANT_GRACE</span>: u64 = <span class="n">3</span></code></div><div class="doc"><p>How many publishes a single assertion of interest survives.</p>
+<p>Three, not one: the panel and the publisher run on the same thread but in
+an order neither controls, so a claim made after this frame's publish must
+still be alive at the next one.</p></div></div><div class="item" id="sym-REQUEST_LIMIT" data-name="request_limit"><div class="sig"><a class="anchor" href="#sym-REQUEST_LIMIT" aria-label="Link to REQUEST_LIMIT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">REQUEST_LIMIT</span>: usize = <span class="n">64</span></code></div><div class="doc"><p>How many requests the queue holds before it drops the oldest.</p>
+<p>A publisher that stops draining — a paused transport, a game mid-load —
+must not let a person's clicking grow a Vec without limit. Dropping the
+oldest keeps the most recent intent, which is the one they meant.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="editor-panels.html" data-slug="editor-panels">Editor panels</a></li><li><a href="hostlink.html" data-slug="hostlink">Host link</a></li><li><a href="scene.html" data-slug="scene">Scene</a></li><li><a href="devconsole.html" data-slug="devconsole">Dev console</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/panels/census/mod.rs</code> - <code>so the engine never learns</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_core/src/panels/census/mod.rs</code> - <code>THE PANEL ASKS FOR WHAT IT DRAWS</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/panels/census/mod.rs</code> - <code>A REQUEST NAMES THE CENSUS IT CAME FROM</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/panels/census/mod.rs</code> - <code>Edits COALESCE rather than queue</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_core/src/panels/census/snapshot.rs</code> - <code>Going BACKWARDS is refused.</code></li></ol><table class="navbox"><tr><th><a href="category-editor-channels.html">Editor channels</a></th></tr><tr><td><a href="editor-panels.html" data-slug="editor-panels">Editor panels</a> · <b>Census</b> · <a href="devconsole.html" data-slug="devconsole">Dev console</a> · <a href="bindings.html" data-slug="bindings">Bindings</a> · <a href="audio.html" data-slug="audio">Audio</a> · <a href="palette.html" data-slug="palette">Palette roles</a> · <a href="profile.html" data-slug="profile">Profiler</a> · <a href="hostlink.html" data-slug="hostlink">Host link</a> · <a href="window.html" data-slug="window">Custom windows</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-editor-channels.html">Editor channels</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

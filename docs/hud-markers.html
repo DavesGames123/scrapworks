@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HUD markers - Warp Wiki</title>
+<meta name="description" content="icons pinned to world points, with edge arrows for points off screen">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="hud-markers">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#how-it-works">How it works</a><ul><li><a href="#choosing">Choosing</a></li><li><a href="#placing">Placing</a></li><li><a href="#fading">Fading</a></li><li><a href="#objectives">Objectives</a></li></ul></li><li><a href="#configuration">Configuration</a></li><li><a href="#icons">Icons</a></li><li><a href="#the-camera">The camera</a></li><li><a href="#usage">Usage</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">HUD markers</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">icons pinned to world points, with edge arrows for points off screen</p><table class="infobox"><caption>HUD markers</caption><tr><th>Category</th><td><a href="category-information.html">Information</a></td></tr><tr><th>Module</th><td><code>warp_sdk::hud::markers</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/hud/markers.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">22</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example hud_map</code></td></tr></table><p><strong>HUD markers</strong> are icons pinned to world points, with an edge arrow and a distance for any point off screen. The kit lives in <a class="sym" href="hud-markers.html"><code>warp_sdk::hud::markers</code></a>. A marker shows where a thing is. When its world point is on screen, the icon sits on the point. When the point is off screen, the icon moves to the screen edge on the line from the screen centre to the point, an arrow points out toward the thing, and a number gives its distance <sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup>.</p>
+<h2 id="how-it-works">How it works</h2>
+<p>A game keeps one <a class="sym" href="#sym-Markers"><code>Markers</code></a> value in its state and calls <a class="sym" href="#sym-Markers-show"><code>Markers::show</code></a> in <code>gui</code> every frame with a slice of <a class="sym" href="#sym-Marker"><code>Marker</code></a> values. <a class="sym" href="#sym-Markers-show"><code>Markers::show</code></a> calls <a class="sym" href="#sym-Markers-layout"><code>Markers::layout</code></a>, which places the markers with no drawing, and then paints them on the middle egui layer. A test or a custom painter can call <a class="sym" href="#sym-Markers-layout"><code>Markers::layout</code></a> alone. Its result is one <a class="sym" href="#sym-Placed"><code>Placed</code></a> per shown marker.</p>
+<h3 id="choosing">Choosing</h3>
+<p>Not more than <a class="sym" href="#sym-Markers-max"><code>max</code></a> markers show. Objectives come first, then the higher priority, then the nearer marker <sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup>.</p>
+<h3 id="placing">Placing</h3>
+<p><a class="sym" href="#sym-edge_point"><code>edge_point</code></a> clamps a target onto the edge of a rect along the line from the rect centre, and it returns the edge point and the unit direction to the target. A target inside the rect comes back unchanged. <a class="sym" href="#sym-Markers-layout"><code>Markers::layout</code></a> applies it to the screen less <code>edge_margin</code>. <code>Placed.on_screen</code> is true when the point falls inside that inner rect.</p>
+<h3 id="fading">Fading</h3>
+<p>A far marker fades by a smoothstep from <code>fade_near</code> to <code>fade_far</code>, down to <code>min_alpha</code>. An objective never fades below <a class="sym" href="#sym-OBJECTIVE_FLOOR"><code>OBJECTIVE_FLOOR</code></a> (0.75), because an objective must stay readable <sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup>.</p>
+<h3 id="objectives">Objectives</h3>
+<p><a class="sym" href="#sym-Marker-objective"><code>Marker::objective</code></a> makes a marker an objective. An objective shows before every other marker, pulses for <code>pulse_secs</code> after it first shows, and shows its distance on screen as well as off it. Its colour becomes the <code>Look.warn</code> hue if the colour is still the default white <sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup>.</p>
+<p>The pulse is kept per id, so <code>Marker.id</code> must stay stable between frames. <a class="sym" href="#sym-Markers-layout"><code>Markers::layout</code></a> forgets the pulse of an id that is gone, so an objective that leaves the list and returns pulses again.</p>
+<h2 id="configuration">Configuration</h2>
+<p><a class="sym" href="#sym-Markers-new"><code>Markers::new</code></a> sets these defaults. <a class="sym" href="#sym-Markers-max"><code>Markers::max</code></a>, <a class="sym" href="#sym-Markers-fade"><code>Markers::fade</code></a> and <a class="sym" href="#sym-Markers-unit"><code>Markers::unit</code></a> are builder forms, and every field is public.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th style="text-align: right;">Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Markers-max"><code>max</code></a></td>
+<td style="text-align: right;">8</td>
+<td>Most markers that show</td>
+</tr>
+<tr>
+<td><code>fade_near</code></td>
+<td style="text-align: right;">30.0</td>
+<td>Full opacity up to this world distance</td>
+</tr>
+<tr>
+<td><code>fade_far</code></td>
+<td style="text-align: right;">200.0</td>
+<td>Lowest opacity from this world distance on</td>
+</tr>
+<tr>
+<td><code>min_alpha</code></td>
+<td style="text-align: right;">0.35</td>
+<td>Opacity of a far marker that is not an objective</td>
+</tr>
+<tr>
+<td><code>edge_margin</code></td>
+<td style="text-align: right;">28.0</td>
+<td>Space between an edge arrow and the screen edge, in points</td>
+</tr>
+<tr>
+<td><code>size</code></td>
+<td style="text-align: right;">9.0</td>
+<td>Half-size of an icon, in points</td>
+</tr>
+<tr>
+<td><code>pulse_secs</code></td>
+<td style="text-align: right;">3.0</td>
+<td>How long a new objective pulses</td>
+</tr>
+<tr>
+<td><code>distance_scale</code></td>
+<td style="text-align: right;">1.0</td>
+<td>World distance times this gives the shown distance</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Markers-unit"><code>unit</code></a></td>
+<td style="text-align: right;">empty</td>
+<td>Text after the distance number, for example <code>m</code></td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Marker-new"><code>Marker::new</code></a> gives a white dot at priority 0. <a class="sym" href="#sym-distance_text"><code>distance_text</code></a> writes the number, in the form <code>42</code>, <code>980</code> or <code>1.2k</code>.</p>
+<h2 id="icons">Icons</h2>
+<p><a class="sym" href="#sym-MarkIcon"><code>MarkIcon</code></a> is a small icon drawn with plain shapes, shared with the <a href="hud-minimap.html" data-slug="hud-minimap">minimap</a>. The variants are MarkIcon::Dot, MarkIcon::Ring, MarkIcon::Diamond, MarkIcon::Square, MarkIcon::Triangle for a threat, MarkIcon::Star for an objective, MarkIcon::Cross, and MarkIcon::Custom, which holds a game's own painter function. <a class="sym" href="#sym-MarkIcon-paint"><code>MarkIcon::paint</code></a> draws one icon anywhere. A marker draws its icon on a dark disc, so that it reads on any scene.</p>
+<h2 id="the-camera">The camera</h2>
+<p>The world to screen map is a closure, so any camera works. <a class="sym" href="#sym-Camera"><code>Camera</code></a> is the small default. It matches the Warp 2D view: <code>set_view_pos</code> and <code>set_view_scale</code> show the scale in world units from the screen centre to the top edge, with world y up <sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup>. <a class="sym" href="#sym-Camera-view"><code>Camera::view</code></a> builds one from the same values that <a class="sym" href="icon.html#sym-render"><code>render</code></a> sends, and <a class="sym" href="#sym-Camera-world_to_screen"><code>Camera::world_to_screen</code></a> applies it. This <a class="sym" href="#sym-Camera"><code>Camera</code></a> is separate from the <a href="camera.html" data-slug="camera">camera kit</a>.</p>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::egui::{pos2, <span class="t">Color32</span>};
+<span class="k">use</span> warp_sdk::hud::markers::{<span class="t">Camera</span>, <span class="t">MarkIcon</span>, <span class="t">Marker</span>, <span class="t">Markers</span>};
+
+<span class="c">// Keep one `Markers` in the game state.</span>
+<span class="k">let</span> <span class="k">mut</span> markers = <span class="t">Markers</span>::<span class="f">new</span>(<span class="s">"hud_markers"</span>);
+<span class="c">// In `gui`, every frame:</span>
+<span class="k">let</span> cam = <span class="t">Camera</span>::<span class="f">view</span>(player, view_scale); <span class="c">// the same values `render` sends</span>
+<span class="k">let</span> screen = ctx.<span class="f">screen_rect</span>();
+markers.<span class="f">show</span>(ctx, player, |p| cam.<span class="f">world_to_screen</span>(p, screen), &amp;[
+    <span class="t">Marker</span>::<span class="f">new</span>(<span class="n">1</span>, <span class="f">pos2</span>(<span class="n">40.0</span>, <span class="n">12.0</span>)).<span class="f">icon</span>(<span class="t">MarkIcon</span>::<span class="t">Star</span>).<span class="f">objective</span>(),
+    <span class="t">Marker</span>::<span class="f">new</span>(<span class="n">2</span>, <span class="f">pos2</span>(-<span class="n">8.0</span>, <span class="n">3.0</span>)).<span class="f">icon</span>(<span class="t">MarkIcon</span>::<span class="t">Diamond</span>).<span class="f">color</span>(<span class="t">Color32</span>::<span class="t">LIGHT_BLUE</span>),
+]);</code></pre></div>
+<p>The <code>hud_map</code> example shows known points of interest as markers and adds a goal as an objective. It hides the markers while the full map covers the screen, by a check on <a class="sym" href="hud-minimap.html#sym-Minimap-is_expanded"><code>Minimap::is_expanded</code></a>.</p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li><code>Marker.pos</code> and the <code>from</code> argument are <code>egui::Pos2</code> values in world units, unlike <a href="hud-cues.html" data-slug="hud-cues">HUD cues</a>, which uses <code>ultraviolet::Vec2</code>.</li>
+<li><code>size</code>, <code>edge_margin</code> and the marker text size are used raw and do not pass through <a class="sym" href="squircle.html#sym-Look-s"><code>Look::s</code></a>, so they do not follow the interface scale.</li>
+<li><a class="sym" href="#sym-Markers-show"><code>Markers::show</code></a> needs <code>&amp;mut self</code>, because the first-seen time of each objective is state.</li>
+<li>A marker with a world point behind another surface still draws. The kit paints on the middle layer and takes no account of decks or panels.</li>
+</ul><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 22 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-hud--markers" class="modhead"><code>warp_sdk::hud::markers</code></h3><h4>Functions</h4><div class="item" id="sym-edge_point" data-name="edge_point"><div class="sig"><a class="anchor" href="#sym-edge_point" aria-label="Link to edge_point">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">edge_point</span>(inner: <span class="t">Rect</span>, target: <span class="t">Pos2</span>) -&gt; (<span class="t">Pos2</span>, <span class="t">Vec2</span>)</code></div><div class="doc"><p>Clamp <code>target</code> onto the edge of <code>inner</code>, along the line from the centre.</p>
+<p>It returns the edge point and the unit direction from the centre to
+<code>target</code>. A target inside <code>inner</code> comes back unchanged.</p>
+<p><code>ignore
+let (at, dir) = edge_point(screen.shrink(24.0), pos2(5000.0, 300.0));</code></p></div></div><div class="item" id="sym-distance_text" data-name="distance_text"><div class="sig"><a class="anchor" href="#sym-distance_text" aria-label="Link to distance_text">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">distance_text</span>(d: f32) -&gt; <span class="t">String</span></code></div><div class="doc"><p>The distance as short text: "42", "980", "1.2k".</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-MarkIcon" data-name="markicon"><div class="sig"><a class="anchor" href="#sym-MarkIcon" aria-label="Link to MarkIcon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">MarkIcon</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A filled disc.</span>
+<span class="t">Dot</span>,
+<span class="c">/// An open ring.</span>
+<span class="t">Ring</span>,
+<span class="c">/// A filled diamond.</span>
+<span class="t">Diamond</span>,
+<span class="c">/// A filled square.</span>
+<span class="t">Square</span>,
+<span class="c">/// A filled triangle that points up. Use it for a threat.</span>
+<span class="t">Triangle</span>,
+<span class="c">/// A five-point star. Use it for an objective.</span>
+<span class="t">Star</span>,
+<span class="c">/// A plus sign.</span>
+<span class="t">Cross</span>,
+<span class="c">/// Your own painter: painter, centre, radius in points, colour.</span>
+<span class="t">Custom</span>(<span class="k">fn</span>(&amp;<span class="t">Painter</span>, <span class="t">Pos2</span>, f32, <span class="t">Color32</span>)),</code></pre></div><div class="doc"><p>A small icon that the minimap and the markers draw with plain shapes.</p>
+<p><code>ignore
+use warp_sdk::hud::markers::MarkIcon;
+MarkIcon::Star.paint(&amp;painter, centre, 10.0, Color32::GOLD);
+// Your own shape:
+fn shell(p: &amp;egui::Painter, c: egui::Pos2, r: f32, col: egui::Color32) {
+p.circle_stroke(c, r, egui::Stroke::new(2.0, col));
+}
+let icon = MarkIcon::Custom(shell);</code></p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-MarkIcon-paint" data-name="markicon::paint"><div class="sig"><a class="anchor" href="#sym-MarkIcon-paint" aria-label="Link to MarkIcon::paint">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">paint</span>(<span class="k">self</span>, p: &amp;<span class="t">Painter</span>, c: <span class="t">Pos2</span>, r: f32, color: <span class="t">Color32</span>)</code></div><div class="doc"><p>Paint the icon centred on <code>c</code>, with a half-size of <code>r</code> points.</p>
+<p><code>ignore
+MarkIcon::Diamond.paint(&amp;painter, pos2(100.0, 80.0), 8.0, Color32::WHITE);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Camera" data-name="camera"><div class="sig"><a class="anchor" href="#sym-Camera" aria-label="Link to Camera">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Camera</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The world point at the screen centre.</span>
+<span class="k">pub</span> centre: <span class="t">Pos2</span>,
+<span class="c">/// World units from the screen centre to the top edge.</span>
+<span class="k">pub</span> half_height: f32,
+<span class="c">/// True when world y grows up the screen (the warp 2D view).</span>
+<span class="k">pub</span> y_up: bool,</code></pre></div><div class="doc"><p>A small 2D camera: the default world to screen map.</p>
+<p>It matches the warp 2D view. <code>RenderContext::set_view_pos(centre)</code> and
+<code>set_view_scale(s)</code> show <code>s</code> world units from the screen centre to the top
+edge, with world y up.</p>
+<p><code>ignore
+let cam = Camera::view(player, 12.0);
+let at = cam.world_to_screen(pos2(3.0, 4.0), ctx.screen_rect());</code></p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-Camera-view" data-name="camera::view"><div class="sig"><a class="anchor" href="#sym-Camera-view" aria-label="Link to Camera::view">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">view</span>(centre: <span class="t">Pos2</span>, scale: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The camera of a warp 2D view: <code>set_view_pos(centre)</code>, <code>set_view_scale(scale)</code>.</p></div></div><div class="item" id="sym-Camera-world_to_screen" data-name="camera::world_to_screen"><div class="sig"><a class="anchor" href="#sym-Camera-world_to_screen" aria-label="Link to Camera::world_to_screen">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">world_to_screen</span>(&amp;<span class="k">self</span>, p: <span class="t">Pos2</span>, screen: <span class="t">Rect</span>) -&gt; <span class="t">Pos2</span></code></div><div class="doc"><p>The screen point of the world point <code>p</code>, for a screen of <code>screen</code>.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Marker" data-name="marker"><div class="sig"><a class="anchor" href="#sym-Marker" aria-label="Link to Marker">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Marker</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A stable id. The pulse of a new objective is kept per id.</span>
+<span class="k">pub</span> id: u64,
+<span class="c">/// The world point.</span>
+<span class="k">pub</span> pos: <span class="t">Pos2</span>,
+<span class="k">pub</span> icon: <span class="t">MarkIcon</span>,
+<span class="k">pub</span> color: <span class="t">Color32</span>,
+<span class="c">/// A higher priority shows first when there are more than `max` markers.</span>
+<span class="k">pub</span> priority: i32,
+<span class="c">/// An objective shows before every other marker, pulses when new, and</span>
+<span class="c">/// shows its distance on screen too.</span>
+<span class="k">pub</span> objective: bool,</code></pre></div><div class="doc"><p>One thing to mark, in world space.</p>
+<p><code>ignore
+Marker::new(7, pos2(10.0, 2.0)).icon(MarkIcon::Star).priority(5).objective()</code></p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-Marker-new" data-name="marker::new"><div class="sig"><a class="anchor" href="#sym-Marker-new" aria-label="Link to Marker::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(id: u64, pos: <span class="t">Pos2</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A white dot at <code>pos</code>, priority 0.</p></div></div><div class="item" id="sym-Marker-icon" data-name="marker::icon"><div class="sig"><a class="anchor" href="#sym-Marker-icon" aria-label="Link to Marker::icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">icon</span>(<span class="k">mut</span> <span class="k">self</span>, icon: <span class="t">MarkIcon</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the icon.</p></div></div><div class="item" id="sym-Marker-color" data-name="marker::color"><div class="sig"><a class="anchor" href="#sym-Marker-color" aria-label="Link to Marker::color">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">color</span>(<span class="k">mut</span> <span class="k">self</span>, color: <span class="t">Color32</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the colour.</p></div></div><div class="item" id="sym-Marker-priority" data-name="marker::priority"><div class="sig"><a class="anchor" href="#sym-Marker-priority" aria-label="Link to Marker::priority">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">priority</span>(<span class="k">mut</span> <span class="k">self</span>, priority: i32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the priority.</p></div></div><div class="item" id="sym-Marker-objective" data-name="marker::objective"><div class="sig"><a class="anchor" href="#sym-Marker-objective" aria-label="Link to Marker::objective">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">objective</span>(<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Make the marker an objective. The colour becomes the look's warn hue
+if the colour is still the default white.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Placed" data-name="placed"><div class="sig"><a class="anchor" href="#sym-Placed" aria-label="Link to Placed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Placed</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> id: u64,
+<span class="c">/// The screen point the icon is drawn at.</span>
+<span class="k">pub</span> pos: <span class="t">Pos2</span>,
+<span class="c">/// True when the world point is inside the screen less the edge margin.</span>
+<span class="k">pub</span> on_screen: bool,
+<span class="c">/// Unit direction, in screen space, from the screen centre to the world</span>
+<span class="c">/// point. The edge arrow points this way.</span>
+<span class="k">pub</span> dir: <span class="t">Vec2</span>,
+<span class="c">/// World distance from the `from` point, times `distance_scale`.</span>
+<span class="k">pub</span> distance: f32,
+<span class="c">/// 0..1 opacity from the distance fade.</span>
+<span class="k">pub</span> alpha: f32,
+<span class="c">/// 0..1, the part of the new-objective pulse that is left.</span>
+<span class="k">pub</span> pulse: f32,</code></pre></div><div class="doc"><p>Where a marker landed this frame. <code>Markers::layout</code> returns one per shown
+marker.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Markers" data-name="markers"><div class="sig"><a class="anchor" href="#sym-Markers" aria-label="Link to Markers">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Markers</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Not more than this many markers show.</span>
+<span class="k">pub</span> max: usize,
+<span class="c">/// Full opacity up to this world distance.</span>
+<span class="k">pub</span> fade_near: f32,
+<span class="c">/// Lowest opacity from this world distance on.</span>
+<span class="k">pub</span> fade_far: f32,
+<span class="c">/// The opacity of a far marker that is not an objective.</span>
+<span class="k">pub</span> min_alpha: f32,
+<span class="c">/// Space between an edge arrow and the screen edge, in points.</span>
+<span class="k">pub</span> edge_margin: f32,
+<span class="c">/// Half-size of an icon, in points.</span>
+<span class="k">pub</span> size: f32,
+<span class="c">/// How long a new objective pulses, in seconds.</span>
+<span class="k">pub</span> pulse_secs: f32,
+<span class="c">/// World distance times this gives the shown distance.</span>
+<span class="k">pub</span> distance_scale: f32,
+<span class="c">/// Text after the distance number, for example "m".</span>
+<span class="k">pub</span> unit: &amp;<span class="a">'static</span> str,</code></pre></div><div class="doc"><p>The marker kit. Keep one in the game state and call <code>show</code> in <code>gui</code>.</p>
+<p><code>ignore
+let mut markers = Markers::new("hud_markers").max(6).fade(20.0, 120.0);
+markers.show(ctx, player, |p| cam.world_to_screen(p, ctx.screen_rect()), &amp;list);</code></p></div></div><details class="members"><summary>6 methods</summary><div class="item" id="sym-Markers-new" data-name="markers::new"><div class="sig"><a class="anchor" href="#sym-Markers-new" aria-label="Link to Markers::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(id: <span class="k">impl</span> std::hash::<span class="t">Hash</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A kit with the defaults: 8 markers, fade from 30 to 200 world units,
+an edge margin of 28 points.</p></div></div><div class="item" id="sym-Markers-max" data-name="markers::max"><div class="sig"><a class="anchor" href="#sym-Markers-max" aria-label="Link to Markers::max">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">max</span>(<span class="k">mut</span> <span class="k">self</span>, max: usize) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the most markers that show.</p></div></div><div class="item" id="sym-Markers-fade" data-name="markers::fade"><div class="sig"><a class="anchor" href="#sym-Markers-fade" aria-label="Link to Markers::fade">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">fade</span>(<span class="k">mut</span> <span class="k">self</span>, near: f32, far: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the fade range, in world units.</p></div></div><div class="item" id="sym-Markers-unit" data-name="markers::unit"><div class="sig"><a class="anchor" href="#sym-Markers-unit" aria-label="Link to Markers::unit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">unit</span>(<span class="k">mut</span> <span class="k">self</span>, unit: &amp;<span class="a">'static</span> str, scale: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the distance unit text and scale.</p></div></div><div class="item" id="sym-Markers-layout" data-name="markers::layout"><div class="sig"><a class="anchor" href="#sym-Markers-layout" aria-label="Link to Markers::layout">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">layout</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, now: f64, screen: <span class="t">Rect</span>, from: <span class="t">Pos2</span>, to_screen: <span class="k">impl</span> <span class="t">Fn</span>(<span class="t">Pos2</span>) -&gt; <span class="t">Pos2</span>, list: &amp;[<span class="t">Marker</span>], ) -&gt; <span class="t">Vec</span>&lt;<span class="t">Placed</span>&gt;</code></div><div class="doc"><p>Place the markers for one frame, without drawing. <code>now</code> is the time in
+seconds, for the pulse. <code>from</code> is the world point distances run from.</p>
+<p><code>ignore
+let placed = markers.layout(t, screen, player, |p| cam.world_to_screen(p, screen), &amp;list);</code></p></div></div><div class="item" id="sym-Markers-show" data-name="markers::show"><div class="sig"><a class="anchor" href="#sym-Markers-show" aria-label="Link to Markers::show">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">show</span>( &amp;<span class="k">mut</span> <span class="k">self</span>, ctx: &amp;egui::<span class="t">Context</span>, from: <span class="t">Pos2</span>, to_screen: <span class="k">impl</span> <span class="t">Fn</span>(<span class="t">Pos2</span>) -&gt; <span class="t">Pos2</span>, list: &amp;[<span class="t">Marker</span>], ) -&gt; <span class="t">Vec</span>&lt;<span class="t">Placed</span>&gt;</code></div><div class="doc"><p>Place and draw the markers for one frame. It returns what <code>layout</code>
+returns.</p>
+<p><code>ignore
+let placed = markers.show(ctx, player, |p| cam.world_to_screen(p, ctx.screen_rect()), &amp;list);</code></p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-OBJECTIVE_FLOOR" data-name="objective_floor"><div class="sig"><a class="anchor" href="#sym-OBJECTIVE_FLOOR" aria-label="Link to OBJECTIVE_FLOOR">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">OBJECTIVE_FLOOR</span>: f32 = <span class="n">0.75</span></code></div><div class="doc"><p>The lowest alpha of a far objective. An objective must stay readable.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="hud.html" data-slug="hud">HUD</a></li><li><a href="hud-minimap.html" data-slug="hud-minimap">HUD minimap</a></li><li><a href="squircle.html" data-slug="squircle">Squircle kit</a></li><li><a href="camera.html" data-slug="camera">Camera</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/markers.rs</code> - <code>screen edge, on the line from the screen centre to the point. An arrow on</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/markers.rs</code> - <code>// Choose: objectives, then priority, then the nearer.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/markers.rs</code> - <code>The lowest alpha of a far objective. An objective must stay readable.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/markers.rs</code> - <code>let base = if m.objective &amp;&amp; m.color == Color32::WHITE { look.warn } else { m.color };</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/markers.rs</code> - <code>`set_view_scale(s)` show `s` world units from the screen centre to the top</code></li></ol><table class="navbox"><tr><th><a href="category-information.html">Information</a></th></tr><tr><td><a href="squircle.html" data-slug="squircle">Squircle kit</a> · <a href="hud.html" data-slug="hud">HUD</a> · <a href="hud-cues.html" data-slug="hud-cues">HUD cues</a> · <b>HUD markers</b> · <a href="hud-minimap.html" data-slug="hud-minimap">HUD minimap</a> · <a href="hud-progress.html" data-slug="hud-progress">HUD progress</a> · <a href="teach.html" data-slug="teach">Teach kit</a> · <a href="widgets.html" data-slug="widgets">Panel widgets</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-information.html">Information</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

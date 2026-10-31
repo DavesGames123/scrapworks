@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Network invites - Warp Wiki</title>
+<meta name="description" content="one pasted string with the host addresses, port, node id and join code">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="net-invite">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#format-of-an-invite">Format of an invite</a></li><li><a href="#using-the-codec">Using the codec</a></li><li><a href="#one-text-two-routes">One text, two routes</a></li><li><a href="#the-check">The check</a></li><li><a href="#the-join-code">The join code</a></li><li><a href="#public-address">Public address</a></li><li><a href="#privacy">Privacy</a></li><li><a href="#compatibility">Compatibility</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Network invites</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">one pasted string with the host addresses, port, node id and join code</p><table class="infobox"><caption>Network invites</caption><tr><th>Category</th><td><a href="category-networking.html">Networking</a></td></tr><tr><th>Module</th><td><code>warp_sdk::net::invite</code></td></tr><tr><th>Source</th><td><code>warp_net/src/invite.rs</code></td></tr><tr><th>Feature</th><td><code>net</code></td></tr><tr><th>Public items</th><td><a href="#reference">16</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example pong_link</code></td></tr></table><p><strong>Network invites</strong> are one-string join tokens: a single text that holds the host addresses, the port, the host P2P node id and the join code, which a guest pastes once. They live in <a class="sym" href="net-invite.html"><code>warp_sdk::net::invite</code></a>, re-exported from <code>warp_net</code>. The codec is pure data in and out. An invite spares the player from typing an address and a code, and a check detects a typo before any connection starts.</p>
+<h2 id="format-of-an-invite">Format of an invite</h2>
+<p>The application gives an <a class="sym" href="#sym-InviteFormat"><code>InviteFormat</code></a>: a tag, the URL schemes that also start an invite, and a default port. It usually holds one as a constant. Two applications with two tags do not read each other's invites. <sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="c">/// The invite text: "PL-..." or "ponglink://...", TCP port 47490.</span>
+<span class="k">const</span> <span class="t">FORMAT</span>: <span class="t">InviteFormat</span> = <span class="t">InviteFormat</span>::<span class="f">new</span>(<span class="s">"PL"</span>, &amp;[<span class="s">"ponglink://"</span>], <span class="n">47490</span>);</code></pre></div>
+<p>The text is the tag, then Crockford base32 symbols in groups of four. The symbols are <code>0-9</code> and <code>A-Z</code> with no I, L, O or U. A reader takes O as 0, and I or L as 1. Case, spaces, dashes and line breaks have no effect. With the tag SN and the default port 47474, <code>SN-230A-G08Q-DFNS-BEX9-JQ</code> is 192.168.1.23, the default port and the code <code>K7QM-3XRP</code>. <sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<p>The payload is a bit stream, high bit first:</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Bits</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>version</td>
+<td>4</td>
+<td>1, or 2 when the invite has a node id</td>
+</tr>
+<tr>
+<td>flags</td>
+<td>4</td>
+<td>Port present, two addresses, IPv6 for each address</td>
+</tr>
+<tr>
+<td>node</td>
+<td>256</td>
+<td>Version 2 only: the Ed25519 public key of the P2P endpoint</td>
+</tr>
+<tr>
+<td>address A</td>
+<td>32 or 128</td>
+<td>The LAN address</td>
+</tr>
+<tr>
+<td>address B</td>
+<td>32 or 128</td>
+<td>When flagged: the public address</td>
+</tr>
+<tr>
+<td>port</td>
+<td>16</td>
+<td>When flagged. Otherwise the format's default port</td>
+</tr>
+<tr>
+<td>code</td>
+<td>40</td>
+<td>The join code</td>
+</tr>
+<tr>
+<td>check</td>
+<td>10</td>
+<td>CRC-10 of all bits before it</td>
+</tr>
+</tbody>
+</table>
+<p>The version and the flags give the length, so a reader takes the correct count of symbols from a longer paste. A version 1 LAN invite on the default port is 18 symbols. A version 2 LAN invite on the default port is 70 symbols, and 76 with a public IPv4 address. <sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<h2 id="using-the-codec">Using the codec</h2>
+<p><a class="sym" href="#sym-encode"><code>encode</code></a> writes an <a class="sym" href="#sym-Invite"><code>Invite</code></a>, as version 2 when Invite::node is set and version 1 otherwise. <a class="sym" href="#sym-decode"><code>decode</code></a> finds an invite anywhere in a text, because a paste may hold more. Each tag at the start of a word and each scheme at any position is a candidate, and the first candidate that decodes with a good check wins. The integration test decodes an invite from the text <code>"Join me: ..."</code>. <a class="sym" href="#sym-Invite-socket_addrs"><code>Invite::socket_addrs</code></a> gives each address with the port, in invite order. <sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<p>A game rarely calls these directly. On the host, <a class="sym" href="net-session.html#sym-host_invite"><code>host_invite</code></a> gathers the addresses and encodes. On a guest, <a class="sym" href="net-session.html#sym-Session-join_invite"><code>Session::join_invite</code></a> decodes and dials, and <code>pong_link</code> calls <a class="sym" href="#sym-decode"><code>decode</code></a> first only so that it can show an error before it starts a worker.</p>
+<h2 id="one-text-two-routes">One text, two routes</h2>
+<p>One version 2 text works in two places. On the host network the guest can connect over TCP to the LAN address. Over the internet a private LAN address gets no answer, so the guest dials the node id over P2P, and the TCP address is the fallback only. The order of the dials is session logic, not part of this module. <sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<h2 id="the-check">The check</h2>
+<p>CRC-10, with the ATM polynomial <code>0x233</code>, finds each error burst of 10 bits or fewer, at each stream length. It therefore finds each change of one symbol and each swap of two adjacent symbols, while the header stays the same. A header change also changes the length, and the check then fails by chance, about 1023 times in 1024. <sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<p>A typo gives InviteError::NotFound, and no handshake starts. So the host's join-code lockout counts no strike for it. The other errors come from <a class="sym" href="#sym-encode"><code>encode</code></a>: AddressCount for no address or more than two, BadCode, and BadTag.</p>
+<h2 id="the-join-code">The join code</h2>
+<p>A join code is <code>XXXX-XXXX</code>: 8 symbols of <a class="sym" href="#sym-CODE_ALPHABET"><code>CODE_ALPHABET</code></a>, 40 bits. The alphabet has 32 symbols and leaves out 0, O, 1 and I, so a code read aloud or off a screen is not mistyped. <a class="sym" href="#sym-new_join_code"><code>new_join_code</code></a> makes one. Its bits come from the standard library's RandomState, which takes its keys from the OS random source, mixed with the clock and the process id. <sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<p>The code is the SPAKE2 password of the <a href="net.html#security-model" data-slug="net">handshake</a>, so each guess costs one handshake, and the host lockout limits the guesses per source. <a class="sym" href="#sym-code_bits"><code>code_bits</code></a> and <a class="sym" href="#sym-code_from_bits"><code>code_from_bits</code></a> convert between the text and the 40 bits. <a class="sym" href="#sym-code_bits"><code>code_bits</code></a> ignores case, spaces and dashes.</p>
+<h2 id="public-address">Public address</h2>
+<p><a class="sym" href="#sym-PublicAddress"><code>PublicAddress</code></a> finds the public IPv4 address of this machine with one STUN binding request. The application holds one value and clones it where it needs the address. <a class="sym" href="#sym-PublicAddress-discover"><code>PublicAddress::discover</code></a> starts one background request, <a class="sym" href="#sym-PublicAddress-get"><code>PublicAddress::get</code></a> gives the result, and <a class="sym" href="#sym-PublicAddress-pending"><code>PublicAddress::pending</code></a> is true while a request is in flight. The second STUN server gets a try only when the first fails. <a class="sym" href="net-session.html#sym-host_invite"><code>host_invite</code></a> takes the value as its last argument and adds the address when it differs from the LAN address.</p>
+<h2 id="privacy">Privacy</h2>
+<p>An invite shows the host IP address to each person who has the text, so a player should give one only to the players they want. The STUN server learns the address of the machine that asks. The request goes only when the application calls <a class="sym" href="#sym-PublicAddress-discover"><code>PublicAddress::discover</code></a>, never at start. <sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<h2 id="compatibility">Compatibility</h2>
+<p>The bit stream matches the Stella Nova invite. With the same tag, schemes and default port, the two codecs give the same text, and the tests hold texts that the Stella Nova codec made. A reader of version 1 refuses version 2. <sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup></p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 16 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-net--invite" class="modhead"><code>warp_sdk::net::invite</code> <span class="feat">feature <code>net</code></span></h3><h4>Functions</h4><div class="item" id="sym-code_bits" data-name="code_bits"><div class="sig"><a class="anchor" href="#sym-code_bits" aria-label="Link to code_bits">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">code_bits</span>(code: &amp;str) -&gt; <span class="t">Option</span>&lt;u64&gt;</code></div><div class="doc"><p>The 40 bits of a XXXX-XXXX join code, as code_from_bits wrote it. Case,
+spaces and dashes have no effect. None for a code of another length or
+with a symbol not in CODE_ALPHABET.</p></div></div><div class="item" id="sym-code_from_bits" data-name="code_from_bits"><div class="sig"><a class="anchor" href="#sym-code_from_bits" aria-label="Link to code_from_bits">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">code_from_bits</span>(x: u64) -&gt; <span class="t">String</span></code></div><div class="doc"><p>The code text for the low 40 bits of <code>x</code>.</p></div></div><div class="item" id="sym-decode" data-name="decode"><div class="sig"><a class="anchor" href="#sym-decode" aria-label="Link to decode">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">decode</span>(fmt: &amp;<span class="t">InviteFormat</span>, text: &amp;str) -&gt; <span class="t">Result</span>&lt;<span class="t">Invite</span>, <span class="t">InviteError</span>&gt;</code></div><div class="doc"><p>Find and decode an invite anywhere in <code>text</code> (a paste may hold more).
+Each tag at the start of a word, and each scheme at any position, is a
+candidate. The first candidate that decodes with a good check wins.</p></div></div><div class="item" id="sym-encode" data-name="encode"><div class="sig"><a class="anchor" href="#sym-encode" aria-label="Link to encode">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">encode</span>(fmt: &amp;<span class="t">InviteFormat</span>, inv: &amp;<span class="t">Invite</span>) -&gt; <span class="t">Result</span>&lt;<span class="t">String</span>, <span class="t">InviteError</span>&gt;</code></div><div class="doc"><p>The invite text for <code>inv</code> in format <code>fmt</code>. Version 2 when <code>inv.node</code>
+is Some, else version 1.</p></div></div><div class="item" id="sym-new_join_code" data-name="new_join_code"><div class="sig"><a class="anchor" href="#sym-new_join_code" aria-label="Link to new_join_code">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new_join_code</span>() -&gt; <span class="t">String</span></code></div><div class="doc"><p>A new join code, "XXXX-XXXX": 40 bits. The bits come from std's
+RandomState, which takes its keys from the OS random source, mixed with
+the clock and the process id. The code is the SPAKE2 password
+(crypto.rs), so each guess costs one handshake, and the host lockout
+limits the guesses per source.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Invite" data-name="invite"><div class="sig"><a class="anchor" href="#sym-Invite" aria-label="Link to Invite">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Invite</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> node: <span class="t">Option</span>&lt;[u8; <span class="n">32</span>]&gt;,
+<span class="k">pub</span> addrs: <span class="t">Vec</span>&lt;<span class="t">IpAddr</span>&gt;,
+<span class="k">pub</span> port: u16,
+<span class="k">pub</span> code: <span class="t">String</span>,</code></pre></div><div class="doc"><p>A decoded invite: the addresses to try in order (one or two), the port
+for all of them, the host P2P node id (version 2 only), and the join
+code.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Invite-socket_addrs" data-name="invite::socket_addrs"><div class="sig"><a class="anchor" href="#sym-Invite-socket_addrs" aria-label="Link to Invite::socket_addrs">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">socket_addrs</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">SocketAddr</span>&gt;</code></div><div class="doc"><p>Each address with the port, in the invite order.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-InviteError" data-name="inviteerror"><div class="sig"><a class="anchor" href="#sym-InviteError" aria-label="Link to InviteError">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">InviteError</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The invite has no address, or more than two.</span>
+<span class="t">AddressCount</span>,
+<span class="c">/// The code is not a XXXX-XXXX join code of CODE_ALPHABET.</span>
+<span class="t">BadCode</span>,
+<span class="c">/// The format tag is empty or not ASCII letters and digits.</span>
+<span class="t">BadTag</span>,
+<span class="c">/// The text holds no invite with a good check: no tag, a typo, or a</span>
+<span class="c">/// cut paste.</span>
+<span class="t">NotFound</span>,</code></pre></div><div class="doc"><p>Why encode or decode gave no result.</p></div></div></div><div class="typeblock"><div class="item" id="sym-InviteFormat" data-name="inviteformat"><div class="sig"><a class="anchor" href="#sym-InviteFormat" aria-label="Link to InviteFormat">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">InviteFormat</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The tag in front of the symbols, for example "SN". ASCII letters</span>
+<span class="c">/// and digits only. A reader finds it at the start of a word, in any</span>
+<span class="c">/// case.</span>
+<span class="k">pub</span> tag: &amp;<span class="a">'static</span> str,
+<span class="c">/// Other prefixes, for example "nova://". A reader finds each one at</span>
+<span class="c">/// any position, in any case, so "nova://" also finds "stellanova://".</span>
+<span class="k">pub</span> schemes: &amp;<span class="a">'static</span> [&amp;<span class="a">'static</span> str],
+<span class="c">/// The port that an invite with no F_PORT flag names.</span>
+<span class="k">pub</span> default_port: u16,</code></pre></div><div class="doc"><p>The invite text of one application: its tag, its URL schemes and its
+default port. The application keeps one const of it.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-InviteFormat-new" data-name="inviteformat::new"><div class="sig"><a class="anchor" href="#sym-InviteFormat-new" aria-label="Link to InviteFormat::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="k">fn</span> <span class="f">new</span>(tag: &amp;<span class="a">'static</span> str, schemes: &amp;<span class="a">'static</span> [&amp;<span class="a">'static</span> str], default_port: u16) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A format with this tag, these schemes and this default port.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-PublicAddress" data-name="publicaddress"><div class="sig"><a class="anchor" href="#sym-PublicAddress" aria-label="Link to PublicAddress">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">PublicAddress</span></code></div><div class="doc"><p>The public IPv4 address of this machine, from one STUN answer. The
+application holds one value and clones it where it needs the address.</p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-PublicAddress-new" data-name="publicaddress::new"><div class="sig"><a class="anchor" href="#sym-PublicAddress-new" aria-label="Link to PublicAddress::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>No address, no request in flight.</p></div></div><div class="item" id="sym-PublicAddress-get" data-name="publicaddress::get"><div class="sig"><a class="anchor" href="#sym-PublicAddress-get" aria-label="Link to PublicAddress::get">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">get</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">IpAddr</span>&gt;</code></div><div class="doc"><p>The address from the last STUN answer. None until discover finds it.</p></div></div><div class="item" id="sym-PublicAddress-pending" data-name="publicaddress::pending"><div class="sig"><a class="anchor" href="#sym-PublicAddress-pending" aria-label="Link to PublicAddress::pending">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pending</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True while a STUN request is in flight.</p></div></div><div class="item" id="sym-PublicAddress-discover" data-name="publicaddress::discover"><div class="sig"><a class="anchor" href="#sym-PublicAddress-discover" aria-label="Link to PublicAddress::discover">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">discover</span>(&amp;<span class="k">self</span>)</code></div><div class="doc"><p>Start one background STUN binding request to STUN_SERVERS. A call
+while a request is in flight does nothing. Call it only when the
+host asks: the STUN server learns the address of this machine.</p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-CODE_ALPHABET" data-name="code_alphabet"><div class="sig"><a class="anchor" href="#sym-CODE_ALPHABET" aria-label="Link to CODE_ALPHABET">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">CODE_ALPHABET</span>: &amp;[u8; <span class="n">32</span>] = b<span class="s">"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"</span></code></div><div class="doc"><p>The 32 symbols of a join code: no 0/O or 1/I, so a code read aloud or
+off a screen is not mistyped.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="net.html" data-slug="net">Networking</a></li><li><a href="net-session.html" data-slug="net-session">Network sessions</a></li><li><a href="net-transports.html" data-slug="net-transports">Network transports</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_net/src/invite.rs</code> - <code>applications with two tags do not read the invites of each other.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_net/src/invite.rs</code> - <code>&quot;SN&quot; and the default port 47474, &quot;SN-230A-G08Q-DFNS-BEX9-JQ&quot; is</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_net/src/invite.rs</code> - <code>A version 2 LAN invite on the default port is 70 symbols, and 76 with a</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_net/src/invite.rs</code> - <code>Find and decode an invite anywhere in `text` (a paste may hold more).</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_net/src/invite.rs</code> - <code>One version 2 text works in two places. On the host network the guest</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_net/src/invite.rs</code> - <code>A CRC-10 finds each error burst of 10 bits or fewer, at each stream</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_net/src/invite.rs</code> - <code>RandomState, which takes its keys from the OS random source, mixed with</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_net/src/invite.rs</code> - <code>goes only when the application calls PublicAddress::discover, never at</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_net/src/invite.rs</code> - <code>The bit stream is the same as the Stella Nova invite</code></li></ol><table class="navbox"><tr><th><a href="category-networking.html">Networking</a></th></tr><tr><td><a href="net.html" data-slug="net">Networking</a> · <a href="net-session.html" data-slug="net-session">Network sessions</a> · <b>Network invites</b> · <a href="net-transports.html" data-slug="net-transports">Network transports</a> · <a href="net-discover.html" data-slug="net-discover">LAN discovery</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-networking.html">Networking</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

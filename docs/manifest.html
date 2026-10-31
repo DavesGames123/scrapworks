@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App manifest - Warp Wiki</title>
+<meta name="description" content="warp_app.toml, the file that states what a project is and how it looks">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="manifest">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#consumers">Consumers</a></li><li><a href="#discovery">Discovery</a></li><li><a href="#loading">Loading</a></li><li><a href="#top-level-and-identity">Top level and identity</a></li><li><a href="#window">Window</a></li><li><a href="#assets">Assets</a></li><li><a href="#atlases">Atlases</a><ul><li><a href="#pak-names">Pak names</a></li></ul></li><li><a href="#runtime-environment">Runtime environment</a></li><li><a href="#build">Build</a><ul><li><a href="#platform-tables">Platform tables</a></li></ul></li><li><a href="#settings">Settings</a></li><li><a href="#validation-rules">Validation rules</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">App manifest</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">warp_app.toml, the file that states what a project is and how it looks</p><table class="infobox"><caption>App manifest</caption><tr><th>Category</th><td><a href="category-engine.html">Engine</a></td></tr><tr><th>Module</th><td><code>warp_sdk::manifest</code></td></tr><tr><th>Source</th><td><code>warp_core/src/manifest/mod.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">51</a></td></tr></table><p><strong>The app manifest</strong> is <code>warp_app.toml</code>, the UTF-8 TOML file through which a hosted application tells the engine its identity, window, assets, atlases and build targets. The <a class="sym" href="manifest.html"><code>manifest</code></a> module of <code>warp_core</code>, re-exported by <code>warp_sdk</code>, parses and validates the file. The format is the boundary between the engine and one application, so the engine carries no application name of its own.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> The manifest does not replace <code>Cargo.toml</code>: it records targets and feature sets and compiles nothing.</p>
+<div class="hatnote">The format specification is `warp_core/docs/app_manifest.md`, format version 1.</div>
+
+<h2 id="consumers">Consumers</h2>
+<p>The manifest has several readers, and not all fields reach the engine at run time.</p>
+<ul>
+<li><a class="sym" href="renderer.html#sym-run"><code>run</code></a> calls a boot step that discovers the file, reads it through <a class="sym" href="#sym-Manifest-read_model"><code>Manifest::read_model</code></a>, installs the <code>settings</code> table, and sets the frame cap from <code>window.frame_cap_hz</code>.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></li>
+<li>The editor reads and writes the whole file.</li>
+<li><code>warp_manifest_check</code> validates a file and exits with 0 or 1, so a build script can gate on it.</li>
+</ul>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-bash">cargo run --bin warp_manifest_check              # discovered manifest
+cargo run --bin warp_manifest_check ../my-game   # a project directory
+cargo run --bin warp_manifest_check other.toml   # an explicit file</code></pre></div>
+<p>Through this path, <a class="sym" href="renderer.html#sym-run"><code>run</code></a> takes only <code>settings</code> and <code>window.frame_cap_hz</code>. Other fields have narrower readers. See <a href="#limitations" data-slug="">Limitations</a>.</p>
+<h2 id="discovery">Discovery</h2>
+<p><a class="sym" href="#sym-Manifest-discover"><code>Manifest::discover</code></a> looks in three places on native targets:<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<ol>
+<li>The path in <a class="sym" href="#sym-MANIFEST_ENV_VAR"><code>MANIFEST_ENV_VAR</code></a>, which is WARP_APP_MANIFEST. The variable may name a directory.</li>
+<li><code>warp_app.toml</code> beside the executable.</li>
+<li><code>warp_app.toml</code> in the working directory, then in each parent.</li>
+</ol>
+<p>The variable name is owned by the engine and carries no application name.</p>
+<p><a class="sym" href="#sym-resolve"><code>resolve</code></a> turns a directory into the manifest path inside it, and returns anything else unchanged. A project is named by its directory because the file name is a constant. <a class="sym" href="#sym-resolve"><code>resolve</code></a> does not walk upward and does not check that the result exists. Searching was removed from the startup of the editor on purpose, because a project found by walking is a project nobody chose.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<p>The browser has no file system. There, the host crate embeds the file with <code>include_str!</code> and passes the string to the parser.</p>
+<h2 id="loading">Loading</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Function</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Manifest-parse"><code>Manifest::parse</code></a></td>
+<td>Parse, check the version, then run every rule. A broken rule is an error.</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Manifest-load"><code>Manifest::load</code></a></td>
+<td>Read a file, then parse. Native only.</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Manifest-read_model"><code>Manifest::read_model</code></a></td>
+<td>Parse and check the version, but accept a file that breaks rules.</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Manifest-problems"><code>Manifest::problems</code></a></td>
+<td>Every rule violation, not only the first.</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Manifest-read_model"><code>read_model</code></a> exists because the editor must draw the fields of a file that someone is part way through fixing. If it could not, the section with the mistake would disappear and take the only control that could correct it.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<p><a class="sym" href="#sym-ManifestError"><code>ManifestError</code></a> separates four failures: a read failure, a syntax failure, an unsupported version, and broken rules. Only the last carries a list. Every struct is <code>deny_unknown_fields</code>, so an undeclared key fails to parse.</p>
+<p>A minimal valid file, from the test suite of the module:<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-toml">manifest_version = <span class="n">1</span>
+[app]
+id = <span class="s">"demo_app"</span>
+name = <span class="s">"Demo App"</span>
+[window]
+size = [<span class="n">800</span>, <span class="n">600</span>]
+[build]
+package = <span class="s">"demo-app"</span>
+bin = <span class="s">"demo-app"</span></code></pre></div>
+<p>Absence means the default throughout the format.</p>
+<h2 id="top-level-and-identity">Top level and identity</h2>
+<p><code>manifest_version</code> is required and must equal <a class="sym" href="#sym-SUPPORTED_VERSION"><code>SUPPORTED_VERSION</code></a>, which is 1.</p>
+<p><code>[app]</code>:</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Required</th>
+<th>Default</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>yes</td>
+<td></td>
+<td>Lowercase ASCII letters, digits and underscore. The environment prefix derives from it.</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>yes</td>
+<td></td>
+<td>Human name and default window title.</td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td>no</td>
+<td>none</td>
+<td>Version text, copied by hand from the Cargo package.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="window">Window</h2>
+<p><code>[window]</code>:</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Required</th>
+<th>Default</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>title</code></td>
+<td>no</td>
+<td><code>app.name</code></td>
+<td>Window title</td>
+</tr>
+<tr>
+<td><a class="sym" href="gpu.html#sym-mode"><code>mode</code></a></td>
+<td>no</td>
+<td><code>"windowed"</code></td>
+<td><code>"windowed"</code> or <code>"fullscreen"</code></td>
+</tr>
+<tr>
+<td><code>size</code></td>
+<td>when windowed</td>
+<td></td>
+<td>Width and height in physical pixels</td>
+</tr>
+<tr>
+<td><code>monitor_fraction_max</code></td>
+<td>no</td>
+<td><code>0.70</code></td>
+<td>Largest share of the monitor</td>
+</tr>
+<tr>
+<td><code>center_on_primary_monitor</code></td>
+<td>no</td>
+<td><code>true</code></td>
+<td>Centre the window</td>
+</tr>
+<tr>
+<td><code>frame_cap_hz</code></td>
+<td>no</td>
+<td><code>60.0</code></td>
+<td>The CPU-side frame gate, native only</td>
+</tr>
+</tbody>
+</table>
+<p>The manifest states the default, and saved user preferences win at run time. For run-time changes, see <a href="display-mode.html" data-slug="display-mode">Display mode</a>.</p>
+<p><code>[web]</code> is required when a target names a <code>wasm32</code> triple. <code>canvas_id</code> is required and is the DOM id of the canvas. <code>fallback_size</code> defaults to <code>[1280, 720]</code>, and <code>asset_base_url</code> defaults to <code>"assets"</code>.</p>
+<h2 id="assets">Assets</h2>
+<p><code>[assets]</code>:</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Manifest-env_prefix"><code>env_prefix</code></a></td>
+<td><code>app.id</code> uppercased</td>
+<td>Prefix for <code>_ASSETS</code>, <code>_PREFER_PAK</code> and <code>_NO_CACHE</code></td>
+</tr>
+<tr>
+<td><code>resolution_order</code></td>
+<td><code>["env", "dev", "exe", "bundle"]</code></td>
+<td>Candidate order</td>
+</tr>
+<tr>
+<td><code>dev_root</code></td>
+<td><code>"src/assets"</code></td>
+<td>The dev candidate, relative to the working directory</td>
+</tr>
+<tr>
+<td><code>exe_root</code></td>
+<td><code>"assets"</code></td>
+<td>The exe candidate, relative to the executable</td>
+</tr>
+<tr>
+<td><code>bundle_root</code></td>
+<td><code>"Resources/assets"</code></td>
+<td>The bundle candidate</td>
+</tr>
+<tr>
+<td><code>pak_dir</code></td>
+<td><code>"packed"</code></td>
+<td>Directory of pak files</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Manifest-env_prefix"><code>Manifest::env_prefix</code></a> and <a class="sym" href="#sym-Manifest-env_var"><code>Manifest::env_var</code></a> derive the names. <a class="sym" href="#sym-Manifest-env_var"><code>env_var("ASSETS")</code></a> gives DEMO_APP_ASSETS for the sample above. Application code calls <a class="sym" href="assets.html#sym-asset_path"><code>asset_path</code></a> and does not join paths itself. See <a href="assets.html" data-slug="assets">Assets</a>.</p>
+<h2 id="atlases">Atlases</h2>
+<p>Each <a class="sym" href="#sym-Manifest-atlas"><code>atlas</code></a> array table is one mega-atlas, and it maps field for field onto <a class="sym" href="image.html#sym-AtlasDesc"><code>AtlasDesc</code></a>. See <a href="image.html" data-slug="image">Image atlases</a>.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Required</th>
+<th>Default</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>yes</td>
+<td></td>
+<td>Engine name and lookup key</td>
+</tr>
+<tr>
+<td><code>index</code></td>
+<td>yes</td>
+<td></td>
+<td>Slot number</td>
+</tr>
+<tr>
+<td><code>resolution</code></td>
+<td>no</td>
+<td><code>256</code></td>
+<td>Square layer size</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td>no</td>
+<td><code>"groups"</code></td>
+<td><code>"groups"</code> or <code>"placeholder"</code></td>
+</tr>
+<tr>
+<td><code>pak_name</code></td>
+<td>no</td>
+<td><code>id</code></td>
+<td>Base name of the pak file</td>
+</tr>
+<tr>
+<td><code>dir</code></td>
+<td>no</td>
+<td>none</td>
+<td>Directory for an atlas with no groups</td>
+</tr>
+<tr>
+<td><a class="sym" href="manifest.html"><code>manifest</code></a></td>
+<td>no</td>
+<td>none</td>
+<td>Side-car index, relative to the asset root</td>
+</tr>
+</tbody>
+</table>
+<p>Each <code>atlas.group</code> table is one texture family, with required <code>name</code>, <code>base_id</code>, <code>paths</code> and <code>max_variants</code>, and with <code>normals</code> and <code>masks</code> that default to true. A family with two variant caps splits into two groups. <a class="sym" href="#sym-Manifest-atlas"><code>Manifest::atlas</code></a>, <a class="sym" href="#sym-Manifest-atlas_by_index"><code>Manifest::atlas_by_index</code></a> and <a class="sym" href="#sym-Manifest-group"><code>Manifest::group</code></a> look these up.</p>
+<p>An <code>image_atlas</code> table declares a single-directory atlas with required <code>id</code> and <code>dir</code>. <code>normals</code> and <code>masks</code> default to true, <code>pak_name</code> defaults to <code>id</code>, <code>pack_resolution</code> defaults to 1024, and <code>pack_max_textures</code> defaults to 256.</p>
+<h3 id="pak-names">Pak names</h3>
+<p>The <code>pak_name</code> field exists because shipped trees hold <code>structural.pak</code> and <code>assets.pak</code> for the atlases that the engine calls <code>structures</code> and <code>environment</code>. Both the native loader and the browser fetch ask for <code>pak_name</code>. The browser stores the bytes under the atlas id, and it looks them up by that id.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup> An atlas that stays without textures while the others load points first to this field.</p>
+<h2 id="runtime-environment">Runtime environment</h2>
+<p>A <code>runtime_env</code> table names an environment variable to set before device creation, with required <code>name</code> and <code>value</code>, and with optional <code>os</code> and <code>reason</code>. The format exists for platform knowledge: on Linux, the specification records <code>WGPU_BACKEND=vulkan</code>, because DX12 through vkd3d-proton renders a blank frame on AMD integrated GPUs.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<h2 id="build">Build</h2>
+<p><code>[build]</code> requires <code>package</code> and <code>bin</code>.</p>
+<p>A <code>build.feature</code> table declares a Cargo feature, with <code>name</code>, <code>default</code>, <a class="sym" href="shaderlib.html#sym-requires"><code>requires</code></a> and <code>description</code>. The known capabilities are <code>filesystem</code>, <code>threads</code> and <code>c_toolchain</code>.</p>
+<p>A <code>build.target</code> table declares a target.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>required</td>
+<td>Target name</td>
+</tr>
+<tr>
+<td><code>triple</code></td>
+<td>host</td>
+<td>Rust target triple</td>
+</tr>
+<tr>
+<td><a class="sym" href="profile.html"><code>profile</code></a></td>
+<td><code>"release"</code></td>
+<td>Cargo profile</td>
+</tr>
+<tr>
+<td><code>default_features</code></td>
+<td><code>true</code></td>
+<td><code>false</code> emits <code>--no-default-features</code></td>
+</tr>
+<tr>
+<td><code>features</code></td>
+<td>empty</td>
+<td>Extra features</td>
+</tr>
+<tr>
+<td><code>capabilities</code></td>
+<td>empty</td>
+<td>What the platform provides</td>
+</tr>
+<tr>
+<td><code>command</code></td>
+<td>none</td>
+<td>A program that builds the target in place of cargo</td>
+</tr>
+<tr>
+<td><code>args</code></td>
+<td>empty</td>
+<td>Arguments for <code>command</code></td>
+</tr>
+<tr>
+<td><code>toolbar</code></td>
+<td>none</td>
+<td>Label of a launch button on the editor strip</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Manifest-toolbar_icon"><code>toolbar_icon</code></a></td>
+<td><code>"launch"</code></td>
+<td><a class="sym" href="#sym-Manifest-launch"><code>launch</code></a> or <code>launch-debug</code></td>
+</tr>
+<tr>
+<td><code>entry</code>, <code>out_dir</code>, <code>bindgen_target</code></td>
+<td>none</td>
+<td>Entry point, output directory, wasm-bindgen target</td>
+</tr>
+</tbody>
+</table>
+<p>A target with no <code>command</code> is a cargo target, and <a class="sym" href="#sym-Manifest-cargo_args"><code>Manifest::cargo_args</code></a> builds its argv. A target with <code>command</code> is a command target. <a class="sym" href="#sym-Manifest-invocation"><code>Manifest::invocation</code></a> gives the program and arguments for either kind, as an <a class="sym" href="#sym-Invocation"><code>Invocation</code></a>, so a caller needs no branch.</p>
+<p>The capability lists are the important part. They turn an unstated reason, such as a feature that cannot run in a browser, into a conflict that the loader reports by name.</p>
+<h3 id="platform-tables">Platform tables</h3>
+<p><code>[build.macos]</code>, <code>[build.windows]</code>, <code>[build.linux]</code> and <code>[build.android]</code> say how to ship, where a target says how to compile. Each field has a default, so a project with none of these tables still builds.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Table</th>
+<th>Field</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>macos</code></td>
+<td><a class="sym" href="#sym-Manifest-artifact"><code>artifact</code></a></td>
+<td><code>"Warp"</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>out_dir</code></td>
+<td><code>"dist/macos"</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>universal</code></td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>deployment_target</code></td>
+<td><code>"10.15"</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>sign</code></td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>identity</code></td>
+<td><code>"-"</code> (ad-hoc)</td>
+</tr>
+<tr>
+<td><code>windows</code></td>
+<td><a class="sym" href="#sym-Manifest-artifact"><code>artifact</code></a></td>
+<td><code>"warp.exe"</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>out_dir</code></td>
+<td><code>"dist/windows"</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>static_crt</code></td>
+<td><code>true</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>toolchain</code></td>
+<td><code>"xwin"</code></td>
+</tr>
+<tr>
+<td><code>linux</code></td>
+<td><a class="sym" href="#sym-Manifest-artifact"><code>artifact</code></a></td>
+<td><code>"warp"</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>out_dir</code></td>
+<td><code>"dist/linux"</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>route</code></td>
+<td><code>"zigbuild"</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>glibc</code></td>
+<td><code>"2.28"</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>format</code></td>
+<td><code>"tar.gz"</code></td>
+</tr>
+<tr>
+<td><code>android</code></td>
+<td><code>out_dir</code></td>
+<td><code>"dist/android"</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>package</code></td>
+<td>derived</td>
+</tr>
+<tr>
+<td></td>
+<td><code>label</code></td>
+<td><code>app.name</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>renderer</code></td>
+<td><code>"Game"</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>min_sdk</code></td>
+<td>23</td>
+</tr>
+<tr>
+<td></td>
+<td><code>target_sdk</code></td>
+<td>35</td>
+</tr>
+<tr>
+<td></td>
+<td><code>abis</code></td>
+<td><code>["arm64-v8a"]</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>orientation</code></td>
+<td><code>"landscape"</code></td>
+</tr>
+<tr>
+<td></td>
+<td><code>keystore</code>, <code>key_alias</code></td>
+<td>empty</td>
+</tr>
+</tbody>
+</table>
+<p>Each table also has <a class="sym" href="#sym-Manifest-target"><code>target</code></a>, which names the <code>build.target</code> that compiles it. An empty Android <code>package</code> derives <code>com.warp.&lt;app.id&gt;.android</code>.</p>
+<p><code>zigbuild</code> is the Linux default because the dependency graph no longer asks for distribution development packages.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup></p>
+<p>No secret is a field of any table. <code>keystore</code> is a path and <code>key_alias</code> is a name, and passwords resolve at build time. Because of <code>deny_unknown_fields</code>, a project that writes <code>keystore_password</code> fails to parse and does not commit the secret.</p>
+<h2 id="settings">Settings</h2>
+<p>The manifest declares one free table, <code>settings</code>, and learns no section name.<sup class="ref"><a href="#ref-10" id="cite-10">[10]</a></sup> Every other section says what the project is, and a build reads it. <code>[settings.*]</code> says how the project looks, and a frame reads it.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-toml">[settings.display]
+pp_enabled  = <span class="k">true</span>     # exposure, bloom, colour
+dof_enabled = <span class="k">true</span>     # depth of field</code></pre></div>
+<div class="hatnote">Main article: <a href="project-settings.html" data-slug="project-settings">Project settings</a></div>
+
+<h2 id="validation-rules">Validation rules</h2>
+<p><a class="sym" href="#sym-Manifest-problems"><code>Manifest::problems</code></a> reports all of these:</p>
+<ul>
+<li><code>manifest_version</code> equals 1. This check runs before the others.</li>
+<li><code>app.id</code> is non-empty and uses the allowed characters, and <code>app.name</code> is non-empty.</li>
+<li><code>window.size</code> is present and non-zero when the mode is windowed.</li>
+<li><code>monitor_fraction_max</code> is in the range above 0 up to 1, and <code>frame_cap_hz</code> is above zero.</li>
+<li><code>[web]</code> is present, with a non-empty <code>canvas_id</code>, when a target names a <code>wasm32</code> triple.</li>
+<li>Atlas indices are unique and fill 0 through n-1, within <a class="sym" href="image.html#sym-MAX_ATLAS_SLOTS"><code>MAX_ATLAS_SLOTS</code></a>.</li>
+<li>Atlas ids are present and unique.</li>
+<li>Each groups atlas has a group, each group has paths, and <code>max_variants</code> is not 0.</li>
+<li>Group type id ranges do not overlap in one atlas.</li>
+<li>The worst-case layer count stays within <a class="sym" href="image.html#sym-MAX_MEGA_ATLAS_LAYERS"><code>MAX_MEGA_ATLAS_LAYERS</code></a>.</li>
+<li>Target ids are unique, each feature name has a <code>build.feature</code> table, and capabilities are known.</li>
+<li>Each capability that an enabled feature requires is in the capability list of the target.</li>
+<li><code>args</code> has a <code>command</code>, and <code>command</code> is not empty.</li>
+<li>A <code>toolbar</code> label is non-empty and unique, and <a class="sym" href="#sym-Manifest-toolbar_icon"><code>toolbar_icon</code></a> names a value in <a class="sym" href="#sym-TOOLBAR_ICONS"><code>TOOLBAR_ICONS</code></a> and has a <code>toolbar</code> beside it.</li>
+</ul>
+<p>The atlas limits are engine limits. The module reads them directly from <a class="sym" href="image.html"><code>image</code></a> and does not copy them.</p>
+<h2 id="limitations">Limitations</h2>
+<p>The specification leaves open the moment of consumption: a read at run time, an embed, or generated code. Three consumers need the atlas taxonomy at different moments, and only part of the file has a run-time reader so far. <a class="sym" href="assets.html#sym-asset_root"><code>asset_root</code></a> reads a fixed environment variable and its own candidate list, not <a class="sym" href="#sym-Manifest-env_prefix"><code>env_prefix</code></a> or <code>resolution_order</code>. No engine code outside the manifest module and the editor reads <code>monitor_fraction_max</code> or <code>center_on_primary_monitor</code>.<sup class="ref"><a href="#ref-11" id="cite-11">[11]</a></sup></p>
+<p>Localization, audio, save files, Steam packaging and the simulation rate are out of scope for version 1. The application shader and input binding exclusions in the specification are older than the <a href="render.html" data-slug="render">Render passes</a> layer registry and the <a href="bindings.html" data-slug="bindings">Bindings</a> table.</p>
+<h2 id="history">History</h2>
+<p>The specification file dates from 2026-07-31, the commit that split the engine out of the game.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 51 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-manifest" class="modhead"><code>warp_sdk::manifest</code></h3><h4>Functions</h4><div class="item" id="sym-resolve" data-name="resolve"><div class="sig"><a class="anchor" href="#sym-resolve" aria-label="Link to resolve">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">resolve</span>(path: &amp;<span class="t">Path</span>) -&gt; <span class="t">PathBuf</span></code></div><div class="doc"><p>Turn whatever a person named into the manifest path.</p>
+<p>A directory becomes the <code>warp_app.toml</code> inside it. Anything else — a file,
+a path that does not exist, a symlink — comes back untouched.</p>
+<p>WHY THIS EXISTS AT ALL. Every way into a project used to demand the file
+itself: the command line, the Open dialog, the recent lists, the
+satellite's <code>--project=</code>. That is the wrong unit to ask for. The name of
+the file is a constant, so naming the directory already names the file,
+and a directory is what a person has selected in every other tool they
+use to open a project. Requiring the extra click added no information.</p>
+<p>WHAT IT DELIBERATELY DOES NOT DO. It does not walk upward and it does not
+look inside subdirectories. A missing manifest stays missing, and the
+caller reports that against the directory it was handed. Searching was
+removed from the editor's startup on purpose — see <code>EditorState::discover</code>
+— because a project found by walking is a project nobody chose, and this
+function must not smuggle that back in one directory at a time.</p>
+<p>It does not check that the result exists either. The caller is about to
+open the file and will produce a better message from the failure than a
+bool here could.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-ManifestError" data-name="manifesterror"><div class="sig"><a class="anchor" href="#sym-ManifestError" aria-label="Link to ManifestError">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">ManifestError</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The file could not be read.</span>
+<span class="t">Read</span> { path: <span class="t">PathBuf</span>, message: <span class="t">String</span> },
+<span class="c">/// The text is not valid TOML, or a field has the wrong type.</span>
+<span class="t">Syntax</span>(<span class="t">String</span>),
+<span class="c">/// manifest_version names a format this loader does not implement.</span>
+<span class="t">Version</span> { found: u32 },
+<span class="c">/// The text parsed, and then broke one or more rules.</span>
+<span class="t">Invalid</span>(<span class="t">Vec</span>&lt;<span class="t">String</span>&gt;),</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-Manifest" data-name="manifest"><div class="sig"><a class="anchor" href="#sym-Manifest" aria-label="Link to Manifest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Manifest</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> manifest_version: u32,
+<span class="k">pub</span> app: <span class="t">App</span>,
+<span class="k">pub</span> window: <span class="t">Window</span>,
+<span class="k">pub</span> web: <span class="t">Option</span>&lt;<span class="t">Web</span>&gt;,
+<span class="k">pub</span> assets: <span class="t">Assets</span>,
+<span class="k">pub</span> atlas: <span class="t">Vec</span>&lt;<span class="t">Atlas</span>&gt;,
+<span class="k">pub</span> image_atlas: <span class="t">Vec</span>&lt;<span class="t">ImageAtlas</span>&gt;,
+<span class="k">pub</span> runtime_env: <span class="t">Vec</span>&lt;<span class="t">RuntimeEnv</span>&gt;,
+<span class="k">pub</span> build: <span class="t">Build</span>,
+<span class="c">/// `[settings.*]` — what the project remembers about how it LOOKS.</span>
+<span class="c">/// </span>
+<span class="c">/// A free table and not a typed struct, and that is the whole design. This</span>
+<span class="c">/// struct is `deny_unknown_fields`, so a section that is not declared here</span>
+<span class="c">/// does not fail to load, it fails to PARSE and takes the project with it.</span>
+<span class="c">/// One declared field means a subsystem adds a settings block by</span>
+<span class="c">/// registering it and never touches this file.</span>
+<span class="c">/// </span>
+<span class="c">/// NOTHING IN THIS MODULE READS IT. `project_settings` owns every name</span>
+<span class="c">/// inside, the diff against the defaults, and the write back through</span>
+<span class="c">/// `toml_edit`. What is here is the declaration that keeps serde quiet.</span>
+<span class="k">pub</span> settings: toml::<span class="t">Table</span>,</code></pre></div></div><details class="members"><summary>22 methods</summary><div class="item" id="sym-Manifest-parse" data-name="manifest::parse"><div class="sig"><a class="anchor" href="#sym-Manifest-parse" aria-label="Link to Manifest::parse">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">parse</span>(text: &amp;str) -&gt; <span class="t">Result</span>&lt;<span class="t">Manifest</span>, <span class="t">ManifestError</span>&gt;</code></div><div class="doc"><p>Parse and validate. The version gate runs before the rules, so a future
+format fails with one clear message instead of a list of field errors.</p></div></div><div class="item" id="sym-Manifest-read_model" data-name="manifest::read_model"><div class="sig"><a class="anchor" href="#sym-Manifest-read_model" aria-label="Link to Manifest::read_model">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">read_model</span>(text: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="t">Manifest</span>&gt;</code></div><div class="doc"><p>The read model of text that parses, whatever rules it breaks.</p>
+<p><code>parse</code> is the gate a LOADER wants: a project that breaks a rule must
+not start. An EDITOR wants the other thing. It has to draw the fields
+of the file somebody is part way through fixing, and the moment it
+cannot, the section that holds the mistake disappears and takes the
+only control that could correct it.</p>
+<p>Duplicate an atlas id, or leave a gap in the slots, and this is the
+difference between a red problem line and an editor that says the file
+does not parse — about a file that parses.</p>
+<p>The version check stays. A manifest of another format is not a model
+this code can read at all, so there is nothing to draw from it.</p></div></div><div class="item" id="sym-Manifest-load" data-name="manifest::load"><div class="sig"><a class="anchor" href="#sym-Manifest-load" aria-label="Link to Manifest::load">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">load</span>(path: &amp;std::path::<span class="t">Path</span>) -&gt; <span class="t">Result</span>&lt;<span class="t">Manifest</span>, <span class="t">ManifestError</span>&gt;</code></div><div class="doc"><p>Read a manifest from disk, then parse it.</p></div></div><div class="item" id="sym-Manifest-discover" data-name="manifest::discover"><div class="sig"><a class="anchor" href="#sym-Manifest-discover" aria-label="Link to Manifest::discover">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">discover</span>() -&gt; <span class="t">Option</span>&lt;<span class="t">PathBuf</span>&gt;</code></div><div class="doc"><p>Find the manifest. WARP_APP_MANIFEST first, then the directory that
+holds the executable, then the working directory and its parents.</p></div></div><div class="item" id="sym-Manifest-problems" data-name="manifest::problems"><div class="sig"><a class="anchor" href="#sym-Manifest-problems" aria-label="Link to Manifest::problems">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">problems</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;</code></div></div><div class="item" id="sym-Manifest-env_prefix" data-name="manifest::env_prefix"><div class="sig"><a class="anchor" href="#sym-Manifest-env_prefix" aria-label="Link to Manifest::env_prefix">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">env_prefix</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">String</span></code></div><div class="doc"><p>Environment variable prefix for this application. The engine reads
+{prefix}_ASSETS, {prefix}_PREFER_PAK, and {prefix}_NO_CACHE.</p></div></div><div class="item" id="sym-Manifest-env_var" data-name="manifest::env_var"><div class="sig"><a class="anchor" href="#sym-Manifest-env_var" aria-label="Link to Manifest::env_var">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">env_var</span>(&amp;<span class="k">self</span>, suffix: &amp;str) -&gt; <span class="t">String</span></code></div><div class="doc"><p>Full name of one engine environment variable, for example
+env_var("ASSETS") gives "STELLA_NOVA_ASSETS".</p></div></div><div class="item" id="sym-Manifest-window_title" data-name="manifest::window_title"><div class="sig"><a class="anchor" href="#sym-Manifest-window_title" aria-label="Link to Manifest::window_title">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">window_title</span>(&amp;<span class="k">self</span>) -&gt; &amp;str</code></div><div class="doc"><p>Title for both WindowBuilder call sites.</p></div></div><div class="item" id="sym-Manifest-atlas" data-name="manifest::atlas"><div class="sig"><a class="anchor" href="#sym-Manifest-atlas" aria-label="Link to Manifest::atlas">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">atlas</span>(&amp;<span class="k">self</span>, id: &amp;str) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Atlas</span>&gt;</code></div></div><div class="item" id="sym-Manifest-atlas_by_index" data-name="manifest::atlas_by_index"><div class="sig"><a class="anchor" href="#sym-Manifest-atlas_by_index" aria-label="Link to Manifest::atlas_by_index">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">atlas_by_index</span>(&amp;<span class="k">self</span>, index: u32) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Atlas</span>&gt;</code></div><div class="doc"><p>Atlas by slot number, which is its position in the mapping
+array passed to RenderContext::set_texture_mappings.</p></div></div><div class="item" id="sym-Manifest-group" data-name="manifest::group"><div class="sig"><a class="anchor" href="#sym-Manifest-group" aria-label="Link to Manifest::group">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">group</span>(&amp;<span class="k">self</span>, atlas_id: &amp;str, group: &amp;str) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">AtlasGroup</span>&gt;</code></div></div><div class="item" id="sym-Manifest-target" data-name="manifest::target"><div class="sig"><a class="anchor" href="#sym-Manifest-target" aria-label="Link to Manifest::target">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">target</span>(&amp;<span class="k">self</span>, id: &amp;str) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Target</span>&gt;</code></div></div><div class="item" id="sym-Manifest-feature" data-name="manifest::feature"><div class="sig"><a class="anchor" href="#sym-Manifest-feature" aria-label="Link to Manifest::feature">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">feature</span>(&amp;<span class="k">self</span>, name: &amp;str) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Feature</span>&gt;</code></div></div><div class="item" id="sym-Manifest-enabled_features" data-name="manifest::enabled_features"><div class="sig"><a class="anchor" href="#sym-Manifest-enabled_features" aria-label="Link to Manifest::enabled_features">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">enabled_features</span>(&amp;<span class="k">self</span>, target: &amp;<span class="t">Target</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;</code></div><div class="doc"><p>Every feature a target compiles: the defaults it keeps, plus its own
+list. Rule 11 checks this set against the target capabilities.</p></div></div><div class="item" id="sym-Manifest-cargo_args" data-name="manifest::cargo_args"><div class="sig"><a class="anchor" href="#sym-Manifest-cargo_args" aria-label="Link to Manifest::cargo_args">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cargo_args</span>(&amp;<span class="k">self</span>, target_id: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="t">Vec</span>&lt;<span class="t">String</span>&gt;&gt;</code></div><div class="doc"><p>The cargo argv for a target. For the web target this reproduces the
+command in web_build.sh, which is the point: one source of truth.</p>
+<p>Returns None for a target that names a <code>command</code>, because such a target
+has no cargo argv. Ask <code>invocation</code> instead, which answers for both
+kinds.</p></div></div><div class="item" id="sym-Manifest-platform_invocation" data-name="manifest::platform_invocation"><div class="sig"><a class="anchor" href="#sym-Manifest-platform_invocation" aria-label="Link to Manifest::platform_invocation">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">platform_invocation</span>(&amp;<span class="k">self</span>, key: &amp;str, triple: <span class="t">Option</span>&lt;&amp;str&gt;) -&gt; <span class="t">Invocation</span></code></div><div class="doc"><p>The invocation that builds one platform when no target declares it.</p>
+<p>WHY THIS EXISTS. <code>[[build.target]]</code> is a list a person writes, and the
+editor's template writes exactly one entry, <code>native</code>. Four platform
+tiles then had one target between them: the Build panel compiled that
+target whichever tile was pressed, so Windows, Linux and macOS all
+packed the same host binary into three folders.</p>
+<p>IT IS NOT ALWAYS <code>cargo build</code>, and that is the half that makes a
+cross build work at all. warp_core pulls rusqlite, ratatui and vte for
+every target that is not android or wasm, and rusqlite vendors sqlite
+as C. A plain <code>cargo build --target x86_64-pc-windows-msvc</code> on a mac
+hands that C to the host <code>cc</code>, which stops on</p>
+<p>fatal error: 'stdlib.h' file not found</p>
+<p>because there is no Windows SDK behind it. <code>cargo xwin</code> supplies one.
+The same is true of Linux and <code>cargo zigbuild</code>, which supplies a libc
+and the glibc floor. Both routes are already named in the manifest and
+already probed by <code>ready.rs</code>; this reads the same two fields.</p>
+<p>Release only. A distribution folder is not where a debug build goes,
+and the panel that calls this is the distribution panel.</p></div></div><div class="item" id="sym-Manifest-platform_artifact" data-name="manifest::platform_artifact"><div class="sig"><a class="anchor" href="#sym-Manifest-platform_artifact" aria-label="Link to Manifest::platform_artifact">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">platform_artifact</span>(&amp;<span class="k">self</span>, triple: <span class="t">Option</span>&lt;&amp;str&gt;, target_dir: &amp;<span class="t">Path</span>) -&gt; <span class="t">PathBuf</span></code></div><div class="doc"><p>The file <code>platform_invocation</code> writes, under cargo's own layout.</p>
+<p>The twin of <code>artifact</code>, for a build that has no <code>[[build.target]]</code>
+entry to read a profile and a triple from. Both push the triple
+directory only when there is one, because a host build has none.</p></div></div><div class="item" id="sym-Manifest-launch" data-name="manifest::launch"><div class="sig"><a class="anchor" href="#sym-Manifest-launch" aria-label="Link to Manifest::launch">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">launch</span>(&amp;<span class="k">self</span>, target_id: &amp;str, socket: &amp;<span class="t">Path</span>, target_dir: &amp;<span class="t">Path</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">Invocation</span>&gt;</code></div></div><div class="item" id="sym-Manifest-artifact" data-name="manifest::artifact"><div class="sig"><a class="anchor" href="#sym-Manifest-artifact" aria-label="Link to Manifest::artifact">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">artifact</span>(&amp;<span class="k">self</span>, target_id: &amp;str, target_dir: &amp;<span class="t">Path</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">PathBuf</span>&gt;</code></div><div class="doc"><p>Where cargo puts the binary this target builds.</p>
+<p><code>&lt;target_dir&gt;/[&lt;triple&gt;/]&lt;profile dir&gt;/&lt;build.bin&gt;</code>, which is cargo's
+layout written down. The one rule that is not the profile name spelled
+out is the dev profile, whose directory is <code>debug</code>.</p>
+<p>It answers for cargo targets only. A <code>command</code> target runs a program
+the project named and this module knows nothing about what that
+program builds or where it puts it.</p>
+<p>The caller supplies <code>target_dir</code> rather than this deriving it: the
+directory belongs to the cargo workspace, not to the manifest, and a
+package inside a workspace builds into the WORKSPACE's target — a
+distinction this file has no way to see.</p></div></div><div class="item" id="sym-Manifest-toolbar_targets" data-name="manifest::toolbar_targets"><div class="sig"><a class="anchor" href="#sym-Manifest-toolbar_targets" aria-label="Link to Manifest::toolbar_targets">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">toolbar_targets</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;(&amp;str, &amp;str)&gt;</code></div><div class="doc"><p>Every target that asked for a button on the transport strip, in the
+order the file lists them, as (id, label).</p>
+<p>Manifest order and not sorted order: the file is written by a person,
+and the sequence they put the entry points in is the sequence they
+think about them in. Sorting by id would put <code>dist-mac</code> before <code>run</code>.</p></div></div><div class="item" id="sym-Manifest-toolbar_icon" data-name="manifest::toolbar_icon"><div class="sig"><a class="anchor" href="#sym-Manifest-toolbar_icon" aria-label="Link to Manifest::toolbar_icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">toolbar_icon</span>(&amp;<span class="k">self</span>, target_id: &amp;str) -&gt; &amp;str</code></div><div class="doc"><p>The glyph name a strip button asked for, defaulted.</p>
+<p>Returns the string and not an <code>Icon</code>, so the manifest layer stays free
+of the drawing layer. <code>editor.rs</code> maps it, and an unknown name there
+falls back rather than refusing to draw the button — rule 13 has
+already reported it, and a project with one typo in it should still
+have a usable toolbar.</p></div></div><div class="item" id="sym-Manifest-invocation" data-name="manifest::invocation"><div class="sig"><a class="anchor" href="#sym-Manifest-invocation" aria-label="Link to Manifest::invocation">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">invocation</span>(&amp;<span class="k">self</span>, target_id: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="t">Invocation</span>&gt;</code></div><div class="doc"><p>Program and argument list for a target, whichever kind it is.</p>
+<p>A command target gives its own program. A cargo target gives "cargo"
+and the argv that <code>cargo_args</code> builds. So one caller starts either kind
+without a branch of its own.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-App" data-name="app"><div class="sig"><a class="anchor" href="#sym-App" aria-label="Link to App">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">App</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> id: <span class="t">String</span>,
+<span class="k">pub</span> name: <span class="t">String</span>,
+<span class="k">pub</span> version: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-WindowMode" data-name="windowmode"><div class="sig"><a class="anchor" href="#sym-WindowMode" aria-label="Link to WindowMode">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">WindowMode</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Windowed</span>,
+<span class="t">Fullscreen</span>,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-Window" data-name="window"><div class="sig"><a class="anchor" href="#sym-Window" aria-label="Link to Window">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Window</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> title: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="k">pub</span> mode: <span class="t">WindowMode</span>,
+<span class="k">pub</span> size: <span class="t">Option</span>&lt;[u32; <span class="n">2</span>]&gt;,
+<span class="k">pub</span> monitor_fraction_max: f32,
+<span class="k">pub</span> center_on_primary_monitor: bool,
+<span class="k">pub</span> frame_cap_hz: f32,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-Web" data-name="web"><div class="sig"><a class="anchor" href="#sym-Web" aria-label="Link to Web">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Web</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> canvas_id: <span class="t">String</span>,
+<span class="k">pub</span> fallback_size: [u32; <span class="n">2</span>],
+<span class="k">pub</span> asset_base_url: <span class="t">String</span>,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-ResolutionStep" data-name="resolutionstep"><div class="sig"><a class="anchor" href="#sym-ResolutionStep" aria-label="Link to ResolutionStep">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">ResolutionStep</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Env</span>,
+<span class="t">Dev</span>,
+<span class="t">Exe</span>,
+<span class="t">Bundle</span>,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-Assets" data-name="assets"><div class="sig"><a class="anchor" href="#sym-Assets" aria-label="Link to Assets">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Assets</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// None means "derive from app.id by uppercasing".</span>
+<span class="k">pub</span> env_prefix: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="k">pub</span> resolution_order: <span class="t">Vec</span>&lt;<span class="t">ResolutionStep</span>&gt;,
+<span class="k">pub</span> dev_root: <span class="t">String</span>,
+<span class="k">pub</span> exe_root: <span class="t">String</span>,
+<span class="k">pub</span> bundle_root: <span class="t">String</span>,
+<span class="k">pub</span> pak_dir: <span class="t">String</span>,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-AtlasSource" data-name="atlassource"><div class="sig"><a class="anchor" href="#sym-AtlasSource" aria-label="Link to AtlasSource">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">AtlasSource</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Groups</span>,
+<span class="t">Placeholder</span>,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-Atlas" data-name="atlas"><div class="sig"><a class="anchor" href="#sym-Atlas" aria-label="Link to Atlas">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Atlas</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> id: <span class="t">String</span>,
+<span class="k">pub</span> index: u32,
+<span class="k">pub</span> resolution: u32,
+<span class="k">pub</span> source: <span class="t">AtlasSource</span>,
+<span class="c">/// None means "same as id". The shipped pak names already differ from the</span>
+<span class="c">/// atlas ids, so the field cannot be dropped.</span>
+<span class="k">pub</span> pak_name: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="k">pub</span> dir: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="k">pub</span> manifest: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="k">pub</span> group: <span class="t">Vec</span>&lt;<span class="t">AtlasGroup</span>&gt;,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-AtlasGroup" data-name="atlasgroup"><div class="sig"><a class="anchor" href="#sym-AtlasGroup" aria-label="Link to AtlasGroup">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">AtlasGroup</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> name: <span class="t">String</span>,
+<span class="k">pub</span> base_id: u32,
+<span class="k">pub</span> paths: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,
+<span class="k">pub</span> max_variants: u32,
+<span class="k">pub</span> normals: bool,
+<span class="k">pub</span> masks: bool,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-ImageAtlas" data-name="imageatlas"><div class="sig"><a class="anchor" href="#sym-ImageAtlas" aria-label="Link to ImageAtlas">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">ImageAtlas</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> id: <span class="t">String</span>,
+<span class="k">pub</span> dir: <span class="t">String</span>,
+<span class="k">pub</span> normals: bool,
+<span class="k">pub</span> masks: bool,
+<span class="c">/// Absent means `id`, which is what `ImageAtlasDesc::new` stores.</span>
+<span class="k">pub</span> pak_name: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="k">pub</span> pack_resolution: u32,
+<span class="k">pub</span> pack_max_textures: u32,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-RuntimeEnv" data-name="runtimeenv"><div class="sig"><a class="anchor" href="#sym-RuntimeEnv" aria-label="Link to RuntimeEnv">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">RuntimeEnv</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> name: <span class="t">String</span>,
+<span class="k">pub</span> value: <span class="t">String</span>,
+<span class="c">/// None means every operating system.</span>
+<span class="k">pub</span> os: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="k">pub</span> reason: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-Build" data-name="build"><div class="sig"><a class="anchor" href="#sym-Build" aria-label="Link to Build">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Build</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> package: <span class="t">String</span>,
+<span class="k">pub</span> bin: <span class="t">String</span>,
+<span class="k">pub</span> feature: <span class="t">Vec</span>&lt;<span class="t">Feature</span>&gt;,
+<span class="k">pub</span> target: <span class="t">Vec</span>&lt;<span class="t">Target</span>&gt;,
+<span class="c">/// What each platform needs beyond a cargo argv.</span>
+<span class="c">/// </span>
+<span class="c">/// A `[[build.target]]` says how to COMPILE. These say how to SHIP: which</span>
+<span class="c">/// slices are fused, what gets signed, what the archive is called, which</span>
+<span class="c">/// identifiers a store demands. The ultralite scripts held all of it as</span>
+<span class="c">/// shell constants, so no reader could see it and no panel could edit it.</span>
+<span class="k">pub</span> macos: <span class="t">MacOs</span>,
+<span class="k">pub</span> windows: <span class="t">Windows</span>,
+<span class="k">pub</span> linux: <span class="t">Linux</span>,
+<span class="k">pub</span> android: <span class="t">Android</span>,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-MacOs" data-name="macos"><div class="sig"><a class="anchor" href="#sym-MacOs" aria-label="Link to MacOs">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">MacOs</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The `[[build.target]]` id that compiles this platform. Empty means the</span>
+<span class="c">/// panel guesses, the way `deploy::guess_source` already does.</span>
+<span class="k">pub</span> target: <span class="t">String</span>,
+<span class="c">/// Name of the binary written into `out_dir`.</span>
+<span class="k">pub</span> artifact: <span class="t">String</span>,
+<span class="c">/// Directory the artifact is written to, relative to the project root.</span>
+<span class="k">pub</span> out_dir: <span class="t">String</span>,
+<span class="c">/// Build both slices and join them with lipo.</span>
+<span class="c">/// </span>
+<span class="c">/// A single-slice binary runs on the machine that built it and on nothing</span>
+<span class="c">/// else, which is the failure that is invisible until somebody else opens</span>
+<span class="c">/// it.</span>
+<span class="k">pub</span> universal: bool,
+<span class="c">/// `MACOSX_DEPLOYMENT_TARGET` for the Intel slice. The only statement of</span>
+<span class="c">/// the OS floor anywhere in the build.</span>
+<span class="k">pub</span> deployment_target: <span class="t">String</span>,
+<span class="c">/// Sign the artifact. lipo invalidates the per-slice signatures, so an</span>
+<span class="c">/// unsigned fused binary is killed on launch with no message.</span>
+<span class="k">pub</span> sign: bool,
+<span class="c">/// Signing identity. `-` is ad-hoc, which is what the script uses.</span>
+<span class="k">pub</span> identity: <span class="t">String</span>,</code></pre></div><div class="doc"><p><code>[build.macos]</code> — how the macOS artifact is fused and signed.</p>
+<p>Defaults are build_mac_ultralite.sh, field for field.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Windows" data-name="windows"><div class="sig"><a class="anchor" href="#sym-Windows" aria-label="Link to Windows">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Windows</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> target: <span class="t">String</span>,
+<span class="k">pub</span> artifact: <span class="t">String</span>,
+<span class="k">pub</span> out_dir: <span class="t">String</span>,
+<span class="c">/// Link the C runtime statically.</span>
+<span class="c">/// </span>
+<span class="c">/// Without it the executable imports VCRUNTIME140.dll and will not start</span>
+<span class="c">/// on a machine that has no redistributable. The cost is 174 kB and about</span>
+<span class="c">/// 72 seconds of link time, which the script records.</span>
+<span class="k">pub</span> static_crt: bool,
+<span class="c">/// Which toolchain links it: `xwin` cross-compiles with clang-cl, `msvc`</span>
+<span class="c">/// is a native Windows host with the real linker.</span>
+<span class="k">pub</span> toolchain: <span class="t">String</span>,</code></pre></div><div class="doc"><p><code>[build.windows]</code> — how the Windows artifact is compiled and laid out.</p>
+<p>Defaults are build_windows_ultralite.sh.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Linux" data-name="linux"><div class="sig"><a class="anchor" href="#sym-Linux" aria-label="Link to Linux">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Linux</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> target: <span class="t">String</span>,
+<span class="k">pub</span> artifact: <span class="t">String</span>,
+<span class="k">pub</span> out_dir: <span class="t">String</span>,
+<span class="c">/// How the build reaches a Linux toolchain: `zigbuild` links with zig on</span>
+<span class="c">/// this host, `container` runs it in docker through `cross`, `native` is</span>
+<span class="c">/// a real Linux machine.</span>
+<span class="c">/// </span>
+<span class="c">/// `zigbuild` is the default because the graph no longer asks for a</span>
+<span class="c">/// distribution's development packages. wry was the eleven GTK and WebKit</span>
+<span class="c">/// ones and it is macOS-only now; rodio was libasound and it is behind the</span>
+<span class="c">/// `audio` feature. What is left compiles its own C or dlopens at run</span>
+<span class="c">/// time, and zig supplies the libc and the glibc floor.</span>
+<span class="k">pub</span> route: <span class="t">String</span>,
+<span class="c">/// Oldest glibc the artifact may demand. Symbol versioning is one way:</span>
+<span class="c">/// a binary built against a newer glibc will not start on an older one.</span>
+<span class="k">pub</span> glibc: <span class="t">String</span>,
+<span class="c">/// Archive format. tar keeps the executable bit under every extractor;</span>
+<span class="c">/// a zip keeps it too, but only until something on the other end ignores</span>
+<span class="c">/// the unix attributes.</span>
+<span class="k">pub</span> format: <span class="t">String</span>,</code></pre></div><div class="doc"><p><code>[build.linux]</code> — how the Linux artifact is compiled and packed.</p>
+<p>There is no build_linux_ultralite.sh yet, so these defaults describe the
+build this project WOULD run rather than one it has.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Android" data-name="android"><div class="sig"><a class="anchor" href="#sym-Android" aria-label="Link to Android">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Android</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> target: <span class="t">String</span>,
+<span class="c">/// Directory the APK is copied to, relative to the project root.</span>
+<span class="c">/// </span>
+<span class="c">/// One folder per platform. Android had none and used the project root,</span>
+<span class="c">/// so the one artifact that is a FILE rather than a tree landed beside</span>
+<span class="c">/// `warp_app.toml`.</span>
+<span class="k">pub</span> out_dir: <span class="t">String</span>,
+<span class="c">/// Application id, the name the device and the store key on. Empty means</span>
+<span class="c">/// the driver derives `com.warp.&lt;app.id&gt;.android`.</span>
+<span class="k">pub</span> package: <span class="t">String</span>,
+<span class="c">/// The name under the icon. Empty means `app.name`.</span>
+<span class="k">pub</span> label: <span class="t">String</span>,
+<span class="c">/// The project's renderer type, which the generated entry point calls</span>
+<span class="c">/// through `warp_core::run_android`.</span>
+<span class="k">pub</span> renderer: <span class="t">String</span>,
+<span class="k">pub</span> min_sdk: u32,
+<span class="k">pub</span> target_sdk: u32,
+<span class="c">/// ABIs to build. The driver builds arm64 only today; every other entry</span>
+<span class="c">/// is declared and unbuilt until it grows the targets.</span>
+<span class="k">pub</span> abis: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// `landscape`, `portrait` or `sensor`.</span>
+<span class="k">pub</span> orientation: <span class="t">String</span>,
+<span class="c">/// Path to the signing keystore, relative to the project root.</span>
+<span class="c">/// </span>
+<span class="c">/// THE PATH ONLY. The store password, the key password and everything</span>
+<span class="c">/// else that unlocks it are resolved at build time from the environment,</span>
+<span class="c">/// the OS keychain, or a prompt held for the session. None of them is a</span>
+<span class="c">/// field of this struct and none is ever written to this file.</span>
+<span class="k">pub</span> keystore: <span class="t">String</span>,
+<span class="c">/// Which key inside the keystore signs. A name, not a secret.</span>
+<span class="k">pub</span> key_alias: <span class="t">String</span>,</code></pre></div><div class="doc"><p><code>[build.android]</code> — identifiers and signing material for the APK.</p>
+<p>This table replaces the top-level <code>[android]</code> that <code>warp_android_build</code>
+read. That table could not exist: <code>Manifest</code> is <code>deny_unknown_fields</code>, so
+a project carrying it did not fail to load, it failed to PARSE, and the
+editor could not open the project at all.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Feature" data-name="feature"><div class="sig"><a class="anchor" href="#sym-Feature" aria-label="Link to Feature">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Feature</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> name: <span class="t">String</span>,
+<span class="k">pub</span> default: bool,
+<span class="k">pub</span> requires: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,
+<span class="k">pub</span> description: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,</code></pre></div></div></div><div class="typeblock"><div class="item" id="sym-Target" data-name="target"><div class="sig"><a class="anchor" href="#sym-Target" aria-label="Link to Target">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Target</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> id: <span class="t">String</span>,
+<span class="c">/// None means the host triple.</span>
+<span class="k">pub</span> triple: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="k">pub</span> profile: <span class="t">String</span>,
+<span class="k">pub</span> default_features: bool,
+<span class="k">pub</span> features: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,
+<span class="k">pub</span> capabilities: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// Program that builds this target in place of cargo. None makes the</span>
+<span class="c">/// target a cargo target, which is what every target was before.</span>
+<span class="c">/// </span>
+<span class="c">/// A script composes what a cargo argv cannot: ./run.sh builds, then</span>
+<span class="c">/// launches the binary with the developer argv.</span>
+<span class="k">pub</span> command: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// Arguments for `command`. It has no meaning without one, and rule 12</span>
+<span class="c">/// reports the pair the other way round.</span>
+<span class="k">pub</span> args: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// Label for a launch button on the editor's transport strip, or None to</span>
+<span class="c">/// keep the target off it.</span>
+<span class="c">/// </span>
+<span class="c">/// One field carries both the membership and the words, because the two</span>
+<span class="c">/// cannot be allowed to disagree: a boolean would need a second field for</span>
+<span class="c">/// the label, and a bare label list somewhere else would name targets by</span>
+<span class="c">/// id from outside the table that declares them.</span>
+<span class="c">/// </span>
+<span class="c">/// The engine holds no list of which ids are worth a button. `run` and</span>
+<span class="c">/// `run-debug` mean nothing to warp_core, and a toolbar that knew those</span>
+<span class="c">/// names would be an editor with one project's vocabulary compiled into</span>
+<span class="c">/// it. The project says which of its entry points are worth one click.</span>
+<span class="k">pub</span> toolbar: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// Which drawn glyph the button carries: `launch` or `launch-debug`.</span>
+<span class="c">/// </span>
+<span class="c">/// A name from a closed set and not a path to an image, because these are</span>
+<span class="c">/// shapes the engine draws — there is no font and no atlas behind them,</span>
+<span class="c">/// which is exactly why they stay crisp at every UI scale. A project</span>
+<span class="c">/// picks from the set; it cannot add to it.</span>
+<span class="c">/// </span>
+<span class="c">/// Defaults to `launch`. Unread without `toolbar`, and rule 13 says so.</span>
+<span class="k">pub</span> toolbar_icon: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="k">pub</span> entry: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="k">pub</span> out_dir: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="k">pub</span> bindgen_target: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,</code></pre></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Target-is_command" data-name="target::is_command"><div class="sig"><a class="anchor" href="#sym-Target-is_command" aria-label="Link to Target::is_command">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_command</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True when the target names a program instead of a cargo argv.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Invocation" data-name="invocation"><div class="sig"><a class="anchor" href="#sym-Invocation" aria-label="Link to Invocation">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Invocation</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> program: <span class="t">String</span>,
+<span class="k">pub</span> args: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,</code></pre></div><div class="doc"><p>What starts a build: the program to run, and its argument list.</p>
+<p><code>BuildRunner::start</code> takes exactly this pair, so a caller does not need to
+know which of the two kinds of target it holds.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Invocation-command_line" data-name="invocation::command_line"><div class="sig"><a class="anchor" href="#sym-Invocation-command_line" aria-label="Link to Invocation::command_line">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">command_line</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">String</span></code></div><div class="doc"><p>One line, for a preview label and for the build log header.</p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-MANIFEST_FILE_NAME" data-name="manifest_file_name"><div class="sig"><a class="anchor" href="#sym-MANIFEST_FILE_NAME" aria-label="Link to MANIFEST_FILE_NAME">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MANIFEST_FILE_NAME</span>: &amp;str = <span class="s">"warp_app.toml"</span></code></div><div class="doc"><p>File name the engine looks for. Carries no application name.</p></div></div><div class="item" id="sym-MANIFEST_ENV_VAR" data-name="manifest_env_var"><div class="sig"><a class="anchor" href="#sym-MANIFEST_ENV_VAR" aria-label="Link to MANIFEST_ENV_VAR">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MANIFEST_ENV_VAR</span>: &amp;str = <span class="s">"WARP_APP_MANIFEST"</span></code></div><div class="doc"><p>Override for the manifest path. Engine-owned, so it is not app-prefixed.</p></div></div><div class="item" id="sym-SUPPORTED_VERSION" data-name="supported_version"><div class="sig"><a class="anchor" href="#sym-SUPPORTED_VERSION" aria-label="Link to SUPPORTED_VERSION">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SUPPORTED_VERSION</span>: u32 = <span class="n">1</span></code></div><div class="doc"><p>Only format version this loader accepts.</p></div></div><div class="item" id="sym-TOOLBAR_ICONS" data-name="toolbar_icons"><div class="sig"><a class="anchor" href="#sym-TOOLBAR_ICONS" aria-label="Link to TOOLBAR_ICONS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">TOOLBAR_ICONS</span>: &amp;[&amp;str] = &amp;[<span class="s">"launch"</span>, <span class="s">"launch-debug"</span>]</code></div><div class="doc"><p>Glyph names a <code>toolbar_icon</code> may name, and the one it gets without asking.</p>
+<p>The engine draws these; a project chooses among them and cannot add one.
+Kept here rather than in <code>ui::icons</code> because rule 13 checks it and the
+validator must run on a host with no chrome compiled in.</p></div></div><div class="item" id="sym-DEFAULT_TOOLBAR_ICON" data-name="default_toolbar_icon"><div class="sig"><a class="anchor" href="#sym-DEFAULT_TOOLBAR_ICON" aria-label="Link to DEFAULT_TOOLBAR_ICON">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">DEFAULT_TOOLBAR_ICON</span>: &amp;str = <span class="s">"launch"</span></code></div><div class="doc"><p>What a target with a <code>toolbar</code> and no <code>toolbar_icon</code> draws.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="project-settings.html" data-slug="project-settings">Project settings</a></li><li><a href="image.html" data-slug="image">Image atlases</a></li><li><a href="assets.html" data-slug="assets">Assets</a></li><li><a href="display-mode.html" data-slug="display-mode">Display mode</a></li><li><a href="boot.html" data-slug="boot">Boot splash and screenshots</a></li><li><a href="building-a-game.html" data-slug="building-a-game">Building a game</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/docs/app_manifest.md</code> - <code>The manifest is the boundary between the engine and one hosted application.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_core/src/lib.rs</code> - <code>set_frame_cap_hz(m.window.frame_cap_hz);</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/manifest/load.rs</code> - <code>Find the manifest. WARP_APP_MANIFEST first, then the directory that</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/manifest/load.rs</code> - <code>because a project found by walking is a project nobody chose</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_core/src/manifest/load.rs</code> - <code>The read model of text that parses, whatever rules it breaks.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_core/src/manifest/tests.rs</code> - <code>const MINIMAL: &amp;str = r#&quot;</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_core/src/image/mega_atlas.rs</code> - <code>The desktop tree ships each pak under the name `pak_name`</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_core/docs/app_manifest.md</code> - <code>vkd3d-proton renders a blank frame on AMD integrated GPUs</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_core/src/manifest/format.rs</code> - <code>`zigbuild` is the default because the graph no longer asks for a</code></li><li id="ref-10"><a class="back" href="#cite-10" aria-label="Back to the text">^</a> <code>warp_core/src/manifest/format.rs</code> - <code>pub settings: toml::Table,</code></li><li id="ref-11"><a class="back" href="#cite-11" aria-label="Back to the text">^</a> <code>warp_core/src/panels/assets/mod.rs</code> - <code>std::env::var(&quot;STELLA_NOVA_ASSETS&quot;)</code></li></ol><table class="navbox"><tr><th><a href="category-engine.html">Engine</a></th></tr><tr><td><a href="display-mode.html" data-slug="display-mode">Display mode</a> · <a href="perf.html" data-slug="perf">Perf</a> · <a href="gpu.html" data-slug="gpu">GPU module</a> · <a href="render.html" data-slug="render">Render passes</a> · <a href="scene.html" data-slug="scene">Scene</a> · <a href="image.html" data-slug="image">Image atlases</a> · <a href="assets.html" data-slug="assets">Assets</a> · <b>App manifest</b> · <a href="project-settings.html" data-slug="project-settings">Project settings</a> · <a href="scale.html" data-slug="scale">Interface scale</a> · <a href="types.html" data-slug="types">Types</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-engine.html">Engine</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

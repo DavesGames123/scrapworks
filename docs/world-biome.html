@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Biomes - Warp Wiki</title>
+<meta name="description" content="places that play differently, with blended rules and discovery">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="world-biome">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#design">Design</a></li><li><a href="#usage">Usage</a></li><li><a href="#gameplay-fields">Gameplay fields</a><ul><li><a href="#rewards-and-costs">Rewards and costs</a></li><li><a href="#movement">Movement</a></li><li><a href="#other-gameplay-fields">Other gameplay fields</a></li></ul></li><li><a href="#looks">Looks</a></li><li><a href="#placement">Placement</a></li><li><a href="#the-blended-environment">The blended environment</a></li><li><a href="#the-set-check">The set check</a></li><li><a href="#errors">Errors</a></li><li><a href="#discovery">Discovery</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Biomes</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">places that play differently, with blended rules and discovery</p><table class="infobox"><caption>Biomes</caption><tr><th>Category</th><td><a href="category-world-and-simulation.html">World and simulation</a></td></tr><tr><th>Module</th><td><code>warp_sdk::world::biome</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/world/biome.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">57</a></td></tr></table><p><strong>Biomes</strong> are places in a Warp game that play differently, not only look different. The module <a class="sym" href="world-biome.html"><code>warp_sdk::world::biome</code></a> defines each place as a <a class="sym" href="#sym-Biome"><code>Biome</code></a>, places the set of them in bands with <a class="sym" href="#sym-BiomeSet"><code>BiomeSet</code></a>, and gives a blended rule set <a class="sym" href="#sym-Env"><code>Env</code></a> at any point. A biome is a reason to go somewhere.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<h2 id="design">Design</h2>
+<p>Each <a class="sym" href="#sym-Biome"><code>Biome</code></a> states its gameplay first: what the player gets there, what it costs to stay, how movement changes, how much light there is, what spawns, and an ambience tag. The looks come last: a palette shift, a particle mood and a fog colour. The looks tell the player which rules apply, so the rules must exist first.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<p>The module enforces this order with two rules.</p>
+<ol>
+<li><a class="sym" href="#sym-BiomeBuilder-build"><code>BiomeBuilder::build</code></a> refuses a biome with no reward or no cost. The default biome from <a class="sym" href="#sym-Biome-base"><code>Biome::base</code></a> has neither, so every other biome differs from the default in at least one reward and one cost.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></li>
+<li><a class="sym" href="#sym-BiomeSet-check"><code>BiomeSet::check</code></a> reports each pair of biomes whose gameplay is the same and whose looks only are different. It also reports a biome that adds no reward or no cost beyond the base biome.</li>
+</ol>
+<p>The commit that added the module gives the aim as a contrast between the dungeons of Skyrim and its outer regions: an environment should interact with the player in a different way, not only wear a different colour.</p>
+<h2 id="usage">Usage</h2>
+<p>This sample is the module doc test. It builds a base biome and one placed biome, checks the set, and reads it at a point.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::world::biome::{<span class="t">Biome</span>, <span class="t">BiomeSet</span>, <span class="t">Hazard</span>, <span class="t">Reward</span>};
+<span class="k">use</span> warp_sdk::ultraviolet::<span class="t">Vec2</span>;
+
+<span class="k">let</span> shelf = <span class="t">Biome</span>::<span class="f">base</span>(<span class="s">"shelf"</span>).<span class="f">light</span>(<span class="n">1.0</span>).<span class="f">build_base</span>();
+<span class="k">let</span> vents = <span class="t">Biome</span>::<span class="f">new</span>(<span class="s">"vents"</span>)
+    .<span class="f">reward</span>(<span class="t">Reward</span>::<span class="f">resource</span>(<span class="s">"sulphur"</span>, <span class="n">2.0</span>))
+    .<span class="f">cost</span>(<span class="t">Hazard</span>::<span class="t">Heat</span>, <span class="n">0.4</span>)
+    .<span class="f">light</span>(<span class="n">0.3</span>)
+    .<span class="f">fog</span>([<span class="n">0.35</span>, <span class="n">0.12</span>, <span class="n">0.05</span>], <span class="n">0.4</span>)
+    .<span class="f">band</span>(<span class="n">40.0</span>, <span class="n">90.0</span>)
+    .<span class="f">build</span>()
+    .<span class="f">unwrap</span>();
+<span class="k">let</span> set = <span class="t">BiomeSet</span>::<span class="f">new</span>(shelf, <span class="n">7</span>).<span class="f">with</span>(vents);
+assert!(set.<span class="f">check</span>().<span class="f">is_ok</span>());
+
+<span class="k">let</span> blend = set.<span class="f">sample</span>(<span class="t">Vec2</span>::<span class="f">new</span>(<span class="n">10.0</span>, <span class="n">60.0</span>));
+assert_eq!(set.<span class="f">biome</span>(blend.primary).name, <span class="s">"vents"</span>);
+<span class="k">let</span> env = set.<span class="f">env</span>(<span class="t">Vec2</span>::<span class="f">new</span>(<span class="n">10.0</span>, <span class="n">60.0</span>));
+assert!(env.<span class="f">hazard</span>(<span class="t">Hazard</span>::<span class="t">Heat</span>) &gt; <span class="n">0.0</span>);</code></pre></div>
+<p>The usual order of work is as follows.</p>
+<ol>
+<li>Build the base biome with <a class="sym" href="#sym-Biome-base"><code>Biome::base</code></a> and <a class="sym" href="#sym-BiomeBuilder-build_base"><code>BiomeBuilder::build_base</code></a>.</li>
+<li>Build the other biomes with <a class="sym" href="#sym-Biome-new"><code>Biome::new</code></a> and <a class="sym" href="#sym-BiomeBuilder-build"><code>BiomeBuilder::build</code></a>. Call the gameplay methods first, then the looks, then <a class="sym" href="#sym-BiomeBuilder-band"><code>band</code></a>.</li>
+<li>Make the set with <a class="sym" href="#sym-BiomeSet-new"><code>BiomeSet::new</code></a> and <a class="sym" href="#sym-BiomeSet-with"><code>BiomeSet::with</code></a>. Index 0 is the base biome, and each <a class="sym" href="#sym-BiomeSet-with"><code>with</code></a> call takes the next index.</li>
+<li>Call <a class="sym" href="#sym-BiomeSet-check"><code>BiomeSet::check</code></a> in a test.</li>
+<li>Each frame, call <a class="sym" href="#sym-BiomeSet-env"><code>BiomeSet::env</code></a> at the player position, and feed the result to the physics, damage, light and post settings.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></li>
+<li>Each frame, call <a class="sym" href="#sym-BiomeTracker-update"><code>BiomeTracker::update</code></a>, and show the first entry to a biome.</li>
+</ol>
+<h2 id="gameplay-fields">Gameplay fields</h2>
+<h3 id="rewards-and-costs">Rewards and costs</h3>
+<p><a class="sym" href="#sym-Reward"><code>Reward</code></a> has two forms: <a class="sym" href="#sym-Reward-resource"><code>Reward::resource</code></a> with a yield per minute, and <a class="sym" href="#sym-Reward-discovery"><code>Reward::discovery</code></a> for a thing the player can find once. A reward with a rate of 0 or less does not satisfy the build rule.</p>
+<p><a class="sym" href="#sym-Cost"><code>Cost</code></a> pairs a <a class="sym" href="#sym-Hazard"><code>Hazard</code></a> with a rate in units per second. The game decides what one unit is.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup> <a class="sym" href="#sym-Biome-hazard"><code>Biome::hazard</code></a> adds up the rates of one hazard.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Hazard</th>
+<th>Name string</th>
+<th>Meaning in the source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hazard::Heat</td>
+<td><code>heat</code></td>
+<td>Burns hull or health</td>
+</tr>
+<tr>
+<td>Hazard::Pressure</td>
+<td><code>pressure</code></td>
+<td>Crushes the hull below a rated depth</td>
+</tr>
+<tr>
+<td>Hazard::Darkness</td>
+<td><code>darkness</code></td>
+<td>Drains the light source or the sanity meter</td>
+</tr>
+<tr>
+<td>Hazard::Current</td>
+<td><a class="sym" href="#sym-BiomeBuilder-current"><code>current</code></a></td>
+<td>Pushes the player. Pair it with the <a class="sym" href="#sym-BiomeBuilder-current"><code>current</code></a> field of <a class="sym" href="#sym-Movement"><code>Movement</code></a></td>
+</tr>
+<tr>
+<td>Hazard::Toxicity</td>
+<td><code>toxicity</code></td>
+<td>Poisons the player over time</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Hazard-ALL"><code>Hazard::ALL</code></a> lists all five in a fixed order, and <a class="sym" href="#sym-Hazard-name"><code>Hazard::name</code></a> gives the string for save files and debug text.</p>
+<h3 id="movement">Movement</h3>
+<p><a class="sym" href="#sym-Movement"><code>Movement</code></a> has <a class="sym" href="#sym-BiomeBuilder-drag"><code>drag</code></a> and <a class="sym" href="#sym-BiomeBuilder-current"><code>current</code></a>. A drag of 1 is open water, and a larger value is thicker. <a class="sym" href="#sym-Movement-apply"><code>Movement::apply</code></a> pulls a velocity toward the current with an exponential. The step is exact for any <a class="sym" href="squircle.html#sym-dt"><code>dt</code></a>, so it does not depend on the frame rate.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> m = <span class="t">Movement</span> { drag: <span class="n">2.0</span>, current: <span class="t">Vec2</span>::<span class="f">new</span>(<span class="n">1.5</span>, <span class="n">0.0</span>) };
+<span class="k">let</span> v = m.<span class="f">apply</span>(<span class="t">Vec2</span>::<span class="f">new</span>(<span class="n">4.0</span>, <span class="n">0.0</span>), <span class="n">1.0</span> / <span class="n">60.0</span>);</code></pre></div>
+<h3 id="other-gameplay-fields">Other gameplay fields</h3>
+<p><a class="sym" href="#sym-BiomeBuilder-light"><code>light</code></a> is ambient light from 0 for black to 1 for full daylight, and the builder clamps it. <code>spawns</code> is a table of <a class="sym" href="#sym-Spawn"><code>Spawn</code></a> entries, each with an id, a relative weight and a maximum alive count. <a class="sym" href="#sym-BiomeBuilder-ambience"><code>ambience</code></a> is a sound tag that the game maps to a bed. The module runs no spawner and plays no sound. <a class="sym" href="#sym-Env"><code>Env</code></a> does not carry spawn tables or rewards, so a game reads those from <a class="sym" href="#sym-BiomeSet-biome"><code>BiomeSet::biome</code></a>.</p>
+<h2 id="looks">Looks</h2>
+<p><a class="sym" href="#sym-Looks"><code>Looks</code></a> holds a <a class="sym" href="#sym-PaletteShift"><code>PaletteShift</code></a>, a <a class="sym" href="#sym-ParticleMood"><code>ParticleMood</code></a>, a fog colour in linear RGB, and a fog density.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup> The defaults are no palette shift, ParticleMood::Drift, fog <code>[0.02, 0.08, 0.14]</code> and density 0.2. A <a class="sym" href="#sym-PaletteShift"><code>PaletteShift</code></a> has a hue rotation in turns, and saturation and value multipliers.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Mood</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ParticleMood::Still</td>
+<td>No particles</td>
+</tr>
+<tr>
+<td>ParticleMood::Drift</td>
+<td>Slow random drift, the default</td>
+</tr>
+<tr>
+<td>ParticleMood::Rising</td>
+<td>Heat, vents, bubbles</td>
+</tr>
+<tr>
+<td>ParticleMood::Falling</td>
+<td>Snow, ash</td>
+</tr>
+<tr>
+<td>ParticleMood::Streaming</td>
+<td>Along the current</td>
+</tr>
+<tr>
+<td>ParticleMood::Sparse</td>
+<td>Darkness, depth</td>
+</tr>
+<tr>
+<td>ParticleMood::Murky</td>
+<td>Toxicity, silt</td>
+</tr>
+</tbody>
+</table>
+<p>The mood is a tag. The module does not draw particles, so the game maps it to a <a href="fluid-particles.html" data-slug="fluid-particles">particle kind</a> or any other effect.</p>
+<h2 id="placement">Placement</h2>
+<p>The band coordinate is <code>p.y</code>: depth for a side view, or any height the game gives.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup> Each placed biome has a band <code>[lo, hi]</code>, set by <a class="sym" href="#sym-BiomeBuilder-band"><code>BiomeBuilder::band</code></a>. A biome with no band gets weight 0 unless it is the base biome. <a href="world-terrain.html" data-slug="world-terrain">Terrain</a> in side view has y up, and the module does not convert, so a game that wants depth bands passes a depth in <code>p.y</code>.</p>
+<p>Seeded value noise moves the band edges, so a border is a wavy line, not a ruler line. Three octaves of noise at <code>p / scale</code> give a value that shifts y by up to the noise amplitude in either direction. Inside <a class="sym" href="#sym-BiomeSet-feather"><code>feather</code></a> of an edge, the membership falls with a smoothstep. The base biome fills every place that no band covers, with weight <code>1 - max(other weights)</code>.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup></p>
+<p><a class="sym" href="#sym-BiomeSet-new"><code>BiomeSet::new</code></a> sets the defaults: a feather of 4, a border noise amplitude of 6, and a scale of 32 world units. <a class="sym" href="#sym-BiomeSet-feather"><code>BiomeSet::feather</code></a> and <a class="sym" href="#sym-BiomeSet-border_noise"><code>BiomeSet::border_noise</code></a> change them, and an amplitude of 0 gives straight borders.</p>
+<p><a class="sym" href="#sym-BiomeSet-weights"><code>BiomeSet::weights</code></a> returns the membership of every biome. <a class="sym" href="#sym-BiomeSet-sample"><code>BiomeSet::sample</code></a> returns a <a class="sym" href="#sym-Blend"><code>Blend</code></a>: the two strongest biomes and <code>t</code>, the share of the second. <code>t</code> is continuous everywhere. Where two biomes swap rank, both sides give <code>t = 0.5</code>.<sup class="ref"><a href="#ref-10" id="cite-10">[10]</a></sup> Blend::mix mixes any pair of values by <code>t</code>.</p>
+<h2 id="the-blended-environment">The blended environment</h2>
+<p><a class="sym" href="#sym-BiomeSet-env"><code>BiomeSet::env</code></a> returns an <a class="sym" href="#sym-Env"><code>Env</code></a> that mixes these values between the two biomes of the blend: drag, current, light, each hazard rate, fog, fog density and palette shift. A third biome at the same point has no effect. The particle mood does not blend, and <a class="sym" href="#sym-BiomeBuilder-particles"><code>particles</code></a> is the mood of the primary biome.<sup class="ref"><a href="#ref-11" id="cite-11">[11]</a></sup></p>
+<p><code>hazards</code> is indexed like <a class="sym" href="#sym-Hazard-ALL"><code>Hazard::ALL</code></a>, and <a class="sym" href="#sym-Env-hazard"><code>Env::hazard</code></a> reads one entry by name.</p>
+<h2 id="the-set-check">The set check</h2>
+<p><a class="sym" href="#sym-BiomeSet-check"><code>BiomeSet::check</code></a> returns <code>Ok</code> or a list of <a class="sym" href="#sym-BiomeIssue"><code>BiomeIssue</code></a> values.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Issue</th>
+<th>Condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BiomeIssue::LooksOnly</td>
+<td>Two biomes have the same gameplay key. The base biome takes part in this comparison</td>
+</tr>
+<tr>
+<td>BiomeIssue::NoNewReward</td>
+<td>No reward has a kind and id that the base biome lacks. A larger rate of the same resource does not count</td>
+</tr>
+<tr>
+<td>BiomeIssue::NoNewCost</td>
+<td>No cost has a rate above the base rate of that hazard</td>
+</tr>
+</tbody>
+</table>
+<p>The gameplay key covers rewards, costs, spawns, movement and light, sorted, with floats rounded to three decimals.<sup class="ref"><a href="#ref-12" id="cite-12">[12]</a></sup> The ambience tag is a sound choice, so the check does not count it as gameplay.<sup class="ref"><a href="#ref-13" id="cite-13">[13]</a></sup></p>
+<h2 id="errors">Errors</h2>
+<p><a class="sym" href="#sym-BiomeBuilder-build"><code>BiomeBuilder::build</code></a> returns a <a class="sym" href="#sym-BiomeError"><code>BiomeError</code></a>. BiomeError::NoReward and BiomeError::NoCost name a biome that fails the rule, and BiomeError::BadBand names a band with <code>lo &gt; hi</code> or a value that is not finite. The band test comes first.</p>
+<p>A builder from <a class="sym" href="#sym-Biome-base"><code>Biome::base</code></a> skips the reward and cost test in <a class="sym" href="#sym-BiomeBuilder-build"><code>build</code></a>. <a class="sym" href="#sym-BiomeBuilder-build_base"><code>BiomeBuilder::build_base</code></a> never fails, and it drops a bad band. It runs no reward test on any builder, so <a class="sym" href="#sym-BiomeSet-check"><code>BiomeSet::check</code></a> is the only guard on a <a class="sym" href="#sym-Biome-new"><code>Biome::new</code></a> builder that finishes with <a class="sym" href="#sym-BiomeBuilder-build_base"><code>build_base</code></a>.</p>
+<h2 id="discovery">Discovery</h2>
+<p><a class="sym" href="#sym-BiomeTracker"><code>BiomeTracker</code></a> remembers which biomes the player has entered. <a class="sym" href="#sym-BiomeTracker-update"><code>BiomeTracker::update</code></a> returns <a class="sym" href="#sym-Discovered"><code>Discovered</code></a> the first time the primary biome at the point is new, and <code>None</code> after that. Show it with a sting, an icon and a map mark.<sup class="ref"><a href="#ref-14" id="cite-14">[14]</a></sup> <a class="sym" href="#sym-BiomeTracker-current"><code>BiomeTracker::current</code></a> gives the biome of the last update, and <a class="sym" href="#sym-BiomeTracker-has_seen"><code>BiomeTracker::has_seen</code></a> tests one index.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> <span class="k">mut</span> t = <span class="t">BiomeTracker</span>::<span class="f">new</span>(&amp;set);
+<span class="k">if</span> <span class="k">let</span> <span class="t">Some</span>(d) = t.<span class="f">update</span>(&amp;set, warp_sdk::ultraviolet::<span class="t">Vec2</span>::<span class="f">zero</span>()) { <span class="k">let</span> _ = d.biome; }</code></pre></div>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>Placement is one dimensional. Only y selects a band, and x affects the result only through the border noise.</li>
+<li><a class="sym" href="#sym-BiomeSet-biome"><code>BiomeSet::biome</code></a> clamps an index past the end to the last biome.</li>
+<li><a class="sym" href="#sym-BiomeTracker"><code>BiomeTracker</code></a> holds no save code. The game stores what it needs from <a class="sym" href="#sym-BiomeTracker-has_seen"><code>BiomeTracker::has_seen</code></a>.</li>
+</ul>
+<h2 id="history">History</h2>
+<p>Commit <code>ccc8f737</code> added the module on 2026-10-29, together with <a class="sym" href="world-reveal.html"><code>world::reveal</code></a>.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 57 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-world--biome" class="modhead"><code>warp_sdk::world::biome</code></h3><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Hazard" data-name="hazard"><div class="sig"><a class="anchor" href="#sym-Hazard" aria-label="Link to Hazard">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Hazard</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Burns hull or health. Show it with warm fog and rising particles.</span>
+<span class="t">Heat</span>,
+<span class="c">/// Crushes the hull below a rated depth.</span>
+<span class="t">Pressure</span>,
+<span class="c">/// Drains the light source or the sanity meter.</span>
+<span class="t">Darkness</span>,
+<span class="c">/// Pushes the player. Pair it with [`Movement::current`].</span>
+<span class="t">Current</span>,
+<span class="c">/// Poisons the player over time.</span>
+<span class="t">Toxicity</span>,</code></pre></div><div class="doc"><p>What it costs the player to stay in a biome. One hazard, one rate.</p>
+<p><code>use warp_sdk::world::biome::Hazard;
+let h = Hazard::Pressure;
+assert_eq!(h.name(), "pressure");</code></p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-Hazard-ALL" data-name="hazard::all"><div class="sig"><a class="anchor" href="#sym-Hazard-ALL" aria-label="Link to Hazard::ALL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ALL</span>: [<span class="t">Hazard</span>; <span class="n">5</span>] = [<span class="t">Hazard</span>::<span class="t">Heat</span>, <span class="t">Hazard</span>::<span class="t">Pressure</span>, <span class="t">Hazard</span>::<span class="t">Darkness</span>, <span class="t">Hazard</span>::<span class="t">Current</span>, <span class="t">Hazard</span>::<span class="t">Toxicity</span>]</code></div><div class="doc"><p>All hazards, in a fixed order.</p>
+<p><code>assert_eq!(warp_sdk::world::biome::Hazard::ALL.len(), 5);</code></p></div></div><div class="item" id="sym-Hazard-name" data-name="hazard::name"><div class="sig"><a class="anchor" href="#sym-Hazard-name" aria-label="Link to Hazard::name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">name</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>A short lower-case name, for save files and debug text.</p>
+<p><code>assert_eq!(warp_sdk::world::biome::Hazard::Heat.name(), "heat");</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Cost" data-name="cost"><div class="sig"><a class="anchor" href="#sym-Cost" aria-label="Link to Cost">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Cost</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> hazard: <span class="t">Hazard</span>,
+<span class="c">/// Units per second. The game decides what one unit is.</span>
+<span class="k">pub</span> rate: f32,</code></pre></div><div class="doc"><p>One cost: a hazard and how fast it hurts, in units per second.</p>
+<p><code>use warp_sdk::world::biome::{Cost, Hazard};
+let c = Cost { hazard: Hazard::Toxicity, rate: 0.2 };
+assert!(c.rate &gt; 0.0);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Reward" data-name="reward"><div class="sig"><a class="anchor" href="#sym-Reward" aria-label="Link to Reward">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Reward</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A resource the player can collect. `rate` is the yield per minute.</span>
+<span class="t">Resource</span> { id: <span class="t">String</span>, rate: f32 },
+<span class="c">/// A thing the player can find once: a wreck, a creature, a log.</span>
+<span class="t">Discovery</span> { id: <span class="t">String</span> },</code></pre></div><div class="doc"><p>What the player gets in a biome.</p>
+<p><code>use warp_sdk::world::biome::Reward;
+let ore = Reward::resource("iron", 1.5);
+let wreck = Reward::discovery("old_wreck");
+assert_eq!(ore.id(), "iron");
+assert_eq!(wreck.id(), "old_wreck");</code></p></div></div><details class="members"><summary>3 methods</summary><div class="item" id="sym-Reward-resource" data-name="reward::resource"><div class="sig"><a class="anchor" href="#sym-Reward-resource" aria-label="Link to Reward::resource">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">resource</span>(id: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, rate: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A resource reward.</p>
+<p><code>let r = warp_sdk::world::biome::Reward::resource("salt", 3.0);</code></p></div></div><div class="item" id="sym-Reward-discovery" data-name="reward::discovery"><div class="sig"><a class="anchor" href="#sym-Reward-discovery" aria-label="Link to Reward::discovery">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">discovery</span>(id: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A discovery reward.</p>
+<p><code>let r = warp_sdk::world::biome::Reward::discovery("bone_field");</code></p></div></div><div class="item" id="sym-Reward-id" data-name="reward::id"><div class="sig"><a class="anchor" href="#sym-Reward-id" aria-label="Link to Reward::id">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">id</span>(&amp;<span class="k">self</span>) -&gt; &amp;str</code></div><div class="doc"><p>The id of the resource or the discovery.</p>
+<p><code>assert_eq!(warp_sdk::world::biome::Reward::resource("a", 1.0).id(), "a");</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Movement" data-name="movement"><div class="sig"><a class="anchor" href="#sym-Movement" aria-label="Link to Movement">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Movement</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Velocity loss per second. 1 is open water. Larger is thicker.</span>
+<span class="k">pub</span> drag: f32,
+<span class="c">/// Flow in world units per second. Drag pulls the player toward it.</span>
+<span class="k">pub</span> current: <span class="t">Vec2</span>,</code></pre></div><div class="doc"><p>How a biome changes movement.</p>
+<p><code>use warp_sdk::world::biome::Movement;
+use warp_sdk::ultraviolet::Vec2;
+let m = Movement { drag: 2.0, current: Vec2::new(1.5, 0.0) };
+let v = m.apply(Vec2::new(4.0, 0.0), 1.0 / 60.0);
+assert!(v.x &lt; 4.0 + 1.5);</code></p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Movement-apply" data-name="movement::apply"><div class="sig"><a class="anchor" href="#sym-Movement-apply" aria-label="Link to Movement::apply">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">apply</span>(&amp;<span class="k">self</span>, velocity: <span class="t">Vec2</span>, dt: f32) -&gt; <span class="t">Vec2</span></code></div><div class="doc"><p>Apply drag toward the current to a velocity for one step of <code>dt</code>
+seconds. The step is exact for any <code>dt</code>, so it does not depend on
+the frame rate.</p>
+<p><code>use warp_sdk::world::biome::Movement;
+use warp_sdk::ultraviolet::Vec2;
+let v = Movement::default().apply(Vec2::new(1.0, 0.0), 0.5);
+assert!(v.x &lt; 1.0);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Spawn" data-name="spawn"><div class="sig"><a class="anchor" href="#sym-Spawn" aria-label="Link to Spawn">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Spawn</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The creature or object id the game spawns.</span>
+<span class="k">pub</span> id: <span class="t">String</span>,
+<span class="c">/// The relative chance among the table entries.</span>
+<span class="k">pub</span> weight: f32,
+<span class="c">/// The most that can be alive at one time in this biome.</span>
+<span class="k">pub</span> max: u32,</code></pre></div><div class="doc"><p>One entry of a spawn table.</p>
+<p><code>use warp_sdk::world::biome::Spawn;
+let s = Spawn { id: "lantern_fish".into(), weight: 3.0, max: 12 };</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-PaletteShift" data-name="paletteshift"><div class="sig"><a class="anchor" href="#sym-PaletteShift" aria-label="Link to PaletteShift">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">PaletteShift</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Hue rotation in turns (1.0 = full circle).</span>
+<span class="k">pub</span> hue: f32,
+<span class="c">/// Saturation multiplier. 1 = no change.</span>
+<span class="k">pub</span> saturation: f32,
+<span class="c">/// Value multiplier. 1 = no change.</span>
+<span class="k">pub</span> value: f32,</code></pre></div><div class="doc"><p>How the colours of a biome move away from the base palette.</p>
+<p><code>use warp_sdk::world::biome::PaletteShift;
+let cold = PaletteShift { hue: -0.05, saturation: 0.8, value: 0.9 };</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-ParticleMood" data-name="particlemood"><div class="sig"><a class="anchor" href="#sym-ParticleMood" aria-label="Link to ParticleMood">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">ParticleMood</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// No particles.</span>
+<span class="t">Still</span>,
+<span class="c">/// Slow random drift. The default.</span>
+<span class="t">Drift</span>,
+<span class="c">/// Particles go up: heat, vents, bubbles.</span>
+<span class="t">Rising</span>,
+<span class="c">/// Particles go down: snow, ash.</span>
+<span class="t">Falling</span>,
+<span class="c">/// Particles move along the current.</span>
+<span class="t">Streaming</span>,
+<span class="c">/// Few, faint particles: darkness, depth.</span>
+<span class="t">Sparse</span>,
+<span class="c">/// Thick, cloudy particles: toxicity, silt.</span>
+<span class="t">Murky</span>,</code></pre></div><div class="doc"><p>What the ambient particles do. Pick the mood that tells the rule:
+<code>Rising</code> for heat, <code>Streaming</code> for current, <code>Sparse</code> for darkness.</p>
+<p><code>use warp_sdk::world::biome::ParticleMood;
+assert_eq!(ParticleMood::default(), ParticleMood::Drift);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Looks" data-name="looks"><div class="sig"><a class="anchor" href="#sym-Looks" aria-label="Link to Looks">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Looks</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> palette: <span class="t">PaletteShift</span>,
+<span class="k">pub</span> particles: <span class="t">ParticleMood</span>,
+<span class="c">/// Fog colour, linear RGB.</span>
+<span class="k">pub</span> fog: [f32; <span class="n">3</span>],
+<span class="c">/// Fog density, 0 = clear, 1 = thick.</span>
+<span class="k">pub</span> fog_density: f32,</code></pre></div><div class="doc"><p>The looks of a biome. They come after the gameplay and must tell it.</p>
+<p><code>use warp_sdk::world::biome::{Looks, ParticleMood};
+let l = Looks { particles: ParticleMood::Rising, ..Looks::default() };</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Biome" data-name="biome"><div class="sig"><a class="anchor" href="#sym-Biome" aria-label="Link to Biome">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Biome</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> name: <span class="t">String</span>,
+<span class="k">pub</span> rewards: <span class="t">Vec</span>&lt;<span class="t">Reward</span>&gt;,
+<span class="k">pub</span> costs: <span class="t">Vec</span>&lt;<span class="t">Cost</span>&gt;,
+<span class="k">pub</span> movement: <span class="t">Movement</span>,
+<span class="c">/// Ambient light, 0 = black, 1 = full daylight.</span>
+<span class="k">pub</span> light: f32,
+<span class="k">pub</span> spawns: <span class="t">Vec</span>&lt;<span class="t">Spawn</span>&gt;,
+<span class="c">/// A sound tag the game maps to an ambience bed, for example "vent_hiss".</span>
+<span class="k">pub</span> ambience: <span class="t">String</span>,
+<span class="k">pub</span> looks: <span class="t">Looks</span>,
+<span class="c">/// Band `[lo, hi]` on the `p.y` axis. `None` = not placed by bands.</span>
+<span class="k">pub</span> band: <span class="t">Option</span>&lt;(f32, f32)&gt;,</code></pre></div><div class="doc"><p>One biome: gameplay first, then looks, then placement.</p>
+<p>Make one with [<code>Biome::new</code>] and [<code>BiomeBuilder::build</code>], or the default
+biome with [<code>Biome::base</code>] and [<code>BiomeBuilder::build_base</code>].</p>
+<p><code>use warp_sdk::world::biome::{Biome, Hazard, Reward};
+let trench = Biome::new("trench")
+.reward(Reward::discovery("abyssal_eel"))
+.cost(Hazard::Pressure, 1.0)
+.light(0.05)
+.band(120.0, 400.0)
+.build()
+.unwrap();
+assert_eq!(trench.costs[0].hazard, Hazard::Pressure);</code></p></div></div><details class="members"><summary>3 methods</summary><div class="item" id="sym-Biome-new" data-name="biome::new"><div class="sig"><a class="anchor" href="#sym-Biome-new" aria-label="Link to Biome::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(name: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="t">BiomeBuilder</span></code></div><div class="doc"><p>Start a biome. Gameplay calls come first, then looks, then <code>band</code>.</p>
+<p><code>let b = warp_sdk::world::biome::Biome::new("kelp");</code></p></div></div><div class="item" id="sym-Biome-base" data-name="biome::base"><div class="sig"><a class="anchor" href="#sym-Biome-base" aria-label="Link to Biome::base">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">base</span>(name: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="t">BiomeBuilder</span></code></div><div class="doc"><p>Start the default biome: open, safe, no reward, no cost. It fills
+every place that no band covers. Finish it with
+[<code>BiomeBuilder::build_base</code>].</p>
+<p><code>let open = warp_sdk::world::biome::Biome::base("open_water").build_base();
+assert!(open.rewards.is_empty());</code></p></div></div><div class="item" id="sym-Biome-hazard" data-name="biome::hazard"><div class="sig"><a class="anchor" href="#sym-Biome-hazard" aria-label="Link to Biome::hazard">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">hazard</span>(&amp;<span class="k">self</span>, h: <span class="t">Hazard</span>) -&gt; f32</code></div><div class="doc"><p>The total rate of one hazard in this biome.</p>
+<p><code>use warp_sdk::world::biome::{Biome, Hazard, Reward};
+let b = Biome::new("v").reward(Reward::resource("s", 1.0)).cost(Hazard::Heat, 0.5).build().unwrap();
+assert_eq!(b.hazard(Hazard::Heat), 0.5);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-BiomeError" data-name="biomeerror"><div class="sig"><a class="anchor" href="#sym-BiomeError" aria-label="Link to BiomeError">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">BiomeError</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The biome gives the player nothing to come for.</span>
+<span class="t">NoReward</span>(<span class="t">String</span>),
+<span class="c">/// The biome costs the player nothing to stay.</span>
+<span class="t">NoCost</span>(<span class="t">String</span>),
+<span class="c">/// The band has `lo &gt; hi`, or a value is not finite.</span>
+<span class="t">BadBand</span>(<span class="t">String</span>),</code></pre></div><div class="doc"><p>Why [<code>BiomeBuilder::build</code>] refused a biome.</p>
+<p><code>use warp_sdk::world::biome::{Biome, BiomeError};
+let e = Biome::new("pretty").fog([1.0, 0.0, 1.0], 0.5).build().unwrap_err();
+assert!(matches!(e, BiomeError::NoReward(_)));</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-BiomeBuilder" data-name="biomebuilder"><div class="sig"><a class="anchor" href="#sym-BiomeBuilder" aria-label="Link to BiomeBuilder">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">BiomeBuilder</span></code></div><div class="doc"><p>Builds a [<code>Biome</code>]. Call the gameplay methods first, then the looks.</p>
+<p><code>use warp_sdk::world::biome::{Biome, Hazard, ParticleMood, Reward, Spawn};
+use warp_sdk::ultraviolet::Vec2;
+let b = Biome::new("rift")
+.reward(Reward::resource("crystal", 1.0))
+.cost(Hazard::Current, 0.6)
+.current(Vec2::new(3.0, 0.0))
+.drag(1.5)
+.spawn(Spawn { id: "ray".into(), weight: 1.0, max: 4 })
+.ambience("rift_rumble")
+.particles(ParticleMood::Streaming)
+.band(60.0, 100.0)
+.build()
+.unwrap();</code></p></div></div><details class="members"><summary>13 methods</summary><div class="item" id="sym-BiomeBuilder-reward" data-name="biomebuilder::reward"><div class="sig"><a class="anchor" href="#sym-BiomeBuilder-reward" aria-label="Link to BiomeBuilder::reward">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reward</span>(<span class="k">mut</span> <span class="k">self</span>, r: <span class="t">Reward</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Add a reward.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let _ = Biome::new("a").reward(Reward::resource("ore", 1.0));
+```</p></div></div><div class="item" id="sym-BiomeBuilder-cost" data-name="biomebuilder::cost"><div class="sig"><a class="anchor" href="#sym-BiomeBuilder-cost" aria-label="Link to BiomeBuilder::cost">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cost</span>(<span class="k">mut</span> <span class="k">self</span>, hazard: <span class="t">Hazard</span>, rate: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Add a cost: a hazard and its rate per second.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let _ = Biome::new("a").cost(Hazard::Toxicity, 0.3);
+```</p></div></div><div class="item" id="sym-BiomeBuilder-drag" data-name="biomebuilder::drag"><div class="sig"><a class="anchor" href="#sym-BiomeBuilder-drag" aria-label="Link to BiomeBuilder::drag">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drag</span>(<span class="k">mut</span> <span class="k">self</span>, drag: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the drag. 1 is open water.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let _ = Biome::new("a").drag(3.0);
+```</p></div></div><div class="item" id="sym-BiomeBuilder-current" data-name="biomebuilder::current"><div class="sig"><a class="anchor" href="#sym-BiomeBuilder-current" aria-label="Link to BiomeBuilder::current">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">current</span>(<span class="k">mut</span> <span class="k">self</span>, current: <span class="t">Vec2</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the current, in world units per second.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let _ = Biome::new("a").current(warp_sdk::ultraviolet::Vec2::new(0.0, -1.0));
+```</p></div></div><div class="item" id="sym-BiomeBuilder-light" data-name="biomebuilder::light"><div class="sig"><a class="anchor" href="#sym-BiomeBuilder-light" aria-label="Link to BiomeBuilder::light">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">light</span>(<span class="k">mut</span> <span class="k">self</span>, light: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the ambient light, 0..1.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let _ = Biome::new("a").light(0.2);
+```</p></div></div><div class="item" id="sym-BiomeBuilder-spawn" data-name="biomebuilder::spawn"><div class="sig"><a class="anchor" href="#sym-BiomeBuilder-spawn" aria-label="Link to BiomeBuilder::spawn">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">spawn</span>(<span class="k">mut</span> <span class="k">self</span>, s: <span class="t">Spawn</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Add a spawn table entry.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let _ = Biome::new("a").spawn(Spawn { id: "crab".into(), weight: 2.0, max: 6 });
+```</p></div></div><div class="item" id="sym-BiomeBuilder-ambience" data-name="biomebuilder::ambience"><div class="sig"><a class="anchor" href="#sym-BiomeBuilder-ambience" aria-label="Link to BiomeBuilder::ambience">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">ambience</span>(<span class="k">mut</span> <span class="k">self</span>, tag: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the ambience tag.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let _ = Biome::new("a").ambience("drip_cave");
+```</p></div></div><div class="item" id="sym-BiomeBuilder-palette" data-name="biomebuilder::palette"><div class="sig"><a class="anchor" href="#sym-BiomeBuilder-palette" aria-label="Link to BiomeBuilder::palette">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">palette</span>(<span class="k">mut</span> <span class="k">self</span>, p: <span class="t">PaletteShift</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the palette shift.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let _ = Biome::new("a").palette(PaletteShift { hue: 0.1, saturation: 1.2, value: 0.8 });
+```</p></div></div><div class="item" id="sym-BiomeBuilder-particles" data-name="biomebuilder::particles"><div class="sig"><a class="anchor" href="#sym-BiomeBuilder-particles" aria-label="Link to BiomeBuilder::particles">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">particles</span>(<span class="k">mut</span> <span class="k">self</span>, m: <span class="t">ParticleMood</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the particle mood.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let _ = Biome::new("a").particles(ParticleMood::Murky);
+```</p></div></div><div class="item" id="sym-BiomeBuilder-fog" data-name="biomebuilder::fog"><div class="sig"><a class="anchor" href="#sym-BiomeBuilder-fog" aria-label="Link to BiomeBuilder::fog">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">fog</span>(<span class="k">mut</span> <span class="k">self</span>, colour: [f32; <span class="n">3</span>], density: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the fog colour (linear RGB) and density (0..1).</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let _ = Biome::new("a").fog([0.1, 0.3, 0.1], 0.6);
+```</p></div></div><div class="item" id="sym-BiomeBuilder-band" data-name="biomebuilder::band"><div class="sig"><a class="anchor" href="#sym-BiomeBuilder-band" aria-label="Link to BiomeBuilder::band">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">band</span>(<span class="k">mut</span> <span class="k">self</span>, lo: f32, hi: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Place the biome in the band <code>[lo, hi]</code> on the <code>p.y</code> axis.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let _ = Biome::new("a").band(10.0, 50.0);
+```</p></div></div><div class="item" id="sym-BiomeBuilder-build" data-name="biomebuilder::build"><div class="sig"><a class="anchor" href="#sym-BiomeBuilder-build" aria-label="Link to BiomeBuilder::build">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">build</span>(<span class="k">self</span>) -&gt; <span class="t">Result</span>&lt;<span class="t">Biome</span>, <span class="t">BiomeError</span>&gt;</code></div><div class="doc"><p>Finish a biome. Refuses a biome with no reward or no cost, so a biome
+always differs from the default biome in play, not only in looks.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let ok = Biome::new("a").reward(Reward::resource("x", 1.0)).cost(Hazard::Heat, 0.1).build();
+assert!(ok.is_ok());
+```</p></div></div><div class="item" id="sym-BiomeBuilder-build_base" data-name="biomebuilder::build_base"><div class="sig"><a class="anchor" href="#sym-BiomeBuilder-build_base" aria-label="Link to BiomeBuilder::build_base">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">build_base</span>(<span class="k">self</span>) -&gt; <span class="t">Biome</span></code></div><div class="doc"><p>Finish the default biome. It needs no reward and no cost.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let base = Biome::base("open").light(1.0).build_base();
+```</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-BiomeIssue" data-name="biomeissue"><div class="sig"><a class="anchor" href="#sym-BiomeIssue" aria-label="Link to BiomeIssue">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">BiomeIssue</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Biomes `a` and `b` play the same. Only their looks differ.</span>
+<span class="t">LooksOnly</span> { a: usize, b: usize },
+<span class="c">/// The biome gives no reward that the base biome does not also give.</span>
+<span class="t">NoNewReward</span> { biome: usize },
+<span class="c">/// The biome has no cost that the base biome does not also have.</span>
+<span class="t">NoNewCost</span> { biome: usize },</code></pre></div><div class="doc"><p>A problem that [<code>BiomeSet::check</code>] found.</p>
+<p><code>use warp_sdk::world::biome::BiomeIssue;
+let i = BiomeIssue::LooksOnly { a: 1, b: 2 };</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Blend" data-name="blend"><div class="sig"><a class="anchor" href="#sym-Blend" aria-label="Link to Blend">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Blend</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> primary: usize,
+<span class="k">pub</span> secondary: usize,
+<span class="k">pub</span> t: f32,</code></pre></div><div class="doc"><p>The two strongest biomes at a point and the share of the second.</p>
+<p>Mix any value as <code>a * (1 - t) + b * t</code>, with <code>a</code> from <code>primary</code> and
+<code>b</code> from <code>secondary</code>. <code>t</code> is in <code>0..=0.5</code>.</p>
+<p><code>use warp_sdk::world::biome::Blend;
+let b = Blend { primary: 1, secondary: 0, t: 0.25 };
+assert_eq!(b.mix(10.0, 20.0), 12.5);</code></p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Blend-mix" data-name="blend::mix"><div class="sig"><a class="anchor" href="#sym-Blend-mix" aria-label="Link to Blend::mix">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">mix</span>(&amp;<span class="k">self</span>, a: f32, b: f32) -&gt; f32</code></div><div class="doc"><p>Mix a primary value and a secondary value by <code>t</code>.</p>
+<p><code>let b = warp_sdk::world::biome::Blend { primary: 0, secondary: 0, t: 0.0 };
+assert_eq!(b.mix(3.0, 9.0), 3.0);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Env" data-name="env"><div class="sig"><a class="anchor" href="#sym-Env" aria-label="Link to Env">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Env</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> blend: <span class="t">Blend</span>,
+<span class="k">pub</span> movement: <span class="t">Movement</span>,
+<span class="k">pub</span> light: f32,
+<span class="c">/// Rate per second of each hazard, indexed like [`Hazard::ALL`].</span>
+<span class="k">pub</span> hazards: [f32; <span class="n">5</span>],
+<span class="k">pub</span> fog: [f32; <span class="n">3</span>],
+<span class="k">pub</span> fog_density: f32,
+<span class="k">pub</span> palette: <span class="t">PaletteShift</span>,
+<span class="c">/// The particle mood of the primary biome.</span>
+<span class="k">pub</span> particles: <span class="t">ParticleMood</span>,</code></pre></div><div class="doc"><p>The blended gameplay and looks at one point. Feed it to the player's
+physics, damage, light and post settings each frame.</p>
+<p><code>use warp_sdk::world::biome::{Biome, BiomeSet, Hazard};
+use warp_sdk::ultraviolet::Vec2;
+let set = BiomeSet::new(Biome::base("open").build_base(), 1);
+let env = set.env(Vec2::new(0.0, 0.0));
+assert_eq!(env.hazard(Hazard::Heat), 0.0);
+let v = env.movement.apply(Vec2::new(1.0, 0.0), 1.0 / 60.0);</code></p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Env-hazard" data-name="env::hazard"><div class="sig"><a class="anchor" href="#sym-Env-hazard" aria-label="Link to Env::hazard">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">hazard</span>(&amp;<span class="k">self</span>, h: <span class="t">Hazard</span>) -&gt; f32</code></div><div class="doc"><p>The blended rate of one hazard.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<h1>let env = BiomeSet::new(Biome::base("o").build_base(), 0).env(warp_sdk::ultraviolet::Vec2::zero());</h1>
+<p>let heat = env.hazard(Hazard::Heat);
+```</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-BiomeSet" data-name="biomeset"><div class="sig"><a class="anchor" href="#sym-BiomeSet" aria-label="Link to BiomeSet">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">BiomeSet</span></code></div><div class="doc"><p>All biomes of a world, the base biome at index 0, and the placement noise.</p>
+<p><code>use warp_sdk::world::biome::{Biome, BiomeSet, Hazard, Reward};
+let set = BiomeSet::new(Biome::base("open").build_base(), 42)
+.feather(6.0)
+.border_noise(8.0, 40.0)
+.with(Biome::new("deep").reward(Reward::discovery("wreck")).cost(Hazard::Darkness, 0.2)
+.band(50.0, 200.0).build().unwrap());
+assert_eq!(set.len(), 2);</code></p></div></div><details class="members"><summary>12 methods</summary><div class="item" id="sym-BiomeSet-new" data-name="biomeset::new"><div class="sig"><a class="anchor" href="#sym-BiomeSet-new" aria-label="Link to BiomeSet::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(base: <span class="t">Biome</span>, seed: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A set with only the base biome. Defaults: feather 4, border noise
+amplitude 6 and scale 32 world units.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let set = BiomeSet::new(Biome::base("open").build_base(), 3);
+```</p></div></div><div class="item" id="sym-BiomeSet-with" data-name="biomeset::with"><div class="sig"><a class="anchor" href="#sym-BiomeSet-with" aria-label="Link to BiomeSet::with">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with</span>(<span class="k">mut</span> <span class="k">self</span>, b: <span class="t">Biome</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Add a biome. Its index is the order of the <code>with</code> calls, from 1.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let b = Biome::new("x").reward(Reward::resource("r", 1.0)).cost(Hazard::Heat, 1.0).build().unwrap();
+let set = BiomeSet::new(Biome::base("o").build_base(), 0).with(b);
+```</p></div></div><div class="item" id="sym-BiomeSet-feather" data-name="biomeset::feather"><div class="sig"><a class="anchor" href="#sym-BiomeSet-feather" aria-label="Link to BiomeSet::feather">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">feather</span>(<span class="k">mut</span> <span class="k">self</span>, width: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the width of the soft border, in band units.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let set = BiomeSet::new(Biome::base("o").build_base(), 0).feather(10.0);
+```</p></div></div><div class="item" id="sym-BiomeSet-border_noise" data-name="biomeset::border_noise"><div class="sig"><a class="anchor" href="#sym-BiomeSet-border_noise" aria-label="Link to BiomeSet::border_noise">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">border_noise</span>(<span class="k">mut</span> <span class="k">self</span>, amplitude: f32, scale: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set how far the noise moves a border (<code>amplitude</code>) and the size of
+its waves (<code>scale</code>), in world units. Amplitude 0 = straight borders.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let set = BiomeSet::new(Biome::base("o").build_base(), 0).border_noise(0.0, 1.0);
+```</p></div></div><div class="item" id="sym-BiomeSet-len" data-name="biomeset::len"><div class="sig"><a class="anchor" href="#sym-BiomeSet-len" aria-label="Link to BiomeSet::len">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">len</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>The number of biomes, the base biome included.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>assert_eq!(BiomeSet::new(Biome::base("o").build_base(), 0).len(), 1);
+```</p></div></div><div class="item" id="sym-BiomeSet-is_empty" data-name="biomeset::is_empty"><div class="sig"><a class="anchor" href="#sym-BiomeSet-is_empty" aria-label="Link to BiomeSet::is_empty">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_empty</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>Always false: a set holds at least the base biome.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>assert!(!BiomeSet::new(Biome::base("o").build_base(), 0).is_empty());
+```</p></div></div><div class="item" id="sym-BiomeSet-biome" data-name="biomeset::biome"><div class="sig"><a class="anchor" href="#sym-BiomeSet-biome" aria-label="Link to BiomeSet::biome">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">biome</span>(&amp;<span class="k">self</span>, i: usize) -&gt; &amp;<span class="t">Biome</span></code></div><div class="doc"><p>One biome by index. Index 0 is the base biome.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let set = BiomeSet::new(Biome::base("open").build_base(), 0);
+assert_eq!(set.biome(0).name, "open");
+```</p></div></div><div class="item" id="sym-BiomeSet-biomes" data-name="biomeset::biomes"><div class="sig"><a class="anchor" href="#sym-BiomeSet-biomes" aria-label="Link to BiomeSet::biomes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">biomes</span>(&amp;<span class="k">self</span>) -&gt; &amp;[<span class="t">Biome</span>]</code></div><div class="doc"><p>All biomes, the base biome first.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let set = BiomeSet::new(Biome::base("open").build_base(), 0);
+for b in set.biomes() { let _ = &amp;b.name; }
+```</p></div></div><div class="item" id="sym-BiomeSet-check" data-name="biomeset::check"><div class="sig"><a class="anchor" href="#sym-BiomeSet-check" aria-label="Link to BiomeSet::check">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">check</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Result</span>&lt;(), <span class="t">Vec</span>&lt;<span class="t">BiomeIssue</span>&gt;&gt;</code></div><div class="doc"><p>Find each pair of biomes that play the same and each biome that adds
+no reward or no cost to the base biome. <code>Ok</code> when there is none.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let a = Biome::new("a").reward(Reward::resource("r", 1.0)).cost(Hazard::Heat, 1.0).build().unwrap();
+let mut b = a.clone();
+b.name = "b".into();
+b.looks.fog = [1.0, 0.0, 0.0];
+let set = BiomeSet::new(Biome::base("o").build_base(), 0).with(a).with(b);
+assert_eq!(set.check(), Err(vec![BiomeIssue::LooksOnly { a: 1, b: 2 }]));
+```</p></div></div><div class="item" id="sym-BiomeSet-weights" data-name="biomeset::weights"><div class="sig"><a class="anchor" href="#sym-BiomeSet-weights" aria-label="Link to BiomeSet::weights">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">weights</span>(&amp;<span class="k">self</span>, p: <span class="t">Vec2</span>) -&gt; <span class="t">Vec</span>&lt;f32&gt;</code></div><div class="doc"><p>The membership of every biome at <code>p</code>, the base biome first.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let set = BiomeSet::new(Biome::base("o").build_base(), 0);
+assert_eq!(set.weights(warp_sdk::ultraviolet::Vec2::zero()), vec![1.0]);
+```</p></div></div><div class="item" id="sym-BiomeSet-sample" data-name="biomeset::sample"><div class="sig"><a class="anchor" href="#sym-BiomeSet-sample" aria-label="Link to BiomeSet::sample">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">sample</span>(&amp;<span class="k">self</span>, p: <span class="t">Vec2</span>) -&gt; <span class="t">Blend</span></code></div><div class="doc"><p>The two strongest biomes at <code>p</code> and the share <code>t</code> of the second.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let set = BiomeSet::new(Biome::base("o").build_base(), 0);
+let b = set.sample(warp_sdk::ultraviolet::Vec2::new(5.0, 5.0));
+assert_eq!((b.primary, b.t), (0, 0.0));
+```</p></div></div><div class="item" id="sym-BiomeSet-env" data-name="biomeset::env"><div class="sig"><a class="anchor" href="#sym-BiomeSet-env" aria-label="Link to BiomeSet::env">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">env</span>(&amp;<span class="k">self</span>, p: <span class="t">Vec2</span>) -&gt; <span class="t">Env</span></code></div><div class="doc"><p>The blended gameplay and looks at <code>p</code>.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let set = BiomeSet::new(Biome::base("o").light(0.8).build_base(), 0);
+assert!((set.env(warp_sdk::ultraviolet::Vec2::zero()).light - 0.8).abs() &lt; 1e-6);
+```</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Discovered" data-name="discovered"><div class="sig"><a class="anchor" href="#sym-Discovered" aria-label="Link to Discovered">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Discovered</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> biome: usize,</code></pre></div><div class="doc"><p>The event that [<code>BiomeTracker::update</code>] returns on the first entry to a
+biome.</p>
+<p><code>use warp_sdk::world::biome::Discovered;
+let d = Discovered { biome: 2 };</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-BiomeTracker" data-name="biometracker"><div class="sig"><a class="anchor" href="#sym-BiomeTracker" aria-label="Link to BiomeTracker">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">BiomeTracker</span></code></div><div class="doc"><p>Remembers which biomes the player has entered and which one they are in.</p>
+<p><code>use warp_sdk::world::biome::{Biome, BiomeSet, BiomeTracker, Discovered};
+use warp_sdk::ultraviolet::Vec2;
+let set = BiomeSet::new(Biome::base("open").build_base(), 0);
+let mut t = BiomeTracker::new(&amp;set);
+assert_eq!(t.update(&amp;set, Vec2::zero()), Some(Discovered { biome: 0 }));
+assert_eq!(t.update(&amp;set, Vec2::zero()), None);</code></p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-BiomeTracker-new" data-name="biometracker::new"><div class="sig"><a class="anchor" href="#sym-BiomeTracker-new" aria-label="Link to BiomeTracker::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(set: &amp;<span class="t">BiomeSet</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A tracker with no biome seen.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<p>let t = BiomeTracker::new(&amp;BiomeSet::new(Biome::base("o").build_base(), 0));
+```</p></div></div><div class="item" id="sym-BiomeTracker-update" data-name="biometracker::update"><div class="sig"><a class="anchor" href="#sym-BiomeTracker-update" aria-label="Link to BiomeTracker::update">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">update</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, set: &amp;<span class="t">BiomeSet</span>, p: <span class="t">Vec2</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">Discovered</span>&gt;</code></div><div class="doc"><p>Call once per frame with the player position. Returns
+[<code>Discovered</code>] the first time the primary biome at <code>p</code> is new.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<h1>let set = BiomeSet::new(Biome::base("o").build_base(), 0);</h1>
+<p>let mut t = BiomeTracker::new(&amp;set);
+if let Some(d) = t.update(&amp;set, warp_sdk::ultraviolet::Vec2::zero()) { let _ = d.biome; }
+```</p></div></div><div class="item" id="sym-BiomeTracker-current" data-name="biometracker::current"><div class="sig"><a class="anchor" href="#sym-BiomeTracker-current" aria-label="Link to BiomeTracker::current">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">current</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;usize&gt;</code></div><div class="doc"><p>The biome the player was in at the last <code>update</code>.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<h1>let set = BiomeSet::new(Biome::base("o").build_base(), 0);</h1>
+<p>assert_eq!(BiomeTracker::new(&amp;set).current(), None);
+```</p></div></div><div class="item" id="sym-BiomeTracker-has_seen" data-name="biometracker::has_seen"><div class="sig"><a class="anchor" href="#sym-BiomeTracker-has_seen" aria-label="Link to BiomeTracker::has_seen">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">has_seen</span>(&amp;<span class="k">self</span>, i: usize) -&gt; bool</code></div><div class="doc"><p>True when the player has entered biome <code>i</code> at least once.</p>
+<p>```</p>
+<h1>use warp_sdk::world::biome::*;</h1>
+<h1>let set = BiomeSet::new(Biome::base("o").build_base(), 0);</h1>
+<p>assert!(!BiomeTracker::new(&amp;set).has_seen(0));
+```</p></div></div></details></div><h2 id="see-also">See also</h2><ul><li><a href="world.html" data-slug="world">World kit</a></li><li><a href="world-terrain.html" data-slug="world-terrain">Terrain</a></li><li><a href="world-reveal.html" data-slug="world-reveal">Reveal grid</a></li><li><a href="hud-cues.html" data-slug="hud-cues">HUD cues</a></li><li><a href="palette-kit.html" data-slug="palette-kit">Palette kit</a></li><li><a href="post.html" data-slug="post">Post effects</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/biome.rs</code> - <code>A biome is a reason to go somewhere.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/biome.rs</code> - <code>The looks tell</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/biome.rs</code> - <code>refuses a biome with no reward or no cost</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/biome.rs</code> - <code>Feed it to the player&#x27;s</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/biome.rs</code> - <code>Units per second. The game decides what one unit is.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/biome.rs</code> - <code>The step is exact for any</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/biome.rs</code> - <code>The looks of a biome. They come after the gameplay and must tell it.</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/biome.rs</code> - <code>The band coordinate is</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/biome.rs</code> - <code>every place no band covers, with weight</code></li><li id="ref-10"><a class="back" href="#cite-10" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/biome.rs</code> - <code>both sides give</code></li><li id="ref-11"><a class="back" href="#cite-11" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/biome.rs</code> - <code>The particle mood of the primary biome.</code></li><li id="ref-12"><a class="back" href="#cite-12" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/biome.rs</code> - <code>Floats are rounded to three decimals.</code></li><li id="ref-13"><a class="back" href="#cite-13" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/biome.rs</code> - <code>the check does not count it as gameplay</code></li><li id="ref-14"><a class="back" href="#cite-14" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/biome.rs</code> - <code>Show it with a sting, an icon and a map mark.</code></li></ol><table class="navbox"><tr><th><a href="category-world-and-simulation.html">World and simulation</a></th></tr><tr><td><a href="world.html" data-slug="world">World kit</a> · <a href="world-terrain.html" data-slug="world-terrain">Terrain</a> · <a href="world-collide.html" data-slug="world-collide">Surface collision</a> · <b>Biomes</b> · <a href="world-reveal.html" data-slug="world-reveal">Reveal grid</a> · <a href="fluid.html" data-slug="fluid">Fluid kit</a> · <a href="fluid-solver.html" data-slug="fluid-solver">Fluid solver</a> · <a href="fluid-particles.html" data-slug="fluid-particles">Fluid particles</a> · <a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a> · <a href="procgen.html" data-slug="procgen">Procedural generation</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-world-and-simulation.html">World and simulation</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creature shaders - Warp Wiki</title>
+<meta name="description" content="WGSL layered 2D body plans for fish, jellies, squid, crabs and a submersible">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="shader-creature">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#files">Files</a></li><li><a href="#conventions">Conventions</a></li><li><a href="#how-a-body-plan-works">How a body plan works</a></li><li><a href="#signatures">Signatures</a></li><li><a href="#body-plans">Body plans</a><ul><li><a href="#fish">Fish</a></li><li><a href="#jellyfish">Jellyfish</a></li><li><a href="#cephalopod">Cephalopod</a></li><li><a href="#crustacean">Crustacean</a></li><li><a href="#gloom">Gloom</a></li><li><a href="#submersible">Submersible</a></li></ul></li><li><a href="#part-ids">Part ids</a></li><li><a href="#surface-helpers">Surface helpers</a></li><li><a href="#usage">Usage</a></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Creature shaders</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">WGSL layered 2D body plans for fish, jellies, squid, crabs and a submersible</p><p><strong>Creature shaders</strong> are the <code>creature/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL body plans that draw sea animals and a submersible as layered 2D signed distance fields. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::creature</code></a>. Each body plan comes from one parameter record, so a seed gives a stable species, and it returns a MaterialSample. All functions start with <code>creature_</code>. The plans port profile ideas from Stella Nova pages to 2D.</p>
+<h2 id="files">Files</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>File</th>
+<th>Record</th>
+<th>Species or default</th>
+<th>Hit function</th>
+<th>Material function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>creature/fish.wgsl</code></td>
+<td><code>struct CreatureFish</code></td>
+<td><code>creature_fish_species</code></td>
+<td><code>creature_fish_hit</code></td>
+<td><code>creature_fish</code></td>
+</tr>
+<tr>
+<td><code>creature/jellyfish.wgsl</code></td>
+<td><code>struct CreatureJelly</code></td>
+<td><code>creature_jelly_species</code></td>
+<td><code>creature_jelly_hit</code></td>
+<td><code>creature_jelly</code></td>
+</tr>
+<tr>
+<td><code>creature/cephalopod.wgsl</code></td>
+<td><code>struct CreatureSquid</code></td>
+<td><code>creature_squid_species</code></td>
+<td><code>creature_squid_hit</code></td>
+<td><code>creature_squid</code></td>
+</tr>
+<tr>
+<td><code>creature/crustacean.wgsl</code></td>
+<td><code>struct CreatureCrab</code></td>
+<td><code>creature_crab_species</code></td>
+<td><code>creature_crab_hit</code></td>
+<td><code>creature_crab</code></td>
+</tr>
+<tr>
+<td><code>creature/gloom.wgsl</code></td>
+<td><code>struct CreatureGloom</code></td>
+<td><code>creature_gloom_species</code></td>
+<td><code>creature_gloom_hit</code></td>
+<td><code>creature_gloom</code></td>
+</tr>
+<tr>
+<td><code>creature/submersible.wgsl</code></td>
+<td><code>struct CreatureSub</code></td>
+<td><code>creature_sub_default</code></td>
+<td><code>creature_sub_hit</code></td>
+<td><code>creature_sub</code></td>
+</tr>
+</tbody>
+</table>
+<p>Two shared files sit below them. <code>creature/common.wgsl</code> gives the hit record, 2D shapes, smooth union, relief, noise and output builders, and it requires <code>core/material.wgsl</code> and <code>noise/hash.wgsl</code>. <code>creature/parts.wgsl</code> gives surface helpers and requires the common file. Each body plan requires <code>creature/parts.wgsl</code>. <code>creature/submersible.wgsl</code> also requires <code>post/volumetric.wgsl</code>.</p>
+<h2 id="conventions">Conventions</h2>
+<p>These apply to all creature files:<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Name</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>p</code></td>
+<td>Local position. The body has a length of about 1, centred on 0. +y is up on the screen</td>
+</tr>
+<tr>
+<td><code>aa</code></td>
+<td>One screen pixel in local units. It sets the edge width</td>
+</tr>
+<tr>
+<td><code>seed</code></td>
+<td>Any float. One seed gives one stable individual</td>
+</tr>
+<tr>
+<td><code>light</code></td>
+<td>2D key light direction, any length, used for the eye spot</td>
+</tr>
+</tbody>
+</table>
+<p>The game scales and rotates <code>p</code> in its shader. Animation enters through record fields such as <code>phase</code>, <code>pulse</code>, <code>time</code> and <code>walk</code>, which the game sets from its simulation. No file reads a uniform.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Body plan</th>
+<th>Frame</th>
+<th>Animation fields</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fish</td>
+<td>Snout at x = +0.5, tail tip at x = -0.5</td>
+<td><code>phase</code></td>
+</tr>
+<tr>
+<td>Jellyfish</td>
+<td>Bell top near y = +0.45, tentacles toward -y</td>
+<td><code>pulse</code>, <code>time</code>, <code>flow</code></td>
+</tr>
+<tr>
+<td>Squid</td>
+<td>Mantle tip at x = +0.5, arms toward x = -0.5</td>
+<td><code>phase</code></td>
+</tr>
+<tr>
+<td>Crab</td>
+<td>Top view, head faces +y, mirror symmetric in x</td>
+<td><code>walk</code>, <code>claw_open</code></td>
+</tr>
+<tr>
+<td>Gloom</td>
+<td>Head faces +x, tail near x = -0.5</td>
+<td><code>phase</code>, <code>jaw_open</code></td>
+</tr>
+<tr>
+<td>Submersible</td>
+<td>Nose faces +x, thrusters near x = -0.5</td>
+<td><code>thrust</code>, <code>time</code>, <code>lamp</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="how-a-body-plan-works">How a body plan works</h2>
+<p>The <code>struct CreatureHit</code> record has a signed distance <code>d</code>, relief height <code>h</code>, a <code>part</code> id and part coordinates <code>uv</code>.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">creature_miss</span>() -&gt; <span class="t">CreatureHit</span>
+<span class="k">fn</span> <span class="f">creature_layer</span>(below: <span class="t">CreatureHit</span>, d: f32, h: f32, part: f32, uv: vec2&lt;f32&gt;) -&gt; <span class="t">CreatureHit</span></code></pre></div>
+<p>A <code>_hit</code> function starts with <code>creature_miss</code> and calls <code>creature_layer</code> from back to front. The new layer wins where it covers the point, or where nothing below covers the point and the new layer is nearer. The distance is the union of the layers.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<p>The material function then shades that result. <code>creature_fish</code> is typical. It returns <code>creature_empty</code> when the point is more than one pixel outside. It takes relief at <code>p</code>, <code>p + (e, 0)</code> and <code>p + (0, e)</code> for <code>creature_normal</code>, computes coverage with <code>creature_coverage</code>, branches on the part id to pick colour, and ends with <code>creature_finish</code>.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> A call thus costs three evaluations of the whole body plan. A game that needs only a mask can call the <code>_hit</code> function.</p>
+<h2 id="signatures">Signatures</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">creature_fish_species</span>(seed: f32, depth: f32) -&gt; <span class="t">CreatureFish</span>
+<span class="k">fn</span> <span class="f">creature_fish</span>(p: vec2&lt;f32&gt;, f: <span class="t">CreatureFish</span>, seed: f32, aa: f32, light: vec2&lt;f32&gt;) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">creature_jelly_species</span>(seed: f32) -&gt; <span class="t">CreatureJelly</span>
+<span class="k">fn</span> <span class="f">creature_jelly</span>(p: vec2&lt;f32&gt;, j: <span class="t">CreatureJelly</span>, seed: f32, aa: f32) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">creature_squid_species</span>(seed: f32) -&gt; <span class="t">CreatureSquid</span>
+<span class="k">fn</span> <span class="f">creature_squid</span>(p: vec2&lt;f32&gt;, c: <span class="t">CreatureSquid</span>, seed: f32, aa: f32, light: vec2&lt;f32&gt;) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">creature_crab_species</span>(seed: f32) -&gt; <span class="t">CreatureCrab</span>
+<span class="k">fn</span> <span class="f">creature_crab</span>(p: vec2&lt;f32&gt;, c: <span class="t">CreatureCrab</span>, seed: f32, aa: f32, light: vec2&lt;f32&gt;) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">creature_gloom_species</span>(seed: f32) -&gt; <span class="t">CreatureGloom</span>
+<span class="k">fn</span> <span class="f">creature_gloom</span>(p: vec2&lt;f32&gt;, g: <span class="t">CreatureGloom</span>, seed: f32, aa: f32, light: vec2&lt;f32&gt;) -&gt; <span class="t">MaterialSample</span>
+<span class="k">fn</span> <span class="f">creature_sub_default</span>() -&gt; <span class="t">CreatureSub</span>
+<span class="k">fn</span> <span class="f">creature_sub</span>(p: vec2&lt;f32&gt;, s: <span class="t">CreatureSub</span>, aa: f32, light: vec2&lt;f32&gt;) -&gt; <span class="t">MaterialSample</span></code></pre></div>
+<p><code>creature_jelly</code> takes no light, and <code>creature_sub</code> takes no seed.</p>
+<h2 id="body-plans">Body plans</h2>
+<h3 id="fish">Fish</h3>
+<p>The fish has a body profile around a bending spine, a tail, dorsal, anal and pectoral fins, scales, countershading, a colour pattern, an eye, a ventral photophore row and an optional angler lure. In <code>creature_fish_species</code>, <code>depth</code> 0 is reef and 1 is abyss, and the abyss gives dark fish with glow rows, big eyes and lures.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup> The header notes that the spine bends in the image plane, so a top view reads the bend as the swim wave and a side view reads it as an arch, which calls for a small curvature.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Range</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>body</code></td>
+<td>0 fusiform, 1 compressed, 2 eel</td>
+</tr>
+<tr>
+<td><code>height</code></td>
+<td>0.05..0.25</td>
+</tr>
+<tr>
+<td><code>tail</code></td>
+<td>0 forked, 1 lunate, 2 rounded</td>
+</tr>
+<tr>
+<td><code>eye</code></td>
+<td>0.015..0.06</td>
+</tr>
+<tr>
+<td><code>curvature</code></td>
+<td>0..0.12</td>
+</tr>
+<tr>
+<td><code>pattern</code></td>
+<td>0..5, see <code>creature_pattern</code></td>
+</tr>
+<tr>
+<td><code>photophores</code></td>
+<td>0..1</td>
+</tr>
+<tr>
+<td><code>lure</code></td>
+<td>0 for none, up to 0.4</td>
+</tr>
+</tbody>
+</table>
+<h3 id="jellyfish">Jellyfish</h3>
+<p>The bell is translucent and pulses, with a scalloped margin, radial canals and gonad arcs. Frilled oral arms and trailing tentacles bend with a flow vector. <code>pulse</code> is 0 relaxed to 1 contracted, and the header suggests <code>0.5 - 0.5 * cos(t)</code>. <code>tentacles</code> is 0..24, and <code>flow</code> is -1..1 on each axis.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<h3 id="cephalopod">Cephalopod</h3>
+<p>CreatureSquid covers a squid or an octopus. <code>fins</code> 0 gives an octopus and 1 gives big rhombic fins. <code>arms</code> is 2..8, <code>tentacles</code> 1 adds two long clubs, and <code>curl</code> sets the arm tip curl. A squid swims mantle first, so the game moves it toward +x.</p>
+<h3 id="crustacean">Crustacean</h3>
+<p>The crab is a top view. <code>segments</code> 0 gives a crab and 6 a lobster. <code>legs</code> is 2..5 pairs, <code>claw_open</code> is 0..1, and <code>spines</code> is 0..1. <code>creature_crab_leg</code> draws one two-segment leg.</p>
+<h3 id="gloom">Gloom</h3>
+<p><code>creature/gloom.wgsl</code> is the deep-sea threat. <a class="sym" href="teach.html#sym-kind"><code>kind</code></a> 0 is an angler with a globe body, and 1 is a viperfish with an eel body. Both have a hinged jaw that opens, translucent fangs, a glowing eye and a lure.</p>
+<h3 id="submersible">Submersible</h3>
+<p>The submersible is the player craft, with a painted hull, a conning tower, a glass viewport, thruster pods with an emissive plume and a headlamp. <code>creature_headlamp_cone</code> does not depend on <code>struct CreatureSub</code>. It calls <code>post_volumetric_cone</code> and maps the result to 0..1 with a soft saturation. The comment points to <code>post_volumetric_cone</code> for HDR light, occlusion and dither.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup> <code>creature_sub_lamp_pos</code> gives the lamp position on the hull.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">creature_headlamp_cone</span>(p: vec2&lt;f32&gt;, origin: vec2&lt;f32&gt;, dir: vec2&lt;f32&gt;, half_angle: f32, range: f32) -&gt; f32</code></pre></div>
+<h2 id="part-ids">Part ids</h2>
+<p>Each plan numbers its parts, and <code>uv</code> has a meaning per part.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Plan</th>
+<th>Ids</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fish</td>
+<td>1 body, 2 tail, 3 dorsal, 4 anal, 5 pectoral, 6 lure stalk, 7 lure bulb, 8 eye</td>
+</tr>
+<tr>
+<td>Jellyfish</td>
+<td>1 bell, 2 tentacle, 3 oral arm</td>
+</tr>
+<tr>
+<td>Squid</td>
+<td>1 mantle and head, 2 fin, 3 arm, 4 eye</td>
+</tr>
+<tr>
+<td>Crab</td>
+<td>1 carapace, 2 abdomen, 3 leg, 4 claw, 5 eye</td>
+</tr>
+<tr>
+<td>Gloom</td>
+<td>1 body, 2 fin, 3 mouth, 4 tooth, 5 lure stalk, 6 lure bulb, 7 eye</td>
+</tr>
+<tr>
+<td>Submersible</td>
+<td>1 hull, 2 tower, 3 thruster pod, 4 viewport glass, 5 exhaust plume, 6 headlamp</td>
+</tr>
+</tbody>
+</table>
+<h2 id="surface-helpers">Surface helpers</h2>
+<p><code>creature/parts.wgsl</code> holds the surfaces shared across plans.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">creature_eye</span>(p: vec2&lt;f32&gt;, r: f32, iris: vec3&lt;f32&gt;, glow: f32, light: vec2&lt;f32&gt;) -&gt; <span class="t">CreatureEye</span>
+<span class="k">fn</span> <span class="f">creature_fin</span>(base: vec3&lt;f32&gt;, edge: vec3&lt;f32&gt;, uv: vec2&lt;f32&gt;, rays: f32) -&gt; vec4&lt;f32&gt;
+<span class="k">fn</span> <span class="f">creature_iridescence</span>(cos_t: f32, thickness: f32) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">creature_photophores</span>(p: vec2&lt;f32&gt;, spacing: f32, radius: f32, density: f32, seed: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">creature_scales</span>(p: vec2&lt;f32&gt;, size: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">creature_countershade</span>(back: vec3&lt;f32&gt;, belly: vec3&lt;f32&gt;, up: f32) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">creature_pattern</span>(kind: f32, uv: vec2&lt;f32&gt;, n: f32, seed: f32) -&gt; f32</code></pre></div>
+<p>The eye spot is emissive, so it stays readable at game zoom without a light pass. <code>creature_scales</code> returns a relief 0..1, high at the free edge of each scale. <code>creature_pattern</code> kinds are 0 plain, 1 bars, 2 stripes, 3 spots, 4 saddle and 5 mottle.</p>
+<h2 id="usage">Usage</h2>
+<p>A game starts from the species function, overrides the animated fields, and calls the material. Field names below are those of the record:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">var</span> j = <span class="f">creature_jelly_species</span>(<span class="n">3.0</span>);
+j.pulse = <span class="n">0.5</span> - <span class="n">0.5</span> * <span class="f">cos</span>(time * <span class="n">1.5</span>);
+j.time = time;
+<span class="k">let</span> m = <span class="f">creature_jelly</span>(local, j, <span class="n">3.0</span>, px);</code></pre></div>
+<p>It composes <code>creature/jellyfish.wgsl</code>. Output is a MaterialSample, so <code>alpha</code> is the coverage and glow is in <code>emissive</code>.</p>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<ul>
+<li>A body plan fits in a <a href="lit2d.html" data-slug="lit2d">Lit2d</a> material, because it returns the same record.</li>
+<li><a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> draws the reef that these animals live on.</li>
+<li><code>creature_headlamp_cone</code> depends on <a href="shader-post.html" data-slug="shader-post">Post shaders</a>.</li>
+</ul><h2 id="see-also">See also</h2><ul><li><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></li><li><a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a></li><li><a href="shader-post.html" data-slug="shader-post">Post shaders</a></li><li><a href="lit2d.html" data-slug="lit2d">Lit2d</a></li><li><a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/creature/common.wgsl</code> - <code>// Conventions for all creature files:</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/creature/common.wgsl</code> - <code>// Put a new layer on top of the layers below it. Call from back to front.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/creature/fish.wgsl</code> - <code>fn creature_fish(p: vec2&lt;f32&gt;, f: CreatureFish, seed: f32, aa: f32, light: vec2&lt;f32&gt;) -&gt; MaterialSample {</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/creature/fish.wgsl</code> - <code>// One stable species from a seed. depth 0 = reef, 1 = abyss: the abyss</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/creature/jellyfish.wgsl</code> - <code>//   pulse      bell contraction, 0 (relaxed)..1 (contracted). Drive it</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/creature/submersible.wgsl</code> - <code>// It calls post_volumetric_cone: analytic in-scattering with a smooth</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/creature/parts.wgsl</code> - <code>// creature/parts.wgsl — surface helpers that every body plan shares: an eye</code></li></ol><table class="navbox"><tr><th><a href="category-shader-library.html">Shader library</a></th></tr><tr><td><a href="shaderlib.html" data-slug="shaderlib">Shader library</a> · <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a> · <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> · <a href="shader-material.html" data-slug="shader-material">Material shaders</a> · <a href="shader-water.html" data-slug="shader-water">Water shaders</a> · <a href="shader-post.html" data-slug="shader-post">Post shaders</a> · <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> · <b>Creature shaders</b> · <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> · <a href="shader-pattern.html" data-slug="shader-pattern">Pattern shaders</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-shader-library.html">Shader library</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

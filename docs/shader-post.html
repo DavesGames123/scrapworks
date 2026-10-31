@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Post shaders - Warp Wiki</title>
+<meta name="description" content="WGSL bloom, tonemapping, grading, colour science, sampling, beams and fire">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="shader-post">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#files">Files</a></li><li><a href="#conventions">Conventions</a></li><li><a href="#output-order">Output order</a></li><li><a href="#bloom-chain">Bloom chain</a></li><li><a href="#grading-and-lens">Grading and lens</a></li><li><a href="#glow">Glow</a></li><li><a href="#colour-science">Colour science</a></li><li><a href="#sampling">Sampling</a></li><li><a href="#beams">Beams</a></li><li><a href="#volumetric-light">Volumetric light</a></li><li><a href="#fire">Fire</a></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Post shaders</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">WGSL bloom, tonemapping, grading, colour science, sampling, beams and fire</p><p><strong>Post shaders</strong> are the <code>post/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL functions for image processing and light effects. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::post</code></a>. It covers a bloom chain, tonemappers, grading, lens effects, film grain, dither, colour spaces, sample sets, beams, volumetric light and fire. All functions start with <code>post_</code>. These are functions and not passes. The engine post-processing chain is a separate kit, described in <a href="post.html" data-slug="post">Post effects</a>.</p>
+<h2 id="files">Files</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>File</th>
+<th>Provides</th>
+<th>Requires</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>post/color.wgsl</code></td>
+<td><code>post_luminance</code>, <code>post_max3</code>, <code>post_min3</code></td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>post/bloom.wgsl</code></td>
+<td>Soft-knee prefilter, 13-tap downsample, 9-tap upsample, combine</td>
+<td><code>post/color.wgsl</code></td>
+</tr>
+<tr>
+<td><code>post/tonemap.wgsl</code></td>
+<td>ACES fitted and approximate, AgX, Reinhard extended, PBR Neutral</td>
+<td><code>post/color.wgsl</code></td>
+</tr>
+<tr>
+<td><code>post/exposure.wgsl</code></td>
+<td>EV100 from camera or luminance, exposure, eye adaption</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>post/grade.wgsl</code></td>
+<td>Lift, gamma, gain, saturation, contrast, white balance</td>
+<td><code>post/color.wgsl</code></td>
+</tr>
+<tr>
+<td><code>post/lens.wgsl</code></td>
+<td>Vignette, chromatic aberration, ghosts, halo, starburst</td>
+<td><code>post/color.wgsl</code></td>
+</tr>
+<tr>
+<td><code>post/grain.wgsl</code></td>
+<td>Film grain weighted by luminance</td>
+<td><code>noise/hash.wgsl</code>, <code>post/color.wgsl</code></td>
+</tr>
+<tr>
+<td><code>post/sharpen.wgsl</code></td>
+<td>Unsharp mask, contrast-adaptive sharpen</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>post/dither.wgsl</code></td>
+<td>Interleaved gradient, Bayer and triangular dither for output</td>
+<td><code>noise/hash.wgsl</code></td>
+</tr>
+<tr>
+<td><code>post/glow.wgsl</code></td>
+<td>Emissive glow from a signed distance</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>post/color_science.wgsl</code></td>
+<td>sRGB, HSV, OKLab, OKLCH, colour maps, palettes, vision deficiency</td>
+<td><code>post/color.wgsl</code></td>
+</tr>
+<tr>
+<td><code>post/sampling.wgsl</code></td>
+<td>Point sets, warps, disc blur, bicubic filter</td>
+<td><code>noise/hash.wgsl</code></td>
+</tr>
+<tr>
+<td><code>post/beam.wgsl</code></td>
+<td>Line light, decals, light cones, shields</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>post/volumetric.wgsl</code></td>
+<td>Analytic in-scattering from a cone lamp</td>
+<td><code>post/beam.wgsl</code>, <code>post/dither.wgsl</code></td>
+</tr>
+<tr>
+<td><code>post/fire.wgsl</code></td>
+<td>Physical flame colour and procedural fire shapes</td>
+<td><code>noise/fbm.wgsl</code>, <code>post/color_science.wgsl</code>, <code>post/tonemap.wgsl</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="conventions">Conventions</h2>
+<p>The value <a class="sym" href="shell.html#sym-c"><code>c</code></a> is linear RGB unless a header says otherwise, and HDR values above 1 are legal. Three headers mark the display-referred exceptions. <code>post/grain.wgsl</code> takes colour after the tonemapper. <code>post/dither.wgsl</code> takes display-encoded RGB after the sRGB encode. The colour maps <code>post_map_viridis</code>, <code>post_map_magma</code>, <code>post_map_inferno</code> and <code>post_map_turbo</code> return sRGB-encoded values, as do the fire ramps.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<p><code>tex</code> and <code>samp</code> are arguments, so the caller binds them. <code>texel</code> is 1 over the size of the source texture, in UV units. <code>pixel</code> is a coordinate such as the fragment position, and <code>frame</code> is a counter. Seeds are <code>u32</code>. No post function calls <code>fwidth</code>. Functions such as <code>post_beam_decal_fill</code> take the width as an argument, and texture reads use <code>textureSampleLevel</code>.</p>
+<h2 id="output-order">Output order</h2>
+<p>The headers imply one order for a final image: <code>post_exposure_from_ev100</code> multiplies linear HDR before the tonemapper, the tonemapper returns linear 0..1, the sRGB encode follows, and <code>post_dither_output</code> runs last, before the store.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup> Grain runs after the tonemapper.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">post_exposure_from_ev100</span>(ev100: f32, comp: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">post_tonemap_aces_fitted</span>(c: vec3&lt;f32&gt;) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">post_tonemap_agx</span>(c: vec3&lt;f32&gt;) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">post_linear_to_srgb</span>(c: vec3&lt;f32&gt;) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">post_film_grain</span>(c: vec3&lt;f32&gt;, pixel: vec2&lt;f32&gt;, frame: u32, intensity: f32, response: f32, size: f32) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">post_dither_output</span>(c: vec3&lt;f32&gt;, pixel: vec2&lt;f32&gt;, frame: u32, levels: f32) -&gt; vec3&lt;f32&gt;</code></pre></div>
+<p><code>post_exposure_adapt</code> moves the current EV toward a target with an exponential step that does not depend on frame rate. The header of <code>post/tonemap.wgsl</code> recommends AgX for bright saturated light such as fire, and PBR Neutral for keeping base colours true to sRGB.</p>
+<h2 id="bloom-chain">Bloom chain</h2>
+<p>Bloom is a set of functions for a chain that the game owns. The chain runs the prefilter, then a downsample for each mip with the Karis average on the first mip only, then an upsample for each mip that adds to the next larger mip, then the combine.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">post_bloom_prefilter</span>(c: vec3&lt;f32&gt;, threshold: f32, knee: f32) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">post_bloom_downsample13</span>(tex: texture_2d&lt;f32&gt;, samp: sampler, uv: vec2&lt;f32&gt;, texel: vec2&lt;f32&gt;, karis: bool) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">post_bloom_upsample9</span>(tex: texture_2d&lt;f32&gt;, samp: sampler, uv: vec2&lt;f32&gt;, texel: vec2&lt;f32&gt;, radius: f32) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">post_bloom_combine</span>(scene: vec3&lt;f32&gt;, bloom: vec3&lt;f32&gt;, strength: f32) -&gt; vec3&lt;f32&gt;</code></pre></div>
+<p>The Karis average weights each 2x2 box by <code>1 / (1 + luma)</code>, which stops single bright pixels from flickering into large blobs. <code>threshold</code> is about 1.0 for HDR, <code>knee</code> is 0..threshold, and <code>strength</code> is 0..1, with 0.04..0.15 looking like a real lens. The combine is an energy-preserving mix, because "a lens spreads light, it does not add light".</p>
+<h2 id="grading-and-lens">Grading and lens</h2>
+<p><code>post_lift_gamma_gain</code>, <code>post_saturation</code> and <code>post_contrast</code> grade in linear light. Contrast works in log2 space about a pivot, 0.18 for mid grey, so HDR values stay stable. <code>post_white_balance</code> applies a von Kries scale in LMS space. It corrects for a light of the given colour temperature, so a low <code>kelvin</code> makes the image cooler. <code>post_tint_by_kelvin</code> is the inverse look.</p>
+<p><code>post_vignette</code> returns a factor. <code>post_vignette_cos4</code> gives the natural falloff of a real lens. <code>post_chromatic_aberration</code> reads three channels from a texture, with <code>amount</code> 0..0.02. <code>post_flare_ghosts</code> and <code>post_flare_halo</code> read a bright, thresholded, small mip, such as bloom mip 2. <code>post_starburst</code> is analytic and returns a weight for a light colour.</p>
+<h2 id="glow">Glow</h2>
+<p><code>post/glow.wgsl</code> lights each pixel by its distance to the nearest edge, as a real emissive tube does. The header rejects a blurred sprite as the wrong method, because it loses thin strokes, dims corners and costs a blur pass.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">post_glow_shape</span>(d: f32, aa: f32, radius: f32, color: vec3&lt;f32&gt;, core: f32, glow: f32) -&gt; vec4&lt;f32&gt;
+<span class="k">fn</span> <span class="f">post_glow_over</span>(bg: vec3&lt;f32&gt;, g: vec4&lt;f32&gt;) -&gt; vec3&lt;f32&gt;</code></pre></div>
+<p><code>d</code> is in pixels and negative inside. For a glyph atlas, the header gives <code>d = (0.5 - sample) * px_range</code>. The result is premultiplied emissive RGBA. The header advises writing it as HDR and letting <code>post/bloom.wgsl</code> add the wide spread.</p>
+<h2 id="colour-science">Colour science</h2>
+<p><code>post/color_science.wgsl</code> holds <code>post_linear_to_oklab</code>, <code>post_oklab_to_linear</code>, <code>post_linear_to_oklch</code>, <code>post_oklch_to_linear</code>, <code>post_oklab_mix</code>, <code>post_hsv_to_rgb</code>, <code>post_palette_cosine</code>, <code>post_ramp3</code>, <code>post_blackbody_kang</code>, <code>post_posterize</code>, <code>post_quantize_dither</code>, <code>post_cvd_protanopia</code> and <code>post_cvd_deuteranopia</code>. <code>t</code> is a colour map position in 0..1. OKLab has L 0..1, and OKLCH has h in radians. <code>post_oklab_to_linear</code> can return a colour out of gamut. The comment says to clamp it or use <code>post_gamut_to_max1</code>.</p>
+<p><code>post_blackbody_kang</code> is more accurate below 4000 K than <code>post_kelvin_to_rgb</code> of <code>post/grade.wgsl</code>.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<h2 id="sampling">Sampling</h2>
+<p><code>post/sampling.wgsl</code> gives the i-th of n points without a table: <code>post_halton</code>, <code>post_hammersley</code>, <code>post_sobol</code>, <code>post_fibonacci_lattice</code>, <code>post_rank1_lattice</code>, <code>post_nrooks</code>, <code>post_jittered</code> and <code>post_cmj</code>. Warps move a uniform point to a shape: <code>post_vogel_disc</code>, <code>post_disc_concentric</code>, <code>post_annulus</code>, <code>post_gaussian_box_muller</code>, <code>post_tent2</code> and <code>post_triangle_uniform</code>. <code>post_blur_disc</code> is a 13-tap golden-angle blur, and <code>post_sample_bicubic</code> reconstructs with 4 bilinear taps, which requires a linear sampler. <code>water/refraction.wgsl</code> requires this file.</p>
+<h2 id="beams">Beams</h2>
+<p><code>post/beam.wgsl</code> treats a line as a distance <code>d</code> from the pixel. <code>post_beam_glow</code> turns <code>d</code> into a crisp core and a <code>1/distance</code> halo, with an exponential cut so that a line does not light the whole screen.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">post_beam_segment_dt</span>(p: vec2&lt;f32&gt;, a: vec2&lt;f32&gt;, b: vec2&lt;f32&gt;) -&gt; vec2&lt;f32&gt;
+<span class="k">fn</span> <span class="f">post_beam_glow</span>(d: f32, w: f32, px: f32) -&gt; vec2&lt;f32&gt;
+<span class="k">fn</span> <span class="f">post_beam_light</span>(g: vec2&lt;f32&gt;, col: vec3&lt;f32&gt;, gain: f32) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">post_beam_finish</span>(bg: vec3&lt;f32&gt;, c: vec3&lt;f32&gt;, exposure: f32) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">post_beam_shield</span>(p: vec2&lt;f32&gt;, big_r: f32, cells: f32, hit: vec2&lt;f32&gt;, age: f32, px: f32, col: vec3&lt;f32&gt;) -&gt; vec3&lt;f32&gt;</code></pre></div>
+<p>Colours add in HDR, and <code>post_beam_finish</code> maps them over the ground as <code>1 - exp(-c * exposure)</code>. <code>post_beam_curve_glow</code> has a shorter halo for sampled curves, where a long halo shows the creases at curve vertices. The file also holds a Henyey-Greenstein phase, <code>post_beam_cone</code>, ground decals with <code>post_beam_decal_fill</code> and related functions, and hex shields.</p>
+<h2 id="volumetric-light">Volumetric light</h2>
+<p><code>post/volumetric.wgsl</code> computes in-scattering from a cone lamp in a 2D side view. The substitution <code>t = h tan(phi)</code> makes the singular inverse-square part analytic, and two 8-point Gauss-Legendre rules integrate the smooth remainder. Each sample is a smooth function of <code>p</code>, so the result has no hard edge at any zoom.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup> PostVolCone carries the lamp, and <code>post_volumetric_cone_default</code> fills it with a half angle of 0.45, range 3.0 and anisotropy 0.6. The header gives this use:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">var</span> c = <span class="f">post_volumetric_cone_default</span>(lamp_pos, lamp_dir);
+<span class="k">let</span> vis = <span class="f">post_volumetric_occlusion</span>(occ_tex, samp, uv, lamp_uv, <span class="n">24</span>,
+                                    <span class="f">post_dither_ign</span>(frag.xy, frame));
+<span class="k">let</span> fog = lamp_col * <span class="n">2.0</span> * <span class="f">post_volumetric_cone</span>(world, c) * vis;</code></pre></div>
+<p><code>post_volumetric_dither</code> then stops the smooth glow from banding.</p>
+<h2 id="fire">Fire</h2>
+<p><code>post/fire.wgsl</code> has two halves. The physical half maps a simulation value <code>t</code>, where 0.3 is the break between smoke and flame, to a temperature, then to a colour by Planck's law against colour matching functions, with intensity <code>(T / Tmax)^4</code> and optional emission lines. The presets are <code>post_fire_palette_blackbody</code>, <code>post_fire_palette_wood</code>, <code>post_fire_palette_sodium</code>, <code>post_fire_palette_copper</code>, <code>post_fire_palette_potassium</code>, <code>post_fire_palette_gas</code> and <code>post_fire_palette_magnesium</code>. <code>post_fire_planck</code> integrates in 41 steps, and the header says that a game can bake it to a 1D table.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<p>The procedural half gives heat values from 0 to 2, in a space where x is centred on 0 and y runs from 0 at the floor to 1 at the top:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">post_fire_column</span>(uv: vec2&lt;f32&gt;, time: f32, width: f32, rise: f32, detail: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">post_fire_plume</span>(uv: vec2&lt;f32&gt;, time: f32, width: f32, rise: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">post_fire_tongue</span>(uv: vec2&lt;f32&gt;, time: f32, sharp: f32, speed: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">post_fire_coals</span>(uv: vec2&lt;f32&gt;, time: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">post_fire_ramp_classic</span>(t: f32) -&gt; vec3&lt;f32&gt;
+<span class="k">fn</span> <span class="f">post_fire_present</span>(heat: f32, contrast: f32, exposure: f32, glow: f32, ink: vec3&lt;f32&gt;, tone: vec3&lt;f32&gt;, cream: vec3&lt;f32&gt;) -&gt; vec3&lt;f32&gt;</code></pre></div>
+<p><code>post_fire_tongue</code> uses no noise. <code>post_fire_haze_uv</code> offsets UV for heat haze behind the fire.</p>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<ul>
+<li><code>creature_headlamp_cone</code> in <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> calls <code>post_volumetric_cone</code>.</li>
+<li><code>water/sim_view.wgsl</code> in <a href="shader-water.html" data-slug="shader-water">Water shaders</a> requires <code>post/color_science.wgsl</code>.</li>
+<li><code>post_glow_shape</code> takes distances from <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> or a glyph atlas.</li>
+</ul><h2 id="see-also">See also</h2><ul><li><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></li><li><a href="post.html" data-slug="post">Post effects</a></li><li><a href="shader-water.html" data-slug="shader-water">Water shaders</a></li><li><a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a></li><li><a href="palette-kit.html" data-slug="palette-kit">Palette kit</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/post/color_science.wgsl</code> - <code>// viridis, 6th order polynomial fit. sRGB encoded output.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/post/dither.wgsl</code> - <code>// Add one quantum of triangular dither. Call this last, before the store.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/post/bloom.wgsl</code> - <code>// Chain: prefilter (soft-knee threshold), then downsample13 for each mip</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/post/glow.wgsl</code> - <code>// blurred sprite of the shape is the wrong method: it loses the thin</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/post/color_science.wgsl</code> - <code>// more accurate than post_kelvin_to_rgb (post/grade.wgsl) below 4000 K.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/post/beam.wgsl</code> - <code>// half width w. The halo is 1/distance with an exponential cut, so a line</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/post/volumetric.wgsl</code> - <code>// smooth function of p, so the result has no hard edge, no polygon and</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/post/fire.wgsl</code> - <code>// Note: post_fire_planck integrates the spectrum in 41 steps of 10 nm.</code></li></ol><table class="navbox"><tr><th><a href="category-shader-library.html">Shader library</a></th></tr><tr><td><a href="shaderlib.html" data-slug="shaderlib">Shader library</a> · <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a> · <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> · <a href="shader-material.html" data-slug="shader-material">Material shaders</a> · <a href="shader-water.html" data-slug="shader-water">Water shaders</a> · <b>Post shaders</b> · <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> · <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> · <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> · <a href="shader-pattern.html" data-slug="shader-pattern">Pattern shaders</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-shader-library.html">Shader library</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

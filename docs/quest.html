@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quest kit - Warp Wiki</title>
+<meta name="description" content="objectives and goal chains as plain data, for icons, counts and markers">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="quest">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#design">Design</a></li><li><a href="#usage">Usage</a></li><li><a href="#targets">Targets</a></li><li><a href="#objectives-and-branches">Objectives and branches</a></li><li><a href="#the-tracker">The tracker</a><ul><li><a href="#the-active-cap">The active cap</a></li><li><a href="#reading-state">Reading state</a></li><li><a href="#events">Events</a></li></ul></li><li><a href="#save-and-load">Save and load</a></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Quest kit</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">objectives and goal chains as plain data, for icons, counts and markers</p><table class="infobox"><caption>Quest kit</caption><tr><th>Category</th><td><a href="category-game-systems.html">Game systems</a></td></tr><tr><th>Module</th><td><code>warp_sdk::quest</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/quest.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">45</a></td></tr></table><p><strong>Quest kit</strong> is the objective system of the Warp SDK: goal chains held as plain data, with a tracker that counts progress and gives the HUD what to draw. It lives in the <a class="sym" href="quest.html"><code>quest</code></a> module of <code>warp_sdk</code>. A game defines a book of <a class="sym" href="#sym-Objective"><code>Objective</code></a> values, starts one, and sends the tracker signals as things happen. The tracker keeps a small number of objectives active and reports starts and completions as events.</p>
+<h2 id="design">Design</h2>
+<p>The module rests on one rule: a game tells the player what to do with icons, counts and markers, not with prose. The tracker never shows text. Each objective has an icon id, a <a class="sym" href="#sym-Target"><code>Target</code></a>, an optional world position for a marker, reward ids, and the objectives that come next. The HUD maps an icon id to a picture. <sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<p>Every id is a <code>u32</code> that the game defines: objective, icon, counter, item, place, kind, flag and reward ids. The kit gives none of them a meaning. A reward id is delivered in an event, and the game decides what it pays. <sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<h2 id="usage">Usage</h2>
+<p>The sample below is the module's own doc test. <a class="sym" href="#sym-starter_chain"><code>starter_chain</code></a> builds the linear "first minutes" chain: ids go up by one from the first id, and each step leads to the next.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::quest::{<span class="k">self</span>, <span class="t">Target</span>, <span class="t">Tracker</span>, <span class="t">QuestEvent</span>};
+<span class="c">// 1. The "first minutes": three steps, one after the other.</span>
+<span class="k">let</span> book = quest::<span class="f">starter_chain</span>(<span class="n">100</span>, [
+    (<span class="n">1</span>, <span class="t">Target</span>::<span class="f">reach</span>([<span class="n">0.0</span>, -<span class="n">20.0</span>, <span class="n">0.0</span>], <span class="n">4.0</span>)),   <span class="c">// icon 1: go here</span>
+    (<span class="n">2</span>, <span class="t">Target</span>::<span class="f">count</span>(<span class="n">7</span>, <span class="n">5</span>)),                     <span class="c">// icon 2: collect 5 of counter 7</span>
+    (<span class="n">3</span>, <span class="t">Target</span>::<span class="f">deliver</span>(<span class="n">7</span>, <span class="n">9</span>, <span class="n">5</span>)),                <span class="c">// icon 3: bring 5 of item 7 to place 9</span>
+]);
+<span class="k">let</span> <span class="k">mut</span> t = <span class="t">Tracker</span>::<span class="f">new</span>(book);
+t.<span class="f">start</span>(<span class="n">100</span>);
+<span class="c">// 2. Each frame, send what happened.</span>
+t.<span class="f">set_position</span>([<span class="n">0.0</span>, -<span class="n">19.0</span>, <span class="n">0.0</span>]);
+t.<span class="f">add</span>(<span class="n">7</span>, <span class="n">5</span>);
+<span class="c">// 3. Read events for juice and rewards, and views for the HUD.</span>
+<span class="k">for</span> e <span class="k">in</span> t.<span class="f">drain_events</span>() {
+    <span class="k">if</span> <span class="k">let</span> <span class="t">QuestEvent</span>::<span class="t">Completed</span> { rewards, .. } = e { <span class="k">let</span> _ = rewards; }
+}
+<span class="k">for</span> v <span class="k">in</span> t.<span class="f">views</span>() { <span class="k">let</span> _ = (v.icon, v.progress, v.count, v.marker); }
+assert!(t.<span class="f">is_done</span>(<span class="n">101</span>));</code></pre></div>
+<p>The order of calls is the same each frame: send signals, drain events, read views. No objective is active until the game calls <a class="sym" href="#sym-Tracker-start"><code>Tracker::start</code></a>.</p>
+<h2 id="targets">Targets</h2>
+<p>A <a class="sym" href="#sym-Target"><code>Target</code></a> says what completes an objective, and each kind has one tracker call that advances it.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Target</th>
+<th>Constructor</th>
+<th>Signal</th>
+<th>Goal</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Count</td>
+<td><a class="sym" href="#sym-Target-count"><code>Target::count</code></a></td>
+<td><a class="sym" href="#sym-Tracker-add"><code>Tracker::add</code></a></td>
+<td>The count</td>
+</tr>
+<tr>
+<td>Reach</td>
+<td><a class="sym" href="#sym-Target-reach"><code>Target::reach</code></a></td>
+<td><a class="sym" href="#sym-Tracker-set_position"><code>Tracker::set_position</code></a></td>
+<td>1</td>
+</tr>
+<tr>
+<td>Deliver</td>
+<td><a class="sym" href="#sym-Target-deliver"><code>Target::deliver</code></a></td>
+<td><a class="sym" href="#sym-Tracker-deliver"><code>Tracker::deliver</code></a></td>
+<td>The count</td>
+</tr>
+<tr>
+<td>Survive</td>
+<td><a class="sym" href="#sym-Target-survive"><code>Target::survive</code></a></td>
+<td><a class="sym" href="#sym-Tracker-tick"><code>Tracker::tick</code></a></td>
+<td>The seconds</td>
+</tr>
+<tr>
+<td>Discover</td>
+<td><a class="sym" href="#sym-Target-discover"><code>Target::discover</code></a></td>
+<td><a class="sym" href="#sym-Tracker-discover"><code>Tracker::discover</code></a></td>
+<td>The count</td>
+</tr>
+</tbody>
+</table>
+<p>The constructors clamp a count to at least 1 and a radius or time to at least 0. A Count target measures the amount added after the objective went active. <a class="sym" href="#sym-Tracker-tick"><code>Tracker::tick</code></a> means "<a class="sym" href="squircle.html#sym-dt"><code>dt</code></a> seconds passed with the player alive", so a game must not call it while the player is dead. <a class="sym" href="#sym-Tracker-set_position"><code>Tracker::set_position</code></a> tests distance in three dimensions.</p>
+<h2 id="objectives-and-branches">Objectives and branches</h2>
+<p><a class="sym" href="#sym-Objective-new"><code>Objective::new</code></a> makes an objective with no marker, no rewards and no next objectives. Builder calls add the rest:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::quest::{<span class="t">Objective</span>, <span class="t">Target</span>};
+<span class="k">let</span> o = <span class="t">Objective</span>::<span class="f">new</span>(<span class="n">10</span>, <span class="n">2</span>, <span class="t">Target</span>::<span class="f">count</span>(<span class="n">7</span>, <span class="n">5</span>))
+    .<span class="f">at</span>([<span class="n">4.0</span>, -<span class="n">8.0</span>, <span class="n">0.0</span>])   <span class="c">// marker position</span>
+    .<span class="f">reward</span>(<span class="n">42</span>)             <span class="c">// game reward id</span>
+    .<span class="f">then_if</span>(<span class="n">3</span>, <span class="n">11</span>)         <span class="c">// flag 3 set: objective 11</span>
+    .<span class="f">then</span>(<span class="n">12</span>);              <span class="c">// else: objective 12</span></code></pre></div>
+<p>A <a class="sym" href="#sym-Branch"><code>Branch</code></a> names the next objective and a <a class="sym" href="#sym-When"><code>When</code></a> condition: Always, Flag or NotFlag. The game sets flags with <a class="sym" href="#sym-Tracker-set_flag"><code>Tracker::set_flag</code></a>, and the conditions are read when the parent completes. <a class="sym" href="#sym-Objective-pick"><code>Objective::pick</code></a> chooses a <a class="sym" href="#sym-Pick"><code>Pick</code></a> mode. With Pick::First, the default, only the first branch whose condition holds starts. With Pick::All, every branch whose condition holds starts. Because First stops at the first match, a <a class="sym" href="#sym-Objective-then_if"><code>then_if</code></a> before a <a class="sym" href="#sym-Objective-then"><code>then</code></a> acts as an if and an else. [[src:warp_sdk/src/quest.rs|a flag that the game sets with [<a class="sym" href="#sym-Tracker-set_flag"><code>Tracker::set_flag</code></a>]. With [Pick::First]]]</p>
+<p><a class="sym" href="#sym-Objective-marker_pos"><code>Objective::marker_pos</code></a> gives the marker: the explicit position, else the place of a Reach target. An objective with neither has no marker.</p>
+<h2 id="the-tracker">The tracker</h2>
+<p><a class="sym" href="#sym-Tracker"><code>Tracker</code></a> holds the book and the state: active, queued and completed objectives, plus flags. <a class="sym" href="#sym-Tracker-start"><code>Tracker::start</code></a> returns false when the id is not in the book, or is already active, queued or completed. A completed objective cannot run again.</p>
+<h3 id="the-active-cap">The active cap</h3>
+<p>At most <a class="sym" href="#sym-MAX_ACTIVE"><code>MAX_ACTIVE</code></a> objectives are active, and the value is 3. A start past the cap goes into a queue. When an active objective completes, the queue head starts. The queue head fills the freed slot before the new branches, so a branch can land in the queue behind older work. <sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<p>Only active objectives receive signals. A queued Count objective does not count, and its progress starts from zero when it activates. <a class="sym" href="#sym-Tracker-progress"><code>Tracker::progress</code></a> gives 0 for it.</p>
+<h3 id="reading-state">Reading state</h3>
+<p><a class="sym" href="#sym-Tracker-views"><code>Tracker::views</code></a> returns one <a class="sym" href="#sym-ObjectiveView"><code>ObjectiveView</code></a> per active objective, oldest first: the id, the icon id, progress from 0 to 1, a <code>(done, goal)</code> count as whole numbers, and the marker. For a Survive target the count is in seconds. For Reach it is <code>(0, 1)</code> until the player arrives. <a class="sym" href="#sym-Tracker-markers"><code>Tracker::markers</code></a> gives <code>(icon, position)</code> pairs for the active objectives with a marker. <a class="sym" href="#sym-Tracker-active_ids"><code>Tracker::active_ids</code></a>, <a class="sym" href="#sym-Tracker-queued_ids"><code>Tracker::queued_ids</code></a>, <a class="sym" href="#sym-Tracker-is_active"><code>Tracker::is_active</code></a> and <a class="sym" href="#sym-Tracker-is_done"><code>Tracker::is_done</code></a> answer the direct questions.</p>
+<h3 id="events">Events</h3>
+<p><a class="sym" href="#sym-Tracker-drain_events"><code>Tracker::drain_events</code></a> takes the events since the last call, oldest first. QuestEvent::Started fires when an objective becomes active, not when it joins the queue. QuestEvent::Completed fires once per objective and carries the reward ids. The tracker pays nothing itself: these are for the <a href="juice.html" data-slug="juice">Juice</a>, the <a href="hud.html" data-slug="hud">HUD</a> and the game's reward code. <sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<h2 id="save-and-load">Save and load</h2>
+<p><a class="sym" href="#sym-Tracker-save"><code>Tracker::save</code></a> writes the state to bytes: flags, completed objectives, active objectives with progress, and the queue. The book and pending events are not in the bytes. <a class="sym" href="#sym-Tracker-load"><code>Tracker::load</code></a> reads the bytes back against a book that the game gives. Ids that are not in the book drop from the active list and the queue, so a game update can remove an objective with no load failure. <sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<p><a class="sym" href="#sym-Tracker-load"><code>Tracker::load</code></a> fails with a <a class="sym" href="#sym-LoadError"><code>LoadError</code></a>: BadMagic, BadVersion or Truncated. The format starts with the tag WQST and version 1. A load sends no Started events for the restored objectives.</p>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<p>A game passes views to the <a href="hud.html" data-slug="hud">HUD</a> and marker positions to <a href="hud-markers.html" data-slug="hud-markers">HUD markers</a>, and the kit calls neither. Signals come from game code, which may also feed <a href="economy.html" data-slug="economy">Economy kit</a> and <a href="metaprog.html" data-slug="metaprog">Metaprogression</a>. The kit has no direct link to either, or to <a href="teach.html" data-slug="teach">Teach kit</a>.</p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>Branches are read once, at completion. A flag set later does not start a branch that was skipped.</li>
+<li>A book id that a branch names but the book lacks fails silently, because <a class="sym" href="#sym-Tracker-start"><code>Tracker::start</code></a> returns false and the completion code ignores the result.</li>
+<li>An objective cannot fail. The kit has no timeout or failure state, so a game that wants one models it as a branch or with its own state.</li>
+</ul>
+<h2 id="history">History</h2>
+<p>The module was added to the SDK on 2026-10-29.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 45 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-quest" class="modhead"><code>warp_sdk::quest</code></h3><h4>Functions</h4><div class="item" id="sym-starter_chain" data-name="starter_chain"><div class="sig"><a class="anchor" href="#sym-starter_chain" aria-label="Link to starter_chain">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">starter_chain</span>(first_id: u32, steps: <span class="k">impl</span> <span class="t">IntoIterator</span>&lt;<span class="t">Item</span> = (u32, <span class="t">Target</span>)&gt;) -&gt; <span class="t">Vec</span>&lt;<span class="t">Objective</span>&gt;</code></div><div class="doc"><p>A linear "first minutes" chain. Ids go up by one from <code>first_id</code>.
+Each step is <code>(icon, target)</code>. Each step leads to the next one.</p>
+<p><code>use warp_sdk::quest::{starter_chain, Target, Tracker};
+let book = starter_chain(1, [(0, Target::count(0, 1)), (1, Target::survive(5.0))]);
+assert_eq!(book[0].next[0].to, 2);
+let mut t = Tracker::new(book);
+t.start(1);</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Target" data-name="target"><div class="sig"><a class="anchor" href="#sym-Target" aria-label="Link to Target">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Target</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Game counter `counter` goes up by `n` in total. See [`Tracker::add`].</span>
+<span class="t">Count</span> { counter: u32, n: u32 },
+<span class="c">/// The player comes within `radius` of `pos`. See [`Tracker::set_position`].</span>
+<span class="t">Reach</span> { pos: [f32; <span class="n">3</span>], radius: f32 },
+<span class="c">/// The player brings `n` of item `item` to place `to`. See [`Tracker::deliver`].</span>
+<span class="t">Deliver</span> { item: u32, to: u32, n: u32 },
+<span class="c">/// The player stays alive for `secs` seconds. See [`Tracker::tick`].</span>
+<span class="t">Survive</span> { secs: f32 },
+<span class="c">/// The player finds `n` things of kind `kind`. See [`Tracker::discover`].</span>
+<span class="t">Discover</span> { kind: u32, n: u32 },</code></pre></div><div class="doc"><p>What the player must do to complete an objective.</p>
+<p><code>use warp_sdk::quest::Target;
+let t = Target::count(7, 5);        // counter 7 reaches 5
+let r = Target::reach([1.0, 2.0, 0.0], 3.0);
+assert_eq!(r.position(), Some([1.0, 2.0, 0.0]));
+assert_eq!(t.position(), None);</code></p></div></div><details class="members"><summary>7 methods</summary><div class="item" id="sym-Target-count" data-name="target::count"><div class="sig"><a class="anchor" href="#sym-Target-count" aria-label="Link to Target::count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">count</span>(counter: u32, n: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Counter <code>counter</code> goes up by <code>n</code>.</p>
+<p><code>let t = warp_sdk::quest::Target::count(7, 5);</code></p></div></div><div class="item" id="sym-Target-reach" data-name="target::reach"><div class="sig"><a class="anchor" href="#sym-Target-reach" aria-label="Link to Target::reach">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reach</span>(pos: [f32; <span class="n">3</span>], radius: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The player comes within <code>radius</code> of <code>pos</code>.</p>
+<p><code>let t = warp_sdk::quest::Target::reach([0.0, 0.0, 0.0], 2.0);</code></p></div></div><div class="item" id="sym-Target-deliver" data-name="target::deliver"><div class="sig"><a class="anchor" href="#sym-Target-deliver" aria-label="Link to Target::deliver">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">deliver</span>(item: u32, to: u32, n: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The player brings <code>n</code> of item <code>item</code> to place <code>to</code>.</p>
+<p><code>let t = warp_sdk::quest::Target::deliver(7, 9, 5);</code></p></div></div><div class="item" id="sym-Target-survive" data-name="target::survive"><div class="sig"><a class="anchor" href="#sym-Target-survive" aria-label="Link to Target::survive">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">survive</span>(secs: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The player stays alive for <code>secs</code> seconds.</p>
+<p><code>let t = warp_sdk::quest::Target::survive(30.0);</code></p></div></div><div class="item" id="sym-Target-discover" data-name="target::discover"><div class="sig"><a class="anchor" href="#sym-Target-discover" aria-label="Link to Target::discover">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">discover</span>(kind: u32, n: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The player finds <code>n</code> things of kind <code>kind</code>.</p>
+<p><code>let t = warp_sdk::quest::Target::discover(4, 1);</code></p></div></div><div class="item" id="sym-Target-goal" data-name="target::goal"><div class="sig"><a class="anchor" href="#sym-Target-goal" aria-label="Link to Target::goal">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">goal</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The goal amount: the count, the seconds, or 1 for a place.</p>
+<p><code>assert_eq!(warp_sdk::quest::Target::count(1, 5).goal(), 5.0);</code></p></div></div><div class="item" id="sym-Target-position" data-name="target::position"><div class="sig"><a class="anchor" href="#sym-Target-position" aria-label="Link to Target::position">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">position</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;[f32; <span class="n">3</span>]&gt;</code></div><div class="doc"><p>The place of a <code>Reach</code> target, else <code>None</code>.</p>
+<p><code>let t = warp_sdk::quest::Target::reach([1.0, 0.0, 0.0], 1.0);
+assert_eq!(t.position(), Some([1.0, 0.0, 0.0]));</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-When" data-name="when"><div class="sig"><a class="anchor" href="#sym-When" aria-label="Link to When">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">When</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Always true.</span>
+<span class="t">Always</span>,
+<span class="c">/// True when the flag is set.</span>
+<span class="t">Flag</span>(u32),
+<span class="c">/// True when the flag is not set.</span>
+<span class="t">NotFlag</span>(u32),</code></pre></div><div class="doc"><p>A condition on a game flag. The game sets flags with [<code>Tracker::set_flag</code>].</p>
+<p><code>use warp_sdk::quest::When;
+let w = When::Flag(3);   // true when flag 3 is set</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Branch" data-name="branch"><div class="sig"><a class="anchor" href="#sym-Branch" aria-label="Link to Branch">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Branch</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The objective id that starts.</span>
+<span class="k">pub</span> to: u32,
+<span class="c">/// The condition that must hold when the parent completes.</span>
+<span class="k">pub</span> when: <span class="t">When</span>,</code></pre></div><div class="doc"><p>One next objective, with the condition that lets it start.</p>
+<p><code>use warp_sdk::quest::{Branch, When};
+let b = Branch { to: 5, when: When::Flag(1) };</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Pick" data-name="pick"><div class="sig"><a class="anchor" href="#sym-Pick" aria-label="Link to Pick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Pick</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Only the first branch whose condition holds starts.</span>
+<span class="t">First</span>,
+<span class="c">/// Every branch whose condition holds starts.</span>
+<span class="t">All</span>,</code></pre></div><div class="doc"><p>How many branches start when an objective completes.</p>
+<p><code>use warp_sdk::quest::{Objective, Pick, Target};
+let o = Objective::new(1, 0, Target::count(0, 1)).pick(Pick::All);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Objective" data-name="objective"><div class="sig"><a class="anchor" href="#sym-Objective" aria-label="Link to Objective">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Objective</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The game's id for this objective. Ids are unique in one book.</span>
+<span class="k">pub</span> id: u32,
+<span class="c">/// The game's icon id. The HUD maps it to a picture.</span>
+<span class="k">pub</span> icon: u32,
+<span class="c">/// What completes the objective.</span>
+<span class="k">pub</span> target: <span class="t">Target</span>,
+<span class="c">/// The world position of the marker. A `Reach` target uses its own place</span>
+<span class="c">/// when this is `None`.</span>
+<span class="k">pub</span> marker: <span class="t">Option</span>&lt;[f32; <span class="n">3</span>]&gt;,
+<span class="c">/// The game's reward ids. The tracker sends them in [`QuestEvent::Completed`].</span>
+<span class="k">pub</span> rewards: <span class="t">Vec</span>&lt;u32&gt;,
+<span class="c">/// The objectives that can come next.</span>
+<span class="k">pub</span> next: <span class="t">Vec</span>&lt;<span class="t">Branch</span>&gt;,
+<span class="c">/// How many branches start.</span>
+<span class="k">pub</span> pick: <span class="t">Pick</span>,</code></pre></div><div class="doc"><p>One goal in a chain.</p>
+<p><code>use warp_sdk::quest::{Objective, Target};
+let o = Objective::new(10, 2, Target::count(7, 5))
+.at([4.0, -8.0, 0.0])   // marker position
+.reward(42)             // game reward id
+.then_if(3, 11)         // flag 3 set: objective 11
+.then(12);              // else: objective 12</code></p></div></div><details class="members"><summary>8 methods</summary><div class="item" id="sym-Objective-new" data-name="objective::new"><div class="sig"><a class="anchor" href="#sym-Objective-new" aria-label="Link to Objective::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(id: u32, icon: u32, target: <span class="t">Target</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>An objective with no marker, no rewards and no next objectives.</p>
+<p><code>let o = warp_sdk::quest::Objective::new(1, 0, warp_sdk::quest::Target::survive(10.0));</code></p></div></div><div class="item" id="sym-Objective-at" data-name="objective::at"><div class="sig"><a class="anchor" href="#sym-Objective-at" aria-label="Link to Objective::at">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">at</span>(<span class="k">mut</span> <span class="k">self</span>, pos: [f32; <span class="n">3</span>]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Sets the marker position.</p>
+<p><code>use warp_sdk::quest::{Objective, Target};
+let o = Objective::new(1, 0, Target::count(0, 1)).at([1.0, 2.0, 3.0]);</code></p></div></div><div class="item" id="sym-Objective-reward" data-name="objective::reward"><div class="sig"><a class="anchor" href="#sym-Objective-reward" aria-label="Link to Objective::reward">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reward</span>(<span class="k">mut</span> <span class="k">self</span>, reward: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Adds a reward id.</p>
+<p><code>use warp_sdk::quest::{Objective, Target};
+let o = Objective::new(1, 0, Target::count(0, 1)).reward(5).reward(6);</code></p></div></div><div class="item" id="sym-Objective-then" data-name="objective::then"><div class="sig"><a class="anchor" href="#sym-Objective-then" aria-label="Link to Objective::then">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">then</span>(<span class="k">mut</span> <span class="k">self</span>, to: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Adds a branch that always holds.</p>
+<p><code>use warp_sdk::quest::{Objective, Target};
+let o = Objective::new(1, 0, Target::count(0, 1)).then(2);</code></p></div></div><div class="item" id="sym-Objective-then_if" data-name="objective::then_if"><div class="sig"><a class="anchor" href="#sym-Objective-then_if" aria-label="Link to Objective::then_if">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">then_if</span>(<span class="k">mut</span> <span class="k">self</span>, flag: u32, to: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Adds a branch that holds when flag <code>flag</code> is set.</p>
+<p><code>use warp_sdk::quest::{Objective, Target};
+let o = Objective::new(1, 0, Target::count(0, 1)).then_if(9, 2).then(3);</code></p></div></div><div class="item" id="sym-Objective-branch" data-name="objective::branch"><div class="sig"><a class="anchor" href="#sym-Objective-branch" aria-label="Link to Objective::branch">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">branch</span>(<span class="k">mut</span> <span class="k">self</span>, when: <span class="t">When</span>, to: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Adds a branch with any condition.</p>
+<p><code>use warp_sdk::quest::{Objective, Target, When};
+let o = Objective::new(1, 0, Target::count(0, 1)).branch(When::NotFlag(9), 2);</code></p></div></div><div class="item" id="sym-Objective-pick" data-name="objective::pick"><div class="sig"><a class="anchor" href="#sym-Objective-pick" aria-label="Link to Objective::pick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pick</span>(<span class="k">mut</span> <span class="k">self</span>, pick: <span class="t">Pick</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Sets how many branches start.</p>
+<p><code>use warp_sdk::quest::{Objective, Pick, Target};
+let o = Objective::new(1, 0, Target::count(0, 1)).then(2).then(3).pick(Pick::All);</code></p></div></div><div class="item" id="sym-Objective-marker_pos" data-name="objective::marker_pos"><div class="sig"><a class="anchor" href="#sym-Objective-marker_pos" aria-label="Link to Objective::marker_pos">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">marker_pos</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;[f32; <span class="n">3</span>]&gt;</code></div><div class="doc"><p>The marker position: [<code>Objective::marker</code>], else the <code>Reach</code> place.</p>
+<p><code>use warp_sdk::quest::{Objective, Target};
+let o = Objective::new(1, 0, Target::reach([5.0, 0.0, 0.0], 1.0));
+assert_eq!(o.marker_pos(), Some([5.0, 0.0, 0.0]));</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-QuestEvent" data-name="questevent"><div class="sig"><a class="anchor" href="#sym-QuestEvent" aria-label="Link to QuestEvent">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">QuestEvent</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// An objective became active (not queued).</span>
+<span class="t">Started</span> { id: u32, icon: u32 },
+<span class="c">/// An objective completed. This occurs once for each objective.</span>
+<span class="t">Completed</span> { id: u32, icon: u32, rewards: <span class="t">Vec</span>&lt;u32&gt; },</code></pre></div><div class="doc"><p>A change that the HUD, the juice and the rewards react to.</p>
+<p><code>use warp_sdk::quest::{QuestEvent, Tracker};
+let mut t = Tracker::new(Vec::new());
+for e in t.drain_events() {
+match e {
+QuestEvent::Started { id, icon } =&gt; { let _ = (id, icon); }
+QuestEvent::Completed { id, icon, rewards } =&gt; { let _ = (id, icon, rewards); }
+}
+}</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-ObjectiveView" data-name="objectiveview"><div class="sig"><a class="anchor" href="#sym-ObjectiveView" aria-label="Link to ObjectiveView">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">ObjectiveView</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The objective id.</span>
+<span class="k">pub</span> id: u32,
+<span class="c">/// The icon id to draw.</span>
+<span class="k">pub</span> icon: u32,
+<span class="c">/// Progress from 0 to 1.</span>
+<span class="k">pub</span> progress: f32,
+<span class="c">/// `(done, goal)` as whole numbers. For `Survive` the unit is seconds.</span>
+<span class="c">/// For `Reach` the value is `(0, 1)` until the player arrives.</span>
+<span class="k">pub</span> count: (u32, u32),
+<span class="c">/// The world position for a marker, if the objective has one.</span>
+<span class="k">pub</span> marker: <span class="t">Option</span>&lt;[f32; <span class="n">3</span>]&gt;,</code></pre></div><div class="doc"><p>The data for one row of a HUD objective tracker, and its marker.</p>
+<p><code>use warp_sdk::quest::{starter_chain, Target, Tracker};
+let mut t = Tracker::new(starter_chain(1, [(4, Target::count(0, 5))]));
+t.start(1);
+t.add(0, 2);
+let v = t.views()[0];
+assert_eq!(v.count, (2, 5));
+assert!((v.progress - 0.4).abs() &lt; 1e-6);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-LoadError" data-name="loaderror"><div class="sig"><a class="anchor" href="#sym-LoadError" aria-label="Link to LoadError">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">LoadError</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The bytes do not start with the quest magic.</span>
+<span class="t">BadMagic</span>,
+<span class="c">/// The format version is not known.</span>
+<span class="t">BadVersion</span>(u8),
+<span class="c">/// The bytes stop too early.</span>
+<span class="t">Truncated</span>,</code></pre></div><div class="doc"><p>Why [<code>Tracker::load</code>] failed.</p>
+<p><code>use warp_sdk::quest::{LoadError, Tracker};
+assert_eq!(Tracker::load(Vec::new(), b"nope").err(), Some(LoadError::BadMagic));</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Tracker" data-name="tracker"><div class="sig"><a class="anchor" href="#sym-Tracker" aria-label="Link to Tracker">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Tracker</span></code></div><div class="doc"><p>The objective state of one game: active, queued and completed objectives.</p>
+<p><code>use warp_sdk::quest::{Objective, Target, Tracker};
+let mut t = Tracker::new(vec![
+Objective::new(1, 0, Target::discover(3, 1)).then(2),
+Objective::new(2, 1, Target::survive(10.0)),
+]);
+t.start(1);
+t.discover(3);
+assert!(t.is_done(1));
+assert!(t.is_active(2));</code></p></div></div><details class="members"><summary>19 methods</summary><div class="item" id="sym-Tracker-new" data-name="tracker::new"><div class="sig"><a class="anchor" href="#sym-Tracker-new" aria-label="Link to Tracker::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(book: <span class="k">impl</span> <span class="t">IntoIterator</span>&lt;<span class="t">Item</span> = <span class="t">Objective</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A tracker over a book of objectives. No objective is active.</p>
+<p><code>let t = warp_sdk::quest::Tracker::new(Vec::new());</code></p></div></div><div class="item" id="sym-Tracker-start" data-name="tracker::start"><div class="sig"><a class="anchor" href="#sym-Tracker-start" aria-label="Link to Tracker::start">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">start</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, id: u32) -&gt; bool</code></div><div class="doc"><p>Starts objective <code>id</code>. Past the cap, the objective goes into the queue.
+Returns false when the id is not in the book, or is already active,
+queued or completed.</p>
+<p><code>use warp_sdk::quest::{starter_chain, Target, Tracker};
+let mut t = Tracker::new(starter_chain(1, [(0, Target::count(0, 1))]));
+assert!(t.start(1));
+assert!(!t.start(1));</code></p></div></div><div class="item" id="sym-Tracker-add" data-name="tracker::add"><div class="sig"><a class="anchor" href="#sym-Tracker-add" aria-label="Link to Tracker::add">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">add</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, counter: u32, amount: u32)</code></div><div class="doc"><p>Counter <code>counter</code> went up by <code>amount</code>. Advances <code>Count</code> targets.</p>
+<p>```</p>
+<h1>let mut t = warp_sdk::quest::Tracker::new(Vec::new());</h1>
+<p>t.add(7, 1);   // the player picked up one thing of counter 7
+```</p></div></div><div class="item" id="sym-Tracker-set_position" data-name="tracker::set_position"><div class="sig"><a class="anchor" href="#sym-Tracker-set_position" aria-label="Link to Tracker::set_position">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_position</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, pos: [f32; <span class="n">3</span>])</code></div><div class="doc"><p>The player is at <code>pos</code>. Completes <code>Reach</code> targets in range.</p>
+<p>```</p>
+<h1>let mut t = warp_sdk::quest::Tracker::new(Vec::new());</h1>
+<p>t.set_position([0.0, 1.0, 0.0]);
+```</p></div></div><div class="item" id="sym-Tracker-deliver" data-name="tracker::deliver"><div class="sig"><a class="anchor" href="#sym-Tracker-deliver" aria-label="Link to Tracker::deliver">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">deliver</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, item: u32, to: u32, amount: u32)</code></div><div class="doc"><p>The player brought <code>amount</code> of item <code>item</code> to place <code>to</code>.</p>
+<p>```</p>
+<h1>let mut t = warp_sdk::quest::Tracker::new(Vec::new());</h1>
+<p>t.deliver(7, 9, 3);
+```</p></div></div><div class="item" id="sym-Tracker-discover" data-name="tracker::discover"><div class="sig"><a class="anchor" href="#sym-Tracker-discover" aria-label="Link to Tracker::discover">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">discover</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, kind: u32)</code></div><div class="doc"><p>The player found one thing of kind <code>kind</code>.</p>
+<p>```</p>
+<h1>let mut t = warp_sdk::quest::Tracker::new(Vec::new());</h1>
+<p>t.discover(4);
+```</p></div></div><div class="item" id="sym-Tracker-tick" data-name="tracker::tick"><div class="sig"><a class="anchor" href="#sym-Tracker-tick" aria-label="Link to Tracker::tick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">tick</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32)</code></div><div class="doc"><p><code>dt</code> seconds passed with the player alive. Advances <code>Survive</code> targets.</p>
+<p>```</p>
+<h1>let mut t = warp_sdk::quest::Tracker::new(Vec::new());</h1>
+<p>t.tick(1.0 / 60.0);
+```</p></div></div><div class="item" id="sym-Tracker-set_flag" data-name="tracker::set_flag"><div class="sig"><a class="anchor" href="#sym-Tracker-set_flag" aria-label="Link to Tracker::set_flag">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_flag</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, flag: u32, on: bool)</code></div><div class="doc"><p>Sets or clears a game flag. Branch conditions read the flags.</p>
+<p>```</p>
+<h1>let mut t = warp_sdk::quest::Tracker::new(Vec::new());</h1>
+<p>t.set_flag(3, true);
+assert!(t.flag(3));
+```</p></div></div><div class="item" id="sym-Tracker-flag" data-name="tracker::flag"><div class="sig"><a class="anchor" href="#sym-Tracker-flag" aria-label="Link to Tracker::flag">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">flag</span>(&amp;<span class="k">self</span>, flag: u32) -&gt; bool</code></div><div class="doc"><p>True when the flag is set.</p>
+<p>```</p>
+<h1>let t = warp_sdk::quest::Tracker::new(Vec::new());</h1>
+<p>assert!(!t.flag(3));
+```</p></div></div><div class="item" id="sym-Tracker-is_active" data-name="tracker::is_active"><div class="sig"><a class="anchor" href="#sym-Tracker-is_active" aria-label="Link to Tracker::is_active">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_active</span>(&amp;<span class="k">self</span>, id: u32) -&gt; bool</code></div><div class="doc"><p>True when objective <code>id</code> is active (not queued).</p>
+<p>```</p>
+<h1>let t = warp_sdk::quest::Tracker::new(Vec::new());</h1>
+<p>assert!(!t.is_active(1));
+```</p></div></div><div class="item" id="sym-Tracker-is_done" data-name="tracker::is_done"><div class="sig"><a class="anchor" href="#sym-Tracker-is_done" aria-label="Link to Tracker::is_done">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_done</span>(&amp;<span class="k">self</span>, id: u32) -&gt; bool</code></div><div class="doc"><p>True when objective <code>id</code> completed.</p>
+<p>```</p>
+<h1>let t = warp_sdk::quest::Tracker::new(Vec::new());</h1>
+<p>assert!(!t.is_done(1));
+```</p></div></div><div class="item" id="sym-Tracker-active_ids" data-name="tracker::active_ids"><div class="sig"><a class="anchor" href="#sym-Tracker-active_ids" aria-label="Link to Tracker::active_ids">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">active_ids</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;u32&gt;</code></div><div class="doc"><p>The active objective ids, oldest first.</p>
+<p>```</p>
+<h1>let t = warp_sdk::quest::Tracker::new(Vec::new());</h1>
+<p>assert!(t.active_ids().is_empty());
+```</p></div></div><div class="item" id="sym-Tracker-queued_ids" data-name="tracker::queued_ids"><div class="sig"><a class="anchor" href="#sym-Tracker-queued_ids" aria-label="Link to Tracker::queued_ids">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">queued_ids</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;u32&gt;</code></div><div class="doc"><p>The queued objective ids, next first.</p>
+<p>```</p>
+<h1>let t = warp_sdk::quest::Tracker::new(Vec::new());</h1>
+<p>assert!(t.queued_ids().is_empty());
+```</p></div></div><div class="item" id="sym-Tracker-progress" data-name="tracker::progress"><div class="sig"><a class="anchor" href="#sym-Tracker-progress" aria-label="Link to Tracker::progress">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">progress</span>(&amp;<span class="k">self</span>, id: u32) -&gt; f32</code></div><div class="doc"><p>Progress of objective <code>id</code> from 0 to 1. A completed objective gives 1.
+An objective that is not active gives 0.</p>
+<p>```</p>
+<h1>let t = warp_sdk::quest::Tracker::new(Vec::new());</h1>
+<p>assert_eq!(t.progress(1), 0.0);
+```</p></div></div><div class="item" id="sym-Tracker-views" data-name="tracker::views"><div class="sig"><a class="anchor" href="#sym-Tracker-views" aria-label="Link to Tracker::views">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">views</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">ObjectiveView</span>&gt;</code></div><div class="doc"><p>One HUD row for each active objective, oldest first. No text.</p>
+<p>```</p>
+<h1>let t = warp_sdk::quest::Tracker::new(Vec::new());</h1>
+<p>for v in t.views() {
+let _ = (v.icon, v.progress, v.count, v.marker);
+}
+```</p></div></div><div class="item" id="sym-Tracker-markers" data-name="tracker::markers"><div class="sig"><a class="anchor" href="#sym-Tracker-markers" aria-label="Link to Tracker::markers">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">markers</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;(u32, [f32; <span class="n">3</span>])&gt;</code></div><div class="doc"><p><code>(icon, position)</code> for each active objective that has a marker.</p>
+<p>```</p>
+<h1>let t = warp_sdk::quest::Tracker::new(Vec::new());</h1>
+<p>for (icon, pos) in t.markers() { let _ = (icon, pos); }
+```</p></div></div><div class="item" id="sym-Tracker-drain_events" data-name="tracker::drain_events"><div class="sig"><a class="anchor" href="#sym-Tracker-drain_events" aria-label="Link to Tracker::drain_events">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drain_events</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">QuestEvent</span>&gt;</code></div><div class="doc"><p>Takes the events since the last call, oldest first.</p>
+<p>```</p>
+<h1>let mut t = warp_sdk::quest::Tracker::new(Vec::new());</h1>
+<p>let events = t.drain_events();
+```</p></div></div><div class="item" id="sym-Tracker-save" data-name="tracker::save"><div class="sig"><a class="anchor" href="#sym-Tracker-save" aria-label="Link to Tracker::save">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">save</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;u8&gt;</code></div><div class="doc"><p>The state as bytes: flags, completed, active with progress, queue.
+The book is not in the bytes. Events are not in the bytes.</p>
+<p><code>use warp_sdk::quest::Tracker;
+let t = Tracker::new(Vec::new());
+let bytes = t.save();
+let back = Tracker::load(Vec::new(), &amp;bytes).unwrap();</code></p></div></div><div class="item" id="sym-Tracker-load" data-name="tracker::load"><div class="sig"><a class="anchor" href="#sym-Tracker-load" aria-label="Link to Tracker::load">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">load</span>(book: <span class="k">impl</span> <span class="t">IntoIterator</span>&lt;<span class="t">Item</span> = <span class="t">Objective</span>&gt;, bytes: &amp;[u8]) -&gt; <span class="t">Result</span>&lt;<span class="k">Self</span>, <span class="t">LoadError</span>&gt;</code></div><div class="doc"><p>A tracker over <code>book</code> with the state from [<code>Tracker::save</code>]. Ids that
+are not in <code>book</code> drop from the active list and the queue.</p>
+<p><code>use warp_sdk::quest::{starter_chain, Target, Tracker};
+let book = starter_chain(1, [(0, Target::count(0, 3))]);
+let mut t = Tracker::new(book.clone());
+t.start(1);
+t.add(0, 2);
+let back = Tracker::load(book, &amp;t.save()).unwrap();
+assert_eq!(back.views()[0].count, (2, 3));</code></p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-MAX_ACTIVE" data-name="max_active"><div class="sig"><a class="anchor" href="#sym-MAX_ACTIVE" aria-label="Link to MAX_ACTIVE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MAX_ACTIVE</span>: usize = <span class="n">3</span></code></div><div class="doc"><p>The most objectives that a [<code>Tracker</code>] keeps active at one time.</p>
+<p><code>assert_eq!(warp_sdk::quest::MAX_ACTIVE, 3);</code></p></div></div><h2 id="see-also">See also</h2><ul><li><a href="teach.html" data-slug="teach">Teach kit</a></li><li><a href="hud.html" data-slug="hud">HUD</a></li><li><a href="hud-markers.html" data-slug="hud-markers">HUD markers</a></li><li><a href="metaprog.html" data-slug="metaprog">Metaprogression</a></li><li><a href="economy.html" data-slug="economy">Economy kit</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/quest.rs</code> - <code>A game tells the player what to do with icons, counts and markers, not</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/quest.rs</code> - <code>flag ids and reward ids are all `u32` values that the game defines.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/quest.rs</code> - <code>The queue head fills the freed slot before the new branches.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/quest.rs</code> - <code>An objective completed. This occurs once for each objective.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/quest.rs</code> - <code>are not in `book` drop from the active list and the queue.</code></li></ol><table class="navbox"><tr><th><a href="category-game-systems.html">Game systems</a></th></tr><tr><td><a href="challenge.html" data-slug="challenge">Challenge kit</a> · <a href="economy.html" data-slug="economy">Economy kit</a> · <b>Quest kit</b> · <a href="metaprog.html" data-slug="metaprog">Metaprogression</a> · <a href="gamepad.html" data-slug="gamepad">Gamepad</a> · <a href="soundtrack.html" data-slug="soundtrack">Soundtrack</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-game-systems.html">Game systems</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

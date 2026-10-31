@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Metaprogression - Warp Wiki</title>
+<meta name="description" content="unlock trees, stages, upgrades, milestones and a codex that outlast a run">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="metaprog">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#design">Design</a><ul><li><a href="#the-two-halves">The two halves</a></li><li><a href="#ids-are-the-game-s">Ids are the game&#x27;s</a></li></ul></li><li><a href="#usage">Usage</a></li><li><a href="#the-design-parts">The design parts</a><ul><li><a href="#nodes">Nodes</a></li><li><a href="#stages">Stages</a></li><li><a href="#upgrades">Upgrades</a></li><li><a href="#milestones">Milestones</a></li><li><a href="#the-codex">The codex</a></li></ul></li><li><a href="#reporting-and-reading">Reporting and reading</a></li><li><a href="#when-things-fire">When things fire</a></li><li><a href="#runs">Runs</a></li><li><a href="#save-and-load">Save and load</a></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Metaprogression</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">unlock trees, stages, upgrades, milestones and a codex that outlast a run</p><table class="infobox"><caption>Metaprogression</caption><tr><th>Category</th><td><a href="category-game-systems.html">Game systems</a></td></tr><tr><th>Module</th><td><code>warp_sdk::metaprog</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/metaprog.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">74</a></td></tr></table><p><strong>Metaprogression</strong> is the Warp SDK's model of progress that lasts past one moment and past one run: an unlock tree, growth stages, upgrades with levels, milestones and a codex. It lives in the <a class="sym" href="metaprog.html"><code>metaprog</code></a> module of <code>warp_sdk</code>. A game declares its progression as data once, reports what the player does, and reads the events that come back. <a class="sym" href="#sym-Meta-save"><code>Meta::save</code></a> and <a class="sym" href="#sym-Meta-load"><code>Meta::load</code></a> keep the state on disk.</p>
+<h2 id="design">Design</h2>
+<h3 id="the-two-halves">The two halves</h3>
+<p><a class="sym" href="#sym-MetaDef"><code>MetaDef</code></a> is the design: nodes, stages, upgrades, milestones and codex kinds. The game builds it in code, and it is not saved. <a class="sym" href="#sym-Progress"><code>Progress</code></a> is the state of one player: wallet, counters, unlocks, upgrade levels, milestones, stages and codex. <a class="sym" href="#sym-Meta"><code>Meta</code></a> holds both and is the one call path. Only <a class="sym" href="#sym-Progress"><code>Progress</code></a> goes into the save bytes, so a game can change its design and still load an old save. [[src:warp_sdk/src/metaprog.rs|path. Only [<a class="sym" href="#sym-Progress"><code>Progress</code></a>] goes into the save bytes, so a game can change its]]</p>
+<h3 id="ids-are-the-game-s">Ids are the game's</h3>
+<p>Every id is a plain string that the game chooses: node ids, effect ids, counter names, currency names, icon ids and codex kinds. The module does not interpret an effect id. The game reads <a class="sym" href="#sym-Meta-effects"><code>Meta::effects</code></a> and applies each effect id in its own systems. [[src:warp_sdk/src/metaprog.rs|not interpret an effect id. The game reads [<a class="sym" href="#sym-Meta-effects"><code>Meta::effects</code></a>] and applies]]</p>
+<h2 id="usage">Usage</h2>
+<p>The sample below is the module's own doc test.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::metaprog::{<span class="t">Meta</span>, <span class="t">MetaDef</span>, <span class="t">Node</span>, <span class="t">Stage</span>, <span class="t">Upgrade</span>, <span class="t">Milestone</span>, <span class="t">CodexKind</span>};
+
+<span class="k">let</span> def = <span class="t">MetaDef</span>::<span class="f">new</span>()
+    .<span class="f">node</span>(<span class="t">Node</span>::<span class="f">new</span>(<span class="s">"sonar"</span>).<span class="f">cost</span>(<span class="s">"shells"</span>, <span class="n">10</span>).<span class="f">effect</span>(<span class="s">"sonar_on"</span>))
+    .<span class="f">node</span>(<span class="t">Node</span>::<span class="f">new</span>(<span class="s">"sonar_2"</span>).<span class="f">cost</span>(<span class="s">"shells"</span>, <span class="n">25</span>).<span class="f">requires</span>(<span class="s">"sonar"</span>).<span class="f">effect</span>(<span class="s">"sonar_range+50"</span>))
+    .<span class="f">stage</span>(<span class="t">Stage</span>::<span class="f">new</span>(<span class="s">"reef_young"</span>, <span class="s">"polyps"</span>, <span class="n">20</span>).<span class="f">unlocks</span>(<span class="s">"sonar"</span>))
+    .<span class="f">upgrade</span>(<span class="t">Upgrade</span>::<span class="f">new</span>(<span class="s">"hull"</span>).<span class="f">currency</span>(<span class="s">"shells"</span>).<span class="f">costs</span>(&amp;[<span class="n">5</span>, <span class="n">15</span>, <span class="n">40</span>]).<span class="f">effect</span>(<span class="s">"hull_hp+10"</span>))
+    .<span class="f">milestone</span>(<span class="t">Milestone</span>::<span class="f">new</span>(<span class="s">"first_feed"</span>).<span class="f">when</span>(<span class="s">"snow_fed"</span>, <span class="n">1</span>).<span class="f">reward</span>(<span class="s">"shells"</span>, <span class="n">5</span>).<span class="f">icon</span>(<span class="s">"feed"</span>))
+    .<span class="f">codex</span>(<span class="t">CodexKind</span>::<span class="f">new</span>(<span class="s">"fish"</span>).<span class="f">study_at</span>(<span class="n">3</span>).<span class="f">master_at</span>(<span class="n">10</span>));
+
+<span class="k">let</span> <span class="k">mut</span> meta = <span class="t">Meta</span>::<span class="f">new</span>(def);
+meta.<span class="f">count</span>(<span class="s">"snow_fed"</span>, <span class="n">1</span>);          <span class="c">// a counter only</span>
+meta.<span class="f">earn</span>(<span class="s">"shells"</span>, <span class="n">20</span>);            <span class="c">// the wallet and the "shells" counter</span>
+meta.<span class="f">observe</span>(<span class="s">"fish"</span>, <span class="s">"lantern"</span>);    <span class="c">// the codex</span>
+assert!(meta.<span class="f">buy</span>(<span class="s">"sonar"</span>).<span class="f">is_ok</span>());
+<span class="k">for</span> ev <span class="k">in</span> meta.<span class="f">drain_events</span>() {
+    <span class="c">// Send each event to the HUD or the teach kit.</span>
+    <span class="k">let</span> _ = ev;
+}
+<span class="k">let</span> bytes = meta.<span class="f">save</span>();            <span class="c">// write these bytes to disk</span>
+<span class="k">let</span> again = <span class="t">Meta</span>::<span class="f">load</span>(meta.<span class="f">def</span>().<span class="f">clone</span>(), &amp;bytes).<span class="f">unwrap</span>();
+assert!(again.<span class="f">is_unlocked</span>(<span class="s">"sonar"</span>));</code></pre></div>
+<h2 id="the-design-parts">The design parts</h2>
+<h3 id="nodes">Nodes</h3>
+<p>A <a class="sym" href="#sym-Node"><code>Node</code></a> is one entry in the unlock tree. It has a cost in one or more currencies, a list of prerequisite node ids, a list of effect ids and an optional icon. A node with no cost is free. <a class="sym" href="#sym-Meta-can_buy"><code>Meta::can_buy</code></a> checks a purchase with no state change, and <a class="sym" href="#sym-Meta-buy"><code>Meta::buy</code></a> runs it. Both return a <a class="sym" href="#sym-BuyError"><code>BuyError</code></a> on failure: Unknown, Owned, MissingPrerequisite with the node that is missing, or CannotAfford with the currency, the need and the balance. The cost is summed per currency first, so two entries in one currency add up. On an error the state does not change. <sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<h3 id="stages">Stages</h3>
+<p>A <a class="sym" href="#sym-Stage"><code>Stage</code></a> is a threshold on one counter, with a list of ids to unlock. When the counter reaches the threshold, the stage fires one time, and each id becomes unlocked at no cost. An id can be a tree node id or any other id that the game reads with <a class="sym" href="#sym-Meta-is_unlocked"><code>Meta::is_unlocked</code></a>. A stage can therefore give away a node that was otherwise for sale. <a class="sym" href="#sym-Meta-stage_progress"><code>Meta::stage_progress</code></a> gives the fraction toward a stage, for a HUD bar. <a class="sym" href="#sym-Meta-next_stage"><code>Meta::next_stage</code></a> gives the next one in design order, to show the player the next goal. <sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<h3 id="upgrades">Upgrades</h3>
+<p>An <a class="sym" href="#sym-Upgrade"><code>Upgrade</code></a> is a persistent item with levels, and each level has its own cost. <code>costs[0]</code> buys level 1, and the maximum level is the number of costs. All levels use one currency, <code>"points"</code> by default. <a class="sym" href="#sym-Meta-buy_upgrade"><code>Meta::buy_upgrade</code></a> buys the next level and returns the new level, or BuyError::MaxLevel at the top. <a class="sym" href="#sym-Meta-next_upgrade_cost"><code>Meta::next_upgrade_cost</code></a> gives the price. An upgrade's effects apply once per level, so <a class="sym" href="#sym-Meta-effect_count"><code>Meta::effect_count</code></a> works for stacked bonuses.</p>
+<h3 id="milestones">Milestones</h3>
+<p>A <a class="sym" href="#sym-Milestone"><code>Milestone</code></a> is an achievement: conditions on counters and a one-time reward. It fires when every condition holds. The reward adds currency to the wallet and unlocks ids. <a class="sym" href="#sym-Meta-milestone_progress"><code>Meta::milestone_progress</code></a> gives the lowest fraction of its conditions. A milestone with no conditions fires on the first check, which <a class="sym" href="#sym-Meta-new"><code>Meta::new</code></a> runs, so <a class="sym" href="#sym-Milestone-new"><code>Milestone::new</code></a> needs at least one <a class="sym" href="#sym-Milestone-when"><code>when</code></a>. <sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<h3 id="the-codex">The codex</h3>
+<p>A <a class="sym" href="#sym-CodexKind"><code>CodexKind</code></a> is one kind of codex entry, for example fish, coral or terrain. <a class="sym" href="#sym-Meta-observe"><code>Meta::observe</code></a> adds one to the count of an entry, and the count sets a <a class="sym" href="#sym-Knowledge"><code>Knowledge</code></a> state. The order is Unseen, Seen, Studied, Mastered, and a state only goes up.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Count</th>
+<th>State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Unseen</td>
+</tr>
+<tr>
+<td>1 up to <a class="sym" href="#sym-CodexKind-study_at"><code>study_at</code></a></td>
+<td>Seen</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-CodexKind-study_at"><code>study_at</code></a> (default 3)</td>
+<td>Studied</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-CodexKind-master_at"><code>master_at</code></a> (default 10)</td>
+<td>Mastered</td>
+</tr>
+</tbody>
+</table>
+<p>A kind does not need to be declared. An observation of an undeclared kind uses the defaults of <a class="sym" href="#sym-CodexKind-new"><code>CodexKind::new</code></a>. Entries are not declared either: <a class="sym" href="#sym-Meta-codex_entries"><code>Meta::codex_entries</code></a> lists only the entries that the player has met, because the codex does not know the others. <a class="sym" href="#sym-Meta-knowledge"><code>Meta::knowledge</code></a> gives the state of one entry.</p>
+<h2 id="reporting-and-reading">Reporting and reading</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Call</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Meta-count"><code>Meta::count</code></a></td>
+<td>Adds to a counter</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Meta-record"><code>Meta::record</code></a></td>
+<td>Sets a counter to a value if the value is higher, for records such as the deepest dive</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Meta-earn"><code>Meta::earn</code></a></td>
+<td>Adds to the wallet and to the counter of the same name, which holds the lifetime total</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Meta-observe"><code>Meta::observe</code></a></td>
+<td>Records one codex observation</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Meta-begin_run"><code>Meta::begin_run</code></a></td>
+<td>Starts a run</td>
+</tr>
+</tbody>
+</table>
+<p>Spending lowers the wallet and leaves the counter, so a stage on a currency name still counts what the player spent. <sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<p><a class="sym" href="#sym-Meta-effects"><code>Meta::effects</code></a> returns every active effect id: the effects of unlocked nodes in design order, then each upgrade effect one time per level. The game applies them. <a class="sym" href="#sym-Meta-balance"><code>Meta::balance</code></a>, <a class="sym" href="#sym-Meta-counter"><code>Meta::counter</code></a>, <a class="sym" href="#sym-Meta-is_unlocked"><code>Meta::is_unlocked</code></a>, <a class="sym" href="#sym-Meta-upgrade_level"><code>Meta::upgrade_level</code></a>, <a class="sym" href="#sym-Meta-has_milestone"><code>Meta::has_milestone</code></a> and <a class="sym" href="#sym-Meta-has_stage"><code>Meta::has_stage</code></a> read one value each.</p>
+<h2 id="when-things-fire">When things fire</h2>
+<p>Each call that changes a counter or the wallet checks every stage and every milestone again, until nothing more changes. A milestone reward can fill a counter that reaches a stage, and that stage fires in the same call. A stage or a milestone fires one time only, also after load. <sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<p><a class="sym" href="#sym-Meta-drain_events"><code>Meta::drain_events</code></a> takes the events since the last call, oldest first. An <a class="sym" href="#sym-Event"><code>Event</code></a> is one of Unlocked with an <a class="sym" href="#sym-UnlockSource"><code>UnlockSource</code></a>, StageReached, MilestoneReached, Upgraded or <a class="sym" href="world-biome.html#sym-Discovered"><code>Discovered</code></a>. A milestone's rewards are in the wallet already when its event arrives.</p>
+<h2 id="runs">Runs</h2>
+<p><a class="sym" href="#sym-Meta-begin_run"><code>Meta::begin_run</code></a> sets every counter whose name starts with <code>run.</code>, for example <code>run.depth</code>, to zero, and adds one to Progress::runs. All other state stays: wallet, lifetime counters, unlocks, upgrades and the codex. The prefix is the whole mechanism, so a counter's lifetime is chosen by its name. <sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<h2 id="save-and-load">Save and load</h2>
+<p><a class="sym" href="#sym-Meta-save"><code>Meta::save</code></a> writes <a class="sym" href="#sym-Progress"><code>Progress</code></a> to versioned bytes. All maps are sorted, so two equal states give equal save bytes. <a class="sym" href="#sym-SAVE_VERSION"><code>SAVE_VERSION</code></a> is 1. The layout is the tag <code>WMP\0</code>, a little-endian <code>u16</code> version, then the sections wallet, counters, unlocked, upgrades, milestones, stages, codex and runs.</p>
+<p><a class="sym" href="#sym-Meta-load"><code>Meta::load</code></a> takes a design and the bytes. Stages and milestones that the old state did not reach, but that it now satisfies, fire after the load, and their events wait in the queue. This is how a changed design catches up with an old save. <a class="sym" href="#sym-LoadError"><code>LoadError</code></a> has BadMagic, UnknownVersion, Truncated and BadString. <a class="sym" href="#sym-Meta-with_progress"><code>Meta::with_progress</code></a> continues from a <a class="sym" href="#sym-Progress"><code>Progress</code></a> value that the game already has. The kit writes bytes and leaves the file to the game; <a href="front-save.html" data-slug="front-save">Save slots</a> covers save slots. <sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<p>The doc test sends events to the HUD or the <a href="teach.html" data-slug="teach">Teach kit</a> kit, and the game does that routing. <a href="quest.html" data-slug="quest">Quest kit</a> rewards and <a href="challenge.html" data-slug="challenge">Challenge kit</a> kill counts are natural inputs to <a class="sym" href="#sym-Meta-count"><code>Meta::count</code></a> and <a class="sym" href="#sym-Meta-earn"><code>Meta::earn</code></a>. The wallet here is a set of named <code>u64</code> totals. It is separate from the capacity-limited stores of <a href="economy.html" data-slug="economy">Economy kit</a>.</p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li><a class="sym" href="#sym-Meta-observe"><code>Meta::observe</code></a> and <a class="sym" href="#sym-Meta-begin_run"><code>Meta::begin_run</code></a> do not run the stage and milestone check. A codex observation changes no counter, so a stage cannot depend on it directly.</li>
+<li><a class="sym" href="#sym-Node-requires"><code>Node::requires</code></a> names are not validated. A prerequisite that no node or stage ever unlocks makes the node unbuyable.</li>
+<li>The kit has no refund, and no call removes an unlock.</li>
+<li>The wallet and counters saturate at the <code>u64</code> limit.</li>
+</ul>
+<h2 id="history">History</h2>
+<p>The module was added to the SDK on 2026-10-29.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 74 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-metaprog" class="modhead"><code>warp_sdk::metaprog</code></h3><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Node" data-name="node"><div class="sig"><a class="anchor" href="#sym-Node" aria-label="Link to Node">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Node</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The id of the node. The game chooses it.</span>
+<span class="k">pub</span> id: <span class="t">String</span>,
+<span class="c">/// The cost, as (currency, amount) pairs. Empty means free.</span>
+<span class="k">pub</span> cost: <span class="t">Vec</span>&lt;(<span class="t">String</span>, u64)&gt;,
+<span class="c">/// Node ids that must be unlocked before this node can be bought.</span>
+<span class="k">pub</span> requires: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// Effect ids that the game applies while this node is unlocked.</span>
+<span class="k">pub</span> effects: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// The icon id for the HUD. Empty means no icon.</span>
+<span class="k">pub</span> icon: <span class="t">String</span>,</code></pre></div><div class="doc"><p>One node of the unlock tree.</p>
+<p>A node has a cost in one or more currencies, a list of prerequisite node
+ids, and a list of effect ids that the game applies when the node is
+unlocked.</p>
+<p><code>use warp_sdk::metaprog::Node;
+let n = Node::new("lamp_2").cost("shells", 30).requires("lamp").effect("lamp_radius+2");
+assert_eq!(n.requires, vec!["lamp".to_string()]);</code></p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-Node-new" data-name="node::new"><div class="sig"><a class="anchor" href="#sym-Node-new" aria-label="Link to Node::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(id: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Makes a free node with no prerequisites and no effects.</p>
+<p><code>let n = warp_sdk::metaprog::Node::new("sonar");
+assert!(n.cost.is_empty());</code></p></div></div><div class="item" id="sym-Node-cost" data-name="node::cost"><div class="sig"><a class="anchor" href="#sym-Node-cost" aria-label="Link to Node::cost">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cost</span>(<span class="k">mut</span> <span class="k">self</span>, currency: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, amount: u64) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Adds a cost in one currency. Call it again for a second currency.</p>
+<p><code>let n = warp_sdk::metaprog::Node::new("drill").cost("shells", 5).cost("ore", 2);
+assert_eq!(n.cost.len(), 2);</code></p></div></div><div class="item" id="sym-Node-requires" data-name="node::requires"><div class="sig"><a class="anchor" href="#sym-Node-requires" aria-label="Link to Node::requires">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">requires</span>(<span class="k">mut</span> <span class="k">self</span>, node: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Adds one prerequisite node id.</p>
+<p><code>let n = warp_sdk::metaprog::Node::new("b").requires("a");
+assert_eq!(n.requires[0], "a");</code></p></div></div><div class="item" id="sym-Node-effect" data-name="node::effect"><div class="sig"><a class="anchor" href="#sym-Node-effect" aria-label="Link to Node::effect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">effect</span>(<span class="k">mut</span> <span class="k">self</span>, effect: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Adds one effect id.</p>
+<p><code>let n = warp_sdk::metaprog::Node::new("lamp").effect("light_on");
+assert_eq!(n.effects[0], "light_on");</code></p></div></div><div class="item" id="sym-Node-icon" data-name="node::icon"><div class="sig"><a class="anchor" href="#sym-Node-icon" aria-label="Link to Node::icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">icon</span>(<span class="k">mut</span> <span class="k">self</span>, icon: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Sets the icon id.</p>
+<p><code>let n = warp_sdk::metaprog::Node::new("lamp").icon("bulb");
+assert_eq!(n.icon, "bulb");</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Stage" data-name="stage"><div class="sig"><a class="anchor" href="#sym-Stage" aria-label="Link to Stage">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Stage</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The id of the stage.</span>
+<span class="k">pub</span> id: <span class="t">String</span>,
+<span class="c">/// The counter name that the threshold reads.</span>
+<span class="k">pub</span> metric: <span class="t">String</span>,
+<span class="c">/// The counter value at which the stage fires.</span>
+<span class="k">pub</span> threshold: u64,
+<span class="c">/// Ids that become unlocked when the stage fires.</span>
+<span class="k">pub</span> unlocks: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,</code></pre></div><div class="doc"><p>A stage: a threshold on one counter, with a list of ids to unlock.</p>
+<p>When the counter reaches the threshold, the stage fires one time. Each id
+in <code>unlocks</code> becomes unlocked at no cost. An id can be a tree node id or
+any other id that the game reads with [<code>Meta::is_unlocked</code>].</p>
+<p><code>use warp_sdk::metaprog::Stage;
+let s = Stage::new("colony_2", "polyps", 50).unlocks("deep_zone").unlocks("sonar");
+assert_eq!(s.unlocks.len(), 2);</code></p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-Stage-new" data-name="stage::new"><div class="sig"><a class="anchor" href="#sym-Stage-new" aria-label="Link to Stage::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(id: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, metric: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, threshold: u64) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Makes a stage that fires when <code>metric</code> reaches <code>threshold</code>.</p>
+<p><code>let s = warp_sdk::metaprog::Stage::new("young", "polyps", 10);
+assert_eq!(s.threshold, 10);</code></p></div></div><div class="item" id="sym-Stage-unlocks" data-name="stage::unlocks"><div class="sig"><a class="anchor" href="#sym-Stage-unlocks" aria-label="Link to Stage::unlocks">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">unlocks</span>(<span class="k">mut</span> <span class="k">self</span>, id: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Adds one id to unlock when the stage fires.</p>
+<p><code>let s = warp_sdk::metaprog::Stage::new("young", "polyps", 10).unlocks("kelp");
+assert_eq!(s.unlocks[0], "kelp");</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Upgrade" data-name="upgrade"><div class="sig"><a class="anchor" href="#sym-Upgrade" aria-label="Link to Upgrade">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Upgrade</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The id of the upgrade.</span>
+<span class="k">pub</span> id: <span class="t">String</span>,
+<span class="c">/// The currency that pays for each level. The default is `"points"`.</span>
+<span class="k">pub</span> currency: <span class="t">String</span>,
+<span class="c">/// The cost of each level. `costs[0]` buys level 1.</span>
+<span class="k">pub</span> costs: <span class="t">Vec</span>&lt;u64&gt;,
+<span class="c">/// Effect ids. The game applies each one time per level.</span>
+<span class="k">pub</span> effects: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// The icon id for the HUD. Empty means no icon.</span>
+<span class="k">pub</span> icon: <span class="t">String</span>,</code></pre></div><div class="doc"><p>A persistent upgrade with levels. Each level has its own cost.</p>
+<p>The level stays across runs. Level 0 means not bought. The maximum level
+is the number of costs.</p>
+<p><code>use warp_sdk::metaprog::Upgrade;
+let u = Upgrade::new("hull").currency("shells").costs(&amp;[5, 15, 40]).effect("hull_hp+10");
+assert_eq!(u.max_level(), 3);</code></p></div></div><details class="members"><summary>6 methods</summary><div class="item" id="sym-Upgrade-new" data-name="upgrade::new"><div class="sig"><a class="anchor" href="#sym-Upgrade-new" aria-label="Link to Upgrade::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(id: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Makes an upgrade with no levels, paid in <code>"points"</code>.</p>
+<p><code>let u = warp_sdk::metaprog::Upgrade::new("hull");
+assert_eq!(u.currency, "points");</code></p></div></div><div class="item" id="sym-Upgrade-currency" data-name="upgrade::currency"><div class="sig"><a class="anchor" href="#sym-Upgrade-currency" aria-label="Link to Upgrade::currency">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">currency</span>(<span class="k">mut</span> <span class="k">self</span>, currency: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Sets the currency that pays for each level.</p>
+<p><code>let u = warp_sdk::metaprog::Upgrade::new("hull").currency("shells");
+assert_eq!(u.currency, "shells");</code></p></div></div><div class="item" id="sym-Upgrade-costs" data-name="upgrade::costs"><div class="sig"><a class="anchor" href="#sym-Upgrade-costs" aria-label="Link to Upgrade::costs">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">costs</span>(<span class="k">mut</span> <span class="k">self</span>, costs: &amp;[u64]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Sets the cost of each level, from level 1 up.</p>
+<p><code>let u = warp_sdk::metaprog::Upgrade::new("hull").costs(&amp;[1, 2]);
+assert_eq!(u.costs, vec![1, 2]);</code></p></div></div><div class="item" id="sym-Upgrade-effect" data-name="upgrade::effect"><div class="sig"><a class="anchor" href="#sym-Upgrade-effect" aria-label="Link to Upgrade::effect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">effect</span>(<span class="k">mut</span> <span class="k">self</span>, effect: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Adds one effect id.</p>
+<p><code>let u = warp_sdk::metaprog::Upgrade::new("hull").effect("hp+10");
+assert_eq!(u.effects[0], "hp+10");</code></p></div></div><div class="item" id="sym-Upgrade-icon" data-name="upgrade::icon"><div class="sig"><a class="anchor" href="#sym-Upgrade-icon" aria-label="Link to Upgrade::icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">icon</span>(<span class="k">mut</span> <span class="k">self</span>, icon: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Sets the icon id.</p>
+<p><code>let u = warp_sdk::metaprog::Upgrade::new("hull").icon("shield");
+assert_eq!(u.icon, "shield");</code></p></div></div><div class="item" id="sym-Upgrade-max_level" data-name="upgrade::max_level"><div class="sig"><a class="anchor" href="#sym-Upgrade-max_level" aria-label="Link to Upgrade::max_level">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">max_level</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div><div class="doc"><p>The highest level. It is the number of costs.</p>
+<p><code>assert_eq!(warp_sdk::metaprog::Upgrade::new("x").costs(&amp;[1, 2]).max_level(), 2);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Milestone" data-name="milestone"><div class="sig"><a class="anchor" href="#sym-Milestone" aria-label="Link to Milestone">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Milestone</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The id of the milestone.</span>
+<span class="k">pub</span> id: <span class="t">String</span>,
+<span class="c">/// (counter, minimum value) pairs. All must hold.</span>
+<span class="k">pub</span> conditions: <span class="t">Vec</span>&lt;(<span class="t">String</span>, u64)&gt;,
+<span class="c">/// (currency, amount) pairs added to the wallet one time.</span>
+<span class="k">pub</span> rewards: <span class="t">Vec</span>&lt;(<span class="t">String</span>, u64)&gt;,
+<span class="c">/// Ids that become unlocked one time.</span>
+<span class="k">pub</span> unlocks: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// The icon id for the HUD badge. Empty means no icon.</span>
+<span class="k">pub</span> icon: <span class="t">String</span>,</code></pre></div><div class="doc"><p>A milestone (an achievement): conditions on counters and a one-time reward.</p>
+<p>The milestone fires when every condition holds. It fires one time only.
+The reward adds currency to the wallet and unlocks ids.</p>
+<p><code>use warp_sdk::metaprog::Milestone;
+let m = Milestone::new("hunter").when("gloom_driven", 10).reward("shells", 20).icon("trophy");
+assert_eq!(m.conditions[0], ("gloom_driven".to_string(), 10));</code></p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-Milestone-new" data-name="milestone::new"><div class="sig"><a class="anchor" href="#sym-Milestone-new" aria-label="Link to Milestone::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(id: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Makes a milestone with no conditions. Add at least one with <code>when</code>.
+A milestone with no conditions fires on the first check.</p>
+<p><code>let m = warp_sdk::metaprog::Milestone::new("first");
+assert!(m.conditions.is_empty());</code></p></div></div><div class="item" id="sym-Milestone-when" data-name="milestone::when"><div class="sig"><a class="anchor" href="#sym-Milestone-when" aria-label="Link to Milestone::when">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">when</span>(<span class="k">mut</span> <span class="k">self</span>, counter: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, at_least: u64) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Adds a condition: <code>counter</code> is at least <code>at_least</code>.</p>
+<p><code>let m = warp_sdk::metaprog::Milestone::new("m").when("dives", 3);
+assert_eq!(m.conditions.len(), 1);</code></p></div></div><div class="item" id="sym-Milestone-reward" data-name="milestone::reward"><div class="sig"><a class="anchor" href="#sym-Milestone-reward" aria-label="Link to Milestone::reward">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reward</span>(<span class="k">mut</span> <span class="k">self</span>, currency: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, amount: u64) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Adds a currency reward.</p>
+<p><code>let m = warp_sdk::metaprog::Milestone::new("m").reward("shells", 5);
+assert_eq!(m.rewards[0].1, 5);</code></p></div></div><div class="item" id="sym-Milestone-unlocks" data-name="milestone::unlocks"><div class="sig"><a class="anchor" href="#sym-Milestone-unlocks" aria-label="Link to Milestone::unlocks">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">unlocks</span>(<span class="k">mut</span> <span class="k">self</span>, id: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Adds an id to unlock as a reward.</p>
+<p><code>let m = warp_sdk::metaprog::Milestone::new("m").unlocks("gold_hull");
+assert_eq!(m.unlocks[0], "gold_hull");</code></p></div></div><div class="item" id="sym-Milestone-icon" data-name="milestone::icon"><div class="sig"><a class="anchor" href="#sym-Milestone-icon" aria-label="Link to Milestone::icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">icon</span>(<span class="k">mut</span> <span class="k">self</span>, icon: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Sets the icon id.</p>
+<p><code>let m = warp_sdk::metaprog::Milestone::new("m").icon("star");
+assert_eq!(m.icon, "star");</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Knowledge" data-name="knowledge"><div class="sig"><a class="anchor" href="#sym-Knowledge" aria-label="Link to Knowledge">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Knowledge</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The player has not met the entry.</span>
+<span class="t">Unseen</span>,
+<span class="c">/// The player has met the entry one time.</span>
+<span class="t">Seen</span>,
+<span class="c">/// The player has met the entry `study_at` times.</span>
+<span class="t">Studied</span>,
+<span class="c">/// The player has met the entry `master_at` times.</span>
+<span class="t">Mastered</span>,</code></pre></div><div class="doc"><p>How much the player knows about one codex entry.</p>
+<p>The order is <code>Unseen &lt; Seen &lt; Studied &lt; Mastered</code>. A state only goes up.</p>
+<p><code>use warp_sdk::metaprog::Knowledge;
+assert!(Knowledge::Seen &lt; Knowledge::Mastered);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-CodexKind" data-name="codexkind"><div class="sig"><a class="anchor" href="#sym-CodexKind" aria-label="Link to CodexKind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">CodexKind</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The kind name.</span>
+<span class="k">pub</span> kind: <span class="t">String</span>,
+<span class="c">/// The observation count that makes an entry `Studied`.</span>
+<span class="k">pub</span> study_at: u32,
+<span class="c">/// The observation count that makes an entry `Mastered`.</span>
+<span class="k">pub</span> master_at: u32,</code></pre></div><div class="doc"><p>One kind of codex entry, for example fish, coral or terrain.</p>
+<p>Each observation of an entry adds one to its count. The count sets the
+[<code>Knowledge</code>]: 1 is <code>Seen</code>, <code>study_at</code> is <code>Studied</code>, <code>master_at</code> is
+<code>Mastered</code>. The defaults are 3 and 10.</p>
+<p><code>use warp_sdk::metaprog::CodexKind;
+let k = CodexKind::new("fish").study_at(2).master_at(5);
+assert_eq!(k.master_at, 5);</code></p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-CodexKind-new" data-name="codexkind::new"><div class="sig"><a class="anchor" href="#sym-CodexKind-new" aria-label="Link to CodexKind::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(kind: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Makes a kind with <code>study_at = 3</code> and <code>master_at = 10</code>.</p>
+<p><code>let k = warp_sdk::metaprog::CodexKind::new("coral");
+assert_eq!((k.study_at, k.master_at), (3, 10));</code></p></div></div><div class="item" id="sym-CodexKind-study_at" data-name="codexkind::study_at"><div class="sig"><a class="anchor" href="#sym-CodexKind-study_at" aria-label="Link to CodexKind::study_at">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">study_at</span>(<span class="k">mut</span> <span class="k">self</span>, n: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Sets the count that makes an entry <code>Studied</code>. The minimum is 1.</p>
+<p><code>assert_eq!(warp_sdk::metaprog::CodexKind::new("k").study_at(4).study_at, 4);</code></p></div></div><div class="item" id="sym-CodexKind-master_at" data-name="codexkind::master_at"><div class="sig"><a class="anchor" href="#sym-CodexKind-master_at" aria-label="Link to CodexKind::master_at">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">master_at</span>(<span class="k">mut</span> <span class="k">self</span>, n: u32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Sets the count that makes an entry <code>Mastered</code>. The minimum is 1.</p>
+<p><code>assert_eq!(warp_sdk::metaprog::CodexKind::new("k").master_at(8).master_at, 8);</code></p></div></div><div class="item" id="sym-CodexKind-knowledge_at" data-name="codexkind::knowledge_at"><div class="sig"><a class="anchor" href="#sym-CodexKind-knowledge_at" aria-label="Link to CodexKind::knowledge_at">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">knowledge_at</span>(&amp;<span class="k">self</span>, count: u32) -&gt; <span class="t">Knowledge</span></code></div><div class="doc"><p>The knowledge state for an observation count.</p>
+<p><code>use warp_sdk::metaprog::{CodexKind, Knowledge};
+let k = CodexKind::new("fish").study_at(2).master_at(4);
+assert_eq!(k.knowledge_at(0), Knowledge::Unseen);
+assert_eq!(k.knowledge_at(2), Knowledge::Studied);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-MetaDef" data-name="metadef"><div class="sig"><a class="anchor" href="#sym-MetaDef" aria-label="Link to MetaDef">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">MetaDef</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The unlock tree nodes, in the order the game added them.</span>
+<span class="k">pub</span> nodes: <span class="t">Vec</span>&lt;<span class="t">Node</span>&gt;,
+<span class="c">/// The stages, in the order the game added them.</span>
+<span class="k">pub</span> stages: <span class="t">Vec</span>&lt;<span class="t">Stage</span>&gt;,
+<span class="c">/// The persistent upgrades.</span>
+<span class="k">pub</span> upgrades: <span class="t">Vec</span>&lt;<span class="t">Upgrade</span>&gt;,
+<span class="c">/// The milestones.</span>
+<span class="k">pub</span> milestones: <span class="t">Vec</span>&lt;<span class="t">Milestone</span>&gt;,
+<span class="c">/// The codex kinds. An observation of a kind that is not here uses the</span>
+<span class="c">/// defaults of [`CodexKind::new`].</span>
+<span class="k">pub</span> codex: <span class="t">Vec</span>&lt;<span class="t">CodexKind</span>&gt;,</code></pre></div><div class="doc"><p>The whole progression design. The game builds it in code. It is not saved.</p>
+<p><code>use warp_sdk::metaprog::{MetaDef, Node};
+let def = MetaDef::new().node(Node::new("a")).node(Node::new("b").requires("a"));
+assert!(def.find_node("b").is_some());</code></p></div></div><details class="members"><summary>9 methods</summary><div class="item" id="sym-MetaDef-new" data-name="metadef::new"><div class="sig"><a class="anchor" href="#sym-MetaDef-new" aria-label="Link to MetaDef::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Makes an empty design.</p>
+<p><code>assert!(warp_sdk::metaprog::MetaDef::new().nodes.is_empty());</code></p></div></div><div class="item" id="sym-MetaDef-node" data-name="metadef::node"><div class="sig"><a class="anchor" href="#sym-MetaDef-node" aria-label="Link to MetaDef::node">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">node</span>(<span class="k">mut</span> <span class="k">self</span>, node: <span class="t">Node</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Adds a node to the unlock tree.</p>
+<p><code>let d = warp_sdk::metaprog::MetaDef::new().node(warp_sdk::metaprog::Node::new("a"));
+assert_eq!(d.nodes.len(), 1);</code></p></div></div><div class="item" id="sym-MetaDef-stage" data-name="metadef::stage"><div class="sig"><a class="anchor" href="#sym-MetaDef-stage" aria-label="Link to MetaDef::stage">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stage</span>(<span class="k">mut</span> <span class="k">self</span>, stage: <span class="t">Stage</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Adds a stage.</p>
+<p><code>let d = warp_sdk::metaprog::MetaDef::new()
+.stage(warp_sdk::metaprog::Stage::new("s", "polyps", 5));
+assert_eq!(d.stages.len(), 1);</code></p></div></div><div class="item" id="sym-MetaDef-upgrade" data-name="metadef::upgrade"><div class="sig"><a class="anchor" href="#sym-MetaDef-upgrade" aria-label="Link to MetaDef::upgrade">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">upgrade</span>(<span class="k">mut</span> <span class="k">self</span>, upgrade: <span class="t">Upgrade</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Adds a persistent upgrade.</p>
+<p><code>let d = warp_sdk::metaprog::MetaDef::new().upgrade(warp_sdk::metaprog::Upgrade::new("u"));
+assert_eq!(d.upgrades.len(), 1);</code></p></div></div><div class="item" id="sym-MetaDef-milestone" data-name="metadef::milestone"><div class="sig"><a class="anchor" href="#sym-MetaDef-milestone" aria-label="Link to MetaDef::milestone">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">milestone</span>(<span class="k">mut</span> <span class="k">self</span>, milestone: <span class="t">Milestone</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Adds a milestone.</p>
+<p><code>let d = warp_sdk::metaprog::MetaDef::new()
+.milestone(warp_sdk::metaprog::Milestone::new("m").when("x", 1));
+assert_eq!(d.milestones.len(), 1);</code></p></div></div><div class="item" id="sym-MetaDef-codex" data-name="metadef::codex"><div class="sig"><a class="anchor" href="#sym-MetaDef-codex" aria-label="Link to MetaDef::codex">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">codex</span>(<span class="k">mut</span> <span class="k">self</span>, kind: <span class="t">CodexKind</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Adds a codex kind.</p>
+<p><code>let d = warp_sdk::metaprog::MetaDef::new().codex(warp_sdk::metaprog::CodexKind::new("fish"));
+assert_eq!(d.codex.len(), 1);</code></p></div></div><div class="item" id="sym-MetaDef-find_node" data-name="metadef::find_node"><div class="sig"><a class="anchor" href="#sym-MetaDef-find_node" aria-label="Link to MetaDef::find_node">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">find_node</span>(&amp;<span class="k">self</span>, id: &amp;str) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Node</span>&gt;</code></div><div class="doc"><p>Finds a node by id.</p>
+<p><code>let d = warp_sdk::metaprog::MetaDef::new().node(warp_sdk::metaprog::Node::new("a"));
+assert!(d.find_node("a").is_some());</code></p></div></div><div class="item" id="sym-MetaDef-find_upgrade" data-name="metadef::find_upgrade"><div class="sig"><a class="anchor" href="#sym-MetaDef-find_upgrade" aria-label="Link to MetaDef::find_upgrade">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">find_upgrade</span>(&amp;<span class="k">self</span>, id: &amp;str) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Upgrade</span>&gt;</code></div><div class="doc"><p>Finds an upgrade by id.</p>
+<p><code>let d = warp_sdk::metaprog::MetaDef::new().upgrade(warp_sdk::metaprog::Upgrade::new("u"));
+assert!(d.find_upgrade("u").is_some());</code></p></div></div><div class="item" id="sym-MetaDef-codex_kind" data-name="metadef::codex_kind"><div class="sig"><a class="anchor" href="#sym-MetaDef-codex_kind" aria-label="Link to MetaDef::codex_kind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">codex_kind</span>(&amp;<span class="k">self</span>, kind: &amp;str) -&gt; <span class="t">CodexKind</span></code></div><div class="doc"><p>Finds a codex kind by name, or gives the defaults.</p>
+<p><code>let d = warp_sdk::metaprog::MetaDef::new();
+assert_eq!(d.codex_kind("fish").study_at, 3);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Progress" data-name="progress"><div class="sig"><a class="anchor" href="#sym-Progress" aria-label="Link to Progress">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Progress</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Currency name to amount that the player can spend.</span>
+<span class="k">pub</span> wallet: <span class="t">BTreeMap</span>&lt;<span class="t">String</span>, u64&gt;,
+<span class="c">/// Counter name to value. Names that start with `run.` reset each run.</span>
+<span class="k">pub</span> counters: <span class="t">BTreeMap</span>&lt;<span class="t">String</span>, u64&gt;,
+<span class="c">/// Unlocked ids: bought nodes and ids from stages and milestones.</span>
+<span class="k">pub</span> unlocked: <span class="t">BTreeSet</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// Upgrade id to level.</span>
+<span class="k">pub</span> upgrades: <span class="t">BTreeMap</span>&lt;<span class="t">String</span>, u32&gt;,
+<span class="c">/// Ids of milestones that fired.</span>
+<span class="k">pub</span> milestones: <span class="t">BTreeSet</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// Ids of stages that fired.</span>
+<span class="k">pub</span> stages: <span class="t">BTreeSet</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// (kind, entry id) to observation count.</span>
+<span class="k">pub</span> codex: <span class="t">BTreeMap</span>&lt;(<span class="t">String</span>, <span class="t">String</span>), u32&gt;,
+<span class="c">/// The number of runs started with [`Meta::begin_run`].</span>
+<span class="k">pub</span> runs: u64,</code></pre></div><div class="doc"><p>The progress of one player. This is the part that is saved.</p>
+<p>All maps are sorted, so two equal states give equal save bytes.</p>
+<p><code>let p = warp_sdk::metaprog::Progress::default();
+assert!(p.unlocked.is_empty());</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Event" data-name="event"><div class="sig"><a class="anchor" href="#sym-Event" aria-label="Link to Event">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Event</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// An id became unlocked.</span>
+<span class="t">Unlocked</span> {
+    id: <span class="t">String</span>,
+    source: <span class="t">UnlockSource</span>,
+},
+<span class="c">/// A stage fired.</span>
+<span class="t">StageReached</span> {
+    id: <span class="t">String</span>,
+},
+<span class="c">/// A milestone fired. The rewards are in the wallet already.</span>
+<span class="t">MilestoneReached</span> {
+    id: <span class="t">String</span>,
+    icon: <span class="t">String</span>,
+},
+<span class="c">/// An upgrade went up one level.</span>
+<span class="t">Upgraded</span> {
+    id: <span class="t">String</span>,
+    level: u32,
+},
+<span class="c">/// A codex entry went to a higher knowledge state.</span>
+<span class="t">Discovered</span> {
+    kind: <span class="t">String</span>,
+    id: <span class="t">String</span>,
+    knowledge: <span class="t">Knowledge</span>,
+},</code></pre></div><div class="doc"><p>What a game shows or teaches. Read them with [<code>Meta::drain_events</code>].</p>
+<p><code>use warp_sdk::metaprog::{Event, UnlockSource};
+let e = Event::Unlocked { id: "sonar".into(), source: UnlockSource::Bought };
+assert!(matches!(e, Event::Unlocked { .. }));</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-UnlockSource" data-name="unlocksource"><div class="sig"><a class="anchor" href="#sym-UnlockSource" aria-label="Link to UnlockSource">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">UnlockSource</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The player bought a node with [`Meta::buy`].</span>
+<span class="t">Bought</span>,
+<span class="c">/// The stage with this id fired.</span>
+<span class="t">Stage</span>(<span class="t">String</span>),
+<span class="c">/// The milestone with this id fired.</span>
+<span class="t">Milestone</span>(<span class="t">String</span>),</code></pre></div><div class="doc"><p>The cause of an [<code>Event::Unlocked</code>].</p>
+<p><code>let s = warp_sdk::metaprog::UnlockSource::Stage("young".into());
+assert_ne!(s, warp_sdk::metaprog::UnlockSource::Bought);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-BuyError" data-name="buyerror"><div class="sig"><a class="anchor" href="#sym-BuyError" aria-label="Link to BuyError">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">BuyError</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// No node or upgrade has this id.</span>
+<span class="t">Unknown</span>,
+<span class="c">/// The node is unlocked already.</span>
+<span class="t">Owned</span>,
+<span class="c">/// The upgrade is at its maximum level.</span>
+<span class="t">MaxLevel</span>,
+<span class="c">/// This prerequisite node is not unlocked.</span>
+<span class="t">MissingPrerequisite</span>(<span class="t">String</span>),
+<span class="c">/// The wallet has too little of this currency.</span>
+<span class="t">CannotAfford</span> {
+    currency: <span class="t">String</span>,
+    need: u64,
+    have: u64,
+},</code></pre></div><div class="doc"><p>Why [<code>Meta::buy</code>] or [<code>Meta::buy_upgrade</code>] refused.</p>
+<p><code>use warp_sdk::metaprog::{Meta, MetaDef, BuyError};
+let mut m = Meta::new(MetaDef::new());
+assert_eq!(m.buy("nope"), Err(BuyError::Unknown));</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Meta" data-name="meta"><div class="sig"><a class="anchor" href="#sym-Meta" aria-label="Link to Meta">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Meta</span></code></div><div class="doc"><p>The design, the state and the event queue. This is the one call path.</p>
+<p><code>use warp_sdk::metaprog::{Meta, MetaDef, Stage, Event};
+let mut m = Meta::new(MetaDef::new().stage(Stage::new("young", "polyps", 3).unlocks("kelp")));
+m.count("polyps", 3);
+assert!(m.is_unlocked("kelp"));
+assert!(m.drain_events().contains(&amp;Event::StageReached { id: "young".into() }));</code></p></div></div><details class="members"><summary>29 methods</summary><div class="item" id="sym-Meta-new" data-name="meta::new"><div class="sig"><a class="anchor" href="#sym-Meta-new" aria-label="Link to Meta::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(def: <span class="t">MetaDef</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Starts a new player with an empty state. Milestones with no
+conditions fire now.</p>
+<p><code>let m = warp_sdk::metaprog::Meta::new(warp_sdk::metaprog::MetaDef::new());
+assert_eq!(m.progress().runs, 0);</code></p></div></div><div class="item" id="sym-Meta-with_progress" data-name="meta::with_progress"><div class="sig"><a class="anchor" href="#sym-Meta-with_progress" aria-label="Link to Meta::with_progress">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_progress</span>(def: <span class="t">MetaDef</span>, progress: <span class="t">Progress</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Continues a player from a state that the game has already.</p>
+<p><code>use warp_sdk::metaprog::{Meta, MetaDef, Progress};
+let m = Meta::with_progress(MetaDef::new(), Progress::default());
+assert!(m.progress().wallet.is_empty());</code></p></div></div><div class="item" id="sym-Meta-def" data-name="meta::def"><div class="sig"><a class="anchor" href="#sym-Meta-def" aria-label="Link to Meta::def">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">def</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="t">MetaDef</span></code></div><div class="doc"><p>The design.</p>
+<p><code>let m = warp_sdk::metaprog::Meta::new(warp_sdk::metaprog::MetaDef::new());
+assert!(m.def().nodes.is_empty());</code></p></div></div><div class="item" id="sym-Meta-progress" data-name="meta::progress"><div class="sig"><a class="anchor" href="#sym-Meta-progress" aria-label="Link to Meta::progress">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">progress</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="t">Progress</span></code></div><div class="doc"><p>The state.</p>
+<p><code>let m = warp_sdk::metaprog::Meta::new(warp_sdk::metaprog::MetaDef::new());
+assert!(m.progress().counters.is_empty());</code></p></div></div><div class="item" id="sym-Meta-count" data-name="meta::count"><div class="sig"><a class="anchor" href="#sym-Meta-count" aria-label="Link to Meta::count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">count</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, counter: &amp;str, n: u64)</code></div><div class="doc"><p>Adds <code>n</code> to a counter. Stages and milestones fire as a result.</p>
+<p><code>let mut m = warp_sdk::metaprog::Meta::new(warp_sdk::metaprog::MetaDef::new());
+m.count("dives", 2);
+assert_eq!(m.counter("dives"), 2);</code></p></div></div><div class="item" id="sym-Meta-record" data-name="meta::record"><div class="sig"><a class="anchor" href="#sym-Meta-record" aria-label="Link to Meta::record">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">record</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, counter: &amp;str, value: u64)</code></div><div class="doc"><p>Sets a counter to <code>value</code> if <code>value</code> is higher. Use it for records,
+for example the deepest dive.</p>
+<p><code>let mut m = warp_sdk::metaprog::Meta::new(warp_sdk::metaprog::MetaDef::new());
+m.record("depth", 40);
+m.record("depth", 10);
+assert_eq!(m.counter("depth"), 40);</code></p></div></div><div class="item" id="sym-Meta-earn" data-name="meta::earn"><div class="sig"><a class="anchor" href="#sym-Meta-earn" aria-label="Link to Meta::earn">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">earn</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, currency: &amp;str, amount: u64)</code></div><div class="doc"><p>Adds currency to the wallet. It also adds the same amount to the
+counter with the currency name, which holds the lifetime total.</p>
+<p><code>let mut m = warp_sdk::metaprog::Meta::new(warp_sdk::metaprog::MetaDef::new());
+m.earn("shells", 7);
+assert_eq!((m.balance("shells"), m.counter("shells")), (7, 7));</code></p></div></div><div class="item" id="sym-Meta-counter" data-name="meta::counter"><div class="sig"><a class="anchor" href="#sym-Meta-counter" aria-label="Link to Meta::counter">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">counter</span>(&amp;<span class="k">self</span>, counter: &amp;str) -&gt; u64</code></div><div class="doc"><p>The value of a counter. A counter that was never set is 0.</p>
+<p><code>let m = warp_sdk::metaprog::Meta::new(warp_sdk::metaprog::MetaDef::new());
+assert_eq!(m.counter("x"), 0);</code></p></div></div><div class="item" id="sym-Meta-balance" data-name="meta::balance"><div class="sig"><a class="anchor" href="#sym-Meta-balance" aria-label="Link to Meta::balance">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">balance</span>(&amp;<span class="k">self</span>, currency: &amp;str) -&gt; u64</code></div><div class="doc"><p>The amount of a currency in the wallet.</p>
+<p><code>let m = warp_sdk::metaprog::Meta::new(warp_sdk::metaprog::MetaDef::new());
+assert_eq!(m.balance("shells"), 0);</code></p></div></div><div class="item" id="sym-Meta-is_unlocked" data-name="meta::is_unlocked"><div class="sig"><a class="anchor" href="#sym-Meta-is_unlocked" aria-label="Link to Meta::is_unlocked">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_unlocked</span>(&amp;<span class="k">self</span>, id: &amp;str) -&gt; bool</code></div><div class="doc"><p>True if the id is unlocked: a bought node, or an id from a stage or a
+milestone.</p>
+<p><code>let m = warp_sdk::metaprog::Meta::new(warp_sdk::metaprog::MetaDef::new());
+assert!(!m.is_unlocked("sonar"));</code></p></div></div><div class="item" id="sym-Meta-can_buy" data-name="meta::can_buy"><div class="sig"><a class="anchor" href="#sym-Meta-can_buy" aria-label="Link to Meta::can_buy">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">can_buy</span>(&amp;<span class="k">self</span>, node: &amp;str) -&gt; <span class="t">Result</span>&lt;(), <span class="t">BuyError</span>&gt;</code></div><div class="doc"><p>Checks if the player can buy a node now, with no change to the state.</p>
+<p><code>use warp_sdk::metaprog::{Meta, MetaDef, Node};
+let m = Meta::new(MetaDef::new().node(Node::new("a")));
+assert!(m.can_buy("a").is_ok());</code></p></div></div><div class="item" id="sym-Meta-buy" data-name="meta::buy"><div class="sig"><a class="anchor" href="#sym-Meta-buy" aria-label="Link to Meta::buy">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">buy</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, node: &amp;str) -&gt; <span class="t">Result</span>&lt;(), <span class="t">BuyError</span>&gt;</code></div><div class="doc"><p>Buys a node: checks the prerequisites, removes the cost from the
+wallet one time, and unlocks the node. On an error the state does not
+change.</p>
+<p><code>use warp_sdk::metaprog::{Meta, MetaDef, Node};
+let mut m = Meta::new(MetaDef::new().node(Node::new("a").cost("shells", 3)));
+m.earn("shells", 5);
+m.buy("a").unwrap();
+assert_eq!(m.balance("shells"), 2);</code></p></div></div><div class="item" id="sym-Meta-upgrade_level" data-name="meta::upgrade_level"><div class="sig"><a class="anchor" href="#sym-Meta-upgrade_level" aria-label="Link to Meta::upgrade_level">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">upgrade_level</span>(&amp;<span class="k">self</span>, upgrade: &amp;str) -&gt; u32</code></div><div class="doc"><p>The level of an upgrade. 0 means not bought.</p>
+<p><code>let m = warp_sdk::metaprog::Meta::new(warp_sdk::metaprog::MetaDef::new());
+assert_eq!(m.upgrade_level("hull"), 0);</code></p></div></div><div class="item" id="sym-Meta-next_upgrade_cost" data-name="meta::next_upgrade_cost"><div class="sig"><a class="anchor" href="#sym-Meta-next_upgrade_cost" aria-label="Link to Meta::next_upgrade_cost">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">next_upgrade_cost</span>(&amp;<span class="k">self</span>, upgrade: &amp;str) -&gt; <span class="t">Option</span>&lt;(<span class="t">String</span>, u64)&gt;</code></div><div class="doc"><p>The cost of the next level of an upgrade, as (currency, amount).
+<code>None</code> if the upgrade is unknown or at its maximum level.</p>
+<p><code>use warp_sdk::metaprog::{Meta, MetaDef, Upgrade};
+let m = Meta::new(MetaDef::new().upgrade(Upgrade::new("hull").costs(&amp;[4, 9])));
+assert_eq!(m.next_upgrade_cost("hull"), Some(("points".to_string(), 4)));</code></p></div></div><div class="item" id="sym-Meta-buy_upgrade" data-name="meta::buy_upgrade"><div class="sig"><a class="anchor" href="#sym-Meta-buy_upgrade" aria-label="Link to Meta::buy_upgrade">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">buy_upgrade</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, upgrade: &amp;str) -&gt; <span class="t">Result</span>&lt;u32, <span class="t">BuyError</span>&gt;</code></div><div class="doc"><p>Buys the next level of an upgrade. The cost leaves the wallet one
+time. On an error the state does not change.</p>
+<p><code>use warp_sdk::metaprog::{Meta, MetaDef, Upgrade};
+let mut m = Meta::new(MetaDef::new().upgrade(Upgrade::new("hull").costs(&amp;[4])));
+m.earn("points", 4);
+assert_eq!(m.buy_upgrade("hull"), Ok(1));</code></p></div></div><div class="item" id="sym-Meta-observe" data-name="meta::observe"><div class="sig"><a class="anchor" href="#sym-Meta-observe" aria-label="Link to Meta::observe">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">observe</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, kind: &amp;str, id: &amp;str) -&gt; <span class="t">Knowledge</span></code></div><div class="doc"><p>Records one observation of a codex entry. The first observation of
+an entry sends <code>Discovered</code> with <code>Seen</code>. Each later change of state
+sends <code>Discovered</code> again. Returns the state after the observation.</p>
+<p><code>use warp_sdk::metaprog::{Meta, MetaDef, Knowledge};
+let mut m = Meta::new(MetaDef::new());
+assert_eq!(m.observe("fish", "lantern"), Knowledge::Seen);</code></p></div></div><div class="item" id="sym-Meta-knowledge" data-name="meta::knowledge"><div class="sig"><a class="anchor" href="#sym-Meta-knowledge" aria-label="Link to Meta::knowledge">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">knowledge</span>(&amp;<span class="k">self</span>, kind: &amp;str, id: &amp;str) -&gt; <span class="t">Knowledge</span></code></div><div class="doc"><p>The knowledge state of a codex entry.</p>
+<p><code>use warp_sdk::metaprog::{Meta, MetaDef, Knowledge};
+let m = Meta::new(MetaDef::new());
+assert_eq!(m.knowledge("fish", "lantern"), Knowledge::Unseen);</code></p></div></div><div class="item" id="sym-Meta-codex_entries" data-name="meta::codex_entries"><div class="sig"><a class="anchor" href="#sym-Meta-codex_entries" aria-label="Link to Meta::codex_entries">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">codex_entries</span>(&amp;<span class="k">self</span>, kind: &amp;str) -&gt; <span class="t">Vec</span>&lt;(<span class="t">String</span>, <span class="t">Knowledge</span>)&gt;</code></div><div class="doc"><p>The entries of one codex kind with their states, sorted by id.
+Unseen entries are not in the list, because the codex does not know
+them.</p>
+<p><code>use warp_sdk::metaprog::{Meta, MetaDef};
+let mut m = Meta::new(MetaDef::new());
+m.observe("fish", "eel");
+assert_eq!(m.codex_entries("fish").len(), 1);</code></p></div></div><div class="item" id="sym-Meta-effects" data-name="meta::effects"><div class="sig"><a class="anchor" href="#sym-Meta-effects" aria-label="Link to Meta::effects">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">effects</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;</code></div><div class="doc"><p>Every active effect id: the effects of unlocked nodes, then each
+upgrade effect one time per level. The game applies them.</p>
+<p><code>use warp_sdk::metaprog::{Meta, MetaDef, Upgrade};
+let mut m = Meta::new(MetaDef::new().upgrade(Upgrade::new("hull").costs(&amp;[0, 0]).effect("hp+10")));
+m.buy_upgrade("hull").unwrap();
+m.buy_upgrade("hull").unwrap();
+assert_eq!(m.effects(), vec!["hp+10".to_string(), "hp+10".to_string()]);</code></p></div></div><div class="item" id="sym-Meta-effect_count" data-name="meta::effect_count"><div class="sig"><a class="anchor" href="#sym-Meta-effect_count" aria-label="Link to Meta::effect_count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">effect_count</span>(&amp;<span class="k">self</span>, effect: &amp;str) -&gt; usize</code></div><div class="doc"><p>How many times an effect id is active. Use it for stacked bonuses.</p>
+<p><code>let m = warp_sdk::metaprog::Meta::new(warp_sdk::metaprog::MetaDef::new());
+assert_eq!(m.effect_count("hp+10"), 0);</code></p></div></div><div class="item" id="sym-Meta-stage_progress" data-name="meta::stage_progress"><div class="sig"><a class="anchor" href="#sym-Meta-stage_progress" aria-label="Link to Meta::stage_progress">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stage_progress</span>(&amp;<span class="k">self</span>, stage: &amp;str) -&gt; f32</code></div><div class="doc"><p>The fraction (0 to 1) of the way to a stage. A fired stage gives 1.
+An unknown stage gives 0. Use it for a HUD bar.</p>
+<p><code>use warp_sdk::metaprog::{Meta, MetaDef, Stage};
+let mut m = Meta::new(MetaDef::new().stage(Stage::new("s", "polyps", 4)));
+m.count("polyps", 1);
+assert_eq!(m.stage_progress("s"), 0.25);</code></p></div></div><div class="item" id="sym-Meta-next_stage" data-name="meta::next_stage"><div class="sig"><a class="anchor" href="#sym-Meta-next_stage" aria-label="Link to Meta::next_stage">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">next_stage</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Stage</span>&gt;</code></div><div class="doc"><p>The next stage that has not fired, in design order. <code>None</code> when every
+stage fired. Use it to show the player the next goal.</p>
+<p><code>use warp_sdk::metaprog::{Meta, MetaDef, Stage};
+let m = Meta::new(MetaDef::new().stage(Stage::new("s", "polyps", 4)));
+assert_eq!(m.next_stage().map(|s| s.id.as_str()), Some("s"));</code></p></div></div><div class="item" id="sym-Meta-milestone_progress" data-name="meta::milestone_progress"><div class="sig"><a class="anchor" href="#sym-Meta-milestone_progress" aria-label="Link to Meta::milestone_progress">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">milestone_progress</span>(&amp;<span class="k">self</span>, milestone: &amp;str) -&gt; f32</code></div><div class="doc"><p>The fraction (0 to 1) of the way to a milestone: the lowest fraction
+of its conditions. A fired milestone gives 1.</p>
+<p><code>use warp_sdk::metaprog::{Meta, MetaDef, Milestone};
+let mut m = Meta::new(MetaDef::new().milestone(Milestone::new("m").when("x", 2)));
+m.count("x", 1);
+assert_eq!(m.milestone_progress("m"), 0.5);</code></p></div></div><div class="item" id="sym-Meta-has_milestone" data-name="meta::has_milestone"><div class="sig"><a class="anchor" href="#sym-Meta-has_milestone" aria-label="Link to Meta::has_milestone">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">has_milestone</span>(&amp;<span class="k">self</span>, milestone: &amp;str) -&gt; bool</code></div><div class="doc"><p>True if the milestone fired.</p>
+<p><code>let m = warp_sdk::metaprog::Meta::new(warp_sdk::metaprog::MetaDef::new());
+assert!(!m.has_milestone("m"));</code></p></div></div><div class="item" id="sym-Meta-has_stage" data-name="meta::has_stage"><div class="sig"><a class="anchor" href="#sym-Meta-has_stage" aria-label="Link to Meta::has_stage">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">has_stage</span>(&amp;<span class="k">self</span>, stage: &amp;str) -&gt; bool</code></div><div class="doc"><p>True if the stage fired.</p>
+<p><code>let m = warp_sdk::metaprog::Meta::new(warp_sdk::metaprog::MetaDef::new());
+assert!(!m.has_stage("s"));</code></p></div></div><div class="item" id="sym-Meta-begin_run" data-name="meta::begin_run"><div class="sig"><a class="anchor" href="#sym-Meta-begin_run" aria-label="Link to Meta::begin_run">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">begin_run</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Starts a new run: sets every counter whose name starts with <code>run.</code> to
+zero and adds one to [<code>Progress::runs</code>]. All other state stays.</p>
+<p><code>let mut m = warp_sdk::metaprog::Meta::new(warp_sdk::metaprog::MetaDef::new());
+m.count("run.depth", 5);
+m.count("dives", 1);
+m.begin_run();
+assert_eq!((m.counter("run.depth"), m.counter("dives")), (0, 1));</code></p></div></div><div class="item" id="sym-Meta-drain_events" data-name="meta::drain_events"><div class="sig"><a class="anchor" href="#sym-Meta-drain_events" aria-label="Link to Meta::drain_events">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drain_events</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">Event</span>&gt;</code></div><div class="doc"><p>Takes all events since the last call, oldest first.</p>
+<p><code>let mut m = warp_sdk::metaprog::Meta::new(warp_sdk::metaprog::MetaDef::new());
+m.observe("fish", "eel");
+assert_eq!(m.drain_events().len(), 1);
+assert!(m.drain_events().is_empty());</code></p></div></div><div class="item" id="sym-Meta-save" data-name="meta::save"><div class="sig"><a class="anchor" href="#sym-Meta-save" aria-label="Link to Meta::save">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">save</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;u8&gt;</code></div><div class="doc"><p>Writes the state to versioned bytes. The design is not in the bytes.</p>
+<p><code>let m = warp_sdk::metaprog::Meta::new(warp_sdk::metaprog::MetaDef::new());
+assert_eq!(&amp;m.save()[..4], b"WMP\0");</code></p></div></div><div class="item" id="sym-Meta-load" data-name="meta::load"><div class="sig"><a class="anchor" href="#sym-Meta-load" aria-label="Link to Meta::load">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">load</span>(def: <span class="t">MetaDef</span>, bytes: &amp;[u8]) -&gt; <span class="t">Result</span>&lt;<span class="k">Self</span>, <span class="t">LoadError</span>&gt;</code></div><div class="doc"><p>Reads a state from bytes that [<code>Meta::save</code>] wrote, and joins it to a
+design. Stages and milestones that the old state did not reach, but
+now holds, fire after the load.</p>
+<p><code>use warp_sdk::metaprog::{Meta, MetaDef};
+let mut m = Meta::new(MetaDef::new());
+m.earn("shells", 3);
+let back = Meta::load(MetaDef::new(), &amp;m.save()).unwrap();
+assert_eq!(back.balance("shells"), 3);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-LoadError" data-name="loaderror"><div class="sig"><a class="anchor" href="#sym-LoadError" aria-label="Link to LoadError">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">LoadError</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The bytes do not start with `WMP\0`.</span>
+<span class="t">BadMagic</span>,
+<span class="c">/// The version is newer than this build can read.</span>
+<span class="t">UnknownVersion</span>(u16),
+<span class="c">/// The bytes stop before the end of the data.</span>
+<span class="t">Truncated</span>,
+<span class="c">/// A string is not UTF-8.</span>
+<span class="t">BadString</span>,</code></pre></div><div class="doc"><p>Why [<code>Meta::load</code>] refused the bytes.</p>
+<p><code>use warp_sdk::metaprog::{Meta, MetaDef, LoadError};
+assert_eq!(Meta::load(MetaDef::new(), b"xx").unwrap_err(), LoadError::BadMagic);</code></p></div></div></div><h4>Constants</h4><div class="item" id="sym-SAVE_VERSION" data-name="save_version"><div class="sig"><a class="anchor" href="#sym-SAVE_VERSION" aria-label="Link to SAVE_VERSION">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SAVE_VERSION</span>: u16 = <span class="n">1</span></code></div><div class="doc"><p>The save format version that [<code>Meta::save</code>] writes.</p>
+<p>The layout is the 4 bytes <code>WMP\0</code>, a little-endian <code>u16</code> version, then
+each section in order: wallet, counters, unlocked, upgrades, milestones,
+stages, codex, runs. A count is a <code>u32</code>, a number is a <code>u64</code>, and a
+string is a <code>u32</code> length and UTF-8 bytes.</p>
+<p><code>assert_eq!(warp_sdk::metaprog::SAVE_VERSION, 1);</code></p></div></div><h2 id="see-also">See also</h2><ul><li><a href="quest.html" data-slug="quest">Quest kit</a></li><li><a href="economy.html" data-slug="economy">Economy kit</a></li><li><a href="challenge.html" data-slug="challenge">Challenge kit</a></li><li><a href="teach.html" data-slug="teach">Teach kit</a></li><li><a href="front-save.html" data-slug="front-save">Save slots</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/metaprog.rs</code> - <code>Sum the cost per currency, so two entries in one currency add up.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/metaprog.rs</code> - <code>in `unlocks` becomes unlocked at no cost. An id can be a tree node id or</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/metaprog.rs</code> - <code>A milestone with no conditions fires on the first check.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/metaprog.rs</code> - <code>counter with the currency name, which holds the lifetime total.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/metaprog.rs</code> - <code>Each call that changes a counter or the wallet checks every stage and</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/metaprog.rs</code> - <code>names that start with `run.`, for example `run.depth`. All other state</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/metaprog.rs</code> - <code>design. Stages and milestones that the old state did not reach, but</code></li></ol><table class="navbox"><tr><th><a href="category-game-systems.html">Game systems</a></th></tr><tr><td><a href="challenge.html" data-slug="challenge">Challenge kit</a> · <a href="economy.html" data-slug="economy">Economy kit</a> · <a href="quest.html" data-slug="quest">Quest kit</a> · <b>Metaprogression</b> · <a href="gamepad.html" data-slug="gamepad">Gamepad</a> · <a href="soundtrack.html" data-slug="soundtrack">Soundtrack</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-game-systems.html">Game systems</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

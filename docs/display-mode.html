@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Display mode - Warp Wiki</title>
+<meta name="description" content="window mode, vsync, frame cap and windowed size at run time, from any thread">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="display-mode">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#design">Design</a></li><li><a href="#the-state">The state</a></li><li><a href="#usage">Usage</a><ul><li><a href="#monitors-and-resolutions">Monitors and resolutions</a></li></ul></li><li><a href="#when-a-change-shows">When a change shows</a></li><li><a href="#present-mode-choice">Present mode choice</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Display mode</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">window mode, vsync, frame cap and windowed size at run time, from any thread</p><table class="infobox"><caption>Display mode</caption><tr><th>Category</th><td><a href="category-engine.html">Engine</a></td></tr><tr><th>Module</th><td><code>warp_sdk::display_mode</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/display_mode.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">10</a></td></tr></table><p><strong>Display mode</strong> is the run-time state of the primary window: its window mode, vsync, frame cap and windowed size. The <a class="sym" href="display-mode.html"><code>display_mode</code></a> module of <code>warp_sdk</code> reads and changes that state from any thread. A game calls it from <code>new</code>, from <code>gui</code>, from a settings menu or from a worker thread, and the engine applies the change at its next frame.</p>
+<h2 id="design">Design</h2>
+<p>The <code>window_mode</code> field of <code>Config</code> sets the first window mode and is read once, at <a class="sym" href="renderer.html#sym-run"><code>run</code></a>. Before this module existed, the present mode was fixed when the surface was built, and a game that wanted a frame cap wrote its own. The store is the one run-time path for all four values.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> It follows the same pattern as the post-effect store: a mutex that never waits for a frame.</p>
+<p>A game needs no frame limiter of its own, because the engine frame gate keeps the <code>frame_cap</code> field.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<h2 id="the-state">The state</h2>
+<p><a class="sym" href="#sym-DisplayMode"><code>DisplayMode</code></a> is a small copyable struct with four fields. All of them apply together at the next frame.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="window.html"><code>window</code></a></td>
+<td><code>WindowMode</code></td>
+<td>Windowed</td>
+<td>How the primary window covers the screen.</td>
+</tr>
+<tr>
+<td><code>vsync</code></td>
+<td><code>bool</code></td>
+<td><code>false</code></td>
+<td><code>true</code> makes present wait for the monitor refresh.</td>
+</tr>
+<tr>
+<td><code>frame_cap</code></td>
+<td>optional <code>u32</code></td>
+<td>none</td>
+<td>The most frames per second the engine renders.</td>
+</tr>
+<tr>
+<td><code>resolution</code></td>
+<td>optional <code>[u32; 2]</code></td>
+<td>none</td>
+<td>The windowed size in physical pixels, and the exclusive video mode size.</td>
+</tr>
+</tbody>
+</table>
+<p>The default <a class="sym" href="#sym-DisplayMode"><code>DisplayMode</code></a> describes the window that <a class="sym" href="renderer.html#sym-run"><code>run</code></a> opened with no change. A <code>frame_cap</code> of none keeps the manifest value <code>window.frame_cap_hz</code>, which is 60 when the <a href="manifest.html" data-slug="manifest">App manifest</a> has none. A cap of zero is the same as none.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> A <code>resolution</code> of none keeps the current size.</p>
+<p><code>WindowMode</code> is the name that this module gives to <a class="sym" href="types.html#sym-DisplayWindow"><code>DisplayWindow</code></a>. It has three variants:</p>
+<ul>
+<li>Windowed is a window with a frame, sized by <code>resolution</code>.</li>
+<li>BorderlessFullscreen is a frameless window that covers the monitor. The desktop video mode stays, so Alt-tab is fast.</li>
+<li>ExclusiveFullscreen changes the monitor to a video mode. <code>resolution</code> picks the mode when the monitor has one of that size, and otherwise the desktop size is used. If the monitor has no video mode at all, the engine uses borderless.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></li>
+</ul>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::display_mode::{<span class="k">self</span>, <span class="t">WindowMode</span>};
+
+display_mode::<span class="f">set</span>(|m| {
+    m.window = <span class="t">WindowMode</span>::<span class="t">BorderlessFullscreen</span>;
+    m.vsync = <span class="k">false</span>;
+    m.frame_cap = <span class="t">Some</span>(<span class="n">144</span>);
+});
+<span class="k">let</span> sizes = display_mode::<span class="f">resolutions</span>();      <span class="c">// for the settings menu</span></code></pre></div>
+<p><a class="sym" href="#sym-get"><code>get</code></a> returns a copy of the newest value. <a class="sym" href="#sym-set"><code>set</code></a> changes it through a closure, and <a class="sym" href="#sym-replace"><code>replace</code></a> swaps the whole value. <a class="sym" href="#sym-revision"><code>revision</code></a> counts the <a class="sym" href="#sym-set"><code>set</code></a> and <a class="sym" href="#sym-replace"><code>replace</code></a> calls of the process, so a different number since the last read means that the mode changed.</p>
+<p>The store is locked while the closure of <a class="sym" href="#sym-set"><code>set</code></a> runs, so that closure must not call another function of the module.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<h3 id="monitors-and-resolutions">Monitors and resolutions</h3>
+<p><a class="sym" href="#sym-monitors"><code>monitors</code></a> returns one <a class="sym" href="#sym-MonitorInfo"><code>MonitorInfo</code></a> per monitor: name, desktop size, refresh rate, scale and exclusive video mode sizes. The engine reads the list on the main thread at the first frame and after each change, so the list is empty before the first frame and in a headless test.</p>
+<p><a class="sym" href="#sym-resolutions"><code>resolutions</code></a> returns the exclusive video mode sizes of the monitor that holds the window, unique and largest first. It is empty when the engine knows no monitor. A settings menu passes one of these sizes in the <code>resolution</code> field.</p>
+<h2 id="when-a-change-shows">When a change shows</h2>
+<p><a class="sym" href="#sym-set"><code>set</code></a> writes the store in <code>warp_core</code> and never waits for a frame. The rest happens in the primary viewport:<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<ol>
+<li>Any thread updates the store, and the revision goes up.</li>
+<li>The primary viewport syncs the display store next to the post store. A new revision gives the new value once.</li>
+<li>The frame writes the window mode and size requests, which the event loop applies to the winit window. It sets the engine frame cap at once.</li>
+<li>The frame marks the present mode. The next frame applies that mode before it gets the surface texture, because a surface is not reconfigured while one of its textures is out.</li>
+<li>The frame refreshes the monitor list after each change, on the main thread.</li>
+</ol>
+<p>The frame cap therefore applies at once, and vsync applies one frame later. When no update arrived, the frame copies the real window state back, so F11 and the Settings panel show in <a class="sym" href="#sym-get"><code>get</code></a>.</p>
+<h2 id="present-mode-choice">Present mode choice</h2>
+<p><a class="sym" href="#sym-present_mode_for"><code>present_mode_for</code></a> returns the present mode that the engine uses for a <code>vsync</code> value on a surface with a given list of supported modes. Vsync on is Fifo. Vsync off is Mailbox, else Immediate, else a mode that the surface has.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::wgpu::<span class="t">PresentMode</span> <span class="k">as</span> <span class="t">P</span>;
+assert_eq!(<span class="f">present_mode_for</span>(<span class="k">false</span>, &amp;[<span class="t">P</span>::<span class="t">Fifo</span>, <span class="t">P</span>::<span class="t">Immediate</span>]), <span class="t">P</span>::<span class="t">Immediate</span>);</code></pre></div>
+<p>With vsync off, the frame cap sets the rate.</p>
+<h2 id="limitations">Limitations</h2>
+<p>A game hosted in the editor's Game panel gets the frame cap and vsync, but its window follows the panel, so window mode and size do nothing there.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup> See <a href="hostlink.html" data-slug="hostlink">Host link</a>.</p>
+<h2 id="history">History</h2>
+<p>The module was added on 2026-10-29 with the second pass of <code>warp_sdk</code> kits.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 10 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-display-mode" class="modhead"><code>warp_sdk::display_mode</code></h3><h4>Functions</h4><div class="item" id="sym-get" data-name="get"><div class="sig"><a class="anchor" href="#sym-get" aria-label="Link to get">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">get</span>() -&gt; <span class="t">DisplayMode</span></code></div><div class="doc"><p>A copy of the newest display mode. Callable from any thread, and from
+inside <code>Renderer::gui</code>.</p>
+<p><code>ignore
+let vsync_on = warp_sdk::display_mode::get().vsync;</code></p></div></div><div class="item" id="sym-set" data-name="set"><div class="sig"><a class="anchor" href="#sym-set" aria-label="Link to set">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set</span>(f: <span class="k">impl</span> <span class="t">FnOnce</span>(&amp;<span class="k">mut</span> <span class="t">DisplayMode</span>))</code></div><div class="doc"><p>Change the display mode. The engine applies the change at its next frame.</p>
+<p>The store is locked while <code>f</code> runs, so <code>f</code> must not call another function
+of this module.</p>
+<p><code>ignore
+warp_sdk::display_mode::set(|m| { m.window = WindowMode::Windowed; m.resolution = Some([1600, 900]); });</code></p></div></div><div class="item" id="sym-replace" data-name="replace"><div class="sig"><a class="anchor" href="#sym-replace" aria-label="Link to replace">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">replace</span>(m: <span class="t">DisplayMode</span>)</code></div><div class="doc"><p>Replace the display mode whole.</p>
+<p><code>ignore
+warp_sdk::display_mode::replace(DisplayMode::default());</code></p></div></div><div class="item" id="sym-revision" data-name="revision"><div class="sig"><a class="anchor" href="#sym-revision" aria-label="Link to revision">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">revision</span>() -&gt; u64</code></div><div class="doc"><p>How many <code>set</code> and <code>replace</code> calls the process has made. A different
+number since the last read means the display mode changed.</p>
+<p><code>ignore
+let rev = warp_sdk::display_mode::revision();</code></p></div></div><div class="item" id="sym-monitors" data-name="monitors"><div class="sig"><a class="anchor" href="#sym-monitors" aria-label="Link to monitors">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">monitors</span>() -&gt; <span class="t">Vec</span>&lt;<span class="t">MonitorInfo</span>&gt;</code></div><div class="doc"><p>All monitors. The engine reads them on the main thread at the first frame
+and after each change. Empty before the first frame, and in a headless
+test.</p>
+<p><code>ignore
+let names: Vec&lt;String&gt; = warp_sdk::display_mode::monitors().into_iter().map(|m| m.name).collect();</code></p></div></div><div class="item" id="sym-resolutions" data-name="resolutions"><div class="sig"><a class="anchor" href="#sym-resolutions" aria-label="Link to resolutions">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">resolutions</span>() -&gt; <span class="t">Vec</span>&lt;[u32; <span class="n">2</span>]&gt;</code></div><div class="doc"><p>The exclusive video mode sizes of the monitor that holds the window,
+unique, largest first. Give one to <code>DisplayMode::resolution</code>. Empty when
+the engine knows no monitor.</p>
+<p><code>ignore
+if let Some(&amp;best) = warp_sdk::display_mode::resolutions().first() {
+warp_sdk::display_mode::set(|m| m.resolution = Some(best));
+}</code></p></div></div><div class="item" id="sym-present_mode_for" data-name="present_mode_for"><div class="sig"><a class="anchor" href="#sym-present_mode_for" aria-label="Link to present_mode_for">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">present_mode_for</span>(vsync: bool, supported: &amp;[<span class="k">crate</span>::wgpu::<span class="t">PresentMode</span>]) -&gt; <span class="k">crate</span>::wgpu::<span class="t">PresentMode</span></code></div><div class="doc"><p>The present mode the engine uses for <code>vsync</code> on a surface that supports
+<code>supported</code>. Vsync on is Fifo. Vsync off is Mailbox, else Immediate, else
+a mode the surface has.</p>
+<p><code>ignore
+use warp_sdk::wgpu::PresentMode as P;
+assert_eq!(present_mode_for(false, &amp;[P::Fifo, P::Immediate]), P::Immediate);</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-DisplayMode" data-name="displaymode"><div class="sig"><a class="anchor" href="#sym-DisplayMode" aria-label="Link to DisplayMode">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">DisplayMode</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> window: <span class="t">DisplayWindow</span>,
+<span class="c">/// True: present waits for the monitor refresh (Fifo). No tearing.</span>
+<span class="c">/// False: present does not wait (Mailbox, else Immediate). The frame cap</span>
+<span class="c">/// then sets the rate.</span>
+<span class="k">pub</span> vsync: bool,
+<span class="c">/// The most frames per second the engine renders. `None` keeps the</span>
+<span class="c">/// manifest's `window.frame_cap_hz` (60 when the manifest has none).</span>
+<span class="c">/// `Some(0)` is the same as `None`.</span>
+<span class="k">pub</span> frame_cap: <span class="t">Option</span>&lt;u32&gt;,
+<span class="c">/// The windowed size in physical pixels, and the exclusive video mode</span>
+<span class="c">/// size. `None` keeps the current size.</span>
+<span class="k">pub</span> resolution: <span class="t">Option</span>&lt;[u32; <span class="n">2</span>]&gt;,</code></pre></div><div class="doc"><p>The display state a game asks for. All fields apply together, at the
+next frame.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-DisplayMode-DEFAULT" data-name="displaymode::default"><div class="sig"><a class="anchor" href="#sym-DisplayMode-DEFAULT" aria-label="Link to DisplayMode::DEFAULT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">DEFAULT</span>: <span class="t">DisplayMode</span> = <span class="t">DisplayMode</span></code></div><div class="doc"><p>The state of a window that <code>run</code> opened with no change: windowed, no
+vsync (the engine picks Mailbox), the manifest frame cap.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-MonitorInfo" data-name="monitorinfo"><div class="sig"><a class="anchor" href="#sym-MonitorInfo" aria-label="Link to MonitorInfo">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">MonitorInfo</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> name: <span class="t">String</span>,
+<span class="c">/// The desktop size in physical pixels.</span>
+<span class="k">pub</span> size: [u32; <span class="n">2</span>],
+<span class="c">/// The highest refresh rate of the desktop size, in hertz. 0 when the</span>
+<span class="c">/// platform reports none.</span>
+<span class="k">pub</span> refresh_hz: f32,
+<span class="k">pub</span> scale_factor: f64,
+<span class="c">/// True for the monitor that holds the primary window.</span>
+<span class="k">pub</span> current: bool,
+<span class="c">/// The sizes of the exclusive video modes, unique, largest first.</span>
+<span class="k">pub</span> resolutions: <span class="t">Vec</span>&lt;[u32; <span class="n">2</span>]&gt;,</code></pre></div><div class="doc"><p>One monitor, as winit reports it.</p></div></div></div><h2 id="see-also">See also</h2><ul><li><a href="renderer.html" data-slug="renderer">Renderer and run</a></li><li><a href="perf.html" data-slug="perf">Perf</a></li><li><a href="types.html" data-slug="types">Types</a></li><li><a href="front-settings.html" data-slug="front-settings">Settings</a></li><li><a href="hostlink.html" data-slug="hostlink">Host link</a></li><li><a href="gpu.html" data-slug="gpu">GPU module</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/types/display_store.rs</code> - <code>This store is the one runtime path for all four</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/display_mode.rs</code> - <code>frame gate keeps `frame_cap`</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/types/display_store.rs</code> - <code>`Some(0)` is the same as `None`.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/types/display_store.rs</code> - <code>With no video mode at all, the engine uses borderless.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/display_mode.rs</code> - <code>The store is locked while `f` runs, so `f` must not call another function</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_core/src/types/display_store.rs</code> - <code>THE ORDER IN ONE FRAME</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/display_mode.rs</code> - <code>but its window follows the panel, so window mode and size do nothing.</code></li></ol><table class="navbox"><tr><th><a href="category-engine.html">Engine</a></th></tr><tr><td><b>Display mode</b> · <a href="perf.html" data-slug="perf">Perf</a> · <a href="gpu.html" data-slug="gpu">GPU module</a> · <a href="render.html" data-slug="render">Render passes</a> · <a href="scene.html" data-slug="scene">Scene</a> · <a href="image.html" data-slug="image">Image atlases</a> · <a href="assets.html" data-slug="assets">Assets</a> · <a href="manifest.html" data-slug="manifest">App manifest</a> · <a href="project-settings.html" data-slug="project-settings">Project settings</a> · <a href="scale.html" data-slug="scale">Interface scale</a> · <a href="types.html" data-slug="types">Types</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-engine.html">Engine</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

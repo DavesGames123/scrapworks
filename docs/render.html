@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Render passes - Warp Wiki</title>
+<meta name="description" content="the draw table, registered scene layers and the declared frame graph">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="render">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#design">Design</a></li><li><a href="#the-engine-rows">The engine rows</a></li><li><a href="#registered-scene-layers">Registered scene layers</a><ul><li><a href="#group-bindings">Group bindings</a></li><li><a href="#position-in-the-order">Position in the order</a></li><li><a href="#lifecycle">Lifecycle</a></li><li><a href="#validation">Validation</a></li></ul></li><li><a href="#the-frame-graph">The frame graph</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Render passes</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">the draw table, registered scene layers and the declared frame graph</p><table class="infobox"><caption>Render passes</caption><tr><th>Category</th><td><a href="category-engine.html">Engine</a></td></tr><tr><th>Module</th><td><code>warp_sdk::render</code></td></tr><tr><th>Source</th><td><code>warp_core/src/render/mod.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">81</a></td></tr></table><p><strong>Render passes</strong> are the ordered draws that make up a Warp frame, and the <a class="sym" href="icon.html#sym-render"><code>render</code></a> module of <code>warp_core</code>, re-exported by <code>warp_sdk</code>, is the code that owns them. The module holds three things: the table that walks the draw order, the seam through which an application registers scene layers, and a declared frame graph that the engine validates. Layering in the scene is entirely the order of the table.</p>
+<div class="hatnote">An application pass with its own bind groups uses `Renderer::scene_underlay` or `Renderer::scene_overlay`. See <a href="renderer.html" data-slug="renderer">Renderer and run</a>.</div>
+
+<h2 id="design">Design</h2>
+<p>The order is a table and not a function body. <code>layers</code> returns one row per draw, in submission order, and <a class="sym" href="#sym-execute_render_pass"><code>execute_render_pass</code></a> is a loop over that list that does not know what any row means.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> Adding a layer adds a row. The table replaced thirteen hand-numbered blocks, and the fractional names left over from those blocks, such as 6.5 and 7.5, survive as positions.</p>
+<p>No scene pipeline has a depth test. Each pipeline sets <code>depth_stencil: None</code>, and the Z target is a channel for the depth-of-field pass, not a depth buffer. Later rows overwrite earlier rows.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<p>Two callers walk the table: the live frame, and the debug dump in <a href="gpu.html#debug-buffers" data-slug="gpu">gpu</a>, which runs the scene pass once per channel.</p>
+<h2 id="the-engine-rows">The engine rows</h2>
+<p>The private ENGINE_ROWS table lists the 15 rows of the engine. A row with a count of zero binds nothing.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Row</th>
+<th>Position</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>dust</td>
+<td>2.0</td>
+</tr>
+<tr>
+<td>lines</td>
+<td>3.0</td>
+</tr>
+<tr>
+<td>circles</td>
+<td>4.0</td>
+</tr>
+<tr>
+<td>atlas:environment</td>
+<td>5.0</td>
+</tr>
+<tr>
+<td>atlas:resources</td>
+<td>6.0</td>
+</tr>
+<tr>
+<td>rects</td>
+<td>6.5</td>
+</tr>
+<tr>
+<td>atlas:resources-overlay</td>
+<td>6.75</td>
+</tr>
+<tr>
+<td>atlas:structures</td>
+<td>7.0</td>
+</tr>
+<tr>
+<td>atlas:resources-hull</td>
+<td>7.25</td>
+</tr>
+<tr>
+<td>overlay:rects</td>
+<td>7.5</td>
+</tr>
+<tr>
+<td>overlay:lines</td>
+<td>7.5</td>
+</tr>
+<tr>
+<td>overlay:circles</td>
+<td>7.5</td>
+</tr>
+<tr>
+<td>ships</td>
+<td>9.0</td>
+</tr>
+<tr>
+<td>planets</td>
+<td>11.0</td>
+</tr>
+<tr>
+<td>stars</td>
+<td>12.0</td>
+</tr>
+</tbody>
+</table>
+<p>The GUI is rendered separately, after <a class="sym" href="#sym-execute_render_pass"><code>execute_render_pass</code></a> returns. <a class="sym" href="#sym-execute_rect_surface_pass"><code>execute_rect_surface_pass</code></a>, <a class="sym" href="#sym-execute_line_surface_pass"><code>execute_line_surface_pass</code></a> and <a class="sym" href="#sym-execute_circle_surface_pass"><code>execute_circle_surface_pass</code></a> encode primitives into one colour target that the caller provides, and <a class="sym" href="#sym-RenderResources"><code>RenderResources</code></a> carries the references that a pass needs.</p>
+<p><a class="sym" href="#sym-InstanceCounts"><code>InstanceCounts</code></a> holds the count of each row. It also crosses the process boundary to the editor, so it is serialisable, and its <code>registered</code> field carries each name with its count, because the editor process does not link the application.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> <a class="sym" href="#sym-last_counts"><code>last_counts</code></a> returns the counts of the most recent scene pass. The value comes from the last writer and is not a sum across viewports, because a dump runs the pass many times in one frame.</p>
+<h2 id="registered-scene-layers">Registered scene layers</h2>
+<p>Before this seam, a row for a game object had to go in engine source. An application now declares a row with its shader, instance layout, binding and position, before the engine makes a device. The engine keeps the descriptor in a process-wide slot and learns no name.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<p><a class="sym" href="#sym-SceneLayerDesc-new"><code>SceneLayerDesc::new</code></a> starts a row with the defaults of an instanced quad: an instanced triangle list of 6 vertices, alpha blend, no group 1, and a capacity of 256. The <code>with_*</code> methods set the rest.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>Unique across the registry and different from each engine row name</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-FrameGraph-order"><code>order</code></a></td>
+<td>Position on the engine row scale; larger draws later</td>
+</tr>
+<tr>
+<td><code>wgsl</code></td>
+<td>The shader, without <code>struct View</code>, because <code>view.wgsl</code> goes in front</td>
+</tr>
+<tr>
+<td><code>wgsl_vs</code></td>
+<td>A vertex-only copy for wasm, needed when the shader holds a <code>discard</code></td>
+</tr>
+<tr>
+<td><code>stride</code>, <code>attributes</code></td>
+<td>The instance layout, set with <a class="sym" href="#sym-SceneLayerDesc-with_layout"><code>SceneLayerDesc::with_layout</code></a></td>
+</tr>
+<tr>
+<td><code>step_mode</code></td>
+<td><a class="sym" href="#sym-LayerStep"><code>LayerStep</code></a></td>
+</tr>
+<tr>
+<td><code>topology</code></td>
+<td><a class="sym" href="#sym-LayerTopology"><code>LayerTopology</code></a></td>
+</tr>
+<tr>
+<td><code>binding</code></td>
+<td><a class="sym" href="#sym-LayerBinding"><code>LayerBinding</code></a></td>
+</tr>
+<tr>
+<td><code>draw</code></td>
+<td><a class="sym" href="#sym-LayerDraw"><code>LayerDraw</code></a></td>
+</tr>
+<tr>
+<td><code>blend</code></td>
+<td><a class="sym" href="#sym-LayerBlend"><code>LayerBlend</code></a></td>
+</tr>
+<tr>
+<td><code>capacity</code></td>
+<td>Instances the buffer holds before it grows</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>wgsl_vs</code> field exists because naga emits one module into both stages, and WebKit rejects a vertex shader that holds a <code>discard</code>.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<h3 id="group-bindings">Group bindings</h3>
+<p>Group 0 is always the view uniform. <a class="sym" href="#sym-LayerBinding"><code>LayerBinding</code></a> chooses group 1:</p>
+<ul>
+<li>None binds nothing. The binding of the row before stays and is not read.</li>
+<li>SceneTextures binds the scene material set.</li>
+<li>MegaAtlas binds one slot of the <a href="image.html" data-slug="image">Image atlases</a> mega-atlas set, through the GLES rebind.</li>
+<li>Coverage binds the shadow coverage buffer, which the application fills in <code>scene_underlay</code>.</li>
+<li>ShipAtlas binds the player-ship atlas.</li>
+</ul>
+<p>The GLES rebind binds a dummy group and then the real group, because the texture-unit tracker of wgpu-hal on GLES can hold slot 1 textures stale. It costs nothing on native. The last atlas slot is the dummy, so a registered row cannot bind it.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<p>A row that needs a bind group of its own is not this API. That row uses <a class="sym" href="renderer.html#sym-Renderer-scene_underlay"><code>Renderer::scene_underlay</code></a> or <a class="sym" href="renderer.html#sym-Renderer-scene_overlay"><code>Renderer::scene_overlay</code></a>.</p>
+<h3 id="position-in-the-order">Position in the order</h3>
+<p>Rows sort by <a class="sym" href="#sym-FrameGraph-order"><code>order</code></a> into one list with a stable sort, and the engine rows come first. A registered row at the position of an engine row therefore draws after it. The source gives the reason: the opposite rule would let a registered row hide the hull that it was registered to sit on.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<h3 id="lifecycle">Lifecycle</h3>
+<ol>
+<li>Build a list of <a class="sym" href="#sym-SceneLayerDesc"><code>SceneLayerDesc</code></a> values before <a class="sym" href="renderer.html#sym-run"><code>run</code></a>.</li>
+<li>Call <a class="sym" href="#sym-register_scene_layers"><code>register_scene_layers</code></a>. It validates the set, sorts it by <a class="sym" href="#sym-FrameGraph-order"><code>order</code></a>, and stores it. The first call wins, and a second returns an error.</li>
+<li>Call <a class="sym" href="#sym-scene_layer_index"><code>scene_layer_index</code></a> to find a row by name. The index is the position after the sort, not the position of declaration.</li>
+<li>Push instances to the row by index each frame.</li>
+</ol>
+<p><a class="sym" href="#sym-scene_layers"><code>scene_layers</code></a> and <a class="sym" href="#sym-scene_layer_count"><code>scene_layer_count</code></a> read the registry. <a class="sym" href="#sym-validate_scene_layers"><code>validate_scene_layers</code></a> runs the same checks without using up the single registration.</p>
+<p>A registered row is dropped with no message if the device came up before registration, because the pipeline list is then short.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<h3 id="validation">Validation</h3>
+<p>Every rule adds its own message, so one run finds every mistake. The result is an error that holds a list of strings. The rules are:</p>
+<ul>
+<li>A name must be present, unique, and not an engine row name.</li>
+<li><a class="sym" href="#sym-FrameGraph-order"><code>order</code></a> must be finite.</li>
+<li><code>stride</code> must be non-zero and a multiple of 4.</li>
+<li>There must be attributes, each must end inside the stride, and no shader location may repeat.</li>
+<li>The atlas slot must be in range and not the last slot.</li>
+<li><code>capacity</code> must not be 0, and an instanced row must draw at least one vertex.</li>
+<li>The WGSL must parse and validate with naga, with the prelude in front. wasm32 skips this check.</li>
+<li><code>wgsl_vs</code> must hold no <code>discard</code>.</li>
+<li>The set must not exceed <a class="sym" href="#sym-MAX_SCENE_LAYERS"><code>MAX_SCENE_LAYERS</code></a>, which is 16.</li>
+</ul>
+<p>Each row costs one pipeline, one instance buffer per viewport and one row in the perf readout, so the source treats a registry of hundreds as a mistake.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup></p>
+<h2 id="the-frame-graph">The frame graph</h2>
+<p><a class="sym" href="#sym-FrameGraph"><code>FrameGraph</code></a> is a contract in which a product declares its resources and passes as data. The aim is to stop the engine from growing one game noun at a time. This is not the live frame loop yet: <code>pass.rs</code> still walks its fixed order, and the migration is a later step.<sup class="ref"><a href="#ref-10" id="cite-10">[10]</a></sup></p>
+<p>A <a class="sym" href="#sym-GraphResource"><code>GraphResource</code></a> is a named target with a <a class="sym" href="#sym-ResourceKind"><code>ResourceKind</code></a> of colour, depth or aux and a <a class="sym" href="#sym-ResourceSource"><code>ResourceSource</code></a> of imported or created. A <a class="sym" href="#sym-PassDesc"><code>PassDesc</code></a> is one pass, with its owner, <a class="sym" href="#sym-PassDesc-after"><code>after</code></a> edges, inputs, outputs, depth and feedback resources. <a class="sym" href="#sym-PassDesc-new"><code>PassDesc::new</code></a> gives an owned scene pass that needs a project, moves no input, and may be omitted when it is off. <a class="sym" href="#sym-PassOutput"><code>PassOutput</code></a> says how a pass starts a colour target, with <a class="sym" href="#sym-Load"><code>Load</code></a>. <a class="sym" href="#sym-BudgetClass"><code>BudgetClass</code></a> names the bucket for its time. <a class="sym" href="#sym-InputMapping"><code>InputMapping</code></a> says whether the pass warps the map from a cursor to a scene point.</p>
+<p><a class="sym" href="#sym-engine_frame_graph"><code>engine_frame_graph</code></a> declares the frame of the engine in six passes: clear, scene, overlay, post, gui and present. All have the owner <code>warp</code>, and all run with no project, because the editor shows a frame before a game loads. <a class="sym" href="#sym-engine_frame_graph_checked"><code>engine_frame_graph_checked</code></a> validates that graph once and caches it. An invalid engine declaration panics.<sup class="ref"><a href="#ref-11" id="cite-11">[11]</a></sup></p>
+<p>A product implements <a class="sym" href="#sym-RenderPassExtension"><code>RenderPassExtension</code></a>. <a class="sym" href="#sym-RenderPassExtension-declare"><code>declare</code></a> fills a <a class="sym" href="#sym-FrameGraphBuilder"><code>FrameGraphBuilder</code></a> with data, and <a class="sym" href="#sym-RenderPassExtension-encode"><code>encode</code></a> runs the GPU work. <a class="sym" href="#sym-compose_frame_graph"><code>compose_frame_graph</code></a> seeds a graph from base resources and adds each extension that is enabled and owned by a loaded product. A stopped product adds nothing, so a stopped game leaves the graph whole. Composition does not validate, so the caller composes once and validates once.</p>
+<p><a class="sym" href="#sym-validate_frame_graph"><code>validate_frame_graph</code></a> checks a graph with no device and returns all messages.<sup class="ref"><a href="#ref-12" id="cite-12">[12]</a></sup> It reports these faults:</p>
+<ul>
+<li>a name that is empty or repeated, on a resource or a pass</li>
+<li>a created colour or aux target with no format</li>
+<li>a pass owner that is not loaded</li>
+<li>a read, write or depth that names no resource, or a resource of the wrong kind</li>
+<li>an undeclared read-write of one target, or a feedback claim over a target that the pass does not both read and write</li>
+<li>an <a class="sym" href="#sym-PassDesc-after"><code>after</code></a> edge to no pass, or a cycle</li>
+</ul>
+<p><a class="sym" href="#sym-FrameGraph-order"><code>FrameGraph::order</code></a> sorts the passes with Kahn's algorithm. The order is stable: passes keep their declared order where no edge forces otherwise. <a class="sym" href="#sym-FrameGraph-active_passes"><code>FrameGraph::active_passes</code></a> returns the passes that are enabled and owned by a loaded product.</p>
+<h2 id="limitations">Limitations</h2>
+<p>A registered row cannot have a bind group of its own or a group 2. The frame graph does not yet drive the frame, so <a class="sym" href="#sym-RenderPassExtension-encode"><code>RenderPassExtension::encode</code></a> has no live caller to rely on. wasm32 finds a bad shader only at pipeline creation, because naga is a native dependency there.</p>
+<h2 id="history">History</h2>
+<p>The application layer seam landed on 2026-08-06, and the frame graph contract and its composition landed on 2026-09-16.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 81 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-render" class="modhead"><code>warp_sdk::render</code></h3><h4>Functions</h4><div class="item" id="sym-compose_frame_graph" data-name="compose_frame_graph"><div class="sig"><a class="anchor" href="#sym-compose_frame_graph" aria-label="Link to compose_frame_graph">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">compose_frame_graph</span>( base: &amp;[<span class="t">GraphResource</span>], extensions: &amp;[&amp;<span class="k">dyn</span> <span class="t">RenderPassExtension</span>], active_owners: &amp;[&amp;str], ) -&gt; <span class="t">FrameGraph</span></code></div><div class="doc"><p>Build one frame graph from the engine base and the loaded extensions.</p>
+<p>The base resources seed the graph. Each extension that is on, and owned by
+a loaded product, fills the builder through <code>declare</code>. An extension that is
+off, or owned by a product that is not loaded, adds nothing. This is how a
+stopped game leaves the runtime graph whole.</p>
+<p>The caller validates the result. Composition does not validate, so a
+caller can compose once and validate once, and read every fault together.</p></div></div><div class="item" id="sym-validate_frame_graph" data-name="validate_frame_graph"><div class="sig"><a class="anchor" href="#sym-validate_frame_graph" aria-label="Link to validate_frame_graph">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">validate_frame_graph</span>( graph: &amp;<span class="t">FrameGraph</span>, active_owners: &amp;[&amp;str], ) -&gt; <span class="t">Result</span>&lt;(), <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;&gt;</code></div><div class="doc"><p>Check a whole graph. Return every message, or ok.</p>
+<p><code>active_owners</code> are the products loaded this run. A pass owned by a
+product not in the list is rejected, so a stopped game cannot leave a
+pass on a live viewport.</p></div></div><div class="item" id="sym-validate_scene_layers" data-name="validate_scene_layers"><div class="sig"><a class="anchor" href="#sym-validate_scene_layers" aria-label="Link to validate_scene_layers">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">validate_scene_layers</span>(layers: &amp;[<span class="t">SceneLayerDesc</span>]) -&gt; <span class="t">Result</span>&lt;(), <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;&gt;</code></div><div class="doc"><p>Check a whole registry: every row, and the rules that span rows.</p>
+<p><code>register_scene_layers</code> runs it. It is public on its own so an application
+can check a set it built at run time without spending the registry, which
+takes one call and keeps it.</p></div></div><div class="item" id="sym-register_scene_layers" data-name="register_scene_layers"><div class="sig"><a class="anchor" href="#sym-register_scene_layers" aria-label="Link to register_scene_layers">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">register_scene_layers</span>(<span class="k">mut</span> layers: <span class="t">Vec</span>&lt;<span class="t">SceneLayerDesc</span>&gt;) -&gt; <span class="t">Result</span>&lt;(), <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;&gt;</code></div><div class="doc"><p>Validate a set of rows and store it. The first call wins.</p>
+<p>Rows sort by <code>order</code> here, once, so every later reader takes the registry
+in draw order and no reader sorts again.</p></div></div><div class="item" id="sym-scene_layer_count" data-name="scene_layer_count"><div class="sig"><a class="anchor" href="#sym-scene_layer_count" aria-label="Link to scene_layer_count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">scene_layer_count</span>() -&gt; usize</code></div><div class="doc"><p>How many rows the application registered.</p></div></div><div class="item" id="sym-scene_layer_index" data-name="scene_layer_index"><div class="sig"><a class="anchor" href="#sym-scene_layer_index" aria-label="Link to scene_layer_index">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">scene_layer_index</span>(name: &amp;str) -&gt; <span class="t">Option</span>&lt;usize&gt;</code></div><div class="doc"><p>The index of a registered row, by name.</p>
+<p>The application pushes instances by index, and the index is the row's
+position after the sort, not the position it was declared at.</p></div></div><div class="item" id="sym-scene_layers" data-name="scene_layers"><div class="sig"><a class="anchor" href="#sym-scene_layers" aria-label="Link to scene_layers">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">scene_layers</span>() -&gt; &amp;<span class="a">'static</span> [<span class="t">SceneLayerDesc</span>]</code></div><div class="doc"><p>The registered rows, in draw order, or none.</p>
+<p>The reference is <code>'static</code>, so a caller can hold a row's name for the
+process lifetime. The perf readout needs that.</p></div></div><div class="item" id="sym-engine_frame_graph" data-name="engine_frame_graph"><div class="sig"><a class="anchor" href="#sym-engine_frame_graph" aria-label="Link to engine_frame_graph">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">engine_frame_graph</span>() -&gt; <span class="k">super</span>::graph::<span class="t">FrameGraph</span></code></div><div class="doc"><p>The engine's frame, stated through the graph contract.</p>
+<p><code>ENGINE_ROWS</code> is the draw order inside one pass. This is the pass order
+around it: clear, scene, overlay, post, gui, present. It is the sequence
+<code>execute_render_pass</code> walks, written as data a caller can validate now and
+drive the frame from later.</p>
+<p>Every pass here is the engine's, so the owner is <code>warp</code>. A product adds its
+own passes through <code>compose_frame_graph</code>, which seeds a builder from this
+base. The scene pass writes the HDR target that post reads.</p></div></div><div class="item" id="sym-engine_frame_graph_checked" data-name="engine_frame_graph_checked"><div class="sig"><a class="anchor" href="#sym-engine_frame_graph_checked" aria-label="Link to engine_frame_graph_checked">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">engine_frame_graph_checked</span>() -&gt; &amp;<span class="a">'static</span> <span class="k">super</span>::graph::<span class="t">FrameGraph</span></code></div><div class="doc"><p>The engine frame graph, validated once and cached for the process.</p>
+<p>The frame path calls this, so an invalid engine declaration stops the
+renderer at once, and not only under a test. The graph is the engine's
+own, so a fault here is an engine bug, and a panic is the right answer.</p></div></div><div class="item" id="sym-execute_circle_surface_pass" data-name="execute_circle_surface_pass"><div class="sig"><a class="anchor" href="#sym-execute_circle_surface_pass" aria-label="Link to execute_circle_surface_pass">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> execute_circle_surface_pass&lt;<span class="a">'a</span>&gt;( encoder: &amp;<span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>, pipelines: &amp;<span class="a">'a</span> <span class="t">Pipelines</span>, view_bind_group: &amp;<span class="a">'a</span> wgpu::<span class="t">BindGroup</span>, scene_bind_group: &amp;<span class="a">'a</span> wgpu::<span class="t">BindGroup</span>, circle_buffer: wgpu::<span class="t">BufferSlice</span>&lt;<span class="a">'a</span>&gt;, target: &amp;<span class="a">'a</span> wgpu::<span class="t">TextureView</span>, circle_count: u32, load: wgpu::<span class="t">LoadOp</span>&lt;wgpu::<span class="t">Color</span>&gt;, )</code></div><div class="doc"><p>Encode circles into one caller-provided color target while retaining the
+scene material bind group used by the production circle shader.</p></div></div><div class="item" id="sym-execute_line_surface_pass" data-name="execute_line_surface_pass"><div class="sig"><a class="anchor" href="#sym-execute_line_surface_pass" aria-label="Link to execute_line_surface_pass">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> execute_line_surface_pass&lt;<span class="a">'a</span>&gt;( encoder: &amp;<span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>, pipelines: &amp;<span class="a">'a</span> <span class="t">Pipelines</span>, view_bind_group: &amp;<span class="a">'a</span> wgpu::<span class="t">BindGroup</span>, vertex_buffer: wgpu::<span class="t">BufferSlice</span>&lt;<span class="a">'a</span>&gt;, target: &amp;<span class="a">'a</span> wgpu::<span class="t">TextureView</span>, vertex_count: u32, load: wgpu::<span class="t">LoadOp</span>&lt;wgpu::<span class="t">Color</span>&gt;, )</code></div><div class="doc"><p>Encode lines into one caller-provided color target.</p></div></div><div class="item" id="sym-execute_rect_surface_pass" data-name="execute_rect_surface_pass"><div class="sig"><a class="anchor" href="#sym-execute_rect_surface_pass" aria-label="Link to execute_rect_surface_pass">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> execute_rect_surface_pass&lt;<span class="a">'a</span>&gt;( encoder: &amp;<span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>, pipelines: &amp;<span class="a">'a</span> <span class="t">Pipelines</span>, view_bind_group: &amp;<span class="a">'a</span> wgpu::<span class="t">BindGroup</span>, rect_buffer: wgpu::<span class="t">BufferSlice</span>&lt;<span class="a">'a</span>&gt;, target: &amp;<span class="a">'a</span> wgpu::<span class="t">TextureView</span>, rect_count: u32, load: wgpu::<span class="t">LoadOp</span>&lt;wgpu::<span class="t">Color</span>&gt;, )</code></div><div class="doc"><p>Encode rectangles into one caller-provided color target.</p></div></div><div class="item" id="sym-execute_render_pass" data-name="execute_render_pass"><div class="sig"><a class="anchor" href="#sym-execute_render_pass" aria-label="Link to execute_render_pass">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> execute_render_pass&lt;<span class="a">'rpass</span>&gt;( render_pass: &amp;<span class="k">mut</span> wgpu::<span class="t">RenderPass</span>&lt;<span class="a">'rpass</span>&gt;, res: &amp;<span class="a">'rpass</span> <span class="t">RenderResources</span>&lt;<span class="a">'rpass</span>&gt;, counts: &amp;<span class="t">InstanceCounts</span>, )</code></div><div class="doc"><p>Execute the main render pass.</p>
+<p>The order lives in <code>layers</code>. This walks it and nothing else — a row with a
+count of zero binds nothing at all, which is what the thirteen <code>if count &gt; 0</code>
+blocks before it did and what keeps an empty slot free.</p>
+<p>GUI (Layer 13) is rendered separately, after this returns.</p></div></div><div class="item" id="sym-last_counts" data-name="last_counts"><div class="sig"><a class="anchor" href="#sym-last_counts" aria-label="Link to last_counts">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">last_counts</span>() -&gt; <span class="t">Option</span>&lt;<span class="t">InstanceCounts</span>&gt;</code></div><div class="doc"><p>What the last scene pass drew. None before the first frame.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-BudgetClass" data-name="budgetclass"><div class="sig"><a class="anchor" href="#sym-BudgetClass" aria-label="Link to BudgetClass">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">BudgetClass</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Clear</span>,
+<span class="t">Scene</span>,
+<span class="t">Post</span>,
+<span class="t">Gui</span>,
+<span class="t">Present</span>,</code></pre></div><div class="doc"><p>The budget bucket a pass reports its time under.</p></div></div></div><div class="typeblock"><div class="item" id="sym-FrameGraph" data-name="framegraph"><div class="sig"><a class="anchor" href="#sym-FrameGraph" aria-label="Link to FrameGraph">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">FrameGraph</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> resources: <span class="t">Vec</span>&lt;<span class="t">GraphResource</span>&gt;,
+<span class="k">pub</span> passes: <span class="t">Vec</span>&lt;<span class="t">PassDesc</span>&gt;,</code></pre></div><div class="doc"><p>The whole frame declaration: the targets, and the passes over them.</p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-FrameGraph-new" data-name="framegraph::new"><div class="sig"><a class="anchor" href="#sym-FrameGraph-new" aria-label="Link to FrameGraph::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-FrameGraph-resource" data-name="framegraph::resource"><div class="sig"><a class="anchor" href="#sym-FrameGraph-resource" aria-label="Link to FrameGraph::resource">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">resource</span>(&amp;<span class="k">self</span>, name: &amp;str) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">GraphResource</span>&gt;</code></div><div class="doc"><p>The resource by that name, or none.</p></div></div><div class="item" id="sym-FrameGraph-active_passes" data-name="framegraph::active_passes"><div class="sig"><a class="anchor" href="#sym-FrameGraph-active_passes" aria-label="Link to FrameGraph::active_passes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">active_passes</span>(&amp;<span class="k">self</span>, active_owners: &amp;[&amp;str]) -&gt; <span class="t">Vec</span>&lt;&amp;<span class="t">PassDesc</span>&gt;</code></div><div class="doc"><p>The passes that run this frame: enabled, and owned by a loaded product.</p>
+<p>A caller passes the loaded product names. A pass owned by an unloaded
+product drops out, so a stopped game leaves no pass behind.</p></div></div><div class="item" id="sym-FrameGraph-order" data-name="framegraph::order"><div class="sig"><a class="anchor" href="#sym-FrameGraph-order" aria-label="Link to FrameGraph::order">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">order</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Result</span>&lt;<span class="t">Vec</span>&lt;&amp;<span class="t">PassDesc</span>&gt;, <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;&gt;</code></div><div class="doc"><p>The passes in an order that respects every <code>after</code> edge.</p>
+<p>The order is stable: passes keep their declared order where no edge
+forces otherwise. A cycle has no order, so the result is an error that
+names the passes in the cycle.</p></div></div><div class="item" id="sym-FrameGraph-declares_before" data-name="framegraph::declares_before"><div class="sig"><a class="anchor" href="#sym-FrameGraph-declares_before" aria-label="Link to FrameGraph::declares_before">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">declares_before</span>(&amp;<span class="k">self</span>, first: &amp;str, second: &amp;str) -&gt; bool</code></div><div class="doc"><p>Whether <code>first</code> runs before <code>second</code> in the ordered frame.</p>
+<p>Both must be passes in the graph. A pass that is not there, or an order
+that does not resolve, answers false. A caller holds a live frame path
+to this, so a change that drops the order fails a check that names it.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-FrameGraphBuilder" data-name="framegraphbuilder"><div class="sig"><a class="anchor" href="#sym-FrameGraphBuilder" aria-label="Link to FrameGraphBuilder">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">FrameGraphBuilder</span></code></div><div class="doc"><p>A fluent front for <code>FrameGraph</code>, handed to <code>RenderPassExtension::declare</code>.</p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-FrameGraphBuilder-new" data-name="framegraphbuilder::new"><div class="sig"><a class="anchor" href="#sym-FrameGraphBuilder-new" aria-label="Link to FrameGraphBuilder::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-FrameGraphBuilder-resource" data-name="framegraphbuilder::resource"><div class="sig"><a class="anchor" href="#sym-FrameGraphBuilder-resource" aria-label="Link to FrameGraphBuilder::resource">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">resource</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, resource: <span class="t">GraphResource</span>) -&gt; &amp;<span class="k">mut</span> <span class="k">Self</span></code></div><div class="doc"><p>Add a target, and keep building.</p></div></div><div class="item" id="sym-FrameGraphBuilder-pass" data-name="framegraphbuilder::pass"><div class="sig"><a class="anchor" href="#sym-FrameGraphBuilder-pass" aria-label="Link to FrameGraphBuilder::pass">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pass</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, pass: <span class="t">PassDesc</span>) -&gt; &amp;<span class="k">mut</span> <span class="k">Self</span></code></div><div class="doc"><p>Add a pass, and keep building.</p></div></div><div class="item" id="sym-FrameGraphBuilder-build" data-name="framegraphbuilder::build"><div class="sig"><a class="anchor" href="#sym-FrameGraphBuilder-build" aria-label="Link to FrameGraphBuilder::build">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">build</span>(<span class="k">self</span>) -&gt; <span class="t">FrameGraph</span></code></div><div class="doc"><p>Take the built graph.</p></div></div><div class="item" id="sym-FrameGraphBuilder-graph" data-name="framegraphbuilder::graph"><div class="sig"><a class="anchor" href="#sym-FrameGraphBuilder-graph" aria-label="Link to FrameGraphBuilder::graph">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">graph</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="t">FrameGraph</span></code></div><div class="doc"><p>A read-only view of the graph so far.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-GraphResource" data-name="graphresource"><div class="sig"><a class="anchor" href="#sym-GraphResource" aria-label="Link to GraphResource">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">GraphResource</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// What passes name this target by. Unique across the graph.</span>
+<span class="k">pub</span> name: <span class="t">String</span>,
+<span class="k">pub</span> kind: <span class="t">ResourceKind</span>,
+<span class="c">/// The texel format. A created colour or aux target must state it, so a</span>
+<span class="c">/// write can be checked. An imported target may leave it unset.</span>
+<span class="k">pub</span> format: <span class="t">Option</span>&lt;wgpu::<span class="t">TextureFormat</span>&gt;,
+<span class="c">/// The MSAA sample count. One for a resolved target.</span>
+<span class="k">pub</span> samples: u32,
+<span class="k">pub</span> source: <span class="t">ResourceSource</span>,</code></pre></div><div class="doc"><p>One target the graph holds, by name.</p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-GraphResource-imported" data-name="graphresource::imported"><div class="sig"><a class="anchor" href="#sym-GraphResource-imported" aria-label="Link to GraphResource::imported">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">imported</span>(name: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, kind: <span class="t">ResourceKind</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A target the engine hands in. Its format is fixed elsewhere.</p></div></div><div class="item" id="sym-GraphResource-created" data-name="graphresource::created"><div class="sig"><a class="anchor" href="#sym-GraphResource-created" aria-label="Link to GraphResource::created">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">created</span>(name: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, kind: <span class="t">ResourceKind</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A target the graph allocates and recreates on resize.</p></div></div><div class="item" id="sym-GraphResource-with_format" data-name="graphresource::with_format"><div class="sig"><a class="anchor" href="#sym-GraphResource-with_format" aria-label="Link to GraphResource::with_format">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_format</span>(<span class="k">mut</span> <span class="k">self</span>, format: wgpu::<span class="t">TextureFormat</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-GraphResource-with_samples" data-name="graphresource::with_samples"><div class="sig"><a class="anchor" href="#sym-GraphResource-with_samples" aria-label="Link to GraphResource::with_samples">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_samples</span>(<span class="k">mut</span> <span class="k">self</span>, samples: u32) -&gt; <span class="k">Self</span></code></div></div></details></div><div class="typeblock"><div class="item" id="sym-InputMapping" data-name="inputmapping"><div class="sig"><a class="anchor" href="#sym-InputMapping" aria-label="Link to InputMapping">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">InputMapping</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The pass leaves the screen-to-scene map alone.</span>
+<span class="t">Identity</span>,
+<span class="c">/// The pass warps the frame, so the map needs the pass's own inverse.</span>
+<span class="t">Custom</span>,</code></pre></div><div class="doc"><p>Whether a pass moves where a screen point lands in the scene.</p>
+<p>A pass that scales or warps the frame changes the map from a cursor to a
+world point. The engine must know, so a click still lands where the
+player sees it.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Load" data-name="load"><div class="sig"><a class="anchor" href="#sym-Load" aria-label="Link to Load">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Load</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Clear the target to the pass's clear value before drawing.</span>
+<span class="t">Clear</span>,
+<span class="c">/// Keep what an earlier pass left, and draw over it.</span>
+<span class="t">Load</span>,</code></pre></div><div class="doc"><p>How a pass starts one of its colour targets.</p></div></div></div><div class="typeblock"><div class="item" id="sym-PassDesc" data-name="passdesc"><div class="sig"><a class="anchor" href="#sym-PassDesc" aria-label="Link to PassDesc">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">PassDesc</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The perf label. Unique across the graph.</span>
+<span class="k">pub</span> name: <span class="t">String</span>,
+<span class="c">/// The product that owns this pass. The validator rejects a pass whose</span>
+<span class="c">/// owner is not among the loaded products.</span>
+<span class="k">pub</span> owner: <span class="t">String</span>,
+<span class="c">/// Passes this one must follow. Each names a pass in the same graph.</span>
+<span class="k">pub</span> after: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// Resources this pass samples.</span>
+<span class="k">pub</span> inputs: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// Colours this pass writes.</span>
+<span class="k">pub</span> outputs: <span class="t">Vec</span>&lt;<span class="t">PassOutput</span>&gt;,
+<span class="c">/// The depth target this pass writes, if any. It names a depth resource.</span>
+<span class="k">pub</span> depth: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// Resources this pass both reads and writes on purpose. A read-write not</span>
+<span class="c">/// listed here is a mistake the validator reports.</span>
+<span class="k">pub</span> feedback: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// Whether the pass may run when no project is loaded.</span>
+<span class="k">pub</span> runs_without_project: bool,
+<span class="c">/// Whether the pass is safe to drop when it is off.</span>
+<span class="k">pub</span> omit_when_inactive: bool,
+<span class="k">pub</span> input_mapping: <span class="t">InputMapping</span>,
+<span class="k">pub</span> budget: <span class="t">BudgetClass</span>,
+<span class="c">/// Whether the pass runs this frame. An off pass stays declared, so the</span>
+<span class="c">/// graph shape does not change when a look toggles.</span>
+<span class="k">pub</span> enabled: bool,</code></pre></div><div class="doc"><p>One pass in the frame, as data.</p>
+<p>Build it with <code>new</code>, then the <code>with_*</code>, <code>reads</code>, <code>writes</code> and <code>after</code>
+methods. The defaults are an owned scene pass that needs a project, moves
+no input, and may be omitted when it is off.</p></div></div><details class="members"><summary>10 methods</summary><div class="item" id="sym-PassDesc-new" data-name="passdesc::new"><div class="sig"><a class="anchor" href="#sym-PassDesc-new" aria-label="Link to PassDesc::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(name: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, owner: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A pass with the defaults an owned scene pass wants.</p></div></div><div class="item" id="sym-PassDesc-reads" data-name="passdesc::reads"><div class="sig"><a class="anchor" href="#sym-PassDesc-reads" aria-label="Link to PassDesc::reads">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reads</span>(<span class="k">mut</span> <span class="k">self</span>, resource: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-PassDesc-writes" data-name="passdesc::writes"><div class="sig"><a class="anchor" href="#sym-PassDesc-writes" aria-label="Link to PassDesc::writes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">writes</span>(<span class="k">mut</span> <span class="k">self</span>, output: <span class="t">PassOutput</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-PassDesc-with_depth" data-name="passdesc::with_depth"><div class="sig"><a class="anchor" href="#sym-PassDesc-with_depth" aria-label="Link to PassDesc::with_depth">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_depth</span>(<span class="k">mut</span> <span class="k">self</span>, resource: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-PassDesc-with_feedback" data-name="passdesc::with_feedback"><div class="sig"><a class="anchor" href="#sym-PassDesc-with_feedback" aria-label="Link to PassDesc::with_feedback">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_feedback</span>(<span class="k">mut</span> <span class="k">self</span>, resource: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-PassDesc-after" data-name="passdesc::after"><div class="sig"><a class="anchor" href="#sym-PassDesc-after" aria-label="Link to PassDesc::after">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">after</span>(<span class="k">mut</span> <span class="k">self</span>, pass: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-PassDesc-runs_without_project" data-name="passdesc::runs_without_project"><div class="sig"><a class="anchor" href="#sym-PassDesc-runs_without_project" aria-label="Link to PassDesc::runs_without_project">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">runs_without_project</span>(<span class="k">mut</span> <span class="k">self</span>, yes: bool) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-PassDesc-with_input_mapping" data-name="passdesc::with_input_mapping"><div class="sig"><a class="anchor" href="#sym-PassDesc-with_input_mapping" aria-label="Link to PassDesc::with_input_mapping">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_input_mapping</span>(<span class="k">mut</span> <span class="k">self</span>, mapping: <span class="t">InputMapping</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-PassDesc-with_budget" data-name="passdesc::with_budget"><div class="sig"><a class="anchor" href="#sym-PassDesc-with_budget" aria-label="Link to PassDesc::with_budget">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_budget</span>(<span class="k">mut</span> <span class="k">self</span>, budget: <span class="t">BudgetClass</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-PassDesc-with_enabled" data-name="passdesc::with_enabled"><div class="sig"><a class="anchor" href="#sym-PassDesc-with_enabled" aria-label="Link to PassDesc::with_enabled">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_enabled</span>(<span class="k">mut</span> <span class="k">self</span>, enabled: bool) -&gt; <span class="k">Self</span></code></div></div></details></div><div class="typeblock"><div class="item" id="sym-PassEncode" data-name="passencode"><div class="sig"><a class="anchor" href="#sym-PassEncode" aria-label="Link to PassEncode">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">PassEncode</span>&lt;<span class="a">'a</span>&gt;</code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> encoder: &amp;<span class="a">'a</span> <span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>,</code></pre></div><div class="doc"><p>The encoder and the resolved targets a pass draws into.</p>
+<p>The live frame loop builds one per pass, after the validator has passed
+the graph. A pass reads a target by the name it declared.</p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-PassEncode-new" data-name="passencode::new"><div class="sig"><a class="anchor" href="#sym-PassEncode-new" aria-label="Link to PassEncode::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>( encoder: &amp;<span class="a">'a</span> <span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>, resolved: &amp;<span class="a">'a</span> [(&amp;<span class="a">'a</span> str, &amp;<span class="a">'a</span> wgpu::<span class="t">TextureView</span>)], ) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Wrap an encoder and the targets a pass named.</p></div></div><div class="item" id="sym-PassEncode-view" data-name="passencode::view"><div class="sig"><a class="anchor" href="#sym-PassEncode-view" aria-label="Link to PassEncode::view">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">view</span>(&amp;<span class="k">self</span>, name: &amp;str) -&gt; <span class="t">Option</span>&lt;&amp;wgpu::<span class="t">TextureView</span>&gt;</code></div><div class="doc"><p>The view for a resource the pass declared, or none.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-PassOutput" data-name="passoutput"><div class="sig"><a class="anchor" href="#sym-PassOutput" aria-label="Link to PassOutput">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">PassOutput</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The colour or aux resource this write targets.</span>
+<span class="k">pub</span> resource: <span class="t">String</span>,
+<span class="k">pub</span> load: <span class="t">Load</span>,
+<span class="c">/// Whether the write survives the pass. A resolve source does not.</span>
+<span class="k">pub</span> store: bool,</code></pre></div><div class="doc"><p>One colour a pass writes, and how it starts it.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-PassOutput-new" data-name="passoutput::new"><div class="sig"><a class="anchor" href="#sym-PassOutput-new" aria-label="Link to PassOutput::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(resource: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, load: <span class="t">Load</span>, store: bool) -&gt; <span class="k">Self</span></code></div></div></details></div><div class="typeblock"><div class="item" id="sym-RenderPassExtension" data-name="renderpassextension"><div class="sig"><a class="anchor" href="#sym-RenderPassExtension" aria-label="Link to RenderPassExtension">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">trait</span> <span class="t">RenderPassExtension</span>: <span class="t">Send</span> + <span class="t">Sync</span></code></div><div class="doc"><p>A pass a product adds to the frame.</p>
+<p>A product declares its passes as data, so the engine can validate them
+with no device. The GPU work stays behind <code>encode</code>, which the live loop
+calls once the graph is valid.</p></div></div><details class="members"><summary>6 methods</summary><div class="item" id="sym-RenderPassExtension-owner" data-name="renderpassextension::owner"><div class="sig"><a class="anchor" href="#sym-RenderPassExtension-owner" aria-label="Link to RenderPassExtension::owner">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">owner</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>The product this extension belongs to. The validator checks it is
+loaded before it keeps the extension's passes.</p></div></div><div class="item" id="sym-RenderPassExtension-declare" data-name="renderpassextension::declare"><div class="sig"><a class="anchor" href="#sym-RenderPassExtension-declare" aria-label="Link to RenderPassExtension::declare">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">declare</span>(&amp;<span class="k">self</span>, graph: &amp;<span class="k">mut</span> <span class="t">FrameGraphBuilder</span>)</code></div><div class="doc"><p>Add this extension's resources and passes to the graph.</p></div></div><div class="item" id="sym-RenderPassExtension-enabled" data-name="renderpassextension::enabled"><div class="sig"><a class="anchor" href="#sym-RenderPassExtension-enabled" aria-label="Link to RenderPassExtension::enabled">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">enabled</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>Whether the extension runs this frame.</p></div></div><div class="item" id="sym-RenderPassExtension-input_mapping" data-name="renderpassextension::input_mapping"><div class="sig"><a class="anchor" href="#sym-RenderPassExtension-input_mapping" aria-label="Link to RenderPassExtension::input_mapping">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">input_mapping</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">InputMapping</span></code></div><div class="doc"><p>Whether the extension warps the frame, so input needs its inverse.</p></div></div><div class="item" id="sym-RenderPassExtension-resize" data-name="renderpassextension::resize"><div class="sig"><a class="anchor" href="#sym-RenderPassExtension-resize" aria-label="Link to RenderPassExtension::resize">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">resize</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _size: (u32, u32))</code></div><div class="doc"><p>React to a viewport resize before the next encode.</p></div></div><div class="item" id="sym-RenderPassExtension-encode" data-name="renderpassextension::encode"><div class="sig"><a class="anchor" href="#sym-RenderPassExtension-encode" aria-label="Link to RenderPassExtension::encode">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">encode</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _ctx: &amp;<span class="k">mut</span> <span class="t">PassEncode</span>&lt;<span class="a">'_</span>&gt;)</code></div><div class="doc"><p>Record the extension's GPU work into the encoder.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-ResourceKind" data-name="resourcekind"><div class="sig"><a class="anchor" href="#sym-ResourceKind" aria-label="Link to ResourceKind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">ResourceKind</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A colour attachment. A pass writes it as a render target.</span>
+<span class="t">Color</span>,
+<span class="c">/// A depth attachment. A pass writes it as a depth-stencil target.</span>
+<span class="t">Depth</span>,
+<span class="c">/// A sampled auxiliary channel, such as a linear depth or a mask.</span>
+<span class="t">Aux</span>,</code></pre></div><div class="doc"><p>What a target holds, so a write to it can be checked against its use.</p></div></div></div><div class="typeblock"><div class="item" id="sym-ResourceSource" data-name="resourcesource"><div class="sig"><a class="anchor" href="#sym-ResourceSource" aria-label="Link to ResourceSource">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">ResourceSource</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The engine hands the target in: the surface, the GUI target, an</span>
+<span class="c">/// external texture. Its format is fixed outside the graph.</span>
+<span class="t">Imported</span>,
+<span class="c">/// The graph allocates the target and owns its recreate on resize.</span>
+<span class="t">Created</span>,</code></pre></div><div class="doc"><p>Who allocates the target.</p></div></div></div><div class="typeblock"><div class="item" id="sym-LayerBinding" data-name="layerbinding"><div class="sig"><a class="anchor" href="#sym-LayerBinding" aria-label="Link to LayerBinding">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">LayerBinding</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Nothing. The pipeline layout has one group, and whatever the row</span>
+<span class="c">/// before it left at group 1 stays bound and unread.</span>
+<span class="t">None</span>,
+<span class="c">/// The scene material set: five array textures and a sampler.</span>
+<span class="t">SceneTextures</span>,
+<span class="c">/// One mega-atlas slot, bound through the GLES rebind.</span>
+<span class="t">MegaAtlas</span>(usize),
+<span class="c">/// The shadow coverage buffer: one texture and one sampler. A composite row</span>
+<span class="c">/// reads it and darkens the floor once, so overlapping shadows read as one</span>
+<span class="c">/// darkness. The application fills the buffer in `scene_underlay`.</span>
+<span class="t">Coverage</span>,
+<span class="c">/// The player-ship atlas. It has the image bind group layout, the same as</span>
+<span class="c">/// a mega-atlas slot, so a row can read a ship mask. The engine binds it</span>
+<span class="c">/// once, without the GLES rebind, as the engine "ships" row does.</span>
+<span class="t">ShipAtlas</span>,</code></pre></div><div class="doc"><p>What a row binds at group 1.</p>
+<p>One case per bind group the engine builds that a scene pipeline can
+take. Anything else is not a registered layer.</p></div></div></div><div class="typeblock"><div class="item" id="sym-LayerBlend" data-name="layerblend"><div class="sig"><a class="anchor" href="#sym-LayerBlend" aria-label="Link to LayerBlend">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">LayerBlend</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Source alpha over the destination. What every textured row uses.</span>
+<span class="t">Alpha</span>,
+<span class="c">/// The source, with no read of the destination.</span>
+<span class="t">Replace</span>,</code></pre></div><div class="doc"><p>How a row's colour reaches the HDR target.</p></div></div></div><div class="typeblock"><div class="item" id="sym-LayerDraw" data-name="layerdraw"><div class="sig"><a class="anchor" href="#sym-LayerDraw" aria-label="Link to LayerDraw">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">LayerDraw</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A fixed primitive, drawn once per instance.</span>
+<span class="t">Instanced</span> { verts: u32 },
+<span class="c">/// One draw of `count` vertices, with one instance.</span>
+<span class="t">Vertices</span>,</code></pre></div><div class="doc"><p>How a row's vertices relate to its count.</p></div></div></div><div class="typeblock"><div class="item" id="sym-LayerStep" data-name="layerstep"><div class="sig"><a class="anchor" href="#sym-LayerStep" aria-label="Link to LayerStep">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">LayerStep</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Instance</span>,
+<span class="t">Vertex</span>,</code></pre></div><div class="doc"><p>Whether one vertex buffer element is a vertex or an instance.</p></div></div></div><div class="typeblock"><div class="item" id="sym-LayerTopology" data-name="layertopology"><div class="sig"><a class="anchor" href="#sym-LayerTopology" aria-label="Link to LayerTopology">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">LayerTopology</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">TriangleList</span>,
+<span class="t">TriangleStrip</span>,
+<span class="t">LineList</span>,</code></pre></div><div class="doc"><p>The primitive the vertex stage builds.</p></div></div></div><div class="typeblock"><div class="item" id="sym-SceneLayerDesc" data-name="scenelayerdesc"><div class="sig"><a class="anchor" href="#sym-SceneLayerDesc" aria-label="Link to SceneLayerDesc">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">SceneLayerDesc</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// What the perf readout calls this row. Unique across the registry, and</span>
+<span class="c">/// different from every engine row name.</span>
+<span class="k">pub</span> name: <span class="t">String</span>,
+<span class="c">/// Position in the draw order. Larger draws later, so larger draws on top.</span>
+<span class="k">pub</span> order: f32,
+<span class="c">/// The application's WGSL. `view.wgsl` goes in front of it, so the shader</span>
+<span class="c">/// must not declare `struct View` again.</span>
+<span class="k">pub</span> wgsl: <span class="t">Cow</span>&lt;<span class="a">'static</span>, str&gt;,
+<span class="c">/// A vertex-only copy of the shader, for the wasm build.</span>
+<span class="c">/// </span>
+<span class="c">/// naga emits one module into both stages, and WebKit rejects a vertex</span>
+<span class="c">/// shader that holds a `discard`. A shader with no `discard` needs no</span>
+<span class="c">/// copy, and `None` says so.</span>
+<span class="k">pub</span> wgsl_vs: <span class="t">Option</span>&lt;<span class="t">Cow</span>&lt;<span class="a">'static</span>, str&gt;&gt;,
+<span class="c">/// Bytes per instance. The stride of the vertex buffer.</span>
+<span class="k">pub</span> stride: u64,
+<span class="c">/// The instance layout, as wgpu takes it.</span>
+<span class="k">pub</span> attributes: <span class="t">Vec</span>&lt;wgpu::<span class="t">VertexAttribute</span>&gt;,
+<span class="k">pub</span> step_mode: <span class="t">LayerStep</span>,
+<span class="k">pub</span> topology: <span class="t">LayerTopology</span>,
+<span class="k">pub</span> binding: <span class="t">LayerBinding</span>,
+<span class="k">pub</span> draw: <span class="t">LayerDraw</span>,
+<span class="k">pub</span> blend: <span class="t">LayerBlend</span>,
+<span class="c">/// Instances the buffer holds before it grows. One buffer per viewport.</span>
+<span class="k">pub</span> capacity: usize,</code></pre></div><div class="doc"><p>One application row in the engine's draw order.</p>
+<p>Build it with <code>new</code>, then the <code>with_*</code> methods. The defaults are the ones
+a textured quad row wants: an instanced triangle list, alpha blend, no
+group 1, and a capacity of 256.</p></div></div><details class="members"><summary>9 methods</summary><div class="item" id="sym-SceneLayerDesc-new" data-name="scenelayerdesc::new"><div class="sig"><a class="anchor" href="#sym-SceneLayerDesc-new" aria-label="Link to SceneLayerDesc::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(name: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, order: f32, wgsl: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">Cow</span>&lt;<span class="a">'static</span>, str&gt;&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A row with the defaults an instanced quad wants.</p></div></div><div class="item" id="sym-SceneLayerDesc-with_layout" data-name="scenelayerdesc::with_layout"><div class="sig"><a class="anchor" href="#sym-SceneLayerDesc-with_layout" aria-label="Link to SceneLayerDesc::with_layout">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_layout</span>(<span class="k">mut</span> <span class="k">self</span>, stride: u64, attributes: &amp;[wgpu::<span class="t">VertexAttribute</span>]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The instance layout: bytes per instance, and where each field sits.</p></div></div><div class="item" id="sym-SceneLayerDesc-with_vs" data-name="scenelayerdesc::with_vs"><div class="sig"><a class="anchor" href="#sym-SceneLayerDesc-with_vs" aria-label="Link to SceneLayerDesc::with_vs">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_vs</span>(<span class="k">mut</span> <span class="k">self</span>, wgsl_vs: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">Cow</span>&lt;<span class="a">'static</span>, str&gt;&gt;) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-SceneLayerDesc-with_step_mode" data-name="scenelayerdesc::with_step_mode"><div class="sig"><a class="anchor" href="#sym-SceneLayerDesc-with_step_mode" aria-label="Link to SceneLayerDesc::with_step_mode">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_step_mode</span>(<span class="k">mut</span> <span class="k">self</span>, step_mode: <span class="t">LayerStep</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-SceneLayerDesc-with_topology" data-name="scenelayerdesc::with_topology"><div class="sig"><a class="anchor" href="#sym-SceneLayerDesc-with_topology" aria-label="Link to SceneLayerDesc::with_topology">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_topology</span>(<span class="k">mut</span> <span class="k">self</span>, topology: <span class="t">LayerTopology</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-SceneLayerDesc-with_binding" data-name="scenelayerdesc::with_binding"><div class="sig"><a class="anchor" href="#sym-SceneLayerDesc-with_binding" aria-label="Link to SceneLayerDesc::with_binding">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_binding</span>(<span class="k">mut</span> <span class="k">self</span>, binding: <span class="t">LayerBinding</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-SceneLayerDesc-with_draw" data-name="scenelayerdesc::with_draw"><div class="sig"><a class="anchor" href="#sym-SceneLayerDesc-with_draw" aria-label="Link to SceneLayerDesc::with_draw">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_draw</span>(<span class="k">mut</span> <span class="k">self</span>, draw: <span class="t">LayerDraw</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-SceneLayerDesc-with_blend" data-name="scenelayerdesc::with_blend"><div class="sig"><a class="anchor" href="#sym-SceneLayerDesc-with_blend" aria-label="Link to SceneLayerDesc::with_blend">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_blend</span>(<span class="k">mut</span> <span class="k">self</span>, blend: <span class="t">LayerBlend</span>) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-SceneLayerDesc-with_capacity" data-name="scenelayerdesc::with_capacity"><div class="sig"><a class="anchor" href="#sym-SceneLayerDesc-with_capacity" aria-label="Link to SceneLayerDesc::with_capacity">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_capacity</span>(<span class="k">mut</span> <span class="k">self</span>, capacity: usize) -&gt; <span class="k">Self</span></code></div></div></details></div><div class="typeblock"><div class="item" id="sym-InstanceCounts" data-name="instancecounts"><div class="sig"><a class="anchor" href="#sym-InstanceCounts" aria-label="Link to InstanceCounts">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">InstanceCounts</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> rects: u32,
+<span class="k">pub</span> vertices: u32,
+<span class="k">pub</span> circles: u32,
+<span class="k">pub</span> planets: u32,
+<span class="k">pub</span> stars: u32,
+<span class="k">pub</span> dust: u32,
+<span class="k">pub</span> ships: u32,
+<span class="k">pub</span> mega_atlas: [u32; <span class="t">NUM_MEGA_ATLASES</span>],
+<span class="c">/// Stored resources rendered above floors (historically Layer 6.75).</span>
+<span class="c">/// Uses the Resources mega-atlas bind group.</span>
+<span class="k">pub</span> resources_overlay: u32,
+<span class="c">/// Resources rendered above station modules (historically Layer 7.25).</span>
+<span class="c">/// Same bind group as `resources_overlay`, one row later.</span>
+<span class="k">pub</span> resources_hull: u32,
+<span class="c">/// Overlay primitives (historically Layer 7.5) — ABOVE station modules.</span>
+<span class="k">pub</span> overlay_rects: u32,
+<span class="k">pub</span> overlay_vertices: u32,
+<span class="k">pub</span> overlay_circles: u32,
+<span class="c">/// One entry per registered layer, in registry order: the row's name and</span>
+<span class="c">/// what it drew.</span>
+<span class="c">/// </span>
+<span class="c">/// THE NAME TRAVELS WITH THE COUNT</span>
+<span class="c">/// -------------------------------</span>
+<span class="c">/// The engine rows are named by this file, which both processes hold. A</span>
+<span class="c">/// registered row is named by the application, and the editor process does</span>
+<span class="c">/// not link the application, so it has no registry to look the name up in.</span>
+<span class="c">/// Carrying the name is what makes the row readable on the far side.</span>
+<span class="k">pub</span> registered: <span class="t">Vec</span>&lt;(<span class="t">String</span>, u32)&gt;,</code></pre></div><div class="doc"><p>Instance counts for all renderable types.</p>
+<h2>SERIALISED BECAUSE THE POPULATION CROSSES A PROCESS BOUNDARY</h2>
+<p>This is a render-path struct and a wire type, which normally wants two
+types and a conversion. It does not get them, for the reason <code>Display</code>
+gives on the same channel: it is a POD of <code>u32</code> that is already cloned out
+from under a mutex on every read, and a hand-written wire copy would buy
+nothing but a second place for a new layer to be forgotten — in the one
+panel whose subject is which layer is large.</p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-InstanceCounts-per_layer" data-name="instancecounts::per_layer"><div class="sig"><a class="anchor" href="#sym-InstanceCounts-per_layer" aria-label="Link to InstanceCounts::per_layer">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">per_layer</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;(&amp;str, u32)&gt;</code></div><div class="doc"><p>Every count, in submission order, paired with the row it belongs to.</p>
+<p>Same order as <code>layers</code>, and that is the point: a row added to one and
+not the other is what this is for. The names are the ones a person
+reading the draw code already uses.</p>
+<p>A registered row sorts by the position its descriptor gave it. Where
+the registry is absent — the editor process reading a count off the
+wire — every registered row sorts last and keeps its name.</p></div></div><div class="item" id="sym-InstanceCounts-total" data-name="instancecounts::total"><div class="sig"><a class="anchor" href="#sym-InstanceCounts-total" aria-label="Link to InstanceCounts::total">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">total</span>(&amp;<span class="k">self</span>) -&gt; u64</code></div><div class="doc"><p>Everything the CPU pushed this frame, summed across rows.</p>
+<p>Instances, not bytes and not vertices: the strides differ per row, so
+this is a population and not a size. It answers "how much is there",
+which is the question that decides whether retaining any of it is worth
+the machinery.</p></div></div><div class="item" id="sym-InstanceCounts-summary" data-name="instancecounts::summary"><div class="sig"><a class="anchor" href="#sym-InstanceCounts-summary" aria-label="Link to InstanceCounts::summary">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">summary</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">String</span></code></div><div class="doc"><p>One line per non-empty row, largest first, for a log or a panel.</p>
+<p>Empty rows are dropped rather than printed as zero. A frame draws maybe
+six of the sixteen, and ten zeroes above the number somebody is looking
+for is how a readout stops being read.</p></div></div><div class="item" id="sym-InstanceCounts-summary_rows" data-name="instancecounts::summary_rows"><div class="sig"><a class="anchor" href="#sym-InstanceCounts-summary_rows" aria-label="Link to InstanceCounts::summary_rows">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">summary_rows</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">String</span></code></div><div class="doc"><p>The rows alone, without the total line, for a caller writing its own
+header — the timed report puts the upload figure up there.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-RenderResources" data-name="renderresources"><div class="sig"><a class="anchor" href="#sym-RenderResources" aria-label="Link to RenderResources">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">RenderResources</span>&lt;<span class="a">'a</span>&gt;</code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> pipelines: &amp;<span class="a">'a</span> <span class="t">Pipelines</span>,
+<span class="k">pub</span> view_bind_group: &amp;<span class="a">'a</span> wgpu::<span class="t">BindGroup</span>,
+<span class="c">/// The group 1 material set: five array textures and a sampler. The</span>
+<span class="c">/// application's loader fills it.</span>
+<span class="k">pub</span> scene_bind_group: &amp;<span class="a">'a</span> wgpu::<span class="t">BindGroup</span>,
+<span class="c">/// The shadow coverage buffer bind group. The composite row reads it at</span>
+<span class="c">/// group 1 and darkens the floor once from the union coverage.</span>
+<span class="k">pub</span> coverage_bind_group: &amp;<span class="a">'a</span> wgpu::<span class="t">BindGroup</span>,
+<span class="k">pub</span> rect_buffer: wgpu::<span class="t">BufferSlice</span>&lt;<span class="a">'a</span>&gt;,
+<span class="k">pub</span> vertex_buffer: wgpu::<span class="t">BufferSlice</span>&lt;<span class="a">'a</span>&gt;,
+<span class="k">pub</span> circle_buffer: wgpu::<span class="t">BufferSlice</span>&lt;<span class="a">'a</span>&gt;,
+<span class="k">pub</span> planet_buffer: wgpu::<span class="t">BufferSlice</span>&lt;<span class="a">'a</span>&gt;,
+<span class="k">pub</span> star_buffer: wgpu::<span class="t">BufferSlice</span>&lt;<span class="a">'a</span>&gt;,
+<span class="k">pub</span> dust_buffer: wgpu::<span class="t">BufferSlice</span>&lt;<span class="a">'a</span>&gt;,
+<span class="k">pub</span> ship_buffer: wgpu::<span class="t">BufferSlice</span>&lt;<span class="a">'a</span>&gt;,
+<span class="k">pub</span> mega_atlas_bind_groups: [&amp;<span class="a">'a</span> wgpu::<span class="t">BindGroup</span>; <span class="t">NUM_MEGA_ATLASES</span>],
+<span class="k">pub</span> mega_atlas_buffers: [wgpu::<span class="t">BufferSlice</span>&lt;<span class="a">'a</span>&gt;; <span class="t">NUM_MEGA_ATLASES</span>],
+<span class="k">pub</span> resources_overlay_buffer: wgpu::<span class="t">BufferSlice</span>&lt;<span class="a">'a</span>&gt;,
+<span class="k">pub</span> resources_hull_buffer: wgpu::<span class="t">BufferSlice</span>&lt;<span class="a">'a</span>&gt;,
+<span class="k">pub</span> overlay_rect_buffer: wgpu::<span class="t">BufferSlice</span>&lt;<span class="a">'a</span>&gt;,
+<span class="k">pub</span> overlay_vertex_buffer: wgpu::<span class="t">BufferSlice</span>&lt;<span class="a">'a</span>&gt;,
+<span class="k">pub</span> overlay_circle_buffer: wgpu::<span class="t">BufferSlice</span>&lt;<span class="a">'a</span>&gt;,
+<span class="k">pub</span> ship_bind_group: &amp;<span class="a">'a</span> wgpu::<span class="t">BindGroup</span>,
+<span class="c">/// One instance buffer per registered layer, in registry order.</span>
+<span class="c">/// </span>
+<span class="c">/// Shorter than the registry only where the device came up before the</span>
+<span class="c">/// application registered. The table pairs this with the pipeline list and</span>
+<span class="c">/// drops any row that either one is missing.</span>
+<span class="k">pub</span> registered_buffers: <span class="t">Vec</span>&lt;wgpu::<span class="t">BufferSlice</span>&lt;<span class="a">'a</span>&gt;&gt;,</code></pre></div><div class="doc"><p>References to all GPU resources needed for rendering.</p></div></div></div><h4>Constants</h4><div class="item" id="sym-MAX_SCENE_LAYERS" data-name="max_scene_layers"><div class="sig"><a class="anchor" href="#sym-MAX_SCENE_LAYERS" aria-label="Link to MAX_SCENE_LAYERS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MAX_SCENE_LAYERS</span>: usize = <span class="n">16</span></code></div><div class="doc"><p>How many rows the application may register.</p>
+<p>A cap and not a budget. Each row costs one pipeline, one instance buffer
+per viewport and one row in the perf readout, so a registry of hundreds is
+a mistake in the application, and the mistake is worth a message.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="gpu.html" data-slug="gpu">GPU module</a></li><li><a href="renderer.html" data-slug="renderer">Renderer and run</a></li><li><a href="scene.html" data-slug="scene">Scene</a></li><li><a href="image.html" data-slug="image">Image atlases</a></li><li><a href="post.html" data-slug="post">Post effects</a></li><li><a href="lit2d.html" data-slug="lit2d">Lit2d</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/render/pass.rs</code> - <code>THE ORDER IS A TABLE, NOT A FUNCTION BODY</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_core/src/render/pass.rs</code> - <code>NO PIPELINE IN THIS ENGINE HAS A DEPTH TEST.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/render/pass.rs</code> - <code>Carrying the name is what makes the row readable on the far side.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/render/layers.rs</code> - <code>Scene layers the application registers, and the engine draws.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_core/src/render/layers.rs</code> - <code>WebKit rejects a vertex</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_core/src/render/layers.rs</code> - <code>which is the GLES rebind dummy</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_core/src/render/pass.rs</code> - <code>That is the rule an application needs</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_core/src/render/pass.rs</code> - <code>A registered row is dropped, with no message, where the pipeline list or</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_core/src/render/layers.rs</code> - <code>A cap and not a budget.</code></li><li id="ref-10"><a class="back" href="#cite-10" aria-label="Back to the text">^</a> <code>warp_core/src/render/graph.rs</code> - <code>WHAT THIS IS NOT, YET</code></li><li id="ref-11"><a class="back" href="#cite-11" aria-label="Back to the text">^</a> <code>warp_core/src/render/pass.rs</code> - <code>engine frame graph is invalid</code></li><li id="ref-12"><a class="back" href="#cite-12" aria-label="Back to the text">^</a> <code>warp_core/src/render/graph.rs</code> - <code>pub fn validate_frame_graph</code></li></ol><table class="navbox"><tr><th><a href="category-engine.html">Engine</a></th></tr><tr><td><a href="display-mode.html" data-slug="display-mode">Display mode</a> · <a href="perf.html" data-slug="perf">Perf</a> · <a href="gpu.html" data-slug="gpu">GPU module</a> · <b>Render passes</b> · <a href="scene.html" data-slug="scene">Scene</a> · <a href="image.html" data-slug="image">Image atlases</a> · <a href="assets.html" data-slug="assets">Assets</a> · <a href="manifest.html" data-slug="manifest">App manifest</a> · <a href="project-settings.html" data-slug="project-settings">Project settings</a> · <a href="scale.html" data-slug="scale">Interface scale</a> · <a href="types.html" data-slug="types">Types</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-engine.html">Engine</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SDF shaders - Warp Wiki</title>
+<meta name="description" content="WGSL 2D signed distances, operators, relief, vector fields and polar maps">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="shader-sdf">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#files">Files</a></li><li><a href="#conventions">Conventions</a></li><li><a href="#primitives">Primitives</a></li><li><a href="#operators">Operators</a></li><li><a href="#evaluation">Evaluation</a></li><li><a href="#relief">Relief</a></li><li><a href="#vector-fields">Vector fields</a></li><li><a href="#polar-domains">Polar domains</a></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">SDF shaders</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">WGSL 2D signed distances, operators, relief, vector fields and polar maps</p><p><strong>SDF shaders</strong> are the <code>sdf/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL files for 2D signed distance shapes and for turning a distance into pixels. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::sdf</code></a>. It gives primitives, combining operators, coverage and shadow functions, a relief step that lifts a flat shape into a MaterialSample, and two tables of vector fields and polar domains. All functions start with <code>sdf_</code>.</p>
+<h2 id="files">Files</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>File</th>
+<th>Provides</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sdf/prim_basic.wgsl</code></td>
+<td>Circle, boxes, segment, capsules, rhombus, trapezoid, triangles, regular polygons, polygon of up to 8 corners, ellipses</td>
+</tr>
+<tr>
+<td><code>sdf/prim_curve.wgsl</code></td>
+<td>Arc, pie, ring, horseshoe, stars, heart, vesica, egg, moon, cross, rounded X, quadratic bezier, parabola</td>
+</tr>
+<tr>
+<td><code>sdf/ops.wgsl</code></td>
+<td>Booleans, smooth blends, round, onion, displace, morph, and domain operators</td>
+</tr>
+<tr>
+<td><code>sdf/eval.wgsl</code></td>
+<td>Gradients and normals, fill and stroke coverage, glow, soft shadow, ambient occlusion</td>
+</tr>
+<tr>
+<td><code>sdf/relief.wgsl</code></td>
+<td>Height profiles, tangent normals, <code>sdf_relief_material</code>, extrude and revolve helpers</td>
+</tr>
+<tr>
+<td><code>sdf/field.wgsl</code></td>
+<td>2D velocity fields, RK2 particle steps, and dot-field marks</td>
+</tr>
+<tr>
+<td><code>sdf/polar.wgsl</code></td>
+<td>Log-polar, Droste and corridor maps, anti-aliased patterns, guilloche, gear, seigaiha</td>
+</tr>
+</tbody>
+</table>
+<p>Only <code>sdf/relief.wgsl</code> has a dependency, on <code>core/material.wgsl</code>. The other files are self-contained, so a game composes them alone or together.</p>
+<h2 id="conventions">Conventions</h2>
+<p>Every primitive takes the sample point <code>p</code> in the local frame of the shape, with the shape centre at the origin unless its comment says otherwise. The result is negative inside, zero on the edge and positive outside. Units are those of <code>p</code>. Sizes are half sizes and must be positive.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<p>In <code>sdf/prim_curve.wgsl</code>, an angle pair <code>sc</code> is (sin, cos) of a half aperture, in that order, and shapes with an aperture open toward -y. Some functions there use a different order, as their comments state: <code>sdf_ring_open</code> and <code>sdf_horseshoe</code> take (cos, sin).</p>
+<p><code>sdf_field_*</code> functions use a domain of about -1..1. <code>sdf_polar_*</code> functions use a centred position with the short side about -0.5..0.5 and y up. <a class="sym" href="scale.html#sym-px"><code>px</code></a> is the size of one pixel in the same units, and <code>time</code> is in seconds.</p>
+<h2 id="primitives">Primitives</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">sdf_circle</span>(p: vec2&lt;f32&gt;, r: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">sdf_box</span>(p: vec2&lt;f32&gt;, b: vec2&lt;f32&gt;) -&gt; f32
+<span class="k">fn</span> <span class="f">sdf_round_box</span>(p: vec2&lt;f32&gt;, b: vec2&lt;f32&gt;, r: vec4&lt;f32&gt;) -&gt; f32
+<span class="k">fn</span> <span class="f">sdf_capsule</span>(p: vec2&lt;f32&gt;, a: vec2&lt;f32&gt;, b: vec2&lt;f32&gt;, r: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">sdf_hexagon</span>(p0: vec2&lt;f32&gt;, r: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">sdf_star</span>(p0: vec2&lt;f32&gt;, r: f32, n: f32, m: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">sdf_arc</span>(p0: vec2&lt;f32&gt;, sc: vec2&lt;f32&gt;, ra: f32, rb: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">sdf_bezier</span>(pos: vec2&lt;f32&gt;, <span class="t">A</span>: vec2&lt;f32&gt;, <span class="t">B</span>: vec2&lt;f32&gt;, <span class="t">C</span>: vec2&lt;f32&gt;) -&gt; f32</code></pre></div>
+<p>Two pairs of shapes deserve a note. <code>sdf_ellipse</code> is exact, using a Newton iteration, and <code>sdf_ellipse_approx</code> is cheap but is not a true distance far from the edge, so it suits fills and strokes and not long ray steps.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup> <code>sdf_segment</code> and <code>sdf_bezier</code> are never negative, so a stroke comes from subtracting a radius.</p>
+<h2 id="operators">Operators</h2>
+<p>Distance operators take distances and return a distance. <code>sdf_union</code>, <code>sdf_subtract</code>, <code>sdf_intersect</code> and <code>sdf_xor</code> are exact at the edge. The smooth blends come in four kinds:</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Suffix</th>
+<th>Blend</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>_poly</code></td>
+<td>Quadratic polynomial</td>
+<td><code>k</code> is the blend width, <code>&gt; 0</code></td>
+</tr>
+<tr>
+<td><code>_cubic</code></td>
+<td>Cubic polynomial</td>
+<td>C2 continuous, so lit bevels show no crease line</td>
+</tr>
+<tr>
+<td><code>_exp</code></td>
+<td>Exponential</td>
+<td>Changes the shape a little everywhere; order independent for more than two terms</td>
+</tr>
+<tr>
+<td><code>_circ</code></td>
+<td>Circular</td>
+<td><code>k</code> is the blend radius; union only</td>
+</tr>
+</tbody>
+</table>
+<p>Domain operators take the point and return a new point, at which the caller evaluates the shape: <code>sdf_op_translate</code>, <code>sdf_op_rotate</code>, <code>sdf_op_scale</code>, <code>sdf_op_mirror_x</code>, <code>sdf_op_mirror_y</code>, <code>sdf_op_mirror</code>, <code>sdf_op_repeat</code>, <code>sdf_op_repeat_limited</code>, <code>sdf_op_polar</code> and <code>sdf_op_bend</code>. Scale also needs <code>sdf_op_scale_dist</code> on the result.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> <code>sdf_op_repeat_id</code> gives the cell index for per-cell variation. A shape under <code>sdf_op_repeat</code> must fit in one cell.</p>
+<p><code>sdf_displace</code> adds a height scaled by <code>k</code>. Its comment warns to keep <code>|k * grad(h)|</code> below 1, or sphere tracing and soft shadows step too far.</p>
+<h2 id="evaluation">Evaluation</h2>
+<p>WGSL has no function pointers, so these functions cannot call a scene. The caller evaluates its own scene and passes the distance samples.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">sdf_normal_from_samples</span>(dxp: f32, dxn: f32, dyp: f32, dyn: f32) -&gt; vec2&lt;f32&gt;
+<span class="k">fn</span> <span class="f">sdf_fill_px</span>(d: f32, px: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">sdf_stroke_px</span>(d: f32, w: f32, px: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">sdf_fill_fwidth</span>(d: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">sdf_glow</span>(d: f32, r: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">sdf_shadow_step</span>(s: <span class="t">SdfShadow</span>, d: f32, k: f32, lo: f32, hi: f32) -&gt; <span class="t">SdfShadow</span>
+<span class="k">fn</span> <span class="f">sdf_shadow8</span>(d0: <span class="k">array</span>&lt;f32, <span class="n">8</span>&gt;, t0: <span class="k">array</span>&lt;f32, <span class="n">8</span>&gt;, k: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">sdf_ao5</span>(d0: <span class="k">array</span>&lt;f32, <span class="n">5</span>&gt;, h: f32, strength: f32) -&gt; f32</code></pre></div>
+<p>The <code>*_fwidth</code> forms, and <code>sdf_normal_dpdx</code>, work in a fragment stage only. The <code>*_px</code> forms take the pixel size and work anywhere.</p>
+<p>A soft shadow is a loop owned by the caller. <code>sdf_shadow_begin</code> starts a state. For each step, the caller samples its scene at <code>origin + dir * s.t</code> and passes that distance to <code>sdf_shadow_step</code>, and <code>sdf_shadow_end</code> gives the final light fraction. <code>k</code> is the sharpness: 2 is very soft and 32 is almost hard. For a fixed count, <code>sdf_shadow8</code> takes eight samples and <code>sdf_ao5</code> takes five.</p>
+<h2 id="relief">Relief</h2>
+<p><code>sdf/relief.wgsl</code> gives a flat shape a raised, lit surface. A profile maps the distance to a height and a slope, and returns SdfProfile with the fields <code>h</code> and <code>slope</code>.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Profile</th>
+<th>Shape</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sdf_profile_linear</code></td>
+<td>Chamfer, a straight rise over width <code>w</code></td>
+</tr>
+<tr>
+<td><code>sdf_profile_round</code></td>
+<td>Quarter circle, steep at the edge and flat on top</td>
+</tr>
+<tr>
+<td><code>sdf_profile_smooth</code></td>
+<td>Smoothstep, soft at the edge and at the top</td>
+</tr>
+<tr>
+<td><code>sdf_profile_cove</code></td>
+<td>Concave quarter circle</td>
+</tr>
+<tr>
+<td><code>sdf_profile_dome</code></td>
+<td>Half circle of radius <code>w</code>; a true half sphere for a circle of radius <code>w</code></td>
+</tr>
+<tr>
+<td><code>sdf_profile_extrude</code></td>
+<td>A slab of height <code>top</code> with a round edge; returns scene units</td>
+</tr>
+</tbody>
+</table>
+<p>The header gives the typical use in a fragment stage:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">let</span> n2 = <span class="f">sdf_normal_from_samples</span>(...);            <span class="c">// sdf/eval.wgsl</span>
+<span class="k">let</span> pr = <span class="f">sdf_profile_round</span>(d, <span class="n">0.1</span>);
+<span class="k">let</span> m  = <span class="f">sdf_relief_material</span>(n2, pr, albedo, <span class="n">0.6</span>);</code></pre></div>
+<p>The third argument of <code>sdf_relief_material</code> is the linear albedo, and <code>depth</code> is the relief height in scene units, usually 0.05 to 0.3 for sprites. <code>sdf_extrude</code>, <code>sdf_revolve</code> and <code>sdf_height_normal</code> are 3D helpers.</p>
+<h2 id="vector-fields">Vector fields</h2>
+<p><code>sdf/field.wgsl</code> gives velocity <code>v(p)</code> for potential flow (<code>sdf_field_source</code>, <code>sdf_field_vortex</code>, <code>sdf_field_rankine</code>, <code>sdf_field_cylinder</code>, <code>sdf_field_jet</code>, <code>sdf_field_vortex_street</code>), physics (<code>sdf_field_gravity</code>, <code>sdf_field_charges</code>, <code>sdf_field_magnetic_dipole</code>) and phase portraits (<code>sdf_field_hopf</code>, <code>sdf_field_vanderpol</code>, <code>sdf_field_duffing</code>, <code>sdf_field_lotka</code>, <code>sdf_field_linear</code>).</p>
+<p>A particle moves with a two-part RK2 step: <code>sdf_field_rk2_mid</code> gives the midpoint, the caller evaluates the field there, and <code>sdf_field_rk2</code> gives the new position. The step is second order, so particles stay on closed orbits much longer than with an Euler step.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup> <code>sdf_field_dir_color</code> and <code>sdf_field_comb</code> show a field per pixel.</p>
+<p>The second half of the file draws a field through discrete marks. <code>sdf_field_cell_square</code>, <code>sdf_field_cell_hex</code> and <code>sdf_field_cell_screen</code> return an <code>sdf_FieldCell</code>, and <code>sdf_field_disc_cov</code>, <code>sdf_field_box_cov</code> and <code>sdf_field_led</code> draw in that cell. For curl-noise flow, the file points to <code>noise/curl.wgsl</code> in <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a>.</p>
+<h2 id="polar-domains">Polar domains</h2>
+<p>Log-polar maps turn rings into rows and spokes into columns, so any lattice becomes a conformal spiral.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">sdf_polar_log</span>(p: vec2&lt;f32&gt;, n: f32) -&gt; vec2&lt;f32&gt;
+<span class="k">fn</span> <span class="f">sdf_polar_spiral</span>(p: vec2&lt;f32&gt;, n: f32, twist: f32, zoom: f32) -&gt; vec2&lt;f32&gt;
+<span class="k">fn</span> <span class="f">sdf_polar_droste</span>(p: vec2&lt;f32&gt;, big_s: f32, m: f32, zoom: f32) -&gt; vec2&lt;f32&gt;
+<span class="k">fn</span> <span class="f">sdf_polar_guilloche</span>(p: vec2&lt;f32&gt;, r0: f32, amp: f32, n: f32, count: i32, phase: f32, px: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">sdf_polar_gear</span>(p: vec2&lt;f32&gt;, c: vec2&lt;f32&gt;, big_r: f32, n: f32, th: f32, h: f32, spokes: f32) -&gt; f32</code></pre></div>
+<p><code>sdf_polar_sqwave</code>, <code>sdf_polar_lines</code> and <code>sdf_polar_bar</code> are anti-aliased patterns that fade to the mean where the pattern is finer than a pixel. They take <code>fw</code>, the derivative of the pattern coordinate per pixel. <code>sdf_polar_guilloche</code> draws <a class="sym" href="window.html#sym-count"><code>count</code></a> copies of a wave, up to 16 by its loop, and it divides the distance by the slope so that the line keeps its width.</p>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<ul>
+<li><code>material_edge_wear</code> in <a href="shader-material.html" data-slug="shader-material">Material shaders</a> takes an SDF distance and gradient.</li>
+<li><code>post_glow_shape</code> in <a href="shader-post.html" data-slug="shader-post">Post shaders</a> turns a distance in pixels into emissive light.</li>
+<li><code>water_lens_round_rect</code> in <a href="shader-water.html" data-slug="shader-water">Water shaders</a> has its own outline functions with exact normals.</li>
+<li>The Rust <a href="squircle.html" data-slug="squircle">Squircle kit</a> kit is a separate implementation for interface panels.</li>
+</ul>
+<h2 id="limitations">Limitations</h2>
+<p><code>sdf_polygon8</code> accepts at most 8 corners. The body of that function contains <code>p.y &lt; v[j].y, e.x * w.y &gt; e.y * w.x</code> inside a constructor call. The test suite uses naga 0.12, which accepts this. naga 30.0.1 rejects it with a parse error, because the <code>&lt;</code> and <code>&gt;</code> read as a template list. A game on a newer parser, including a browser port of this file, must add parentheses around <code>p.y &lt; v[j].y</code>. <code>sdf_op_bend</code> is not an exact distance, so its comment asks for <code>k</code> to stay small compared to the inverse of the shape size.</p><h2 id="see-also">See also</h2><ul><li><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></li><li><a href="shader-material.html" data-slug="shader-material">Material shaders</a></li><li><a href="shader-post.html" data-slug="shader-post">Post shaders</a></li><li><a href="squircle.html" data-slug="squircle">Squircle kit</a></li><li><a href="lit2d.html" data-slug="lit2d">Lit2d</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/sdf/prim_basic.wgsl</code> - <code>// The result is negative inside, zero on the edge, positive outside.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/sdf/prim_basic.wgsl</code> - <code>// true distance. Use it for fills and strokes, not for long ray steps.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/sdf/ops.wgsl</code> - <code>// Uniform scale by s. Multiply the distance by s after: sdf_op_scale_dist.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/sdf/eval.wgsl</code> - <code>// WGSL has no function pointers. Thus the caller evaluates its own scene</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/sdf/relief.wgsl</code> - <code>// A profile takes d (the 2D distance, negative inside) and w (the bevel</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/sdf/field.wgsl</code> - <code>// midpoint field v2. Second order, so particles stay on closed orbits</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/sdf/polar.wgsl</code> - <code>// in them. Log-polar maps turn rings into rows and spokes into columns,</code></li></ol><table class="navbox"><tr><th><a href="category-shader-library.html">Shader library</a></th></tr><tr><td><a href="shaderlib.html" data-slug="shaderlib">Shader library</a> · <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a> · <b>SDF shaders</b> · <a href="shader-material.html" data-slug="shader-material">Material shaders</a> · <a href="shader-water.html" data-slug="shader-water">Water shaders</a> · <a href="shader-post.html" data-slug="shader-post">Post shaders</a> · <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> · <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> · <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> · <a href="shader-pattern.html" data-slug="shader-pattern">Pattern shaders</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-shader-library.html">Shader library</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

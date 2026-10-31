@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building a game - Warp Wiki</title>
+<meta name="description" content="Reading order, the kit map, drawing, the one-shot loop, and what to avoid">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="building-a-game">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#reading-order">Reading order</a></li><li><a href="#the-kit-map">The kit map</a></li><li><a href="#the-one-shot-loop">The one-shot loop</a></li><li><a href="#drawing-and-moving-things">Drawing and moving things</a><ul><li><a href="#shapes">Shapes</a></li><li><a href="#many-entities">Many entities</a></li><li><a href="#input-and-time">Input and time</a></li><li><a href="#sprites">Sprites</a></li></ul></li><li><a href="#proving-what-is-drawn">Proving what is drawn</a></li><li><a href="#the-application-s-own-interface">The application&#x27;s own interface</a></li><li><a href="#the-rule-the-panels-follow">The rule the panels follow</a></li><li><a href="#what-not-to-reach-for">What not to reach for</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Building a game</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">Reading order, the kit map, drawing, the one-shot loop, and what to avoid</p><table class="infobox"><caption>Building a game</caption><tr><th>Category</th><td><a href="category-guides.html">Guides</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example starter</code><br><code>cargo run -p warp_sdk --example pong</code><br><code>cargo run -p warp_sdk --example snake</code><br><code>cargo run -p warp_sdk --example observatory</code></td></tr></table><p><strong>Building a game</strong> in Warp is a guide to the order of work for an application on <code>warp_sdk</code>, from the first plan to a passing test suite. It collects what to read, which kit answers which need, how to draw and move things, and which paths to leave alone. The method is a one-shot loop: build a playable path first, prove it with a headless test, and then add systems one at a time.</p>
+<h2 id="reading-order">Reading order</h2>
+<p>The recommended order puts the rules of the look before any code.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<ol>
+<li><a href="art-direction.html" data-slug="art-direction">Art direction</a>, which sets the rules for text, menus, fonts, lighting and density. A game that runs but ignores it looks generated.</li>
+<li>This guide, and <a href="smoke.html" data-slug="smoke">Smoke test</a> for the proof that a game runs.</li>
+<li>The reference article for each kit that the plan uses. Read those and no others.</li>
+<li>The worked example for each kit in <code>warp_sdk/examples</code>. Each example is complete and has tests.</li>
+<li><a href="semiotics.html" data-slug="semiotics">Semiotics</a> and <a href="shaderlib.html" data-slug="shaderlib">Shader library</a>, when the game draws icons or writes WGSL.</li>
+</ol>
+<h2 id="the-kit-map">The kit map</h2>
+<p>Each need has one kit, and the rule is to use it and not to write a second version in the game.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Need</th>
+<th>Kit</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A window and a frame loop</td>
+<td><a href="renderer.html" data-slug="renderer">run, Renderer</a></td>
+<td><code>starter</code></td>
+</tr>
+<tr>
+<td>Title, pause, settings and a tutorial at once</td>
+<td><a href="shell.html" data-slug="shell">Game shell</a></td>
+<td></td>
+</tr>
+<tr>
+<td>Proof that the game boots and can be played</td>
+<td><a href="smoke.html" data-slug="smoke">Smoke test</a></td>
+<td>every example</td>
+</tr>
+<tr>
+<td>A title screen, a pause menu, an end screen</td>
+<td><a href="front-menu.html" data-slug="front-menu">Menu screens</a></td>
+<td><a class="sym" href="front.html"><code>front</code></a></td>
+</tr>
+<tr>
+<td>Save slots</td>
+<td><a href="front-save.html" data-slug="front-save">Save slots</a></td>
+<td><a class="sym" href="front.html"><code>front</code></a></td>
+</tr>
+<tr>
+<td>A settings screen and its file</td>
+<td><a href="front-settings.html" data-slug="front-settings">Settings</a></td>
+<td><code>settings</code></td>
+</tr>
+<tr>
+<td>Fonts that are not the stock egui font</td>
+<td><a href="fonts.html" data-slug="fonts">Fonts</a></td>
+<td><a class="sym" href="fonts.html"><code>fonts</code></a></td>
+</tr>
+<tr>
+<td>Animated changes between screens</td>
+<td><a href="cine.html" data-slug="cine">Cine</a></td>
+<td><a class="sym" href="cine.html"><code>cine</code></a></td>
+</tr>
+<tr>
+<td>The application icon</td>
+<td><a href="icon.html" data-slug="icon">Application icon</a></td>
+<td><a class="sym" href="visual.html#sym-icon"><code>icon</code></a></td>
+</tr>
+<tr>
+<td>The boot splash and screenshots</td>
+<td><a href="boot.html" data-slug="boot">Boot splash and screenshots</a></td>
+<td></td>
+</tr>
+<tr>
+<td>One colour and one shape for each role</td>
+<td><a href="visual.html" data-slug="visual">Visual language</a></td>
+<td><a class="sym" href="visual.html"><code>visual</code></a></td>
+</tr>
+<tr>
+<td>Icons that carry the rules in place of words</td>
+<td><a href="semiotics.html" data-slug="semiotics">Semiotics</a></td>
+<td><a class="sym" href="semiotics.html"><code>semiotics</code></a></td>
+</tr>
+<tr>
+<td>A palette from a mood word</td>
+<td><a href="palette-kit.html" data-slug="palette-kit">Palette kit</a></td>
+<td></td>
+</tr>
+<tr>
+<td>Bloom, grade, depth of field, CRT</td>
+<td><a href="post.html" data-slug="post">Post effects</a></td>
+<td></td>
+</tr>
+<tr>
+<td>Lit sprites with normals and point lights</td>
+<td><a href="lit2d.html" data-slug="lit2d">Lit2d</a></td>
+<td><a class="sym" href="lit2d.html"><code>lit2d</code></a></td>
+</tr>
+<tr>
+<td>WGSL noise, SDF, materials, water</td>
+<td><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></td>
+<td></td>
+</tr>
+<tr>
+<td>A camera that follows, shakes and frames</td>
+<td><a href="camera.html" data-slug="camera">Camera</a></td>
+<td><a class="sym" href="camera.html"><code>camera</code></a></td>
+</tr>
+<tr>
+<td>Feedback on a hit or a correct action</td>
+<td><a href="juice.html" data-slug="juice">Juice</a></td>
+<td><a class="sym" href="juice.html"><code>juice</code></a></td>
+</tr>
+<tr>
+<td>The application's corner keys, panels and toasts</td>
+<td><a href="squircle.html" data-slug="squircle">Squircle kit</a></td>
+<td><code>observatory</code></td>
+</tr>
+<tr>
+<td>A minimap, world markers, a progress meter, cause cues</td>
+<td><a href="hud.html" data-slug="hud">HUD</a></td>
+<td><code>hud_map</code>, <code>hud_progress</code></td>
+</tr>
+<tr>
+<td>Teaching the controls and the purpose of things</td>
+<td><a href="teach.html" data-slug="teach">Teach kit</a></td>
+<td><a class="sym" href="teach.html"><code>teach</code></a></td>
+</tr>
+<tr>
+<td>Terrain to dig, collision, biomes, fog of war</td>
+<td><a href="world.html" data-slug="world">World kit</a></td>
+<td><a class="sym" href="world.html"><code>world</code></a></td>
+</tr>
+<tr>
+<td>Water that moves, and particles that ride it</td>
+<td><a href="fluid.html" data-slug="fluid">Fluid kit</a></td>
+<td><a class="sym" href="fluid.html"><code>fluid</code></a></td>
+</tr>
+<tr>
+<td>A seeded world that is the same on every run</td>
+<td><a href="procgen.html" data-slug="procgen">Procedural generation</a></td>
+<td></td>
+</tr>
+<tr>
+<td>Enemies, damage kinds, tools, a pace director</td>
+<td><a href="challenge.html" data-slug="challenge">Challenge kit</a></td>
+<td><a class="sym" href="challenge.html"><code>challenge</code></a></td>
+</tr>
+<tr>
+<td>Resources, stores, costs, flows</td>
+<td><a href="economy.html" data-slug="economy">Economy kit</a></td>
+<td></td>
+</tr>
+<tr>
+<td>Objectives and goal chains</td>
+<td><a href="quest.html" data-slug="quest">Quest kit</a></td>
+<td></td>
+</tr>
+<tr>
+<td>Unlocks, stages, upgrades, a codex</td>
+<td><a href="metaprog.html" data-slug="metaprog">Metaprogression</a></td>
+<td></td>
+</tr>
+<tr>
+<td>Keyboard, mouse and gamepad as one set of verbs</td>
+<td><a href="gamepad.html" data-slug="gamepad">Gamepad</a></td>
+<td></td>
+</tr>
+<tr>
+<td>The player's music, ambience, sound effects</td>
+<td><a href="soundtrack.html" data-slug="soundtrack">Soundtrack</a></td>
+<td></td>
+</tr>
+<tr>
+<td>Window mode, vsync, frame cap</td>
+<td><a href="display-mode.html" data-slug="display-mode">Display mode</a></td>
+<td><code>settings</code></td>
+</tr>
+<tr>
+<td>Frame budgets and automatic quality</td>
+<td><a href="perf.html" data-slug="perf">Perf</a></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h2 id="the-one-shot-loop">The one-shot loop</h2>
+<ol>
+<li><strong>Plan.</strong> Write down the core verb, the screens (title, play, pause, end), the kits from the map, and what the player sees that tells them what to do. Do not plan prose for the screen.</li>
+<li><strong>Build the playable loop first.</strong> Make the title, one playable screen and the way back. Name each screen with <a class="sym" href="smoke.html#sym-report_screen"><code>smoke::report_screen</code></a>, and prove the path with <a class="sym" href="smoke.html#sym-play"><code>smoke::play</code></a>:</li>
+</ol>
+<p><code>rust
+   use warp_sdk::smoke::{self, Key, Script};
+   #[test]
+   fn title_to_play() {
+       let r = smoke::play::&lt;Game&gt;(Script::new().wait(30).press(Key::Return).wait(60));
+       assert!(r.reached("play"), "{r:?}");
+   }</code></p>
+<p>Do not start other work until this test passes. A game that compiles but cannot leave its title screen is not a game.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup>
+3. <strong>Fan out.</strong> Add the systems one at a time, and run <code>cargo test</code> after each one. Give each costly system a <a class="sym" href="perf.html#sym-budget"><code>perf::budget</code></a>.
+4. <strong>Join delegated work.</strong> When parts of the work run in parallel, wait for all of them, then run <code>cargo test</code> on the joined result.
+5. <strong>Stop on green.</strong> The work is done when <code>cargo test</code> passes, the play test reaches each screen, and no <code>placeholder!</code> remains.</p>
+<h2 id="drawing-and-moving-things">Drawing and moving things</h2>
+<p>The game draws in <a class="sym" href="icon.html#sym-render"><code>render</code></a>, into the <a class="sym" href="renderer.html#sym-RenderContext"><code>RenderContext</code></a>. Coordinates are those of the view: at <code>set_view_scale</code> 1.0 the window is two units tall, from -1 at the bottom to +1 at the top, and as many units wide as the aspect gives. Colours are <code>[r, g, b, a]</code> bytes. What <a class="sym" href="icon.html#sym-render"><code>render</code></a> submits is what shows, unless the game opts into a post effect.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<h3 id="shapes">Shapes</h3>
+<p>Shapes need no assets, and they cover most 2D ideas with nothing to load.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust">ctx.<span class="f">set_view_pos</span>(<span class="t">Vec2</span>::<span class="f">zero</span>());          <span class="c">// camera centre</span>
+ctx.<span class="f">set_view_scale</span>(<span class="n">1.0</span>);                 <span class="c">// 1.0 = window two units tall</span>
+ctx.<span class="f">set_view_rotation</span>(<span class="n">0.0</span>);              <span class="c">// radians, CCW</span>
+
+ctx.<span class="f">draw_rect</span>(min, max, [<span class="n">40</span>, <span class="n">44</span>, <span class="n">52</span>, <span class="n">255</span>]);                 <span class="c">// axis-aligned</span>
+ctx.<span class="f">draw_rotated_rect</span>(center, half_extent, angle, color);   <span class="c">// spins on the GPU</span>
+ctx.<span class="f">draw_line</span>(a, b, [<span class="n">90</span>, <span class="n">90</span>, <span class="n">90</span>, <span class="n">255</span>]);
+ctx.<span class="f">draw_circle</span>(pos, radius, [<span class="n">220</span>, <span class="n">90</span>, <span class="n">60</span>, <span class="n">255</span>]);
+ctx.<span class="f">draw_glow_circle</span>(pos, radius, color);                   <span class="c">// soft edge</span></code></pre></div>
+<p>The worked example <code>pong</code> keeps its field at x in -1.5 to 1.5 and y in -1 to 1, and it needs nothing else to load.</p>
+<h3 id="many-entities">Many entities</h3>
+<p>Many entities are a plain loop. The game holds its state in its own struct, steps it, and draws each item, with no engine registration.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">struct</span> <span class="t">Game</span> { balls: <span class="t">Vec</span>&lt;<span class="t">Ball</span>&gt;, <span class="c">/* ... */</span> }
+
+<span class="k">fn</span> <span class="f">render</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _v: <span class="t">ViewportId</span>, ctx: &amp;<span class="k">mut</span> <span class="t">RenderContext</span>) {
+    <span class="k">for</span> b <span class="k">in</span> &amp;<span class="k">mut</span> <span class="k">self</span>.balls {
+        b.pos += b.vel;                                     <span class="c">// step</span>
+        ctx.<span class="f">draw_circle</span>(b.pos, b.r, [<span class="n">230</span>, <span class="n">230</span>, <span class="n">120</span>, <span class="n">255</span>]);  <span class="c">// draw</span>
+    }
+}</code></pre></div>
+<h3 id="input-and-time">Input and time</h3>
+<p>Input is read as verbs in <code>input</code> through <a class="sym" href="bindings.html#sym-pressed"><code>bindings::pressed</code></a>, <a class="sym" href="bindings.html#sym-held"><code>bindings::held</code></a> and <a class="sym" href="bindings.html#sym-released"><code>bindings::released</code></a>. The game keeps its own clock, because <a class="sym" href="icon.html#sym-render"><code>render</code></a> is handed no delta.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<h3 id="sprites">Sprites</h3>
+<p>Textured art needs an atlas. The game registers an atlas set before <a class="sym" href="renderer.html#sym-run"><code>run</code></a> and draws by index. This is the asset-dependent step, and a game with no art ships on shapes alone.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="c">// before run: warp_sdk::image::register_atlas_set(descriptor)</span>
+ctx.<span class="f">draw_image_simple</span>(pos, size, texture_index);            <span class="c">// one sprite</span>
+ctx.<span class="f">draw_image</span>(pos, size, rotation, texture_index, tint, flags);</code></pre></div>
+<p>See <a href="image.html" data-slug="image">Image atlases</a> and <a href="assets.html" data-slug="assets">Assets</a>. A few named draw verbs, such as <code>draw_planet_circle</code>, belong to one game, Stella Nova, and a new game should not use them.</p>
+<h2 id="proving-what-is-drawn">Proving what is drawn</h2>
+<p><a class="sym" href="smoke.html#sym-boot"><code>smoke::boot</code></a> proves that a game runs and not what it draws. <a class="sym" href="renderer.html#sym-RenderContext-frame_fingerprint"><code>RenderContext::frame_fingerprint</code></a> closes part of that gap with no GPU. It returns a stable count of instances per bucket in a fixed order, so a test can assert a fixed scene against a golden array.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> <span class="k">mut</span> ctx = <span class="t">RenderContext</span>::<span class="f">new</span>();
+game.<span class="f">render</span>(<span class="t">PRIMARY_VIEWPORT</span>, &amp;<span class="k">mut</span> ctx);
+assert_eq!(ctx.<span class="f">frame_fingerprint</span>(), <span class="t">GOLDEN</span>);</code></pre></div>
+<p>A change that moves a draw to another bucket fails the test until the golden is updated on purpose. The fingerprint reads what the game submits and not the rendered image, so it catches a draw regression and not a shading one.</p>
+<h2 id="the-application-s-own-interface">The application's own interface</h2>
+<p>The interface a game draws over its own viewport is the <a href="squircle.html" data-slug="squircle">squircle kit</a>, and it is the default for every new application. The editor panels are the editor's surfaces, and the squircle kit is the application's own surface, drawn in <a class="sym" href="renderer.html#sym-Renderer-gui"><code>Renderer::gui</code></a>. An application uses both.</p>
+<p>Each surface has its own corner, because the kit does not move one surface out of the way of another.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Corner</th>
+<th>Surface</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TopRight</td>
+<td><a class="sym" href="squircle.html#sym-Deck"><code>Deck</code></a> "tools"</td>
+<td>Data sources, view, layers, filters, actions</td>
+</tr>
+<tr>
+<td>TopLeft</td>
+<td><a class="sym" href="squircle.html#sym-Deck"><code>Deck</code></a> "scene"</td>
+<td>Selection, inspector, object detail, with <code>.auto_open</code></td>
+</tr>
+<tr>
+<td>BottomLeft</td>
+<td><a class="sym" href="squircle.html#sym-Tray"><code>Tray</code></a></td>
+<td><a class="sym" href="squircle.html#sym-Readout"><code>Readout</code></a> chips for live values</td>
+</tr>
+<tr>
+<td>BottomRight</td>
+<td>Toasts</td>
+<td>Notices from <a class="sym" href="squircle.html#sym-toast"><code>squircle::toast</code></a></td>
+</tr>
+<tr>
+<td>At the pointer</td>
+<td><a class="sym" href="squircle.html#sym-hovercard"><code>hovercard</code></a></td>
+<td>The hovered data point</td>
+</tr>
+</tbody>
+</table>
+<h2 id="the-rule-the-panels-follow">The rule the panels follow</h2>
+<p>The editor draws the panels, and the game feeds them. Nothing in the editor reads a game's memory.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup> A panel shows something about a game because the game published it, over a channel that costs nothing when no panel listens. A game therefore wires the channels it has data for and ignores the rest, and the same binary runs inside the editor and on its own.</p>
+<p>The channels are described in <a href="census.html" data-slug="census">Census</a>, <a href="bindings.html" data-slug="bindings">Bindings</a>, <a href="devconsole.html" data-slug="devconsole">Dev console</a>, <a href="audio.html" data-slug="audio">Audio</a>, <a href="profile.html" data-slug="profile">Profiler</a> and <a href="window.html" data-slug="window">Custom windows</a>. Three practices recur:</p>
+<ul>
+<li>Gate a census build on <a class="sym" href="census.html#sym-census_wanted"><code>census::census_wanted</code></a>, because a large scene should not assemble rows that no panel draws.</li>
+<li>Give a census row the same id on every publish. The panel keeps which rows are open and selected by id, so an id taken from a list position makes the tree open and shut by itself.</li>
+<li>Name the screen each frame. The Storyboard makes one card for each name it hears and photographs the frame under that name.</li>
+</ul>
+<h2 id="what-not-to-reach-for">What not to reach for</h2>
+<ul>
+<li><strong><code>warp_core</code> directly.</strong> Everything a game needs is in <code>warp_sdk</code>. A path into <code>warp_core</code> reaches the editor's own internals.</li>
+<li><strong>A second copy of egui, wgpu, winit or ultraviolet.</strong> A second dependency line splits one type into two, and every call becomes a type error.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup></li>
+<li><strong>CRT by default.</strong> It is one optional look. Leave it off unless the art calls for it. It is one line in <code>gui</code>, <code>display.crt_enabled = true</code>, and absent otherwise. See <a href="post.html" data-slug="post">Post effects</a>.</li>
+<li><strong>egui panel chrome for the application's own interface.</strong> Docked panels and a free window are not the default, because a docked bar takes screen area from the data at all times. A deck panel takes screen area only while it is open.</li>
+</ul><h2 id="see-also">See also</h2><ul><li><a href="getting-started.html" data-slug="getting-started">Getting started</a></li><li><a href="renderer.html" data-slug="renderer">Renderer and run</a></li><li><a href="smoke.html" data-slug="smoke">Smoke test</a></li><li><a href="art-direction.html" data-slug="art-direction">Art direction</a></li><li><a href="squircle.html" data-slug="squircle">Squircle kit</a></li><li><a href="census.html" data-slug="census">Census</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>docs/building-a-game-in-warp.md</code> - <code>The order to read things</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>docs/building-a-game-in-warp.md</code> - <code>Each need has one kit. Use the kit.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>docs/building-a-game-in-warp.md</code> - <code>A game that compiles but</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>docs/building-a-game-in-warp.md</code> - <code>post effect.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>docs/building-a-game-in-warp.md</code> - <code>Keep the game&#x27;s clock yourself</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_core/src/context/digest.rs</code> - <code>pub fn frame_fingerprint(&amp;self)</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>docs/building-a-game-in-warp.md</code> - <code>surface out of the way of another.</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>docs/building-a-game-in-warp.md</code> - <code>The editor draws the panels; the game feeds them.</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>docs/building-a-game-in-warp.md</code> - <code>dependency line splits one type into two and every call becomes a type error.</code></li></ol><table class="navbox"><tr><th><a href="category-guides.html">Guides</a></th></tr><tr><td><b>Building a game</b> · <a href="art-direction.html" data-slug="art-direction">Art direction</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-guides.html">Guides</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

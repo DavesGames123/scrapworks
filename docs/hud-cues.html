@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HUD cues - Warp Wiki</title>
+<meta name="description" content="cause and effect shown with icon sentences, pulses, tints and ghost paths">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="hud-cues">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#overview">Overview</a></li><li><a href="#the-rule">The rule</a></li><li><a href="#cues-and-kinds">Cues and kinds</a></li><li><a href="#one-look-for-one-meaning">One look for one meaning</a></li><li><a href="#icons">Icons</a></li><li><a href="#rate-limit-priority-and-queue">Rate limit, priority and queue</a></li><li><a href="#drawing">Drawing</a><ul><li><a href="#ghost-paths">Ghost paths</a></li></ul></li><li><a href="#global-and-owned-state">Global and owned state</a></li><li><a href="#usage">Usage</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">HUD cues</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">cause and effect shown with icon sentences, pulses, tints and ghost paths</p><table class="infobox"><caption>HUD cues</caption><tr><th>Category</th><td><a href="category-information.html">Information</a></td></tr><tr><th>Module</th><td><code>warp_sdk::hud::cues</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/hud/cues.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">46</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example hud_progress</code></td></tr></table><p><strong>HUD cues</strong> are short non-verbal signals that show a player why a forced change of state happened. The kit lives in <a class="sym" href="hud-cues.html"><code>warp_sdk::hud::cues</code></a>. Its premise is that a forced change with no visible cause reads as a bug: the light goes out, the controls freeze, the camera jumps home, and the player does not know why <sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup>. A cue answers that with no words.</p>
+<h2 id="overview">Overview</h2>
+<p>One cue combines up to four signals.</p>
+<ul>
+<li>An icon sentence near the bottom of the screen, for example energy, then low energy, then lamp off.</li>
+<li>A pulse of rings at the source of the change, in world position.</li>
+<li>A tint on the screen edge in the colour of the cue.</li>
+<li>For a relocation such as a respawn, a tow or a teleport, a ghost path from the old position to the new one, with an icon for the reason.</li>
+</ul>
+<h2 id="the-rule">The rule</h2>
+<p>Every forced change of state must emit a cue. A forced change is one the player did not ask for: loss of control, darkness, respawn, damage, death. <a class="sym" href="#sym-Kind-is_forced"><code>Kind::is_forced</code></a> names the standard ones.</p>
+<p>After the change, a game calls <a class="sym" href="#sym-debug_assert_cued"><code>debug_assert_cued</code></a> with the same kind. In a debug build it panics when no cue of that kind reached the global state in the last second, so a missing cue fails in a test and not in front of a player <sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup>. A release build does nothing. The function reads only the global state. A game that owns a <a class="sym" href="#sym-Cues"><code>Cues</code></a> value makes the same check with <a class="sym" href="#sym-Cues-was_cued"><code>Cues::was_cued</code></a>, as the <code>hud_progress</code> example does:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">self</span>.cues.<span class="f">push</span>(<span class="t">Cue</span>::<span class="f">new</span>(<span class="t">Kind</span>::<span class="t">EnergyOut</span>, <span class="k">self</span>.pos));
+debug_assert!(<span class="k">self</span>.cues.<span class="f">was_cued</span>(<span class="t">Kind</span>::<span class="t">EnergyOut</span>, <span class="n">1.0</span>));</code></pre></div>
+<h2 id="cues-and-kinds">Cues and kinds</h2>
+<p>A <a class="sym" href="#sym-Cue"><code>Cue</code></a> has a <a class="sym" href="#sym-Kind"><code>Kind</code></a>, the world position of the change, and optional cause and effect icons. <a class="sym" href="#sym-Cue-new"><code>Cue::new</code></a> fills the default icons of the kind. <a class="sym" href="#sym-Cue-cause"><code>Cue::cause</code></a> and <a class="sym" href="#sym-Cue-effect"><code>Cue::effect</code></a> replace them, and <a class="sym" href="#sym-Cue-from"><code>Cue::from</code></a> sets the old position of a relocation, which draws the ghost path. <a class="sym" href="#sym-Cue-sentence"><code>Cue::sentence</code></a> returns the icons in order: cause, kind, effect.</p>
+<p>The standard kinds set the icon, the role and the priority. Kind::Custom sets its own name, <a class="sym" href="#sym-Sym"><code>Sym</code></a>, <a class="sym" href="#sym-Role"><code>Role</code></a> and priority.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Kind</th>
+<th style="text-align: right;">Priority</th>
+<th>Forced</th>
+<th>Role</th>
+<th>Default sentence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Kind::Death</td>
+<td style="text-align: right;">100</td>
+<td>yes</td>
+<td>Role::Danger</td>
+<td>Dying</td>
+</tr>
+<tr>
+<td>Kind::Respawn</td>
+<td style="text-align: right;">95</td>
+<td>yes</td>
+<td>Role::Info</td>
+<td>Dying, Respawn</td>
+</tr>
+<tr>
+<td>Kind::Towed</td>
+<td style="text-align: right;">92</td>
+<td>yes</td>
+<td>Role::Warn</td>
+<td>LowEnergy, hook</td>
+</tr>
+<tr>
+<td>Kind::EnergyOut</td>
+<td style="text-align: right;">80</td>
+<td>yes</td>
+<td>Role::Warn</td>
+<td>Energy, LowEnergy, lamp off</td>
+</tr>
+<tr>
+<td>Kind::Damaged</td>
+<td style="text-align: right;">70</td>
+<td>yes</td>
+<td>Role::Danger</td>
+<td>Danger</td>
+</tr>
+<tr>
+<td>Kind::Stunned</td>
+<td style="text-align: right;">65</td>
+<td>yes</td>
+<td>Role::Warn</td>
+<td>Stun, Danger</td>
+</tr>
+<tr>
+<td>Kind::Starving</td>
+<td style="text-align: right;">60</td>
+<td>yes</td>
+<td>Role::Warn</td>
+<td>food, Starving, Danger</td>
+</tr>
+<tr>
+<td>Kind::Unlocked</td>
+<td style="text-align: right;">50</td>
+<td>no</td>
+<td>Role::Gain</td>
+<td>New</td>
+</tr>
+<tr>
+<td>Kind::ObjectiveDone</td>
+<td style="text-align: right;">40</td>
+<td>no</td>
+<td>Role::Good</td>
+<td>Complete</td>
+</tr>
+<tr>
+<td>Kind::Discovered</td>
+<td style="text-align: right;">30</td>
+<td>no</td>
+<td>Role::Gain</td>
+<td>Reveal</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Kind-is_relocation"><code>Kind::is_relocation</code></a> is true for Kind::Respawn and Kind::Towed, and those kinds should get <a class="sym" href="#sym-Cue-from"><code>Cue::from</code></a>. No default icon is a house, because in the semiotic standard the house frame means Build <sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup>.</p>
+<h2 id="one-look-for-one-meaning">One look for one meaning</h2>
+<p>The cues follow the <a href="semiotics.html" data-slug="semiotics">semiotic standard</a>. Each standard kind has one <a class="sym" href="semiotics.html#sym-Action"><code>semiotics::Action</code></a>, given by <a class="sym" href="#sym-Kind-action"><code>Kind::action</code></a>. The cue paints that action with the frame of its class, and the colour of the class role comes from a <a class="sym" href="visual.html#sym-Language"><code>visual::Language</code></a>. <a class="sym" href="#sym-Kind-visual_role"><code>Kind::visual_role</code></a> gives the role of the tint, the pulse and the sentence frame, so the colour and the icon frame agree <sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup>.</p>
+<p><a class="sym" href="#sym-Role"><code>hud::cues::Role</code></a> is the coarser cue role. Role::Danger and Role::Warn both map to the Danger visual role, because the standard makes a recoverable loss a warning. Role::Info and Role::Good map to UiAccent, and Role::Gain maps to Discovery <sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup>. <a class="sym" href="#sym-Role-color"><code>Role::color</code></a> reads the default language, and <a class="sym" href="#sym-Role-color_in"><code>Role::color_in</code></a> reads a given one.</p>
+<p><a class="sym" href="#sym-Cues-with_language"><code>Cues::with_language</code></a> and <a class="sym" href="#sym-Cues-set_language"><code>Cues::set_language</code></a> give the game's language. Without one, <a class="sym" href="#sym-Cues-language"><code>Cues::language</code></a> returns <a class="sym" href="visual.html#sym-default_language"><code>visual::default_language</code></a>.</p>
+<h2 id="icons">Icons</h2>
+<p><a class="sym" href="#sym-Sym"><code>Sym</code></a> is a small vector icon drawn with egui shapes, so it needs no texture and takes any colour. Sym::Action puts any icon of the standard in a sentence, where it gets the frame and role colour of its class. Sym::Char uses one character as an icon. The other values are small glyphs for things the standard does not name, such as a lamp, a hook or food. <a class="sym" href="#sym-paint_sym"><code>paint_sym</code></a> draws one icon outside a cue, and for Sym::Action it paints the glyph only, in the given colour.</p>
+<h2 id="rate-limit-priority-and-queue">Rate limit, priority and queue</h2>
+<p><a class="sym" href="#sym-Cues-push"><code>Cues::push</code></a> applies three rules and reports the result as an <a class="sym" href="#sym-Emit"><code>Emit</code></a> value.</p>
+<p>A cue of a kind seen inside <code>Config.min_gap</code> merges into the cue on screen. The pulse starts again, a small count goes up, and the source moves to the new position. The merge does not extend the life of the sentence, because that life runs from when the sentence first showed. A cue that merges with a waiting cue of its kind changes nothing further, and <a class="sym" href="#sym-Cues-push"><code>push</code></a> still returns Emit::Merged <sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup>.</p>
+<p>Up to <code>Config.max_active</code> sentences show at one time. When those places are full, a cue at <a class="sym" href="#sym-URGENT"><code>URGENT</code></a> priority (90) or higher replaces the lowest active cue, if that cue has a strictly lower priority. Any other cue waits in a queue in priority order.</p>
+<p>A queue past <code>Config.max_queue</code> drops its lowest cue. <a class="sym" href="#sym-Cues-push"><code>push</code></a> returns Emit::Dropped only when that cue is the new one. <a class="sym" href="#sym-Cues-tick"><code>Cues::tick</code></a> ends old sentences and shows waiting ones, highest priority first.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th><a class="sym" href="#sym-Config"><code>Config</code></a> field</th>
+<th style="text-align: right;">Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>min_gap</code></td>
+<td style="text-align: right;">1.5</td>
+<td>Seconds in which a second cue of a kind merges</td>
+</tr>
+<tr>
+<td><code>max_active</code></td>
+<td style="text-align: right;">2</td>
+<td>Sentences on screen at one time</td>
+</tr>
+<tr>
+<td><code>max_queue</code></td>
+<td style="text-align: right;">6</td>
+<td>Cues that wait</td>
+</tr>
+<tr>
+<td><code>life</code></td>
+<td style="text-align: right;">2.6</td>
+<td>Seconds a sentence stays on screen</td>
+</tr>
+<tr>
+<td><code>path_time</code></td>
+<td style="text-align: right;">1.2</td>
+<td>Seconds the ghost takes to travel a path</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Config"><code>Config</code></a> can change at any time through the <code>config</code> field. On the global state, <a class="sym" href="#sym-with"><code>cues::with</code></a> gives that access:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust">cues::<span class="f">with</span>(|c| c.config.max_active = <span class="n">3</span>);</code></pre></div>
+<h2 id="drawing">Drawing</h2>
+<p><a class="sym" href="#sym-Cues-draw"><code>Cues::draw</code></a> paints everything in one call from the current clock.</p>
+<p>The edge tint is four gradient bands, with the colour at the edge and clear inside. Their depth is 12 percent of the shorter screen side, at least 24 points. The strongest recent cue wins, with a rise over 0.08 seconds and a fall over one second.</p>
+<p>The pulse is three rings at the source, 0.18 seconds apart, each growing from 10 to 70 points over 0.9 seconds. A floating icon rises above the source for 1.4 seconds.</p>
+<p>Sentences stack upward from a line 90 points above the bottom of the screen, centred. Each sits on a plate of the language paper colour, because the role colours have their contrast on it <sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup>. Its icons arrive 0.14 seconds apart, with arrows between them, and the count shows as <code>x2</code> and so on when a cue has merged.</p>
+<h3 id="ghost-paths">Ghost paths</h3>
+<p>A <a class="sym" href="#sym-GhostPath"><code>GhostPath</code></a> is a quadratic arc from the old position to the new one. Its control point is the midpoint offset by a quarter of the path length along the normal. A dashed line traces the arc as a ghost travels it over <code>Config.path_time</code>, a ring marks the old position, and the reason icon appears at the middle of the path once the ghost has gone 30 percent of the way. The path fades during the last half second of the sentence. <a class="sym" href="#sym-Cues-ghost_paths"><code>Cues::ghost_paths</code></a> returns the paths on screen, and <a class="sym" href="#sym-GhostPath-sample"><code>GhostPath::sample</code></a> and <a class="sym" href="#sym-GhostPath-points"><code>GhostPath::points</code></a> read the arc.</p>
+<h2 id="global-and-owned-state">Global and owned state</h2>
+<p><a class="sym" href="#sym-Cues"><code>Cues</code></a> is the whole state as a plain value, for a game that keeps its own and for tests <sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup>. Such a game calls <a class="sym" href="#sym-Cues-push"><code>Cues::push</code></a>, <a class="sym" href="#sym-Cues-tick"><code>Cues::tick</code></a> and <a class="sym" href="#sym-Cues-draw"><code>Cues::draw</code></a>, or <a class="sym" href="#sym-Cues-show"><code>Cues::show</code></a>, which ticks by the egui frame time and draws on the foreground layer.</p>
+<p>The free functions use one global <a class="sym" href="#sym-Cues"><code>Cues</code></a> behind a mutex. <a class="sym" href="#sym-emit"><code>emit</code></a> adds a cue from any thread, <a class="sym" href="#sym-Cues-show"><code>show</code></a> ticks and draws once per frame, and <a class="sym" href="#sym-with"><code>with</code></a> runs a closure on the state. <a class="sym" href="#sym-with"><code>with</code></a> holds the mutex while its closure runs, so the closure must not call <a class="sym" href="#sym-emit"><code>emit</code></a> or <a class="sym" href="#sym-Cues-show"><code>show</code></a>.</p>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::hud::cues::{<span class="k">self</span>, <span class="t">Cue</span>, <span class="t">Kind</span>, <span class="t">Sym</span>};
+<span class="k">use</span> warp_sdk::ultraviolet::<span class="t">Vec2</span>;
+
+<span class="c">// In the game logic, at the moment the light goes out:</span>
+cues::<span class="f">emit</span>(<span class="t">Cue</span>::<span class="f">new</span>(<span class="t">Kind</span>::<span class="t">EnergyOut</span>, sub_pos));
+<span class="c">// When the tow brings the sub home:</span>
+cues::<span class="f">emit</span>(<span class="t">Cue</span>::<span class="f">new</span>(<span class="t">Kind</span>::<span class="t">Towed</span>, home).<span class="f">from</span>(sub_pos));
+
+<span class="c">// In `gui`, once per frame. The closure maps a world position to screen points.</span>
+cues::<span class="f">show</span>(ctx, |p| <span class="f">to_screen</span>(p));</code></pre></div>
+<p>A respawn with the rule check looks like this:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">fn</span> <span class="f">respawn</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) {
+    <span class="k">let</span> old = <span class="k">self</span>.pos;
+    <span class="k">self</span>.pos = <span class="k">self</span>.spawn;
+    cues::<span class="f">emit</span>(<span class="t">Cue</span>::<span class="f">new</span>(<span class="t">Kind</span>::<span class="t">Respawn</span>, <span class="k">self</span>.pos).<span class="f">from</span>(old));
+    cues::<span class="f">debug_assert_cued</span>(<span class="t">Kind</span>::<span class="t">Respawn</span>);
+}</code></pre></div>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>Positions are in world units of type <code>ultraviolet::Vec2</code>, and they need a closure to reach the screen.</li>
+<li>Sizes and timings in the drawing code are fixed values in points and seconds, and they do not read the interface scale.</li>
+<li>The kit does not read the shell motion preference, so its animations run under MotionPref::Reduced.</li>
+<li><a class="sym" href="#sym-debug_assert_cued"><code>debug_assert_cued</code></a> checks one second back. A check made later than that fails even if the cue did fire.</li>
+</ul><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 46 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-hud--cues" class="modhead"><code>warp_sdk::hud::cues</code></h3><h4>Functions</h4><div class="item" id="sym-paint_sym" data-name="paint_sym"><div class="sig"><a class="anchor" href="#sym-paint_sym" aria-label="Link to paint_sym">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">paint_sym</span>(p: &amp;<span class="t">Painter</span>, sym: <span class="t">Sym</span>, c: <span class="t">Pos2</span>, size: f32, col: <span class="t">Color32</span>)</code></div><div class="doc"><p>Draws <code>sym</code> centred on <code>c</code>, <code>size</code> points high, in <code>col</code>.</p>
+<p><code>ignore
+paint_sym(&amp;painter, Sym::Heart, center, 20.0, Role::Danger.color());</code></p></div></div><div class="item" id="sym-with" data-name="with"><div class="sig"><a class="anchor" href="#sym-with" aria-label="Link to with">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> with&lt;<span class="t">R</span>&gt;(f: <span class="k">impl</span> <span class="t">FnOnce</span>(&amp;<span class="k">mut</span> <span class="t">Cues</span>) -&gt; <span class="t">R</span>) -&gt; <span class="t">R</span></code></div><div class="doc"><p>Runs <code>f</code> on the global state, for a config change or a query.</p>
+<p><code>ignore
+cues::with(|c| c.config.max_active = 3);</code></p></div></div><div class="item" id="sym-emit" data-name="emit"><div class="sig"><a class="anchor" href="#sym-emit" aria-label="Link to emit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">emit</span>(cue: <span class="t">Cue</span>) -&gt; <span class="t">Emit</span></code></div><div class="doc"><p>Adds a cue to the global state. Call it from any thread, at the moment of
+the change.</p>
+<p><code>ignore
+cues::emit(Cue::new(Kind::Respawn, spawn).from(death_pos));</code></p></div></div><div class="item" id="sym-show" data-name="show"><div class="sig"><a class="anchor" href="#sym-show" aria-label="Link to show">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">show</span>(ctx: &amp;egui::<span class="t">Context</span>, to_screen: <span class="k">impl</span> <span class="t">Fn</span>(<span class="t">Vec2</span>) -&gt; <span class="t">Pos2</span>)</code></div><div class="doc"><p>Ticks and draws the global state. Call it once per frame from <code>gui</code>.</p>
+<p><code>ignore
+cues::show(ctx, |p| egui::pos2(p.x, p.y));</code></p></div></div><div class="item" id="sym-debug_assert_cued" data-name="debug_assert_cued"><div class="sig"><a class="anchor" href="#sym-debug_assert_cued" aria-label="Link to debug_assert_cued">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">debug_assert_cued</span>(kind: <span class="t">Kind</span>)</code></div><div class="doc"><p>The rule helper. Call it right after a forced change of state. In a debug
+build it panics when no cue of <code>kind</code> reached the global state in the
+last second. A release build does nothing.</p>
+<p><code>ignore
+fn respawn(&amp;mut self) {
+let old = self.pos;
+self.pos = self.spawn;
+cues::emit(Cue::new(Kind::Respawn, self.pos).from(old));
+cues::debug_assert_cued(Kind::Respawn);
+}</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Sym" data-name="sym"><div class="sig"><a class="anchor" href="#sym-Sym" aria-label="Link to Sym">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Sym</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Battery</span>,
+<span class="t">BatteryEmpty</span>,
+<span class="t">Lamp</span>,
+<span class="t">LampOff</span>,
+<span class="t">Heart</span>,
+<span class="t">HeartCrack</span>,
+<span class="t">Skull</span>,
+<span class="t">Home</span>,
+<span class="t">Hook</span>,
+<span class="t">Bolt</span>,
+<span class="t">Star</span>,
+<span class="t">Lock</span>,
+<span class="t">Unlock</span>,
+<span class="t">Check</span>,
+<span class="t">Cross</span>,
+<span class="t">Eye</span>,
+<span class="t">Food</span>,
+<span class="t">FoodOff</span>,
+<span class="t">Daze</span>,
+<span class="t">Pin</span>,
+<span class="t">Flag</span>,
+<span class="t">Gem</span>,
+<span class="t">Plus</span>,
+<span class="t">Arrow</span>,
+<span class="t">Clock</span>,
+<span class="c">/// One character as the icon, for an icon this list does not have.</span>
+<span class="t">Char</span>(char),
+<span class="c">/// An icon of the semiotic standard. In a sentence and on a ghost path</span>
+<span class="c">/// it has the frame and the role colour of its class. [`paint_sym`]</span>
+<span class="c">/// paints its glyph only, in the colour you give.</span>
+<span class="c">/// </span>
+<span class="c">/// ```ignore</span>
+<span class="c">/// Cue::new(Kind::Damaged, pos).cause(Sym::Action(semiotics::Action::Heat))</span>
+<span class="c">/// ```</span>
+<span class="t">Action</span>(<span class="t">Action</span>),</code></pre></div><div class="doc"><p>A small vector icon. Each one is drawn with egui shapes, so it needs no
+texture and has the colour you give it.</p>
+<p><code>ignore
+use warp_sdk::hud::cues::{paint_sym, Sym};
+paint_sym(&amp;painter, Sym::Battery, egui::pos2(40.0, 40.0), 24.0, egui::Color32::WHITE);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Role" data-name="role"><div class="sig"><a class="anchor" href="#sym-Role" aria-label="Link to Role">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Role</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Harm: damage, death. The Danger role.</span>
+<span class="t">Danger</span>,
+<span class="c">/// A loss the player can fix: energy out, stun, hunger, tow. The</span>
+<span class="c">/// standard makes these Warning, so this is the Danger role too.</span>
+<span class="t">Warn</span>,
+<span class="c">/// Neutral facts: respawn. The UiAccent role (Information class).</span>
+<span class="t">Info</span>,
+<span class="c">/// A goal done. The UiAccent role (Information class).</span>
+<span class="t">Good</span>,
+<span class="c">/// Something new for the player: an unlock, a discovery. The Discovery</span>
+<span class="c">/// role (Perception class).</span>
+<span class="t">Gain</span>,</code></pre></div><div class="doc"><p>What a cue means. Each cue role is one <code>visual::Role</code> ([<code>Role::visual</code>]),
+so its colour comes from a <code>visual::Language</code> and red always means harm.</p>
+<p><code>ignore
+let red = Role::Danger.color();
+let red_here = Role::Danger.color_in(&amp;lang);</code></p></div></div><details class="members"><summary>3 methods</summary><div class="item" id="sym-Role-visual" data-name="role::visual"><div class="sig"><a class="anchor" href="#sym-Role-visual" aria-label="Link to Role::visual">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">visual</span>(<span class="k">self</span>) -&gt; visual::<span class="t">Role</span></code></div><div class="doc"><p>The <code>visual::Role</code> that gives this role its colour.</p>
+<p><code>ignore
+assert_eq!(Role::Warn.visual(), visual::Role::Danger);</code></p></div></div><div class="item" id="sym-Role-color" data-name="role::color"><div class="sig"><a class="anchor" href="#sym-Role-color" aria-label="Link to Role::color">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">color</span>(<span class="k">self</span>) -&gt; <span class="t">Color32</span></code></div><div class="doc"><p>The colour of this role in <code>visual::default_language()</code>, opaque.</p></div></div><div class="item" id="sym-Role-color_in" data-name="role::color_in"><div class="sig"><a class="anchor" href="#sym-Role-color_in" aria-label="Link to Role::color_in">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">color_in</span>(<span class="k">self</span>, lang: &amp;<span class="t">Language</span>) -&gt; <span class="t">Color32</span></code></div><div class="doc"><p>The colour of this role in <code>lang</code>, opaque.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Kind" data-name="kind"><div class="sig"><a class="anchor" href="#sym-Kind" aria-label="Link to Kind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Kind</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">EnergyOut</span>,
+<span class="t">Damaged</span>,
+<span class="t">Death</span>,
+<span class="t">Respawn</span>,
+<span class="t">Towed</span>,
+<span class="t">Stunned</span>,
+<span class="t">Starving</span>,
+<span class="t">Unlocked</span>,
+<span class="t">Discovered</span>,
+<span class="t">ObjectiveDone</span>,
+<span class="t">Custom</span> { name: &amp;<span class="a">'static</span> str, sym: <span class="t">Sym</span>, role: <span class="t">Role</span>, priority: u8 },</code></pre></div><div class="doc"><p>The reason for a cue. The standard kinds set the icon, the role colour
+and the priority. <code>Custom</code> sets them yourself.</p>
+<p><code>ignore
+let k = Kind::Custom { name: "frozen", sym: Sym::Char('*'), role: Role::Warn, priority: 50 };</code></p></div></div><details class="members"><summary>7 methods</summary><div class="item" id="sym-Kind-action" data-name="kind::action"><div class="sig"><a class="anchor" href="#sym-Kind-action" aria-label="Link to Kind::action">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">action</span>(<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">Action</span>&gt;</code></div><div class="doc"><p>The standard action of this kind. A <code>Custom</code> kind has one only when
+its sym is a [<code>Sym::Action</code>].</p>
+<p>Towed shows LowEnergy, the reason for the tow. Stunned and Damaged
+show Danger: the standard makes them Warning, and its stun glyph is
+a verb of the player (class Action), so a stun cue puts that glyph
+first, as the cause.</p>
+<p><code>ignore
+assert_eq!(Kind::Respawn.action(), Some(semiotics::Action::Respawn));</code></p></div></div><div class="item" id="sym-Kind-sym" data-name="kind::sym"><div class="sig"><a class="anchor" href="#sym-Kind-sym" aria-label="Link to Kind::sym">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">sym</span>(<span class="k">self</span>) -&gt; <span class="t">Sym</span></code></div><div class="doc"><p>The middle icon of the sentence: the standard action as a
+[<code>Sym::Action</code>], or the sym of a <code>Custom</code> kind.</p></div></div><div class="item" id="sym-Kind-role" data-name="kind::role"><div class="sig"><a class="anchor" href="#sym-Kind-role" aria-label="Link to Kind::role">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">role</span>(<span class="k">self</span>) -&gt; <span class="t">Role</span></code></div><div class="doc"><p>The cue role. Its colour is the colour of [<code>Kind::visual_role</code>].</p></div></div><div class="item" id="sym-Kind-visual_role" data-name="kind::visual_role"><div class="sig"><a class="anchor" href="#sym-Kind-visual_role" aria-label="Link to Kind::visual_role">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">visual_role</span>(<span class="k">self</span>) -&gt; visual::<span class="t">Role</span></code></div><div class="doc"><p>The <code>visual::Role</code> of the tint, the pulse and the sentence frame:
+the role of the action class, so the colour and the icon frame agree.
+A <code>Custom</code> kind with no action uses its cue role.</p></div></div><div class="item" id="sym-Kind-priority" data-name="kind::priority"><div class="sig"><a class="anchor" href="#sym-Kind-priority" aria-label="Link to Kind::priority">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">priority</span>(<span class="k">self</span>) -&gt; u8</code></div><div class="doc"><p>Higher shows first. [<code>URGENT</code>] and up replaces a cue on screen.</p></div></div><div class="item" id="sym-Kind-is_forced" data-name="kind::is_forced"><div class="sig"><a class="anchor" href="#sym-Kind-is_forced" aria-label="Link to Kind::is_forced">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_forced</span>(<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True for a change the player did not ask for. Each one must emit a cue.</p></div></div><div class="item" id="sym-Kind-is_relocation" data-name="kind::is_relocation"><div class="sig"><a class="anchor" href="#sym-Kind-is_relocation" aria-label="Link to Kind::is_relocation">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_relocation</span>(<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True for a kind that moves the player. Give it [<code>Cue::from</code>].</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Cue" data-name="cue"><div class="sig"><a class="anchor" href="#sym-Cue" aria-label="Link to Cue">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Cue</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// What happened. It sets the middle icon, the role colour and the priority.</span>
+<span class="k">pub</span> kind: <span class="t">Kind</span>,
+<span class="c">/// Where the change happened. For a relocation, the new position.</span>
+<span class="k">pub</span> at: <span class="t">Vec2</span>,
+<span class="c">/// The first icon of the sentence. `None` leaves it out.</span>
+<span class="k">pub</span> cause: <span class="t">Option</span>&lt;<span class="t">Sym</span>&gt;,
+<span class="c">/// The last icon of the sentence. `None` leaves it out.</span>
+<span class="k">pub</span> effect: <span class="t">Option</span>&lt;<span class="t">Sym</span>&gt;,
+<span class="c">/// The old position of a relocation. `Some` draws the ghost path.</span>
+<span class="k">pub</span> from: <span class="t">Option</span>&lt;<span class="t">Vec2</span>&gt;,</code></pre></div><div class="doc"><p>One cause-and-effect event. Positions are in world units; the closure
+given to [<code>show</code>] maps them to the screen.</p>
+<p><code>ignore
+let c = Cue::new(Kind::Damaged, sub_pos).cause(Sym::Bolt);
+let tow = Cue::new(Kind::Towed, home).from(sub_pos);</code></p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-Cue-new" data-name="cue::new"><div class="sig"><a class="anchor" href="#sym-Cue-new" aria-label="Link to Cue::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(kind: <span class="t">Kind</span>, at: <span class="t">Vec2</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A cue with the default cause and effect icons of <code>kind</code>.</p></div></div><div class="item" id="sym-Cue-cause" data-name="cue::cause"><div class="sig"><a class="anchor" href="#sym-Cue-cause" aria-label="Link to Cue::cause">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cause</span>(<span class="k">mut</span> <span class="k">self</span>, sym: <span class="t">Sym</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Sets the first icon.</p></div></div><div class="item" id="sym-Cue-effect" data-name="cue::effect"><div class="sig"><a class="anchor" href="#sym-Cue-effect" aria-label="Link to Cue::effect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">effect</span>(<span class="k">mut</span> <span class="k">self</span>, sym: <span class="t">Sym</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Sets the last icon.</p></div></div><div class="item" id="sym-Cue-from" data-name="cue::from"><div class="sig"><a class="anchor" href="#sym-Cue-from" aria-label="Link to Cue::from">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from</span>(<span class="k">mut</span> <span class="k">self</span>, old: <span class="t">Vec2</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Sets the old position of a relocation.</p></div></div><div class="item" id="sym-Cue-sentence" data-name="cue::sentence"><div class="sig"><a class="anchor" href="#sym-Cue-sentence" aria-label="Link to Cue::sentence">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">sentence</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">Sym</span>&gt;</code></div><div class="doc"><p>The icons of the sentence, in order: cause, kind, effect.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Config" data-name="config"><div class="sig"><a class="anchor" href="#sym-Config" aria-label="Link to Config">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Config</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Seconds in which a second cue of the same kind merges into the first.</span>
+<span class="k">pub</span> min_gap: f32,
+<span class="c">/// Sentences on screen at one time.</span>
+<span class="k">pub</span> max_active: usize,
+<span class="c">/// Cues that wait. A full queue drops its lowest cue.</span>
+<span class="k">pub</span> max_queue: usize,
+<span class="c">/// Seconds a sentence stays on screen.</span>
+<span class="k">pub</span> life: f32,
+<span class="c">/// Seconds the ghost takes to travel a relocation path.</span>
+<span class="k">pub</span> path_time: f32,</code></pre></div><div class="doc"><p>Timing and capacity. <code>Config::default()</code> suits most games.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Emit" data-name="emit"><div class="sig"><a class="anchor" href="#sym-Emit" aria-label="Link to Emit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Emit</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The cue is on screen.</span>
+<span class="t">Shown</span>,
+<span class="c">/// A cue of the same kind was on screen or waiting; its count went up.</span>
+<span class="t">Merged</span>,
+<span class="c">/// The cue waits for a free place.</span>
+<span class="t">Queued</span>,
+<span class="c">/// The queue was full and this cue had the lowest priority.</span>
+<span class="t">Dropped</span>,</code></pre></div><div class="doc"><p>What [<code>Cues::push</code>] did with a cue.</p></div></div></div><div class="typeblock"><div class="item" id="sym-GhostPath" data-name="ghostpath"><div class="sig"><a class="anchor" href="#sym-GhostPath" aria-label="Link to GhostPath">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">GhostPath</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The old position, in world units.</span>
+<span class="k">pub</span> from: <span class="t">Vec2</span>,
+<span class="c">/// The new position, in world units.</span>
+<span class="k">pub</span> to: <span class="t">Vec2</span>,
+<span class="c">/// The reason icon, drawn at the middle of the path.</span>
+<span class="k">pub</span> sym: <span class="t">Sym</span>,
+<span class="c">/// 0 at the start of the travel, 1 when the ghost is at `to`.</span>
+<span class="k">pub</span> progress: f32,</code></pre></div><div class="doc"><p>A relocation path on screen: the old and new positions and how far the
+ghost has gone.</p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-GhostPath-sample" data-name="ghostpath::sample"><div class="sig"><a class="anchor" href="#sym-GhostPath-sample" aria-label="Link to GhostPath::sample">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">sample</span>(&amp;<span class="k">self</span>, u: f32) -&gt; <span class="t">Vec2</span></code></div><div class="doc"><p>The point at <code>u</code> in 0..=1 on the arc. <code>sample(0.0)</code> is <code>from</code> and
+<code>sample(1.0)</code> is <code>to</code>.</p></div></div><div class="item" id="sym-GhostPath-points" data-name="ghostpath::points"><div class="sig"><a class="anchor" href="#sym-GhostPath-points" aria-label="Link to GhostPath::points">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">points</span>(&amp;<span class="k">self</span>, n: usize) -&gt; <span class="t">Vec</span>&lt;<span class="t">Vec2</span>&gt;</code></div><div class="doc"><p><code>n + 1</code> points from <code>from</code> to the ghost's place now.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Cues" data-name="cues"><div class="sig"><a class="anchor" href="#sym-Cues" aria-label="Link to Cues">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Cues</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Rate limit, queue size and timing. Change it at any time.</span>
+<span class="k">pub</span> config: <span class="t">Config</span>,</code></pre></div><div class="doc"><p>All cue state as a plain value. The free functions keep one in a global.</p>
+<p><code>ignore
+let mut cues = Cues::default();
+cues.push(Cue::new(Kind::Death, pos));
+cues.tick(dt);
+cues.draw(&amp;painter, screen, |p| to_screen(p));</code></p></div></div><details class="members"><summary>15 methods</summary><div class="item" id="sym-Cues-new" data-name="cues::new"><div class="sig"><a class="anchor" href="#sym-Cues-new" aria-label="Link to Cues::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(config: <span class="t">Config</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A fresh state with <code>config</code>.</p></div></div><div class="item" id="sym-Cues-with_language" data-name="cues::with_language"><div class="sig"><a class="anchor" href="#sym-Cues-with_language" aria-label="Link to Cues::with_language">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_language</span>(<span class="k">mut</span> <span class="k">self</span>, lang: <span class="t">Language</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The same state with the colours of <code>lang</code>, the game's language.</p>
+<p><code>ignore
+let cues = Cues::default().with_language(Language::new("ocean calm", 7));</code></p></div></div><div class="item" id="sym-Cues-set_language" data-name="cues::set_language"><div class="sig"><a class="anchor" href="#sym-Cues-set_language" aria-label="Link to Cues::set_language">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_language</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, lang: <span class="t">Language</span>)</code></div><div class="doc"><p>Set the language in place, for example on the global state.</p>
+<p><code>ignore
+cues::with(|c| c.set_language(lang.clone()));</code></p></div></div><div class="item" id="sym-Cues-language" data-name="cues::language"><div class="sig"><a class="anchor" href="#sym-Cues-language" aria-label="Link to Cues::language">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">language</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="t">Language</span></code></div><div class="doc"><p>The language that colours the cues: the one you gave, or
+<code>visual::default_language()</code>.</p></div></div><div class="item" id="sym-Cues-clock" data-name="cues::clock"><div class="sig"><a class="anchor" href="#sym-Cues-clock" aria-label="Link to Cues::clock">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clock</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>Seconds since this state was made, as counted by [<code>Cues::tick</code>].</p></div></div><div class="item" id="sym-Cues-push" data-name="cues::push"><div class="sig"><a class="anchor" href="#sym-Cues-push" aria-label="Link to Cues::push">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">push</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, cue: <span class="t">Cue</span>) -&gt; <span class="t">Emit</span></code></div><div class="doc"><p>Adds a cue under the rate limit, the priority and the queue rules.</p></div></div><div class="item" id="sym-Cues-tick" data-name="cues::tick"><div class="sig"><a class="anchor" href="#sym-Cues-tick" aria-label="Link to Cues::tick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">tick</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32)</code></div><div class="doc"><p>Advances the clock by <code>dt</code> seconds, ends old sentences and shows
+waiting ones.</p></div></div><div class="item" id="sym-Cues-active" data-name="cues::active"><div class="sig"><a class="anchor" href="#sym-Cues-active" aria-label="Link to Cues::active">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">active</span>(&amp;<span class="k">self</span>) -&gt; <span class="k">impl</span> <span class="t">Iterator</span>&lt;<span class="t">Item</span> = &amp;<span class="t">Cue</span>&gt;</code></div><div class="doc"><p>The cues on screen, oldest first.</p></div></div><div class="item" id="sym-Cues-repeats" data-name="cues::repeats"><div class="sig"><a class="anchor" href="#sym-Cues-repeats" aria-label="Link to Cues::repeats">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">repeats</span>(&amp;<span class="k">self</span>, kind: <span class="t">Kind</span>) -&gt; u32</code></div><div class="doc"><p>How many times the cue of <code>kind</code> on screen merged a repeat, counting itself.</p></div></div><div class="item" id="sym-Cues-queued" data-name="cues::queued"><div class="sig"><a class="anchor" href="#sym-Cues-queued" aria-label="Link to Cues::queued">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">queued</span>(&amp;<span class="k">self</span>) -&gt; &amp;[<span class="t">Cue</span>]</code></div><div class="doc"><p>The cues that wait, highest priority first.</p></div></div><div class="item" id="sym-Cues-was_cued" data-name="cues::was_cued"><div class="sig"><a class="anchor" href="#sym-Cues-was_cued" aria-label="Link to Cues::was_cued">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">was_cued</span>(&amp;<span class="k">self</span>, kind: <span class="t">Kind</span>, within: f32) -&gt; bool</code></div><div class="doc"><p>True when a cue of <code>kind</code> came in the last <code>within</code> seconds.</p></div></div><div class="item" id="sym-Cues-ghost_paths" data-name="cues::ghost_paths"><div class="sig"><a class="anchor" href="#sym-Cues-ghost_paths" aria-label="Link to Cues::ghost_paths">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">ghost_paths</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">GhostPath</span>&gt;</code></div><div class="doc"><p>The relocation paths of the cues on screen.</p></div></div><div class="item" id="sym-Cues-animating" data-name="cues::animating"><div class="sig"><a class="anchor" href="#sym-Cues-animating" aria-label="Link to Cues::animating">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">animating</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True while something on screen moves.</p></div></div><div class="item" id="sym-Cues-draw" data-name="cues::draw"><div class="sig"><a class="anchor" href="#sym-Cues-draw" aria-label="Link to Cues::draw">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw</span>(&amp;<span class="k">self</span>, painter: &amp;<span class="t">Painter</span>, screen: <span class="t">Rect</span>, to_screen: <span class="k">impl</span> <span class="t">Fn</span>(<span class="t">Vec2</span>) -&gt; <span class="t">Pos2</span>)</code></div><div class="doc"><p>Draws sentences, pulses, edge tint and ghost paths. <code>screen</code> is the
+area to tint. <code>to_screen</code> maps a world position to screen points.</p></div></div><div class="item" id="sym-Cues-show" data-name="cues::show"><div class="sig"><a class="anchor" href="#sym-Cues-show" aria-label="Link to Cues::show">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">show</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ctx: &amp;egui::<span class="t">Context</span>, to_screen: <span class="k">impl</span> <span class="t">Fn</span>(<span class="t">Vec2</span>) -&gt; <span class="t">Pos2</span>)</code></div><div class="doc"><p>Ticks by the egui frame time and draws on the foreground layer.</p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-URGENT" data-name="urgent"><div class="sig"><a class="anchor" href="#sym-URGENT" aria-label="Link to URGENT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">URGENT</span>: u8 = <span class="n">90</span></code></div><div class="doc"><p>Priority at or above which a cue replaces the lowest cue on screen.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="hud.html" data-slug="hud">HUD</a></li><li><a href="hud-progress.html" data-slug="hud-progress">HUD progress</a></li><li><a href="semiotics.html" data-slug="semiotics">Semiotics</a></li><li><a href="visual.html" data-slug="visual">Visual language</a></li><li><a href="teach.html" data-slug="teach">Teach kit</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/cues.rs</code> - <code>A forced change of state with no visible cause reads as a bug.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/cues.rs</code> - <code>no cue of that kind came in the last second, so a missing cue fails in a</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/cues.rs</code> - <code>No default uses a house: in the standard the house frame means Build.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/cues.rs</code> - <code>the role of the action class, so the colour and the icon frame agree.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/cues.rs</code> - <code>Role::Danger | Role::Warn =&gt; visual::Role::Danger,</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/cues.rs</code> - <code>if self.queue.iter().any(|q| q.kind == cue.kind) {</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/cues.rs</code> - <code>The plate is the paper of the language: the role colours have</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/cues.rs</code> - <code>is the state as a plain value, for a game that keeps its own and</code></li></ol><table class="navbox"><tr><th><a href="category-information.html">Information</a></th></tr><tr><td><a href="squircle.html" data-slug="squircle">Squircle kit</a> · <a href="hud.html" data-slug="hud">HUD</a> · <b>HUD cues</b> · <a href="hud-markers.html" data-slug="hud-markers">HUD markers</a> · <a href="hud-minimap.html" data-slug="hud-minimap">HUD minimap</a> · <a href="hud-progress.html" data-slug="hud-progress">HUD progress</a> · <a href="teach.html" data-slug="teach">Teach kit</a> · <a href="widgets.html" data-slug="widgets">Panel widgets</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-information.html">Information</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

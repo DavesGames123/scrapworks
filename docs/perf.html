@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perf - Warp Wiki</title>
+<meta name="description" content="per-system frame budgets, growth detection and automatic quality">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="perf">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#design">Design</a></li><li><a href="#the-frame-budget">The frame budget</a></li><li><a href="#usage">Usage</a></li><li><a href="#statistics-and-detectors">Statistics and detectors</a><ul><li><a href="#rolling-statistics">Rolling statistics</a></li><li><a href="#over-budget">Over budget</a></li><li><a href="#growth">Growth</a></li><li><a href="#warnings">Warnings</a></li></ul></li><li><a href="#auto-quality">Auto-quality</a></li><li><a href="#reading-the-report">Reading the report</a></li><li><a href="#tests-and-headless-use">Tests and headless use</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Perf</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">per-system frame budgets, growth detection and automatic quality</p><table class="infobox"><caption>Perf</caption><tr><th>Category</th><td><a href="category-engine.html">Engine</a></td></tr><tr><th>Module</th><td><code>warp_sdk::perf</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/perf.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">56</a></td></tr></table><p><strong>Perf</strong> is the <code>warp_sdk</code> kit that measures frame budgets every frame and adjusts quality automatically. A game gives each costly system a budget in milliseconds, times the system with a guard, and reads one report. The <a class="sym" href="perf.html"><code>perf</code></a> module finds three failures: a system over its budget, a system whose time increases over minutes, and a frame too slow for the display. Auto-quality then moves game knobs down until the frame fits, and moves them up again when the frame is stable.</p>
+<h2 id="design">Design</h2>
+<p>The kit exists because of a specific failure. The Reef v2 fluid became slower over time and nothing told the author. The Perf panel showed the frame, but not which system grew and not that the time rose for minutes.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> So each system gets a number that it must stay below, and the module reports when that stops being true.</p>
+<p>The module has no render-loop hook of its own. The render loop calls <a class="sym" href="profile.html#sym-frame"><code>profile::frame()</code></a> once per frame, and this module reads <a class="sym" href="profile.html#sym-generation"><code>profile::generation()</code></a>. When that value changes, the module closes its own frame, so a game calls no frame function.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup> A headless loop or a test with no render loop calls <a class="sym" href="#sym-Monitor-end_frame"><code>end_frame</code></a> instead. After the first such call, the module ignores the profiler clock, so a frame never closes twice.</p>
+<p><a class="sym" href="#sym-scope"><code>scope</code></a> also opens a <a class="sym" href="profile.html#sym-Scope"><code>profile::Scope</code></a> of the same name. The span therefore appears in the flame chart of the Profiler panel, and the module needs no second span channel. See <a href="profile.html" data-slug="profile">Profiler</a>. GPU time from <a class="sym" href="#sym-report_gpu"><code>report_gpu</code></a> is not a span, so it appears only in <a class="sym" href="#sym-Monitor-report"><code>report</code></a>.</p>
+<h2 id="the-frame-budget">The frame budget</h2>
+<p><a class="sym" href="#sym-FRAME"><code>FRAME</code></a> is 16.6 ms, one frame at 60 Hz, and auto-quality compares the frame time to it. The source calls the split below a guide and not a rule.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Constant</th>
+<th>Value</th>
+<th>Used for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-SIMULATION"><code>SIMULATION</code></a></td>
+<td>6.0 ms</td>
+<td>Game update, physics and fluid steps on the CPU</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-GPU_EFFECTS"><code>GPU_EFFECTS</code></a></td>
+<td>5.0 ms</td>
+<td>Post, particles and fluid passes on the GPU</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-UI"><code>UI</code></a></td>
+<td>2.0 ms</td>
+<td>egui and HUD</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-HEADROOM"><code>HEADROOM</code></a></td>
+<td>3.6 ms</td>
+<td>The OS, the driver, an unusual frame</td>
+</tr>
+</tbody>
+</table>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::perf::{<span class="k">self</span>, <span class="t">Ms</span>};
+
+perf::<span class="f">budget</span>(<span class="s">"fluid"</span>, <span class="t">Ms</span>(<span class="n">1.5</span>));                                     <span class="c">// once, in `new`</span>
+perf::<span class="f">knob</span>(<span class="s">"fluid_res"</span>, [<span class="n">1.0</span>, <span class="n">0.75</span>, <span class="n">0.5</span>, <span class="n">0.35</span>], |v| <span class="t">FLUID_RES</span>.<span class="f">set</span>(v));
+<span class="c">// Each frame:</span>
+{
+    <span class="k">let</span> _t = perf::<span class="f">scope</span>(<span class="s">"fluid"</span>);
+    <span class="k">self</span>.fluid.<span class="f">step</span>();
+}
+<span class="k">for</span> line <span class="k">in</span> perf::<span class="f">take_warnings</span>() { <span class="c">/* show in the console */</span> <span class="k">let</span> _ = line; }</code></pre></div>
+<p><a class="sym" href="#sym-Monitor-budget"><code>budget</code></a> gives a channel a budget. A channel with no budget still gets statistics and growth detection, but it is never over budget.</p>
+<p><a class="sym" href="#sym-scope"><code>scope</code></a> returns a <a class="sym" href="#sym-Scope"><code>Scope</code></a> guard that records its time when it drops. The guard must be bound to a named variable: <code>let _ = perf::scope(..)</code> drops it at once and records zero.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup> On wasm32 the standard library has no clock, so only the Profiler span records.</p>
+<p><a class="sym" href="#sym-Monitor-record"><code>record</code></a> adds time that a guard cannot measure, such as time from a worker. Two records in one frame add together. <a class="sym" href="#sym-report_gpu"><code>report_gpu</code></a> does the same thing, under a name that says where the number comes from.</p>
+<h2 id="statistics-and-detectors">Statistics and detectors</h2>
+<h3 id="rolling-statistics">Rolling statistics</h3>
+<p>Each channel keeps the last <a class="sym" href="#sym-WINDOW"><code>WINDOW</code></a> samples, which is 120 frames. <a class="sym" href="#sym-Stats"><code>Stats</code></a> holds the sample count, mean, 95th percentile by nearest rank, and maximum.</p>
+<h3 id="over-budget">Over budget</h3>
+<p>A channel enters the over state after <a class="sym" href="#sym-ENTER_AFTER"><code>ENTER_AFTER</code></a> consecutive frames over budget, which is 10. It leaves only after <a class="sym" href="#sym-LEAVE_AFTER"><code>LEAVE_AFTER</code></a> consecutive frames, which is 60, below <a class="sym" href="#sym-LEAVE_FRACTION"><code>LEAVE_FRACTION</code></a> of the budget, which is 0.9. The leave condition is longer so that the state does not flicker.</p>
+<h3 id="growth">Growth</h3>
+<p>Growth detection looks for the slow rise that a leak or a feedback loop gives. Each <a class="sym" href="#sym-GROWTH_BUCKET"><code>GROWTH_BUCKET</code></a> of 60 frames becomes one mean, and the module keeps <a class="sym" href="#sym-GROWTH_BUCKETS"><code>GROWTH_BUCKETS</code></a> of them, 180, which is three minutes at 60 Hz. It gives no result before <a class="sym" href="#sym-GROWTH_MIN_BUCKETS"><code>GROWTH_MIN_BUCKETS</code></a>, 30.</p>
+<p>The detector splits the history into thirds. It requires that the three means increase in order, that the last exceeds the first by more than 0.05 ms, and that the ratio reaches 1 + <a class="sym" href="#sym-GROWTH_RATIO"><code>GROWTH_RATIO</code></a>, which is 1.25.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup> Noise gives thirds that are almost equal and not in order, so noise does not trigger it. The absolute floor stops a system near zero cost from giving a large ratio.</p>
+<h3 id="warnings">Warnings</h3>
+<p>The dev console is a snapshot that the game owns, so this module cannot add a line to it. <a class="sym" href="#sym-take_warnings"><code>take_warnings</code></a> returns <a class="sym" href="devconsole.html#sym-Line"><code>devconsole::Line</code></a> values, and the game adds them to its scrollback. See <a href="devconsole.html" data-slug="devconsole">Dev console</a>. On native targets, the module also writes each warning to stderr. One channel gives at most one warning in <a class="sym" href="#sym-WARN_EVERY"><code>WARN_EVERY</code></a> frames, which is 600. A game that never takes the warnings keeps 64 at most.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<h2 id="auto-quality">Auto-quality</h2>
+<p><a class="sym" href="#sym-Quality"><code>Quality</code></a> has four levels, from best to cheapest: Ultra, High, Medium and Low. The module starts at <a class="sym" href="#sym-START_QUALITY"><code>START_QUALITY</code></a>, which is High, so that auto-quality can go up or down from the first frame.</p>
+<p><a class="sym" href="#sym-Monitor-knob"><code>knob</code></a> registers a named setter with four values, in the order of <a class="sym" href="#sym-Quality-ALL"><code>Quality::ALL</code></a>. The setter gets the value for the current level at once, and again on each level change.</p>
+<p>The state machine runs once per closed frame:<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Constant</th>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-DOWN_AFTER"><code>DOWN_AFTER</code></a></td>
+<td>30</td>
+<td>Consecutive slow frames before one step down</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-UP_AFTER"><code>UP_AFTER</code></a></td>
+<td>300</td>
+<td>Consecutive stable frames before one step up</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-SLOW_FACTOR"><code>SLOW_FACTOR</code></a></td>
+<td>1.15</td>
+<td>A frame longer than <a class="sym" href="#sym-FRAME"><code>FRAME</code></a> times this is slow</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-STABLE_FRACTION"><code>STABLE_FRACTION</code></a></td>
+<td>0.75</td>
+<td>A stable frame keeps each budgeted channel below this part of its budget</td>
+</tr>
+</tbody>
+</table>
+<p>A frame also counts toward a step down when any channel is over budget. The <a class="sym" href="#sym-SLOW_FACTOR"><code>SLOW_FACTOR</code></a> margin exists so that a vsync frame of 16.7 ms is not slow. A stable frame also must not exceed <a class="sym" href="#sym-FRAME"><code>FRAME</code></a> by more than 5 percent.</p>
+<p>If a step up is followed by a step down in less than two times the current wait, the wait doubles, up to 16 times <a class="sym" href="#sym-UP_AFTER"><code>UP_AFTER</code></a>. This stops the level from oscillating. Each level change also clears the over state of all channels, because a channel still marked over would step the level down again at once.</p>
+<p><a class="sym" href="#sym-Monitor-set_quality"><code>set_quality</code></a> with a level records a player choice, and while one is set, the automatic state machine does nothing. <a class="sym" href="#sym-Monitor-auto_quality"><code>auto_quality(false)</code></a> also stops it. <a class="sym" href="#sym-Monitor-quality"><code>quality</code></a> returns the current level, and <a class="sym" href="#sym-Quality-name"><code>Quality::name</code></a> gives the text for a settings menu.</p>
+<h2 id="reading-the-report">Reading the report</h2>
+<p><a class="sym" href="#sym-Report"><code>Report</code></a> is a snapshot of the <a class="sym" href="#sym-Monitor"><code>Monitor</code></a>.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>frames</code></td>
+<td>Frames closed since the start</td>
+</tr>
+<tr>
+<td><code>frame</code></td>
+<td>Wall time of the frame, as <a class="sym" href="#sym-Stats"><code>Stats</code></a>; empty when no frame time is known</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Monitor-quality"><code>quality</code></a></td>
+<td>The current level</td>
+</tr>
+<tr>
+<td><code>player_override</code></td>
+<td>True when the player chose the level</td>
+</tr>
+<tr>
+<td><code>warnings_total</code></td>
+<td>Warnings since the start</td>
+</tr>
+<tr>
+<td><a class="sym" href="audio.html#sym-channels"><code>channels</code></a></td>
+<td>One <a class="sym" href="#sym-ChannelReport"><code>ChannelReport</code></a> per channel</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Report-channel"><code>Report::channel</code></a> finds a channel by name. A <a class="sym" href="#sym-ChannelReport"><code>ChannelReport</code></a> holds the name, budget and statistics, with <code>over</code> while the channel is in the over state, and <code>growth</code> with the ratio when the time rises over minutes.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> c = perf::<span class="f">report</span>().<span class="f">channel</span>(<span class="s">"fluid"</span>).<span class="f">unwrap</span>();
+<span class="k">if</span> c.over { <span class="c">/* show a red light */</span> }</code></pre></div>
+<h2 id="tests-and-headless-use">Tests and headless use</h2>
+<p><a class="sym" href="#sym-Monitor-report"><code>report</code></a> returns a <a class="sym" href="#sym-Report"><code>Report</code></a> snapshot of all channels, and <a class="sym" href="#sym-Report"><code>Report</code></a> implements <a class="sym" href="front-settings.html#sym-Display"><code>Display</code></a>. <a class="sym" href="#sym-Monitor-assert_within"><code>assert_within</code></a> turns a budget into a test: it panics when the p95 of a channel is above the limit, or when the channel has no samples.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">for</span> _ <span class="k">in</span> <span class="n">0</span>..<span class="n">600</span> { sim.<span class="f">step</span>(); perf::<span class="f">end_frame</span>(<span class="t">None</span>); }</code></pre></div>
+<p>The free functions share one global <a class="sym" href="#sym-Monitor"><code>Monitor</code></a>. A test that must not share state with other tests makes its own instance with <a class="sym" href="#sym-Monitor-new"><code>Monitor::new</code></a>.</p>
+<h2 id="history">History</h2>
+<p>The kit was added on 2026-10-29.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 56 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-perf" class="modhead"><code>warp_sdk::perf</code></h3><h4>Functions</h4><div class="item" id="sym-budget" data-name="budget"><div class="sig"><a class="anchor" href="#sym-budget" aria-label="Link to budget">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">budget</span>(name: &amp;<span class="a">'static</span> str, ms: <span class="t">Ms</span>)</code></div><div class="doc"><p>Give a channel a budget in ms. A channel with no budget gets statistics
+and growth detection, but it is never over budget.</p>
+<p><code>ignore
+perf::budget("fluid", perf::Ms(1.5));</code></p></div></div><div class="item" id="sym-record" data-name="record"><div class="sig"><a class="anchor" href="#sym-record" aria-label="Link to record">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">record</span>(name: &amp;<span class="a">'static</span> str, ms: f32)</code></div><div class="doc"><p>Add <code>ms</code> of time to a channel in this frame. Two records in one frame
+add together. Use it for time that a [<code>scope</code>] cannot measure.</p>
+<p><code>ignore
+perf::record("pathfind", worker_ms);</code></p></div></div><div class="item" id="sym-report_gpu" data-name="report_gpu"><div class="sig"><a class="anchor" href="#sym-report_gpu" aria-label="Link to report_gpu">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">report_gpu</span>(name: &amp;<span class="a">'static</span> str, ms: f32)</code></div><div class="doc"><p>Add GPU time, in ms, to a channel in this frame. The same as [<code>record</code>],
+with a name that says where the number comes from.</p>
+<p><code>ignore
+perf::report_gpu("fluid", timestamp_ms);</code></p></div></div><div class="item" id="sym-scope" data-name="scope"><div class="sig"><a class="anchor" href="#sym-scope" aria-label="Link to scope">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">scope</span>(name: &amp;<span class="a">'static</span> str) -&gt; <span class="t">Scope</span></code></div><div class="doc"><p>Time a block on the CPU until the guard drops. The guard also opens a
+Profiler span with the same name.</p>
+<p>Bind the guard to a named variable. <code>let _ = perf::scope(..)</code> drops the
+guard at once and records zero.</p>
+<p><code>ignore
+let _t = perf::scope("fluid");
+fluid.step();</code></p></div></div><div class="item" id="sym-end_frame" data-name="end_frame"><div class="sig"><a class="anchor" href="#sym-end_frame" aria-label="Link to end_frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">end_frame</span>(frame_ms: <span class="t">Option</span>&lt;f32&gt;) -&gt; <span class="t">Option</span>&lt;<span class="t">Quality</span>&gt;</code></div><div class="doc"><p>Close the frame by hand. Only for a loop that has no render loop: a
+headless simulation or a test. After the first call, the module stops
+reading the render loop clock.</p>
+<p><code>ignore
+for _ in 0..600 { sim.step(); perf::end_frame(None); }</code></p></div></div><div class="item" id="sym-knob" data-name="knob"><div class="sig"><a class="anchor" href="#sym-knob" aria-label="Link to knob">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">knob</span>(name: &amp;<span class="a">'static</span> str, values: [f32; <span class="n">4</span>], set: <span class="k">impl</span> <span class="t">Fn</span>(f32) + <span class="t">Send</span> + <span class="t">Sync</span> + <span class="a">'static</span>)</code></div><div class="doc"><p>Register a quality knob: one value for each level, in the order Ultra,
+High, Medium, Low. The setter runs now with the value for the current
+level, and again each time the level changes. A second knob with the
+same name replaces the first.</p>
+<p><code>ignore
+perf::knob("particles", [1.0, 0.7, 0.4, 0.2], |v| PARTICLE_SCALE.store(v));</code></p></div></div><div class="item" id="sym-quality" data-name="quality"><div class="sig"><a class="anchor" href="#sym-quality" aria-label="Link to quality">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">quality</span>() -&gt; <span class="t">Quality</span></code></div><div class="doc"><p>The quality level that the knobs have now.</p>
+<p><code>ignore
+ui.label(format!("Quality: {}", perf::quality().name()));</code></p></div></div><div class="item" id="sym-set_quality" data-name="set_quality"><div class="sig"><a class="anchor" href="#sym-set_quality" aria-label="Link to set_quality">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_quality</span>(q: <span class="t">Option</span>&lt;<span class="t">Quality</span>&gt;)</code></div><div class="doc"><p>The player's choice from a settings menu. <code>Some</code> pins the level and
+auto-quality does not change it. <code>None</code> gives the level back to
+auto-quality.</p>
+<p><code>ignore
+perf::set_quality(Some(perf::Quality::Ultra));</code></p></div></div><div class="item" id="sym-auto_quality" data-name="auto_quality"><div class="sig"><a class="anchor" href="#sym-auto_quality" aria-label="Link to auto_quality">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">auto_quality</span>(on: bool)</code></div><div class="doc"><p>Turn auto-quality on or off. It is on at the start. A player override
+from [<code>set_quality</code>] also stops it.</p>
+<p><code>ignore
+perf::auto_quality(false);</code></p></div></div><div class="item" id="sym-report" data-name="report"><div class="sig"><a class="anchor" href="#sym-report" aria-label="Link to report">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">report</span>() -&gt; <span class="t">Report</span></code></div><div class="doc"><p>A snapshot of all channels, the frame time and the quality level.</p>
+<p><code>ignore
+println!("{}", perf::report());</code></p></div></div><div class="item" id="sym-take_warnings" data-name="take_warnings"><div class="sig"><a class="anchor" href="#sym-take_warnings" aria-label="Link to take_warnings">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_warnings</span>() -&gt; <span class="t">Vec</span>&lt;<span class="t">Line</span>&gt;</code></div><div class="doc"><p>Take the warnings since the last call, as dev console lines. Add them
+to the game's console scrollback and publish a new revision.</p>
+<p><code>ignore
+let new = perf::take_warnings();
+if !new.is_empty() { lines.extend(new); rev += 1; devconsole::publish(rev, lines.clone()); }</code></p></div></div><div class="item" id="sym-assert_within" data-name="assert_within"><div class="sig"><a class="anchor" href="#sym-assert_within" aria-label="Link to assert_within">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">assert_within</span>(name: &amp;str, ms: <span class="t">Ms</span>) -&gt; <span class="t">Stats</span></code></div><div class="doc"><p>Panic when the p95 of <code>name</code> in the global monitor is above <code>ms</code>.
+For tests and benchmarks. Returns the statistics.</p>
+<p><code>ignore
+for _ in 0..120 { { let _t = perf::scope("fluid"); fluid.step(); } perf::end_frame(None); }
+perf::assert_within("fluid", perf::Ms(2.0));</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Ms" data-name="ms"><div class="sig"><a class="anchor" href="#sym-Ms" aria-label="Link to Ms">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Ms</span>(<span class="k">pub</span> f32)</code></div><div class="doc"><p>A time in milliseconds.</p>
+<p><code>ignore
+perf::budget("fluid", perf::Ms(1.5));</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Stats" data-name="stats"><div class="sig"><a class="anchor" href="#sym-Stats" aria-label="Link to Stats">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Stats</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Frames in the window.</span>
+<span class="k">pub</span> samples: usize,
+<span class="c">/// The mean, in ms.</span>
+<span class="k">pub</span> mean: f32,
+<span class="c">/// The 95th percentile (nearest rank), in ms.</span>
+<span class="k">pub</span> p95: f32,
+<span class="c">/// The largest sample, in ms.</span>
+<span class="k">pub</span> max: f32,</code></pre></div><div class="doc"><p>Rolling statistics of one channel over the last [<code>WINDOW</code>] frames.</p>
+<p><code>ignore
+let s = perf::report().channel("fluid").unwrap().stats;
+println!("{:.2} {:.2} {:.2}", s.mean, s.p95, s.max);</code></p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Stats-of" data-name="stats::of"><div class="sig"><a class="anchor" href="#sym-Stats-of" aria-label="Link to Stats::of">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">of</span>(samples: &amp;[f32]) -&gt; <span class="t">Stats</span></code></div><div class="doc"><p>Statistics of a set of samples in ms. All zero for an empty set.</p>
+<p><code>ignore
+let s = perf::Stats::of(&amp;[1.0, 2.0, 3.0]);
+assert_eq!(s.max, 3.0);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Quality" data-name="quality"><div class="sig"><a class="anchor" href="#sym-Quality" aria-label="Link to Quality">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Quality</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Ultra</span> = <span class="n">0</span>,
+<span class="t">High</span> = <span class="n">1</span>,
+<span class="t">Medium</span> = <span class="n">2</span>,
+<span class="t">Low</span> = <span class="n">3</span>,</code></pre></div><div class="doc"><p>A quality level. [<code>knob</code>] values are given in this order.</p>
+<p><code>ignore
+perf::set_quality(Some(perf::Quality::Ultra));       // the player chose Ultra</code></p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-Quality-ALL" data-name="quality::all"><div class="sig"><a class="anchor" href="#sym-Quality-ALL" aria-label="Link to Quality::ALL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ALL</span>: [<span class="t">Quality</span>; <span class="n">4</span>] = [<span class="t">Quality</span>::<span class="t">Ultra</span>, <span class="t">Quality</span>::<span class="t">High</span>, <span class="t">Quality</span>::<span class="t">Medium</span>, <span class="t">Quality</span>::<span class="t">Low</span>]</code></div><div class="doc"><p>All levels, from the best to the cheapest.</p>
+<p><code>ignore
+for q in perf::Quality::ALL { menu.add(q.name()); }</code></p></div></div><div class="item" id="sym-Quality-name" data-name="quality::name"><div class="sig"><a class="anchor" href="#sym-Quality-name" aria-label="Link to Quality::name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">name</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>The name for a settings menu.</p>
+<p><code>ignore
+ui.label(perf::quality().name());</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Monitor" data-name="monitor"><div class="sig"><a class="anchor" href="#sym-Monitor" aria-label="Link to Monitor">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Monitor</span></code></div><div class="doc"><p>All perf state: channels, auto-quality and warnings.</p>
+<p>The free functions in this module use one global <code>Monitor</code>. A test that
+must not share state with other tests makes its own:</p>
+<p><code>ignore
+let mut m = perf::Monitor::new();
+m.budget("fluid", perf::Ms(1.5));
+m.record("fluid", 1.2);
+m.end_frame(Some(16.0));
+m.assert_within("fluid", perf::Ms(2.0));</code></p></div></div><details class="members"><summary>11 methods</summary><div class="item" id="sym-Monitor-new" data-name="monitor::new"><div class="sig"><a class="anchor" href="#sym-Monitor-new" aria-label="Link to Monitor::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="t">Monitor</span></code></div><div class="doc"><p>An empty monitor at [<code>START_QUALITY</code>], with auto-quality on.</p>
+<p><code>ignore
+let m = perf::Monitor::new();</code></p></div></div><div class="item" id="sym-Monitor-budget" data-name="monitor::budget"><div class="sig"><a class="anchor" href="#sym-Monitor-budget" aria-label="Link to Monitor::budget">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">budget</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, name: &amp;<span class="a">'static</span> str, ms: <span class="t">Ms</span>)</code></div><div class="doc"><p>Give a channel a budget. See [<code>budget</code>].</p>
+<p><code>ignore
+m.budget("fluid", perf::Ms(1.5));</code></p></div></div><div class="item" id="sym-Monitor-record" data-name="monitor::record"><div class="sig"><a class="anchor" href="#sym-Monitor-record" aria-label="Link to Monitor::record">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">record</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, name: &amp;<span class="a">'static</span> str, ms: f32)</code></div><div class="doc"><p>Add <code>ms</code> to the channel in the open frame. See [<code>record</code>].</p>
+<p><code>ignore
+m.record("fluid", 1.2);</code></p></div></div><div class="item" id="sym-Monitor-end_frame" data-name="monitor::end_frame"><div class="sig"><a class="anchor" href="#sym-Monitor-end_frame" aria-label="Link to Monitor::end_frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">end_frame</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, frame_ms: <span class="t">Option</span>&lt;f32&gt;) -&gt; <span class="t">Option</span>&lt;<span class="t">Quality</span>&gt;</code></div><div class="doc"><p>Close the frame. <code>frame_ms</code> is the wall time of the frame, or None
+when it is not known. Calls knob setters when the level changes.</p>
+<p><code>ignore
+m.end_frame(Some(16.0));</code></p></div></div><div class="item" id="sym-Monitor-knob" data-name="monitor::knob"><div class="sig"><a class="anchor" href="#sym-Monitor-knob" aria-label="Link to Monitor::knob">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">knob</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, name: &amp;<span class="a">'static</span> str, values: [f32; <span class="n">4</span>], set: <span class="k">impl</span> <span class="t">Fn</span>(f32) + <span class="t">Send</span> + <span class="t">Sync</span> + <span class="a">'static</span>)</code></div><div class="doc"><p>Register a knob. The setter gets the value for the current level now.
+See [<code>knob</code>].</p>
+<p><code>ignore
+m.knob("fluid_res", [1.0, 0.75, 0.5, 0.35], |v| println!("{v}"));</code></p></div></div><div class="item" id="sym-Monitor-quality" data-name="monitor::quality"><div class="sig"><a class="anchor" href="#sym-Monitor-quality" aria-label="Link to Monitor::quality">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">quality</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Quality</span></code></div><div class="doc"><p>The level that the knobs have now. See [<code>quality</code>].</p>
+<p><code>ignore
+let q = m.quality();</code></p></div></div><div class="item" id="sym-Monitor-set_quality" data-name="monitor::set_quality"><div class="sig"><a class="anchor" href="#sym-Monitor-set_quality" aria-label="Link to Monitor::set_quality">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_quality</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, q: <span class="t">Option</span>&lt;<span class="t">Quality</span>&gt;)</code></div><div class="doc"><p>Pin the level to the player's choice, or give it back to
+auto-quality with None. Calls knob setters. See [<code>set_quality</code>].</p>
+<p><code>ignore
+m.set_quality(Some(perf::Quality::Low));</code></p></div></div><div class="item" id="sym-Monitor-auto_quality" data-name="monitor::auto_quality"><div class="sig"><a class="anchor" href="#sym-Monitor-auto_quality" aria-label="Link to Monitor::auto_quality">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">auto_quality</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, on: bool)</code></div><div class="doc"><p>Turn auto-quality on or off. See [<code>auto_quality</code>].</p>
+<p><code>ignore
+m.auto_quality(false);</code></p></div></div><div class="item" id="sym-Monitor-take_warning_text" data-name="monitor::take_warning_text"><div class="sig"><a class="anchor" href="#sym-Monitor-take_warning_text" aria-label="Link to Monitor::take_warning_text">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_warning_text</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;</code></div><div class="doc"><p>Take the warnings since the last call, as text.</p>
+<p><code>ignore
+for w in m.take_warning_text() { println!("{w}"); }</code></p></div></div><div class="item" id="sym-Monitor-report" data-name="monitor::report"><div class="sig"><a class="anchor" href="#sym-Monitor-report" aria-label="Link to Monitor::report">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">report</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Report</span></code></div><div class="doc"><p>A snapshot of all channels. See [<code>report</code>].</p>
+<p><code>ignore
+println!("{}", m.report());</code></p></div></div><div class="item" id="sym-Monitor-assert_within" data-name="monitor::assert_within"><div class="sig"><a class="anchor" href="#sym-Monitor-assert_within" aria-label="Link to Monitor::assert_within">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">assert_within</span>(&amp;<span class="k">self</span>, name: &amp;str, ms: <span class="t">Ms</span>) -&gt; <span class="t">Stats</span></code></div><div class="doc"><p>Panic when the p95 of <code>name</code> is above <code>ms</code>, or when <code>name</code> has no
+samples. Returns the statistics. See [<code>assert_within</code>].</p>
+<p><code>ignore
+let s = m.assert_within("fluid", perf::Ms(2.0));</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-ChannelReport" data-name="channelreport"><div class="sig"><a class="anchor" href="#sym-ChannelReport" aria-label="Link to ChannelReport">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">ChannelReport</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> name: &amp;<span class="a">'static</span> str,
+<span class="k">pub</span> budget: <span class="t">Option</span>&lt;<span class="t">Ms</span>&gt;,
+<span class="k">pub</span> stats: <span class="t">Stats</span>,
+<span class="c">/// True while the channel is in the over-budget state.</span>
+<span class="k">pub</span> over: bool,
+<span class="c">/// The growth ratio (last third over first third) when the time</span>
+<span class="c">/// increases over minutes. None when it does not.</span>
+<span class="k">pub</span> growth: <span class="t">Option</span>&lt;f32&gt;,</code></pre></div><div class="doc"><p>One channel in a [<code>Report</code>].</p>
+<p><code>ignore
+let c = perf::report().channel("fluid").unwrap();
+if c.over { /* show a red light */ }</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Report" data-name="report"><div class="sig"><a class="anchor" href="#sym-Report" aria-label="Link to Report">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Report</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Frames closed since the start.</span>
+<span class="k">pub</span> frames: u64,
+<span class="c">/// Wall time of the frame. Empty when no frame time is known.</span>
+<span class="k">pub</span> frame: <span class="t">Stats</span>,
+<span class="k">pub</span> quality: <span class="t">Quality</span>,
+<span class="c">/// True when the player chose the level.</span>
+<span class="k">pub</span> player_override: bool,
+<span class="k">pub</span> warnings_total: u64,
+<span class="k">pub</span> channels: <span class="t">Vec</span>&lt;<span class="t">ChannelReport</span>&gt;,</code></pre></div><div class="doc"><p>A snapshot of the monitor. <code>Display</code> gives a text table.</p>
+<p><code>ignore
+println!("{}", perf::report());</code></p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-Report-channel" data-name="report::channel"><div class="sig"><a class="anchor" href="#sym-Report-channel" aria-label="Link to Report::channel">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">channel</span>(&amp;<span class="k">self</span>, name: &amp;str) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">ChannelReport</span>&gt;</code></div><div class="doc"><p>The channel with this name.</p>
+<p><code>ignore
+let fluid = perf::report().channel("fluid");</code></p></div></div><div class="item" id="sym-Report-drove_a_panel" data-name="report::drove_a_panel"><div class="sig"><a class="anchor" href="#sym-Report-drove_a_panel" aria-label="Link to Report::drove_a_panel">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drove_a_panel</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>The game ran its frames and drove at least one editor panel. The weakest
+useful assertion a smoke test can make: it is more than a black window.</p></div></div><div class="item" id="sym-Report-drew_something" data-name="report::drew_something"><div class="sig"><a class="anchor" href="#sym-Report-drew_something" aria-label="Link to Report::drew_something">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drew_something</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>The game submitted something to draw: a CPU shape, or a pixel from
+<code>scene_underlay</code>. A game that draws nothing is a black window.</p>
+<p><code>ignore
+assert!(warp_sdk::smoke::boot::&lt;Game&gt;(60).drew_something());</code></p></div></div><div class="item" id="sym-Report-p95_ms" data-name="report::p95_ms"><div class="sig"><a class="anchor" href="#sym-Report-p95_ms" aria-label="Link to Report::p95_ms">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">p95_ms</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The 95th percentile of <code>frame_ms</code>. 0 when no frame ran.</p>
+<p>The first frames build fonts and pipelines, so a budget check reads
+the percentile and not the maximum.</p>
+<p><code>ignore
+assert!(report.p95_ms() &lt; 8.0, "frame CPU p95 {} ms", report.p95_ms());</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Scope" data-name="scope"><div class="sig"><a class="anchor" href="#sym-Scope" aria-label="Link to Scope">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Scope</span></code></div><div class="doc"><p>The guard from [<code>scope</code>]. It records its time when it drops.</p>
+<p><code>ignore
+let _t = perf::scope("ui");</code></p></div></div></div><h4>Constants</h4><div class="item" id="sym-FRAME" data-name="frame"><div class="sig"><a class="anchor" href="#sym-FRAME" aria-label="Link to FRAME">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">FRAME</span>: <span class="t">Ms</span> = <span class="t">Ms</span>(<span class="n">16.6</span>)</code></div><div class="doc"><p>One frame at 60 Hz. Auto-quality compares the frame time to this value.</p>
+<p><code>ignore
+assert!(perf::report().frame.p95 &lt;= perf::FRAME.0);</code></p></div></div><div class="item" id="sym-SIMULATION" data-name="simulation"><div class="sig"><a class="anchor" href="#sym-SIMULATION" aria-label="Link to SIMULATION">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SIMULATION</span>: <span class="t">Ms</span> = <span class="t">Ms</span>(<span class="n">6.0</span>)</code></div><div class="doc"><p>The default part of [<code>FRAME</code>] for CPU game update, physics and simulation.</p>
+<p><code>ignore
+perf::budget("update", perf::SIMULATION);</code></p></div></div><div class="item" id="sym-GPU_EFFECTS" data-name="gpu_effects"><div class="sig"><a class="anchor" href="#sym-GPU_EFFECTS" aria-label="Link to GPU_EFFECTS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">GPU_EFFECTS</span>: <span class="t">Ms</span> = <span class="t">Ms</span>(<span class="n">5.0</span>)</code></div><div class="doc"><p>The default part of [<code>FRAME</code>] for GPU effects: post, particles, fluid passes.</p>
+<p><code>ignore
+perf::budget("post", perf::GPU_EFFECTS);</code></p></div></div><div class="item" id="sym-UI" data-name="ui"><div class="sig"><a class="anchor" href="#sym-UI" aria-label="Link to UI">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">UI</span>: <span class="t">Ms</span> = <span class="t">Ms</span>(<span class="n">2.0</span>)</code></div><div class="doc"><p>The default part of [<code>FRAME</code>] for egui and the HUD.</p>
+<p><code>ignore
+perf::budget("ui", perf::UI);</code></p></div></div><div class="item" id="sym-HEADROOM" data-name="headroom"><div class="sig"><a class="anchor" href="#sym-HEADROOM" aria-label="Link to HEADROOM">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">HEADROOM</span>: <span class="t">Ms</span> = <span class="t">Ms</span>(<span class="n">3.6</span>)</code></div><div class="doc"><p>The part of [<code>FRAME</code>] that no system gets. The OS and the driver use it.</p>
+<p><code>ignore
+assert!(perf::SIMULATION.0 + perf::GPU_EFFECTS.0 + perf::UI.0 + perf::HEADROOM.0 &lt;= perf::FRAME.0 + 0.01);</code></p></div></div><div class="item" id="sym-WINDOW" data-name="window"><div class="sig"><a class="anchor" href="#sym-WINDOW" aria-label="Link to WINDOW">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">WINDOW</span>: usize = <span class="n">120</span></code></div><div class="doc"><p>Frame samples each channel keeps for mean, p95 and max.</p>
+<p><code>ignore
+assert!(perf::report().frames as usize &gt;= perf::WINDOW || true);</code></p></div></div><div class="item" id="sym-ENTER_AFTER" data-name="enter_after"><div class="sig"><a class="anchor" href="#sym-ENTER_AFTER" aria-label="Link to ENTER_AFTER">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ENTER_AFTER</span>: u32 = <span class="n">10</span></code></div><div class="doc"><p>Consecutive frames over budget before a channel goes into the over state.</p>
+<p><code>ignore
+let frames_to_trip = perf::ENTER_AFTER;</code></p></div></div><div class="item" id="sym-LEAVE_AFTER" data-name="leave_after"><div class="sig"><a class="anchor" href="#sym-LEAVE_AFTER" aria-label="Link to LEAVE_AFTER">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">LEAVE_AFTER</span>: u32 = <span class="n">60</span></code></div><div class="doc"><p>Consecutive frames below [<code>LEAVE_FRACTION</code>] of the budget before a
+channel leaves the over state. Longer than [<code>ENTER_AFTER</code>], so that the
+state does not flicker.</p>
+<p><code>ignore
+let frames_to_clear = perf::LEAVE_AFTER;</code></p></div></div><div class="item" id="sym-LEAVE_FRACTION" data-name="leave_fraction"><div class="sig"><a class="anchor" href="#sym-LEAVE_FRACTION" aria-label="Link to LEAVE_FRACTION">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">LEAVE_FRACTION</span>: f32 = <span class="n">0.9</span></code></div><div class="doc"><p>A channel leaves the over state only below this part of its budget.</p>
+<p><code>ignore
+let clear_below_ms = budget_ms * perf::LEAVE_FRACTION;</code></p></div></div><div class="item" id="sym-GROWTH_BUCKET" data-name="growth_bucket"><div class="sig"><a class="anchor" href="#sym-GROWTH_BUCKET" aria-label="Link to GROWTH_BUCKET">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">GROWTH_BUCKET</span>: u32 = <span class="n">60</span></code></div><div class="doc"><p>Frames in one growth bucket. One bucket is about one second at 60 Hz.</p>
+<p><code>ignore
+let seconds_per_bucket = perf::GROWTH_BUCKET as f32 / 60.0;</code></p></div></div><div class="item" id="sym-GROWTH_BUCKETS" data-name="growth_buckets"><div class="sig"><a class="anchor" href="#sym-GROWTH_BUCKETS" aria-label="Link to GROWTH_BUCKETS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">GROWTH_BUCKETS</span>: usize = <span class="n">180</span></code></div><div class="doc"><p>Buckets that the growth detector keeps: three minutes at 60 Hz.</p>
+<p><code>ignore
+let minutes = perf::GROWTH_BUCKETS as f32 * perf::GROWTH_BUCKET as f32 / 3600.0;</code></p></div></div><div class="item" id="sym-GROWTH_MIN_BUCKETS" data-name="growth_min_buckets"><div class="sig"><a class="anchor" href="#sym-GROWTH_MIN_BUCKETS" aria-label="Link to GROWTH_MIN_BUCKETS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">GROWTH_MIN_BUCKETS</span>: usize = <span class="n">30</span></code></div><div class="doc"><p>Buckets that the growth detector needs before it gives a result.</p>
+<p><code>ignore
+let seconds_before_first_result = perf::GROWTH_MIN_BUCKETS;</code></p></div></div><div class="item" id="sym-GROWTH_RATIO" data-name="growth_ratio"><div class="sig"><a class="anchor" href="#sym-GROWTH_RATIO" aria-label="Link to GROWTH_RATIO">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">GROWTH_RATIO</span>: f32 = <span class="n">0.25</span></code></div><div class="doc"><p>The last third of the history must be this much slower than the first
+third. 0.25 is 25 percent.</p>
+<p><code>ignore
+let fires_at_ms = first_third_ms * (1.0 + perf::GROWTH_RATIO);</code></p></div></div><div class="item" id="sym-WARN_EVERY" data-name="warn_every"><div class="sig"><a class="anchor" href="#sym-WARN_EVERY" aria-label="Link to WARN_EVERY">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">WARN_EVERY</span>: u64 = <span class="n">600</span></code></div><div class="doc"><p>Frames between two warnings from one channel.</p>
+<p><code>ignore
+let seconds_between_warnings = perf::WARN_EVERY as f32 / 60.0;</code></p></div></div><div class="item" id="sym-START_QUALITY" data-name="start_quality"><div class="sig"><a class="anchor" href="#sym-START_QUALITY" aria-label="Link to START_QUALITY">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">START_QUALITY</span>: <span class="t">Quality</span> = <span class="t">Quality</span>::<span class="t">High</span></code></div><div class="doc"><p>The quality level at the start. High, so that auto-quality can go up or
+down from the first frame.</p>
+<p><code>ignore
+assert_eq!(perf::quality(), perf::START_QUALITY);</code></p></div></div><div class="item" id="sym-DOWN_AFTER" data-name="down_after"><div class="sig"><a class="anchor" href="#sym-DOWN_AFTER" aria-label="Link to DOWN_AFTER">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">DOWN_AFTER</span>: u32 = <span class="n">30</span></code></div><div class="doc"><p>Consecutive slow frames before auto-quality steps down one level.</p>
+<p><code>ignore
+let frames = perf::DOWN_AFTER;</code></p></div></div><div class="item" id="sym-UP_AFTER" data-name="up_after"><div class="sig"><a class="anchor" href="#sym-UP_AFTER" aria-label="Link to UP_AFTER">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">UP_AFTER</span>: u32 = <span class="n">300</span></code></div><div class="doc"><p>Consecutive stable frames before auto-quality steps up one level. This
+value doubles each time a step up is followed by a step down in less than
+two times this value, so the level does not oscillate.</p>
+<p><code>ignore
+let frames = perf::UP_AFTER;</code></p></div></div><div class="item" id="sym-SLOW_FACTOR" data-name="slow_factor"><div class="sig"><a class="anchor" href="#sym-SLOW_FACTOR" aria-label="Link to SLOW_FACTOR">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SLOW_FACTOR</span>: f32 = <span class="n">1.15</span></code></div><div class="doc"><p>A frame is slow when it is longer than [<code>FRAME</code>] times this value. The
+margin is above 1.0 so that a vsync frame of 16.7 ms is not slow.</p>
+<p><code>ignore
+let slow_ms = perf::FRAME.0 * perf::SLOW_FACTOR;</code></p></div></div><div class="item" id="sym-STABLE_FRACTION" data-name="stable_fraction"><div class="sig"><a class="anchor" href="#sym-STABLE_FRACTION" aria-label="Link to STABLE_FRACTION">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">STABLE_FRACTION</span>: f32 = <span class="n">0.75</span></code></div><div class="doc"><p>A frame is stable when no channel is over budget, the frame is not slow,
+and each budgeted channel uses less than this part of its budget.</p>
+<p><code>ignore
+let stable_below_ms = budget_ms * perf::STABLE_FRACTION;</code></p></div></div><h2 id="see-also">See also</h2><ul><li><a href="profile.html" data-slug="profile">Profiler</a></li><li><a href="renderer.html" data-slug="renderer">Renderer and run</a></li><li><a href="devconsole.html" data-slug="devconsole">Dev console</a></li><li><a href="display-mode.html" data-slug="display-mode">Display mode</a></li><li><a href="front-settings.html" data-slug="front-settings">Settings</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/perf.rs</code> - <code>The Reef v2 fluid became slower over time, and nothing told the author.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/perf.rs</code> - <code>THE FRAME CLOCK IS THE PROFILER&#x27;S FRAME</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/perf.rs</code> - <code>The split is a guide, not a rule</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/perf.rs</code> - <code>guard at once and records zero.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/perf.rs</code> - <code>Noise gives thirds that are almost</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/perf.rs</code> - <code>A game that never takes the warnings keeps 64 at most.</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/perf.rs</code> - <code>fn step_quality</code></li></ol><table class="navbox"><tr><th><a href="category-engine.html">Engine</a></th></tr><tr><td><a href="display-mode.html" data-slug="display-mode">Display mode</a> · <b>Perf</b> · <a href="gpu.html" data-slug="gpu">GPU module</a> · <a href="render.html" data-slug="render">Render passes</a> · <a href="scene.html" data-slug="scene">Scene</a> · <a href="image.html" data-slug="image">Image atlases</a> · <a href="assets.html" data-slug="assets">Assets</a> · <a href="manifest.html" data-slug="manifest">App manifest</a> · <a href="project-settings.html" data-slug="project-settings">Project settings</a> · <a href="scale.html" data-slug="scale">Interface scale</a> · <a href="types.html" data-slug="types">Types</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-engine.html">Engine</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

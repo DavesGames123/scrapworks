@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fonts - Warp Wiki</title>
+<meta name="description" content="A library of 50 open font families, and a pair picked from a mood">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="fonts">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#usage">Usage</a></li><li><a href="#the-library">The library</a></li><li><a href="#the-pairing-rules">The pairing rules</a></li><li><a href="#where-the-families-go">Where the families go</a></li><li><a href="#how-a-game-gets-the-bytes">How a game gets the bytes</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Fonts</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">A library of 50 open font families, and a pair picked from a mood</p><table class="infobox"><caption>Fonts</caption><tr><th>Category</th><td><a href="category-front-end.html">Front end</a></td></tr><tr><th>Module</th><td><code>warp_sdk::fonts</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/fonts.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">42</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example fonts</code></td></tr></table><p><strong>Fonts</strong> is a library of 50 open font families and a rule set that picks three faces for a game from a mood and a seed, in the <a class="sym" href="fonts.html"><code>warp_sdk::fonts</code></a> module. Each game gets a <a class="sym" href="#sym-display"><code>display</code></a> face for titles, a <a class="sym" href="#sym-text"><code>text</code></a> face for body text and a <a class="sym" href="#sym-mono"><code>mono</code></a> face for numbers and code. Its reason is that a game that uses the stock font of egui looks like every other game.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> The same mood and seed always give the same pair, and two moods or two seeds give two looks.</p>
+<h2 id="usage">Usage</h2>
+<p>Install once, from the first <code>gui</code> call, and draw from the next frame.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::{egui, fonts, palette_kit::<span class="t">Mood</span>};
+<span class="k">let</span> pair = fonts::<span class="f">pair</span>(<span class="t">Mood</span>::<span class="t">Oceanic</span>, <span class="n">7</span>);
+fonts::<span class="f">install</span>(ctx, &amp;pair).<span class="f">ok</span>();      <span class="c">// registers "display", "text", "mono"</span>
+fonts::<span class="f">use_in_style</span>(ctx);             <span class="c">// optional: egui's own text styles use them</span>
+<span class="c">// In `gui`, from the next frame:</span>
+ui.<span class="f">label</span>(egui::<span class="t">RichText</span>::<span class="f">new</span>(<span class="s">"REEF"</span>).<span class="f">font</span>(fonts::<span class="f">display</span>(<span class="n">48.0</span>)));
+ui.<span class="f">label</span>(egui::<span class="t">RichText</span>::<span class="f">new</span>(<span class="s">"Score 0012"</span>).<span class="f">font</span>(fonts::<span class="f">mono</span>(<span class="n">18.0</span>)));</code></pre></div>
+<p><a class="sym" href="#sym-display"><code>display</code></a>, <a class="sym" href="#sym-text"><code>text</code></a> and <a class="sym" href="#sym-mono"><code>mono</code></a> return a <code>FontId</code> of the given size. The families are named by the constants <a class="sym" href="#sym-DISPLAY"><code>DISPLAY</code></a>, <a class="sym" href="#sym-TEXT"><code>TEXT</code></a> and <a class="sym" href="#sym-MONO"><code>MONO</code></a>, and <a class="sym" href="front-menu.html#sym-Title-display_font"><code>Title::display_font</code></a> in <a href="front-menu.html" data-slug="front-menu">Menu screens</a> takes the first of those names.</p>
+<p><a class="sym" href="#sym-pair_for"><code>pair_for</code></a> takes a mood phrase, for example "neon arcade". The first word that <a class="sym" href="palette-kit.html#sym-Mood-parse"><code>Mood::parse</code></a> knows sets the mood, and with no known word the mood is Calm.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup> The starter takes its fonts and its colours from one mood and one seed, so the type and the palette agree. See <a href="palette-kit.html" data-slug="palette-kit">Palette kit</a>.</p>
+<h2 id="the-library">The library</h2>
+<p><a class="sym" href="#sym-CATALOG"><code>CATALOG</code></a> lists every <a class="sym" href="#sym-Face"><code>Face</code></a>: its name, folder, files, roles, class, mood tags, weights, and whether its digits have one width. The files are under <code>warp_sdk/assets/fonts/&lt;dir&gt;/</code>, each folder with its <code>OFL.txt</code>. All 50 families are SIL Open Font License faces from the Google Fonts repository.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> A variable font draws at its default instance, which is the regular weight.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Query</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-by_name"><code>by_name(name)</code></a></td>
+<td>One <a class="sym" href="#sym-Face"><code>Face</code></a>, for example Lato</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-suited"><code>suited(mood, role)</code></a></td>
+<td>Every face with that mood and role</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Face-has"><code>Face::has(role)</code></a>, <a class="sym" href="#sym-Face-suits"><code>Face::suits(mood)</code></a></td>
+<td>Tests on one face</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Face-read"><code>Face::read()</code></a>, <a class="sym" href="#sym-Face-read_bold"><code>Face::read_bold()</code></a></td>
+<td>The bytes of the regular or bold file</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Role"><code>Role</code></a> says what a face can do: <a class="sym" href="front-settings.html#sym-Display"><code>Display</code></a>, Text, Mono or Numeric. <a class="sym" href="#sym-Class"><code>Class</code></a> is the visual class, and the pairing rules compare it. The classes are DisplaySerif, DisplaySans, Geometric, Humanist, Grotesque, Slab, Condensed, Rounded, Techno, Handwritten, Decorative, Pixel, Mono and TextSerif. <a class="sym" href="#sym-Class-loud"><code>Class::loud</code></a> is true for handwritten, decorative and pixel faces, because two loud faces in one pair fight.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<h2 id="the-pairing-rules">The pairing rules</h2>
+<p><a class="sym" href="#sym-pair"><code>pair</code></a> applies these rules, and the seed chooses among the faces that obey them.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<ul>
+<li><a class="sym" href="#sym-display"><code>display</code></a> is a Display face with the mood tag.</li>
+<li><a class="sym" href="#sym-text"><code>text</code></a> is a Text face with the mood tag, of a different class from <a class="sym" href="#sym-display"><code>display</code></a>. A loud display class gets a quiet text class.</li>
+<li><a class="sym" href="#sym-mono"><code>mono</code></a> is a Mono face with the mood tag, or any face of the Mono class if none has the tag. A pixel mono beside an unrelated mood looks like a mistake, so the fallback excludes it.</li>
+<li>The three faces are three different families when the catalog allows it.</li>
+</ul>
+<p>When no face fits the mood for a role, the rule falls back to all faces of that role and keeps the other filters.</p>
+<h2 id="where-the-families-go">Where the families go</h2>
+<p><a class="sym" href="#sym-install"><code>install</code></a> adds three named families to the font definitions of the context. Each family is the chosen face, then the stock chain of egui as a fallback, so glyphs that the face lacks, such as emoji and symbols, still draw. It keeps every font that the context already has, and replaces the faces of an earlier install.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<p>Before the first frame, the base is the egui default definitions. A call after the first frame keeps the engine's chrome font. <a class="sym" href="#sym-install"><code>install</code></a> rebuilds the glyph atlas, so it runs once and not each frame.</p>
+<p><a class="sym" href="#sym-install"><code>install</code></a> reads only the three chosen files. When a face does not load, <a class="sym" href="#sym-install"><code>install</code></a> returns a <a class="sym" href="#sym-FontError"><code>FontError</code></a>, and the family still exists with the stock fonts in place of the face.</p>
+<p><a class="sym" href="#sym-use_in_style"><code>use_in_style</code></a> points the text styles of egui at the families: Heading at display, Body, <code>Button</code> and Small at text, and Monospace at mono. The sizes stay. It suits a game that owns its context.</p>
+<h2 id="how-a-game-gets-the-bytes">How a game gets the bytes</h2>
+<p>There is one mechanism in two steps.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<p>During development, <a class="sym" href="#sym-Face-read"><code>Face::read</code></a> looks in these folders, in this order. No font goes into the binary.</p>
+<ol>
+<li>The folder in <code>$WARP_FONTS_DIR</code>.</li>
+<li><code>assets/fonts</code> beside the executable.</li>
+<li><code>./assets/fonts</code>.</li>
+<li>The SDK folder <a class="sym" href="#sym-DIR"><code>DIR</code></a>, fixed when <code>warp_sdk</code> builds, which works with no setup on the machine that built it.</li>
+</ol>
+<p>To ship, call <a class="sym" href="#sym-bundle"><code>bundle</code></a> once. It copies the three faces and their licences into the game's own <code>assets/fonts</code>. Then either ship that folder beside the executable, or embed the files with the <code>embed_font!</code> macro and call <a class="sym" href="#sym-install_embedded"><code>install_embedded</code></a>. The macro reads from the assets folder of the calling crate, so the binary holds only the fonts that the game uses.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> bytes = fonts::<span class="t">Embedded</span> {
+    display: warp_sdk::embed_font!(<span class="s">"bebasneue/BebasNeue-Regular.ttf"</span>),
+    text:    warp_sdk::embed_font!(<span class="s">"lato/Lato-Regular.ttf"</span>),
+    mono:    warp_sdk::embed_font!(<span class="s">"ibmplexmono/IBMPlexMono-Regular.ttf"</span>),
+};
+fonts::<span class="f">install_embedded</span>(ctx, &amp;bytes);</code></pre></div>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust">fonts::<span class="f">bundle</span>(&amp;pair, concat!(env!(<span class="s">"CARGO_MANIFEST_DIR"</span>), <span class="s">"/assets/fonts"</span>))?;</code></pre></div>
+<p><a class="sym" href="#sym-bundle"><code>bundle</code></a> copies from the SDK folder, so it runs on a machine with the SDK and not on a player's machine.</p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>egui applies new fonts from the next frame. Drawing with <a class="sym" href="#sym-display"><code>fonts::display</code></a>, <a class="sym" href="#sym-text"><code>fonts::text</code></a> or <a class="sym" href="#sym-mono"><code>fonts::mono</code></a> in the frame that calls <a class="sym" href="#sym-install"><code>install</code></a> makes egui panic, because the family is not bound yet.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup> The example <a class="sym" href="fonts.html"><code>fonts</code></a> returns from <code>gui</code> in the frame that installs.</li>
+<li>A <code>FontId</code> with a family that is not installed also panics.</li>
+<li><a class="sym" href="#sym-install"><code>install</code></a> needs an <code>egui::Context</code>, which <a class="sym" href="renderer.html#sym-Renderer-new"><code>Renderer::new</code></a> does not receive.</li>
+<li>Only the regular file of a face goes into the three families. <a class="sym" href="#sym-Face-read_bold"><code>read_bold</code></a> gives bytes for a game that registers its own.</li>
+</ul>
+<h2 id="history">History</h2>
+<p>The kit was added on 2026-10-29, with the 50 families and the mood pairing.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 42 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-fonts" class="modhead"><code>warp_sdk::fonts</code></h3><h4>Functions</h4><div class="item" id="sym-by_name" data-name="by_name"><div class="sig"><a class="anchor" href="#sym-by_name" aria-label="Link to by_name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">by_name</span>(name: &amp;str) -&gt; <span class="t">Option</span>&lt;&amp;<span class="a">'static</span> <span class="t">Face</span>&gt;</code></div><div class="doc"><p>The face with this family name, any case.</p>
+<p><code>ignore
+let lato = fonts::by_name("lato").unwrap();</code></p></div></div><div class="item" id="sym-suited" data-name="suited"><div class="sig"><a class="anchor" href="#sym-suited" aria-label="Link to suited">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">suited</span>(mood: <span class="t">Mood</span>, role: <span class="t">Role</span>) -&gt; <span class="t">Vec</span>&lt;&amp;<span class="a">'static</span> <span class="t">Face</span>&gt;</code></div><div class="doc"><p>Every face that can take the role and has the mood tag.</p>
+<p><code>ignore
+let titles = fonts::suited(Mood::Neon, fonts::Role::Display);</code></p></div></div><div class="item" id="sym-pair" data-name="pair"><div class="sig"><a class="anchor" href="#sym-pair" aria-label="Link to pair">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pair</span>(mood: <span class="t">Mood</span>, seed: u64) -&gt; <span class="t">Pair</span></code></div><div class="doc"><p>The pair of a mood and a seed, by the rules in the module header.
+The same mood and seed always give the same pair.</p>
+<p><code>ignore
+let pair = fonts::pair(Mood::Dark, 42);
+fonts::install(ctx, &amp;pair).ok();</code></p></div></div><div class="item" id="sym-pair_for" data-name="pair_for"><div class="sig"><a class="anchor" href="#sym-pair_for" aria-label="Link to pair_for">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pair_for</span>(words: &amp;str, seed: u64) -&gt; <span class="t">Pair</span></code></div><div class="doc"><p>The pair of a mood phrase, for example "spooky ocean". The first word that
+<code>Mood::parse</code> knows sets the mood. With no known word, the mood is <code>Calm</code>.</p>
+<p><code>ignore
+let pair = fonts::pair_for("neon arcade", 1);</code></p></div></div><div class="item" id="sym-install" data-name="install"><div class="sig"><a class="anchor" href="#sym-install" aria-label="Link to install">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">install</span>(ctx: &amp;egui::<span class="t">Context</span>, pair: &amp;<span class="t">Pair</span>) -&gt; <span class="t">Result</span>&lt;(), <span class="t">FontError</span>&gt;</code></div><div class="doc"><p>Registers the families "display", "text" and "mono" from the pair's
+regular files, read at run time. See the module header for the search
+order. A face that does not load gives a <code>FontError</code>, and its family uses
+egui's stock fonts. The other two families still install.</p>
+<p>egui applies new fonts from the NEXT frame. Do not draw with
+<code>fonts::display</code>, <code>text</code> or <code>mono</code> in the frame that calls <code>install</code>:
+the family is not bound yet and egui panics. Install once in <code>new</code> or
+in the first <code>gui</code>, then return and draw from the next frame.</p>
+<p><code>ignore
+if let Err(e) = fonts::install(ctx, &amp;fonts::pair(Mood::Warm, 9)) {
+eprintln!("{e}");
+}</code></p></div></div><div class="item" id="sym-install_embedded" data-name="install_embedded"><div class="sig"><a class="anchor" href="#sym-install_embedded" aria-label="Link to install_embedded">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">install_embedded</span>(ctx: &amp;egui::<span class="t">Context</span>, bytes: &amp;<span class="t">Embedded</span>)</code></div><div class="doc"><p>Registers the families "display", "text" and "mono" from embedded bytes.</p>
+<p><code>ignore
+fonts::install_embedded(ctx, &amp;MY_FONTS);</code></p></div></div><div class="item" id="sym-use_in_style" data-name="use_in_style"><div class="sig"><a class="anchor" href="#sym-use_in_style" aria-label="Link to use_in_style">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">use_in_style</span>(ctx: &amp;egui::<span class="t">Context</span>)</code></div><div class="doc"><p>Points egui's own text styles at the installed families: <code>Heading</code> at
+"display", <code>Body</code>, <code>Button</code> and <code>Small</code> at "text", <code>Monospace</code> at "mono".
+The sizes stay. Call it after [<code>install</code>] in a game that owns its context.</p>
+<p><code>ignore
+fonts::install(ctx, &amp;pair).ok();
+fonts::use_in_style(ctx);</code></p></div></div><div class="item" id="sym-display" data-name="display"><div class="sig"><a class="anchor" href="#sym-display" aria-label="Link to display">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">display</span>(size: f32) -&gt; egui::<span class="t">FontId</span></code></div><div class="doc"><p>A <code>FontId</code> of the display face. Install first, or egui panics on draw.</p>
+<p><code>ignore
+ui.label(egui::RichText::new("GAME OVER").font(fonts::display(64.0)));</code></p></div></div><div class="item" id="sym-text" data-name="text"><div class="sig"><a class="anchor" href="#sym-text" aria-label="Link to text">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">text</span>(size: f32) -&gt; egui::<span class="t">FontId</span></code></div><div class="doc"><p>A <code>FontId</code> of the text face. Install first, or egui panics on draw.</p>
+<p><code>ignore
+ui.label(egui::RichText::new("Press space").font(fonts::text(16.0)));</code></p></div></div><div class="item" id="sym-mono" data-name="mono"><div class="sig"><a class="anchor" href="#sym-mono" aria-label="Link to mono">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">mono</span>(size: f32) -&gt; egui::<span class="t">FontId</span></code></div><div class="doc"><p>A <code>FontId</code> of the mono face. Install first, or egui panics on draw.</p>
+<p><code>ignore
+ui.label(egui::RichText::new(format!("{score:06}")).font(fonts::mono(20.0)));</code></p></div></div><div class="item" id="sym-bundle" data-name="bundle"><div class="sig"><a class="anchor" href="#sym-bundle" aria-label="Link to bundle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">bundle</span>(pair: &amp;<span class="t">Pair</span>, dest: <span class="k">impl</span> <span class="t">AsRef</span>&lt;<span class="t">Path</span>&gt;) -&gt; std::io::<span class="t">Result</span>&lt;<span class="t">Vec</span>&lt;<span class="t">PathBuf</span>&gt;&gt;</code></div><div class="doc"><p>Copies the pair's files and their <code>OFL.txt</code> into <code>dest/&lt;dir&gt;/</code>, for
+example the game's <code>assets/fonts</code>. Returns the paths that it wrote. Run it
+once before you ship, then embed or ship the folder.</p>
+<p><code>ignore
+fonts::bundle(&amp;pair, concat!(env!("CARGO_MANIFEST_DIR"), "/assets/fonts"))?;</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Role" data-name="role"><div class="sig"><a class="anchor" href="#sym-Role" aria-label="Link to Role">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Role</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Titles, logos, big numbers. Not for long text.</span>
+<span class="t">Display</span>,
+<span class="c">/// Body text, labels, menus: easy to read at small sizes.</span>
+<span class="t">Text</span>,
+<span class="c">/// Every glyph has one width: code, tables, debug read-outs.</span>
+<span class="t">Mono</span>,
+<span class="c">/// Good digits for a score or a timer.</span>
+<span class="t">Numeric</span>,</code></pre></div><div class="doc"><p>What a face can do in a game.</p>
+<p><code>ignore
+assert!(fonts::by_name("Lato").unwrap().has(fonts::Role::Text));</code></p></div></div><details class="members"><summary>8 methods</summary><div class="item" id="sym-Role-index" data-name="role::index"><div class="sig"><a class="anchor" href="#sym-Role-index" aria-label="Link to Role::index">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">index</span>(<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>The position of the role in [<code>Role::ALL</code>].</p></div></div><div class="item" id="sym-Role-name" data-name="role::name"><div class="sig"><a class="anchor" href="#sym-Role-name" aria-label="Link to Role::name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">name</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>The lower-case name, for example <code>"resource"</code>.</p></div></div><div class="item" id="sym-Role-shape" data-name="role::shape"><div class="sig"><a class="anchor" href="#sym-Role-shape" aria-label="Link to Role::shape">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">shape</span>(<span class="k">self</span>) -&gt; <span class="t">Shape</span></code></div><div class="doc"><p>The shape of the role. Each role has a different shape. When the
+role is the colour of a class in the semiotic standard, the shape is
+the frame of that class (see [<code>Shape::frame</code>]).</p>
+<p>Neutral is the one exception. Neutral is the colour of the
+Prohibition class, but a Neutral world marker is a background thing,
+not "you can not do this". It keeps the bar.</p>
+<p><code>ignore
+assert_eq!(Role::Danger.shape(), Shape::Triangle);
+assert_eq!(Role::Resource.shape().frame(), Some(semiotics::Frame::Hexagon));</code></p></div></div><div class="item" id="sym-Role-default_icon" data-name="role::default_icon"><div class="sig"><a class="anchor" href="#sym-Role-default_icon" aria-label="Link to Role::default_icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">default_icon</span>(<span class="k">self</span>) -&gt; <span class="t">Icon</span></code></div><div class="doc"><p>The icon that a game uses for the role when it has no better icon.</p></div></div><div class="item" id="sym-Role-action" data-name="role::action"><div class="sig"><a class="anchor" href="#sym-Role-action" aria-label="Link to Role::action">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">action</span>(<span class="k">self</span>) -&gt; <span class="t">Action</span></code></div><div class="doc"><p>The action of the standard that this role shows.</p>
+<p><code>ignore
+assert_eq!(Role::Home.action(), semiotics::Action::Deliver);</code></p></div></div><div class="item" id="sym-Role-visual" data-name="role::visual"><div class="sig"><a class="anchor" href="#sym-Role-visual" aria-label="Link to Role::visual">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">visual</span>(<span class="k">self</span>) -&gt; visual::<span class="t">Role</span></code></div><div class="doc"><p>The <code>visual::Role</code> of the action class. It gives the colour.</p></div></div><div class="item" id="sym-Role-color" data-name="role::color"><div class="sig"><a class="anchor" href="#sym-Role-color" aria-label="Link to Role::color">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">color</span>(<span class="k">self</span>) -&gt; <span class="t">Color32</span></code></div><div class="doc"><p>The colour of this role in <code>visual::default_language()</code>.</p>
+<p><code>ignore
+let c = Role::Collect.color();</code></p></div></div><div class="item" id="sym-Role-color_in" data-name="role::color_in"><div class="sig"><a class="anchor" href="#sym-Role-color_in" aria-label="Link to Role::color_in">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">color_in</span>(<span class="k">self</span>, lang: &amp;<span class="t">Language</span>) -&gt; <span class="t">Color32</span></code></div><div class="doc"><p>The colour of this role in <code>lang</code>.</p>
+<p><code>ignore
+let c = Role::Collect.color_in(&amp;lang);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Class" data-name="class"><div class="sig"><a class="anchor" href="#sym-Class" aria-label="Link to Class">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Class</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// High-contrast serif for titles.</span>
+<span class="t">DisplaySerif</span>,
+<span class="c">/// Heavy or wide sans for titles.</span>
+<span class="t">DisplaySans</span>,
+<span class="c">/// Sans built from circles and straight lines.</span>
+<span class="t">Geometric</span>,
+<span class="c">/// Sans with the shapes of handwriting, easy to read.</span>
+<span class="t">Humanist</span>,
+<span class="c">/// Plain, neutral sans.</span>
+<span class="t">Grotesque</span>,
+<span class="c">/// Serif with square, heavy serifs.</span>
+<span class="t">Slab</span>,
+<span class="c">/// Narrow sans, tall letters.</span>
+<span class="t">Condensed</span>,
+<span class="c">/// Sans with round ends.</span>
+<span class="t">Rounded</span>,
+<span class="c">/// Square, machine or science-fiction shapes.</span>
+<span class="t">Techno</span>,
+<span class="c">/// Pen, marker or brush.</span>
+<span class="t">Handwritten</span>,
+<span class="c">/// A strong theme: horror, comic, art deco.</span>
+<span class="t">Decorative</span>,
+<span class="c">/// Bitmap letters from old computers and consoles.</span>
+<span class="t">Pixel</span>,
+<span class="c">/// Monospace for code and numbers.</span>
+<span class="t">Mono</span>,
+<span class="c">/// Serif for long text.</span>
+<span class="t">TextSerif</span>,</code></pre></div><div class="doc"><p>The visual class of a face. The pairing rules compare classes.</p>
+<p><code>ignore
+let c = fonts::by_name("Arvo").unwrap().class; // Class::Slab</code></p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-Class-loud" data-name="class::loud"><div class="sig"><a class="anchor" href="#sym-Class-loud" aria-label="Link to Class::loud">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">loud</span>(<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True for a class that draws attention. Two loud faces in one pair fight.</p></div></div><div class="item" id="sym-Class-name" data-name="class::name"><div class="sig"><a class="anchor" href="#sym-Class-name" aria-label="Link to Class::name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">name</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>The lower-case name, for example <code>"warning"</code>.</p></div></div><div class="item" id="sym-Class-frame" data-name="class::frame"><div class="sig"><a class="anchor" href="#sym-Class-frame" aria-label="Link to Class::frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">frame</span>(<span class="k">self</span>) -&gt; <span class="t">Frame</span></code></div><div class="doc"><p>The frame of the class. Each class has a different frame.</p></div></div><div class="item" id="sym-Class-role" data-name="class::role"><div class="sig"><a class="anchor" href="#sym-Class-role" aria-label="Link to Class::role">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">role</span>(<span class="k">self</span>) -&gt; <span class="t">Role</span></code></div><div class="doc"><p>The colour role of the class. Only Warning and Hazard are red.</p></div></div><div class="item" id="sym-Class-motion" data-name="class::motion"><div class="sig"><a class="anchor" href="#sym-Class-motion" aria-label="Link to Class::motion">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">motion</span>(<span class="k">self</span>) -&gt; <span class="t">Motion</span></code></div><div class="doc"><p>The motion that an icon of the class uses when it asks for attention.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Face" data-name="face"><div class="sig"><a class="anchor" href="#sym-Face" aria-label="Link to Face">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Face</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The family name, for example "Bebas Neue".</span>
+<span class="k">pub</span> name: &amp;<span class="a">'static</span> str,
+<span class="c">/// The folder under [`DIR`], for example "bebasneue".</span>
+<span class="k">pub</span> dir: &amp;<span class="a">'static</span> str,
+<span class="c">/// The files in the folder. The first file is the regular weight. The</span>
+<span class="c">/// second file, if there is one, is the bold weight.</span>
+<span class="k">pub</span> files: &amp;<span class="a">'static</span> [&amp;<span class="a">'static</span> str],
+<span class="c">/// The roles the face can take.</span>
+<span class="k">pub</span> roles: &amp;<span class="a">'static</span> [<span class="t">Role</span>],
+<span class="c">/// The visual class.</span>
+<span class="k">pub</span> class: <span class="t">Class</span>,
+<span class="c">/// The moods the face suits, by `palette_kit::Mood`.</span>
+<span class="k">pub</span> moods: &amp;<span class="a">'static</span> [<span class="t">Mood</span>],
+<span class="c">/// The weight of each file, in the order of `files`. A variable file</span>
+<span class="c">/// gives the weight of its default instance.</span>
+<span class="k">pub</span> weights: &amp;<span class="a">'static</span> [u16],
+<span class="c">/// True if the ten digits have one width in the regular file, so a</span>
+<span class="c">/// score that changes does not move. A test measures this flag.</span>
+<span class="k">pub</span> tabular: bool,
+<span class="c">/// True if the files are variable fonts.</span>
+<span class="k">pub</span> variable: bool,</code></pre></div><div class="doc"><p>One font family of the library.</p>
+<p><code>ignore
+let f = fonts::by_name("Bebas Neue").unwrap();
+let bytes = f.read()?;           // the regular file
+println!("{}", f.rel_path(0));   // "bebasneue/BebasNeue-Regular.ttf"</code></p></div></div><details class="members"><summary>6 methods</summary><div class="item" id="sym-Face-has" data-name="face::has"><div class="sig"><a class="anchor" href="#sym-Face-has" aria-label="Link to Face::has">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">has</span>(&amp;<span class="k">self</span>, role: <span class="t">Role</span>) -&gt; bool</code></div><div class="doc"><p>True if the face can take the role.</p></div></div><div class="item" id="sym-Face-suits" data-name="face::suits"><div class="sig"><a class="anchor" href="#sym-Face-suits" aria-label="Link to Face::suits">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">suits</span>(&amp;<span class="k">self</span>, mood: <span class="t">Mood</span>) -&gt; bool</code></div><div class="doc"><p>True if the face has the mood tag.</p></div></div><div class="item" id="sym-Face-rel_path" data-name="face::rel_path"><div class="sig"><a class="anchor" href="#sym-Face-rel_path" aria-label="Link to Face::rel_path">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">rel_path</span>(&amp;<span class="k">self</span>, i: usize) -&gt; <span class="t">String</span></code></div><div class="doc"><p>The path of file <code>i</code> relative to a font folder, for example
+"lato/Lato-Regular.ttf". Give it to <code>embed_font!</code>.</p></div></div><div class="item" id="sym-Face-path" data-name="face::path"><div class="sig"><a class="anchor" href="#sym-Face-path" aria-label="Link to Face::path">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">path</span>(&amp;<span class="k">self</span>, i: usize) -&gt; <span class="t">PathBuf</span></code></div><div class="doc"><p>The first existing path of file <code>i</code>, in the search order of the module
+header. If no folder has it, the SDK path.</p></div></div><div class="item" id="sym-Face-read" data-name="face::read"><div class="sig"><a class="anchor" href="#sym-Face-read" aria-label="Link to Face::read">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">read</span>(&amp;<span class="k">self</span>) -&gt; std::io::<span class="t">Result</span>&lt;<span class="t">Vec</span>&lt;u8&gt;&gt;</code></div><div class="doc"><p>The bytes of the regular file.</p></div></div><div class="item" id="sym-Face-read_bold" data-name="face::read_bold"><div class="sig"><a class="anchor" href="#sym-Face-read_bold" aria-label="Link to Face::read_bold">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">read_bold</span>(&amp;<span class="k">self</span>) -&gt; std::io::<span class="t">Result</span>&lt;<span class="t">Vec</span>&lt;u8&gt;&gt;</code></div><div class="doc"><p>The bytes of the bold file, or of the regular file if there is no bold.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Pair" data-name="pair"><div class="sig"><a class="anchor" href="#sym-Pair" aria-label="Link to Pair">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Pair</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Titles and big numbers.</span>
+<span class="k">pub</span> display: &amp;<span class="a">'static</span> <span class="t">Face</span>,
+<span class="c">/// Body text and labels.</span>
+<span class="k">pub</span> text: &amp;<span class="a">'static</span> <span class="t">Face</span>,
+<span class="c">/// Code, tables and read-outs.</span>
+<span class="k">pub</span> mono: &amp;<span class="a">'static</span> <span class="t">Face</span>,</code></pre></div><div class="doc"><p>The three faces of one game.</p>
+<p><code>ignore
+let p = fonts::pair(Mood::Retro, 3);
+println!("{} / {} / {}", p.display.name, p.text.name, p.mono.name);</code></p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Pair-faces" data-name="pair::faces"><div class="sig"><a class="anchor" href="#sym-Pair-faces" aria-label="Link to Pair::faces">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">faces</span>(&amp;<span class="k">self</span>) -&gt; [&amp;<span class="a">'static</span> <span class="t">Face</span>; <span class="n">3</span>]</code></div><div class="doc"><p>The three faces in the order display, text, mono.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-FontError" data-name="fonterror"><div class="sig"><a class="anchor" href="#sym-FontError" aria-label="Link to FontError">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">FontError</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The family name of the face.</span>
+<span class="k">pub</span> face: &amp;<span class="a">'static</span> str,
+<span class="c">/// The path that `install` tried.</span>
+<span class="k">pub</span> path: <span class="t">PathBuf</span>,
+<span class="c">/// The I/O error, as text.</span>
+<span class="k">pub</span> error: <span class="t">String</span>,</code></pre></div><div class="doc"><p>A face that <code>install</code> could not read. Its family still exists, with
+egui's stock fonts in place of the face.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Embedded" data-name="embedded"><div class="sig"><a class="anchor" href="#sym-Embedded" aria-label="Link to Embedded">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Embedded</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> display: &amp;<span class="a">'static</span> [u8],
+<span class="k">pub</span> text: &amp;<span class="a">'static</span> [u8],
+<span class="k">pub</span> mono: &amp;<span class="a">'static</span> [u8],</code></pre></div><div class="doc"><p>The bytes of three faces, for a game that embeds its fonts.</p>
+<p><code>ignore
+let bytes = fonts::Embedded {
+display: warp_sdk::embed_font!("orbitron/Orbitron-Variable.ttf"),
+text:    warp_sdk::embed_font!("exo2/Exo2-Variable.ttf"),
+mono:    warp_sdk::embed_font!("jetbrainsmono/JetBrainsMono-Variable.ttf"),
+};</code></p></div></div></div><h4>Constants</h4><div class="item" id="sym-DIR" data-name="dir"><div class="sig"><a class="anchor" href="#sym-DIR" aria-label="Link to DIR">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">DIR</span>: &amp;str = concat!(env!(<span class="s">"CARGO_MANIFEST_DIR"</span>), <span class="s">"/assets/fonts"</span>)</code></div><div class="doc"><p>The SDK font folder: <code>warp_sdk/assets/fonts</code>, fixed when <code>warp_sdk</code> builds.</p>
+<p><code>ignore
+let p = std::path::Path::new(warp_sdk::fonts::DIR).join("lato/OFL.txt");</code></p></div></div><div class="item" id="sym-DISPLAY" data-name="display"><div class="sig"><a class="anchor" href="#sym-DISPLAY" aria-label="Link to DISPLAY">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">DISPLAY</span>: &amp;str = <span class="s">"display"</span></code></div><div class="doc"><p>The family name of the display face, as <code>install</code> registers it.</p></div></div><div class="item" id="sym-TEXT" data-name="text"><div class="sig"><a class="anchor" href="#sym-TEXT" aria-label="Link to TEXT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">TEXT</span>: &amp;str = <span class="s">"text"</span></code></div><div class="doc"><p>The family name of the text face, as <code>install</code> registers it.</p></div></div><div class="item" id="sym-MONO" data-name="mono"><div class="sig"><a class="anchor" href="#sym-MONO" aria-label="Link to MONO">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MONO</span>: &amp;str = <span class="s">"mono"</span></code></div><div class="doc"><p>The family name of the mono face, as <code>install</code> registers it.</p></div></div><div class="item" id="sym-CATALOG" data-name="catalog"><div class="sig"><a class="anchor" href="#sym-CATALOG" aria-label="Link to CATALOG">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">CATALOG</span>: &amp;[<span class="t">Face</span>] = &amp;[ <span class="c">// Display serif. face!("Abril Fatface", "abrilfatface", ["AbrilFatface-Regular.ttf"], D, C::DisplaySerif, [Elegant, Print, Retro, Warm, Stark], W4, false, false), face!("DM Serif Display", "dmserifdisplay", ["DMSerifDisplay-Regular.ttf"], D, C::DisplaySerif, [Elegant, Calm, Light, Print, Muted], W4, false, false), face!("Cinzel", "cinzel", ["Cinzel-Variable.ttf"], D, C::DisplaySerif, [Elegant, Dark, Earthy, Warm], W4, false, true), face!("Playfair Display", "playfairdisplay", ["PlayfairDisplay-Variable.ttf"], D, C::DisplaySerif, [Elegant, Light, Print, Calm, Soft], W4, false, true), // Display sans. face!("Archivo Black", "archivoblack", ["ArchivoBlack-Regular.ttf"], D, C::DisplaySans,</span></code></div><div class="doc"><p>Every face of the library: 50 families, all SIL Open Font License.</p>
+<p><code>ignore
+for f in fonts::CATALOG.iter().filter(|f| f.class == fonts::Class::Techno) {
+println!("{}", f.name);
+}</code></p></div></div><h2 id="see-also">See also</h2><ul><li><a href="palette-kit.html" data-slug="palette-kit">Palette kit</a></li><li><a href="front-menu.html" data-slug="front-menu">Menu screens</a></li><li><a href="art-direction.html" data-slug="art-direction">Art direction</a></li><li><a href="visual.html" data-slug="visual">Visual language</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/fonts.rs</code> - <code>//! A game that uses egui&#x27;s stock font looks like every other game. This</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/fonts.rs</code> - <code>/// `Mood::parse` knows sets the mood. With no known word, the mood is `Calm`.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/fonts.rs</code> - <code>/// Every face of the library: 50 families, all SIL Open Font License.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/fonts.rs</code> - <code>/// True for a class that draws attention. Two loud faces in one pair fight.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/fonts.rs</code> - <code>//! THE PAIRING RULES (&quot;pub fn pair&quot;)</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/fonts.rs</code> - <code>//! `install` adds three named families to the context&#x27;s font definitions.</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/fonts.rs</code> - <code>//! HOW A GAME GETS THE BYTES (ONE MECHANISM, TWO STEPS)</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/src/fonts.rs</code> - <code>/// egui applies new fonts from the NEXT frame. Do not draw with</code></li></ol><table class="navbox"><tr><th><a href="category-front-end.html">Front end</a></th></tr><tr><td><a href="front.html" data-slug="front">Front end</a> · <a href="front-menu.html" data-slug="front-menu">Menu screens</a> · <a href="front-save.html" data-slug="front-save">Save slots</a> · <a href="front-settings.html" data-slug="front-settings">Settings</a> · <b>Fonts</b> · <a href="cine.html" data-slug="cine">Cine</a> · <a href="icon.html" data-slug="icon">Application icon</a> · <a href="boot.html" data-slug="boot">Boot splash and screenshots</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-front-end.html">Front end</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

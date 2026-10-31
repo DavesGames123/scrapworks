@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Camera - Warp Wiki</title>
+<meta name="description" content="2D game camera with follow, dead zone, shake, zoom-to-fit and shots">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+<script src="assets/demos/shake.js" defer></script>
+</head>
+<body class="" data-slug="camera">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#units">Units</a></li><li><a href="#the-frame">The frame</a></li><li><a href="#the-spring">The spring</a></li><li><a href="#configuration">Configuration</a></li><li><a href="#zoom">Zoom</a></li><li><a href="#shake">Shake</a></li><li><a href="#shots">Shots</a></li><li><a href="#usage">Usage</a></li><li><a href="#output">Output</a></li><li><a href="#bounds">Bounds</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Camera</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">2D game camera with follow, dead zone, shake, zoom-to-fit and shots</p><table class="infobox"><caption>Camera</caption><tr><th>Category</th><td><a href="category-look.html">Look</a></td></tr><tr><th>Module</th><td><code>warp_sdk::camera</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/camera.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">44</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example camera</code></td></tr></table><p><strong>Camera</strong> is the Warp 2D game camera, a rig that follows a target with look-ahead and damping, stays inside level bounds, frames groups, shakes from trauma and plays scripted shots. It lives in <a class="sym" href="camera.html"><code>warp_sdk::camera</code></a> and its main type is <a class="sym" href="#sym-Camera2d"><code>Camera2d</code></a>. A game makes one camera, calls <a class="sym" href="#sym-Camera2d-update"><code>Camera2d::update</code></a> once per frame with the frame time and the target position, and sends the result to the renderer. The module header describes it as a camera that works like a camera operator.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<h2 id="units">Units</h2>
+<p>The camera uses the engine view model. <a class="sym" href="#sym-Camera2d-scale"><code>scale</code></a> is the half view height in world units, so the screen shows <code>2 * scale</code> world units from bottom to top. The dead zone, the soft zone, the look-ahead limit and the shake offset use view units, where one view unit is the half view height. These values therefore keep the same screen size at every zoom.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup> Screen positions are pixels with the origin at the top left and y down. World y points up.</p>
+<p>The scene shaders and <a href="lit2d.html" data-slug="lit2d">Lit2d</a> use the same transform, so <a class="sym" href="#sym-View2d-world_to_screen"><code>View2d::world_to_screen</code></a> gives the pixel that the renderer draws. A test checks that one world unit up from the centre at scale 1 lands on the top edge of the screen.</p>
+<h2 id="the-frame">The frame</h2>
+<p><a class="sym" href="#sym-Camera2d-update"><code>Camera2d::update</code></a> runs ten steps in a fixed order.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<ol>
+<li><strong>Target velocity.</strong> The camera estimates velocity from the last target position. A jump of more than one view unit in one frame counts as a teleport and gives no velocity.</li>
+<li><strong>Look-ahead.</strong> The aim point moves along the velocity with damping. The lead has two parts: <code>look_ahead</code> seconds of velocity, limited to <code>look_ahead_max</code> view units, and a lag term of velocity times <code>smooth_time</code> that cancels the lag of the spring at constant speed.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></li>
+<li><strong>Dead zone.</strong> The rig stays still on each axis while the aim point is inside the zone. Outside it, the desired point sits at the edge of the zone.</li>
+<li><strong>Spring.</strong> <a class="sym" href="#sym-smooth_damp"><code>smooth_damp</code></a> moves the rig to the desired point.</li>
+<li><strong>Soft zone.</strong> A hard limit keeps the target itself inside the zone. The rig moves at once at its edge, so a fast target stays on screen.</li>
+<li><strong>Zoom.</strong> The scale eases to its target in log space, so zoom speed feels even.</li>
+<li><strong>Bounds.</strong> The rig stays inside <code>bounds</code>. A clamp on an axis clears the rig velocity on that axis.</li>
+<li><strong>Shot.</strong> An active <a class="sym" href="#sym-Shot"><code>Shot</code></a> blends from the rig to its point and back.</li>
+<li><strong>Shake.</strong> Trauma adds Perlin translation and rotation.</li>
+<li><strong>Pixel snap.</strong> The position rounds to the pixel grid when <code>pixel_snap</code> is on.</li>
+</ol>
+<p><a class="sym" href="#sym-Camera2d-update"><code>update</code></a> clamps <a class="sym" href="squircle.html#sym-dt"><code>dt</code></a> to the range 0 to 0.25 s and treats a non-finite value as zero. Because shake and pixel snap come after the bounds step, the shake offset is not clamped to the level.</p>
+<p><a class="sym" href="#sym-Camera2d-update_group"><code>Camera2d::update_group</code></a> frames several points. It sets the zoom target with <a class="sym" href="#sym-Camera2d-fit_scale"><code>Camera2d::fit_scale</code></a>, then follows the centre of their bounding box in the rotated frame of the camera. An empty list continues to follow the last target. The example calls it with a margin of 0.15.</p>
+<h2 id="the-spring">The spring</h2>
+<p><a class="sym" href="#sym-smooth_damp"><code>smooth_damp</code></a> is a public free function, a critically damped spring on one float. The caller keeps <code>velocity</code> between calls. <code>smooth_time</code> is about the time in seconds to reach the target. It uses a polynomial approximation of the exponential. Because the approximation can step past the target, the function stops at the target and clears the velocity in that case, so the result never moves past a still target.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup> A <a class="sym" href="squircle.html#sym-dt"><code>dt</code></a> of zero or less returns <code>current</code>, and a <code>smooth_time</code> of 1e-4 or less jumps to the target.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::camera::smooth_damp;
+<span class="k">let</span> (<span class="k">mut</span> x, <span class="k">mut</span> v) = (<span class="n">0</span>.<span class="n">0_f32</span>, <span class="n">0</span>.<span class="n">0_f32</span>);
+<span class="k">for</span> _ <span class="k">in</span> <span class="n">0</span>..<span class="n">120</span> { x = <span class="f">smooth_damp</span>(x, <span class="n">10.0</span>, &amp;<span class="k">mut</span> v, <span class="n">0.2</span>, <span class="n">1.0</span> / <span class="n">60.0</span>); }
+assert!((x - <span class="n">10.0</span>).<span class="f">abs</span>() &lt; <span class="n">0.01</span>);</code></pre></div>
+<h2 id="configuration">Configuration</h2>
+<p><a class="sym" href="#sym-Follow"><code>Follow</code></a> and <a class="sym" href="#sym-ShakeSettings"><code>ShakeSettings</code></a> are public fields of <a class="sym" href="#sym-Camera2d"><code>Camera2d</code></a>, so a game changes them directly.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>smooth_time</code></td>
+<td>0.25 s</td>
+<td>time for the rig to reach the aim point; small is tight, large is heavy</td>
+</tr>
+<tr>
+<td><code>look_ahead</code></td>
+<td>0.3 s</td>
+<td>seconds of target velocity to look ahead</td>
+</tr>
+<tr>
+<td><code>look_ahead_max</code></td>
+<td>0.35</td>
+<td>the longest look-ahead, view units</td>
+</tr>
+<tr>
+<td><code>look_ahead_smooth</code></td>
+<td>0.5 s</td>
+<td>damping of the look-ahead, so a turn does not whip the camera</td>
+</tr>
+<tr>
+<td><code>dead_zone</code></td>
+<td><code>[0.12, 0.08]</code></td>
+<td>half extents, view units</td>
+</tr>
+<tr>
+<td><code>soft_zone</code></td>
+<td><code>[0.6, 0.5]</code></td>
+<td>half extents, view units; zero or less turns the limit off</td>
+</tr>
+<tr>
+<td><code>max_offset</code></td>
+<td>0.06</td>
+<td>largest translation, view units</td>
+</tr>
+<tr>
+<td><code>max_angle</code></td>
+<td>0.05 rad</td>
+<td>largest rotation</td>
+</tr>
+<tr>
+<td><code>frequency</code></td>
+<td>15</td>
+<td>noise cells per second</td>
+</tr>
+<tr>
+<td><code>decay</code></td>
+<td>1.2</td>
+<td>trauma lost per second</td>
+</tr>
+<tr>
+<td><code>motion_scale</code></td>
+<td>1</td>
+<td>0 turns shake off, 1 is full shake</td>
+</tr>
+<tr>
+<td><code>zoom_smooth_time</code></td>
+<td>0.35 s</td>
+<td>time for a zoom change</td>
+</tr>
+<tr>
+<td><code>min_scale</code>, <code>max_scale</code></td>
+<td>0.1, 1000</td>
+<td>zoom limits</td>
+</tr>
+<tr>
+<td><code>rotation</code></td>
+<td>0</td>
+<td>base rotation; a small value gives a dutch angle</td>
+</tr>
+<tr>
+<td><code>pixel_snap</code></td>
+<td>off</td>
+<td>for pixel art, so sprites do not shimmer</td>
+</tr>
+</tbody>
+</table>
+<h2 id="zoom">Zoom</h2>
+<p><a class="sym" href="#sym-Camera2d-set_zoom"><code>Camera2d::set_zoom</code></a> sets the target, clamped to the zoom limits. <a class="sym" href="#sym-Camera2d-scale"><code>Camera2d::scale</code></a> is the zoom now, before a shot changes it, and <a class="sym" href="#sym-Camera2d-zoom_target"><code>Camera2d::zoom_target</code></a> is the goal. <a class="sym" href="#sym-Camera2d-fit_scale"><code>Camera2d::fit_scale</code></a> returns the scale that shows every point with a margin at the base rotation. Its result does not obey <code>min_scale</code> and <code>max_scale</code>, though <a class="sym" href="#sym-Camera2d-update_group"><code>update_group</code></a> passes it through <a class="sym" href="#sym-Camera2d-set_zoom"><code>set_zoom</code></a>, which does.</p>
+<h2 id="shake">Shake</h2>
+<div class="demo" data-demo="shake"><noscript>This demo needs JavaScript.</noscript></div>
+
+<p><a class="sym" href="#sym-Camera2d-add_trauma"><code>Camera2d::add_trauma</code></a> adds to a trauma value that stays between 0 and 1. The header suggests 0.2 for a small hit, 0.5 for a large hit and 1.0 for an explosion. Trauma falls by <code>decay</code> per second, and the shake size is the square of trauma, so small hits stay small and large hits feel large.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup> The translation scales with the current view scale.</p>
+<p>Each axis and the rotation read 1D Perlin gradient noise with their own seed. Smooth noise reads as a hand-held camera and not as white noise.[[src:warp_sdk/src/camera.rs|1D Perlin gradient noise in [-1, 1]. Smooth, so shake reads as a hand]] When trauma reaches zero, the offset and the angle are exactly zero, which a test checks. <code>motion_scale</code> is the accessibility control: the game connects it to its reduce-motion setting. <a class="sym" href="#sym-Camera2d-shake_now"><code>Camera2d::shake_now</code></a> returns the shake of the last frame.</p>
+<h2 id="shots">Shots</h2>
+<p>A <a class="sym" href="#sym-Shot"><code>Shot</code></a> is a pan to a point of interest, a hold and a return to the follow target. <a class="sym" href="#sym-Shot-to"><code>Shot::to</code></a> builds one with <a class="sym" href="#sym-Shot-travel"><code>travel</code></a> 0.9 s, <a class="sym" href="#sym-Shot-hold"><code>hold</code></a> 1.2 s, <code>back</code> 0.7 s and no letterbox. The setters are <a class="sym" href="#sym-Shot-zoom"><code>Shot::zoom</code></a>, <a class="sym" href="#sym-Shot-travel"><code>Shot::travel</code></a>, <a class="sym" href="#sym-Shot-hold"><code>Shot::hold</code></a> and <a class="sym" href="#sym-Shot-letterbox"><code>Shot::letterbox</code></a>, which clamps the bar height to at most half the screen. The header calls a bar of 0.1 a good cinematic look.</p>
+<p><a class="sym" href="#sym-Camera2d-play"><code>Camera2d::play</code></a> starts a shot and replaces any shot that plays. Follow continues below the shot, so the return goes to where the target is now.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup> The blend weight uses a smootherstep curve for both pans, and the scale blends in log space. <a class="sym" href="#sym-Camera2d-cut_shot"><code>Camera2d::cut_shot</code></a> stops a shot at once. <a class="sym" href="#sym-Camera2d-shot_active"><code>Camera2d::shot_active</code></a> is true while a shot plays, which a game uses to lock player input, as the example does.</p>
+<p><a class="sym" href="#sym-Camera2d-letterbox"><code>Camera2d::letterbox</code></a> gives the current bar height, which eases in and out with the shot. The bars do not draw themselves. <a class="sym" href="#sym-Camera2d-paint_letterbox"><code>Camera2d::paint_letterbox</code></a> paints them on an egui painter, and the doc comment recommends the background layer painter so that the bars go below the game panels.</p>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::camera::<span class="t">Camera2d</span>;
+<span class="k">use</span> warp_sdk::ultraviolet::<span class="t">Vec2</span>;
+
+<span class="k">let</span> <span class="k">mut</span> cam = <span class="t">Camera2d</span>::<span class="f">new</span>([<span class="n">1280</span>, <span class="n">720</span>]);   <span class="c">// in `new`</span>
+cam.<span class="f">snap_to</span>(player_pos);                    <span class="c">// no glide on the first frame</span>
+
+cam.<span class="f">update</span>(dt, player_pos);                 <span class="c">// in `render`, once per frame</span>
+cam.<span class="f">apply</span>(ctx);                             <span class="c">// engine view: pos, scale, rotation</span>
+<span class="k">let</span> lit_cam = cam.<span class="f">lit2d</span>(time);              <span class="c">// or a `lit2d::Camera` for Lit2d</span>
+
+cam.<span class="f">add_trauma</span>(<span class="n">0.4</span>);                        <span class="c">// a hit: screen shake</span>
+cam.<span class="f">play</span>(<span class="t">Shot</span>::<span class="f">to</span>(door).<span class="f">hold</span>(<span class="n">1.5</span>));         <span class="c">// a cut to a point of interest</span></code></pre></div>
+<p><a class="sym" href="#sym-Camera2d-snap_to"><code>Camera2d::snap_to</code></a> moves the camera with no glide and stops all motion. It belongs on the first frame and after a teleport or a level change. <a class="sym" href="#sym-Camera2d-set_viewport"><code>Camera2d::set_viewport</code></a> takes the new size when the window changes.</p>
+<p><a class="sym" href="#sym-Camera2d-new"><code>Camera2d::new</code></a> starts at the world origin at scale 1.</p>
+<h2 id="output">Output</h2>
+<p><a class="sym" href="#sym-Camera2d-view"><code>Camera2d::view</code></a> returns a <a class="sym" href="#sym-View2d"><code>View2d</code></a>, the final view of the last update, with <code>pos</code>, <a class="sym" href="#sym-Camera2d-scale"><code>scale</code></a>, <code>rotation</code> and <a class="sym" href="#sym-Camera2d-viewport"><code>viewport</code></a>. Three methods carry it to a renderer.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Method</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Camera2d-apply"><code>Camera2d::apply</code></a></td>
+<td>writes position, scale and rotation to a <a class="sym" href="renderer.html#sym-RenderContext"><code>RenderContext</code></a></td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Camera2d-apply_to_view"><code>Camera2d::apply_to_view</code></a></td>
+<td>writes to an engine <code>View</code>, and subtracts the render origin</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Camera2d-lit2d"><code>Camera2d::lit2d</code></a></td>
+<td>returns a <a class="sym" href="lit2d.html#sym-Camera"><code>lit2d::Camera</code></a>; <code>time</code> is the material clock</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-View2d-screen_to_world"><code>View2d::screen_to_world</code></a> is the inverse of <a class="sym" href="#sym-View2d-world_to_screen"><code>View2d::world_to_screen</code></a> and serves the mouse. A test round-trips points with rotation, zoom and shake. <a class="sym" href="#sym-View2d-contains"><code>View2d::contains</code></a>, <a class="sym" href="#sym-View2d-half_extents"><code>View2d::half_extents</code></a> and <a class="sym" href="#sym-View2d-pixels_per_unit"><code>View2d::pixels_per_unit</code></a> answer the common questions. The same two transforms exist on <a class="sym" href="#sym-Camera2d"><code>Camera2d</code></a> for the view of the last update.</p>
+<h2 id="bounds">Bounds</h2>
+<p><a class="sym" href="#sym-Bounds-new"><code>Bounds::new</code></a> takes two corners in any order. If the view is larger than the bounds on one axis, the view centres on the bounds on that axis.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup> <a class="sym" href="#sym-Bounds-clamp_center"><code>Bounds::clamp_center</code></a> is public. During a shot the camera clamps the blended position again at the shot scale.</p>
+<h2 id="history">History</h2>
+<p>The module was added on 2026-10-29 in the commit "sdk: add camera, follow, shake, zoom-to-fit and cinematic shots".</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 44 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-camera" class="modhead"><code>warp_sdk::camera</code></h3><h4>Functions</h4><div class="item" id="sym-smooth_damp" data-name="smooth_damp"><div class="sig"><a class="anchor" href="#sym-smooth_damp" aria-label="Link to smooth_damp">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">smooth_damp</span>(current: f32, target: f32, velocity: &amp;<span class="k">mut</span> f32, smooth_time: f32, dt: f32) -&gt; f32</code></div><div class="doc"><p>Move <code>current</code> to <code>target</code> with a critically damped spring.</p>
+<p><code>velocity</code> is the spring state. Keep it between calls. <code>smooth_time</code> is
+about the time in seconds to reach the target. The result never moves
+past a still target. This is the spring that the camera uses.</p>
+<p><code>use warp_sdk::camera::smooth_damp;
+let (mut x, mut v) = (0.0_f32, 0.0_f32);
+for _ in 0..120 { x = smooth_damp(x, 10.0, &amp;mut v, 0.2, 1.0 / 60.0); }
+assert!((x - 10.0).abs() &lt; 0.01);</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Follow" data-name="follow"><div class="sig"><a class="anchor" href="#sym-Follow" aria-label="Link to Follow">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Follow</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// About the time in seconds that the rig takes to reach the aim point.</span>
+<span class="c">/// Small values feel tight, large values feel heavy. Default 0.25.</span>
+<span class="k">pub</span> smooth_time: f32,
+<span class="c">/// Seconds of target velocity that the camera looks ahead. Default 0.3.</span>
+<span class="k">pub</span> look_ahead: f32,
+<span class="c">/// The longest look-ahead, view units. Default 0.35.</span>
+<span class="k">pub</span> look_ahead_max: f32,
+<span class="c">/// The damping time of the look-ahead, seconds. A turn then does not</span>
+<span class="c">/// whip the camera. Default 0.5.</span>
+<span class="k">pub</span> look_ahead_smooth: f32,
+<span class="c">/// Half extents of the dead zone, view units. The rig does not move</span>
+<span class="c">/// while the aim point is inside it. Default `[0.12, 0.08]`.</span>
+<span class="k">pub</span> dead_zone: [f32; <span class="n">2</span>],
+<span class="c">/// Half extents of the soft zone, view units. The target never leaves</span>
+<span class="c">/// it: the rig moves hard at its edge. Zero or less turns the limit off.</span>
+<span class="c">/// Default `[0.6, 0.5]`.</span>
+<span class="k">pub</span> soft_zone: [f32; <span class="n">2</span>],</code></pre></div><div class="doc"><p>How the camera follows its target. All lengths are view units (see the
+module header).</p>
+<p><code>use warp_sdk::camera::{Camera2d, Follow};
+let mut cam = Camera2d::new([1280, 720]);
+cam.follow = Follow { look_ahead: 0.0, ..Follow::default() };</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-ShakeSettings" data-name="shakesettings"><div class="sig"><a class="anchor" href="#sym-ShakeSettings" aria-label="Link to ShakeSettings">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">ShakeSettings</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The largest translation, view units. Default 0.06.</span>
+<span class="k">pub</span> max_offset: f32,
+<span class="c">/// The largest rotation, radians. Default 0.05.</span>
+<span class="k">pub</span> max_angle: f32,
+<span class="c">/// The noise speed, in noise cells per second. Default 15.</span>
+<span class="k">pub</span> frequency: f32,
+<span class="c">/// Trauma lost per second. Default 1.2.</span>
+<span class="k">pub</span> decay: f32,
+<span class="c">/// The reduce-motion scale, 0 to 1. 0 turns shake off, 1 is full shake.</span>
+<span class="c">/// Connect it to the accessibility setting of the game. Default 1.</span>
+<span class="k">pub</span> motion_scale: f32,</code></pre></div><div class="doc"><p>Screen shake from trauma. The shake size is <code>trauma²</code>, so small hits
+stay small and large hits feel large.</p>
+<p><code>use warp_sdk::camera::Camera2d;
+let mut cam = Camera2d::new([1280, 720]);
+cam.shake.motion_scale = 0.0; // the player asked for reduced motion</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Bounds" data-name="bounds"><div class="sig"><a class="anchor" href="#sym-Bounds" aria-label="Link to Bounds">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Bounds</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The lower left corner, world units.</span>
+<span class="k">pub</span> min: <span class="t">Vec2</span>,
+<span class="c">/// The upper right corner, world units.</span>
+<span class="k">pub</span> max: <span class="t">Vec2</span>,</code></pre></div><div class="doc"><p>A world rectangle that the view stays inside, for example the level.
+If the view is larger than the bounds on one axis, the view centres
+on the bounds on that axis.</p>
+<p><code>use warp_sdk::camera::{Bounds, Camera2d};
+use warp_sdk::ultraviolet::Vec2;
+let mut cam = Camera2d::new([1280, 720]);
+cam.bounds = Some(Bounds::new(Vec2::new(-20.0, -5.0), Vec2::new(20.0, 5.0)));</code></p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-Bounds-new" data-name="bounds::new"><div class="sig"><a class="anchor" href="#sym-Bounds-new" aria-label="Link to Bounds::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(a: <span class="t">Vec2</span>, b: <span class="t">Vec2</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Bounds from two corners in any order.</p>
+<p><code>use warp_sdk::camera::Bounds;
+use warp_sdk::ultraviolet::Vec2;
+let b = Bounds::new(Vec2::new(4.0, 1.0), Vec2::new(-4.0, -1.0));
+assert_eq!(b.min, Vec2::new(-4.0, -1.0));</code></p></div></div><div class="item" id="sym-Bounds-clamp_center" data-name="bounds::clamp_center"><div class="sig"><a class="anchor" href="#sym-Bounds-clamp_center" aria-label="Link to Bounds::clamp_center">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clamp_center</span>(&amp;<span class="k">self</span>, center: <span class="t">Vec2</span>, half: <span class="t">Vec2</span>) -&gt; <span class="t">Vec2</span></code></div><div class="doc"><p>Clamp a view centre so that a view of <code>half</code> extents stays inside.</p>
+<p><code>use warp_sdk::camera::Bounds;
+use warp_sdk::ultraviolet::Vec2;
+let b = Bounds::new(Vec2::new(0.0, 0.0), Vec2::new(10.0, 10.0));
+let c = b.clamp_center(Vec2::new(-5.0, 5.0), Vec2::new(2.0, 2.0));
+assert_eq!(c, Vec2::new(2.0, 5.0));</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Shot" data-name="shot"><div class="sig"><a class="anchor" href="#sym-Shot" aria-label="Link to Shot">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Shot</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The point of interest, world units.</span>
+<span class="k">pub</span> point: <span class="t">Vec2</span>,
+<span class="c">/// The zoom scale at the point. `None` keeps the follow zoom.</span>
+<span class="k">pub</span> scale: <span class="t">Option</span>&lt;f32&gt;,
+<span class="c">/// Seconds of the pan to the point. Default 0.9.</span>
+<span class="k">pub</span> travel: f32,
+<span class="c">/// Seconds at the point. Default 1.2.</span>
+<span class="k">pub</span> hold: f32,
+<span class="c">/// Seconds of the pan back to the follow target. Default 0.7.</span>
+<span class="k">pub</span> back: f32,
+<span class="c">/// Height of each letterbox bar, as a fraction of the screen height.</span>
+<span class="c">/// Zero shows no bars. Default 0.</span>
+<span class="k">pub</span> letterbox: f32,</code></pre></div><div class="doc"><p>A cinematic move: pan to a point of interest, hold, then return to the
+follow target. Build it with [<code>Shot::to</code>] and the setters.</p>
+<p><code>use warp_sdk::camera::Shot;
+use warp_sdk::ultraviolet::Vec2;
+let shot = Shot::to(Vec2::new(30.0, 4.0)).zoom(3.0).hold(2.0).letterbox(0.1);
+assert_eq!(shot.duration(), shot.travel + 2.0 + shot.back);</code></p></div></div><details class="members"><summary>6 methods</summary><div class="item" id="sym-Shot-to" data-name="shot::to"><div class="sig"><a class="anchor" href="#sym-Shot-to" aria-label="Link to Shot::to">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">to</span>(point: <span class="t">Vec2</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A shot to <code>point</code> with the default timing.</p>
+<p><code>use warp_sdk::camera::Shot;
+use warp_sdk::ultraviolet::Vec2;
+let shot = Shot::to(Vec2::new(5.0, 0.0));
+assert!(shot.scale.is_none());</code></p></div></div><div class="item" id="sym-Shot-zoom" data-name="shot::zoom"><div class="sig"><a class="anchor" href="#sym-Shot-zoom" aria-label="Link to Shot::zoom">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">zoom</span>(<span class="k">mut</span> <span class="k">self</span>, scale: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the zoom scale at the point.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Shot; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let shot = Shot::to(Vec2::zero()).zoom(2.0);
+```</p></div></div><div class="item" id="sym-Shot-travel" data-name="shot::travel"><div class="sig"><a class="anchor" href="#sym-Shot-travel" aria-label="Link to Shot::travel">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">travel</span>(<span class="k">mut</span> <span class="k">self</span>, to: f32, back: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the seconds of the pan to the point and of the pan back.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Shot; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let shot = Shot::to(Vec2::zero()).travel(1.5, 1.0);
+```</p></div></div><div class="item" id="sym-Shot-hold" data-name="shot::hold"><div class="sig"><a class="anchor" href="#sym-Shot-hold" aria-label="Link to Shot::hold">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">hold</span>(<span class="k">mut</span> <span class="k">self</span>, seconds: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the seconds at the point.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Shot; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let shot = Shot::to(Vec2::zero()).hold(3.0);
+```</p></div></div><div class="item" id="sym-Shot-letterbox" data-name="shot::letterbox"><div class="sig"><a class="anchor" href="#sym-Shot-letterbox" aria-label="Link to Shot::letterbox">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">letterbox</span>(<span class="k">mut</span> <span class="k">self</span>, fraction: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Show letterbox bars of this fraction of the screen height. A value
+of 0.1 is a good cinematic look.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Shot; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let shot = Shot::to(Vec2::zero()).letterbox(0.1);
+```</p></div></div><div class="item" id="sym-Shot-duration" data-name="shot::duration"><div class="sig"><a class="anchor" href="#sym-Shot-duration" aria-label="Link to Shot::duration">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">duration</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The full length of the shot in seconds.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Shot; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>assert!(Shot::to(Vec2::zero()).duration() &gt; 0.0);
+```</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-View2d" data-name="view2d"><div class="sig"><a class="anchor" href="#sym-View2d" aria-label="Link to View2d">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">View2d</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The world position at the screen centre.</span>
+<span class="k">pub</span> pos: <span class="t">Vec2</span>,
+<span class="c">/// The half view height, world units.</span>
+<span class="k">pub</span> scale: f32,
+<span class="c">/// The view rotation, radians, counterclockwise.</span>
+<span class="k">pub</span> rotation: f32,
+<span class="c">/// The viewport size, pixels.</span>
+<span class="k">pub</span> viewport: [u32; <span class="n">2</span>],</code></pre></div><div class="doc"><p>The final view of one frame: what the renderer gets. Get it from
+[<code>Camera2d::view</code>].</p>
+<p><code>use warp_sdk::camera::View2d;
+use warp_sdk::ultraviolet::Vec2;
+let v = View2d { pos: Vec2::zero(), scale: 1.0, rotation: 0.0, viewport: [200, 100] };
+assert_eq!(v.world_to_screen(Vec2::zero()), Vec2::new(100.0, 50.0));</code></p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-View2d-half_extents" data-name="view2d::half_extents"><div class="sig"><a class="anchor" href="#sym-View2d-half_extents" aria-label="Link to View2d::half_extents">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">half_extents</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec2</span></code></div><div class="doc"><p>The half extents of the visible world, before rotation, world units.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::View2d; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let v = View2d { pos: Vec2::zero(), scale: 2.0, rotation: 0.0, viewport: [200, 100] };
+assert_eq!(v.half_extents(), Vec2::new(4.0, 2.0));
+```</p></div></div><div class="item" id="sym-View2d-pixels_per_unit" data-name="view2d::pixels_per_unit"><div class="sig"><a class="anchor" href="#sym-View2d-pixels_per_unit" aria-label="Link to View2d::pixels_per_unit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pixels_per_unit</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>Pixels per world unit.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::View2d; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let v = View2d { pos: Vec2::zero(), scale: 2.0, rotation: 0.0, viewport: [200, 100] };
+assert_eq!(v.pixels_per_unit(), 25.0);
+```</p></div></div><div class="item" id="sym-View2d-world_to_screen" data-name="view2d::world_to_screen"><div class="sig"><a class="anchor" href="#sym-View2d-world_to_screen" aria-label="Link to View2d::world_to_screen">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">world_to_screen</span>(&amp;<span class="k">self</span>, world: <span class="t">Vec2</span>) -&gt; <span class="t">Vec2</span></code></div><div class="doc"><p>A world position to a screen pixel, origin top left, y down. This is
+the transform of the engine scene shaders and <code>lit2d</code>.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::View2d; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let v = View2d { pos: Vec2::zero(), scale: 1.0, rotation: 0.0, viewport: [200, 100] };
+assert_eq!(v.world_to_screen(Vec2::new(0.0, 1.0)), Vec2::new(100.0, 0.0));
+```</p></div></div><div class="item" id="sym-View2d-screen_to_world" data-name="view2d::screen_to_world"><div class="sig"><a class="anchor" href="#sym-View2d-screen_to_world" aria-label="Link to View2d::screen_to_world">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">screen_to_world</span>(&amp;<span class="k">self</span>, screen: <span class="t">Vec2</span>) -&gt; <span class="t">Vec2</span></code></div><div class="doc"><p>A screen pixel to a world position. The inverse of
+[<code>View2d::world_to_screen</code>]. Use it for the mouse.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::View2d; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let v = View2d { pos: Vec2::zero(), scale: 1.0, rotation: 0.0, viewport: [200, 100] };
+assert_eq!(v.screen_to_world(Vec2::new(100.0, 50.0)), Vec2::zero());
+```</p></div></div><div class="item" id="sym-View2d-contains" data-name="view2d::contains"><div class="sig"><a class="anchor" href="#sym-View2d-contains" aria-label="Link to View2d::contains">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">contains</span>(&amp;<span class="k">self</span>, world: <span class="t">Vec2</span>) -&gt; bool</code></div><div class="doc"><p>True if a world position shows on the screen.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::View2d; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let v = View2d { pos: Vec2::zero(), scale: 1.0, rotation: 0.0, viewport: [200, 100] };
+assert!(v.contains(Vec2::new(1.5, 0.5)));
+```</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Camera2d" data-name="camera2d"><div class="sig"><a class="anchor" href="#sym-Camera2d" aria-label="Link to Camera2d">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Camera2d</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Follow settings.</span>
+<span class="k">pub</span> follow: <span class="t">Follow</span>,
+<span class="c">/// Shake settings.</span>
+<span class="k">pub</span> shake: <span class="t">ShakeSettings</span>,
+<span class="c">/// The level bounds. `None` lets the view go anywhere. Default `None`.</span>
+<span class="k">pub</span> bounds: <span class="t">Option</span>&lt;<span class="t">Bounds</span>&gt;,
+<span class="c">/// The base rotation, radians, counterclockwise. A small value gives a</span>
+<span class="c">/// dutch angle. Default 0.</span>
+<span class="k">pub</span> rotation: f32,
+<span class="c">/// About the time in seconds that a zoom change takes. Default 0.35.</span>
+<span class="k">pub</span> zoom_smooth_time: f32,
+<span class="c">/// The smallest zoom scale. Default 0.1.</span>
+<span class="k">pub</span> min_scale: f32,
+<span class="c">/// The largest zoom scale. Default 1000.</span>
+<span class="k">pub</span> max_scale: f32,
+<span class="c">/// Round the view position to the pixel grid. Turn it on for pixel art,</span>
+<span class="c">/// so sprites do not shimmer. Default off.</span>
+<span class="k">pub</span> pixel_snap: bool,</code></pre></div><div class="doc"><p>The 2D game camera. See the module header for the frame order.</p>
+<p><code>use warp_sdk::camera::Camera2d;
+use warp_sdk::ultraviolet::Vec2;
+let mut cam = Camera2d::new([1280, 720]);
+cam.snap_to(Vec2::new(3.0, 1.0));
+cam.update(1.0 / 60.0, Vec2::new(3.1, 1.0));
+let view = cam.view();</code></p></div></div><details class="members"><summary>24 methods</summary><div class="item" id="sym-Camera2d-new" data-name="camera2d::new"><div class="sig"><a class="anchor" href="#sym-Camera2d-new" aria-label="Link to Camera2d::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(viewport: [u32; <span class="n">2</span>]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A camera at the world origin, scale 1, for a viewport in pixels.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d;</h1>
+<p>let cam = Camera2d::new([1280, 720]);
+assert_eq!(cam.scale(), 1.0);
+```</p></div></div><div class="item" id="sym-Camera2d-set_viewport" data-name="camera2d::set_viewport"><div class="sig"><a class="anchor" href="#sym-Camera2d-set_viewport" aria-label="Link to Camera2d::set_viewport">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_viewport</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, viewport: [u32; <span class="n">2</span>])</code></div><div class="doc"><p>Set the viewport size in pixels. Call it when the window changes
+size, for example from <code>Renderer::input</code>.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d;</h1>
+<p>let mut cam = Camera2d::new([1280, 720]);
+cam.set_viewport([1920, 1080]);
+assert_eq!(cam.viewport(), [1920, 1080]);
+```</p></div></div><div class="item" id="sym-Camera2d-viewport" data-name="camera2d::viewport"><div class="sig"><a class="anchor" href="#sym-Camera2d-viewport" aria-label="Link to Camera2d::viewport">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">viewport</span>(&amp;<span class="k">self</span>) -&gt; [u32; <span class="n">2</span>]</code></div><div class="doc"><p>The viewport size in pixels.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d;</h1>
+<p>assert_eq!(Camera2d::new([640, 360]).viewport(), [640, 360]);
+```</p></div></div><div class="item" id="sym-Camera2d-snap_to" data-name="camera2d::snap_to"><div class="sig"><a class="anchor" href="#sym-Camera2d-snap_to" aria-label="Link to Camera2d::snap_to">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">snap_to</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, pos: <span class="t">Vec2</span>)</code></div><div class="doc"><p>Move the camera to <code>pos</code> with no glide and stop all motion. Use it on
+the first frame and after a teleport or a level change.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let mut cam = Camera2d::new([1280, 720]);
+cam.snap_to(Vec2::new(5.0, 2.0));
+assert_eq!(cam.view().pos, Vec2::new(5.0, 2.0));
+```</p></div></div><div class="item" id="sym-Camera2d-set_zoom" data-name="camera2d::set_zoom"><div class="sig"><a class="anchor" href="#sym-Camera2d-set_zoom" aria-label="Link to Camera2d::set_zoom">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_zoom</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, scale: f32)</code></div><div class="doc"><p>Set the zoom target, the half view height in world units. The zoom
+eases to it over <code>zoom_smooth_time</code>.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d;</h1>
+<p>let mut cam = Camera2d::new([1280, 720]);
+cam.set_zoom(4.0);
+assert_eq!(cam.zoom_target(), 4.0);
+```</p></div></div><div class="item" id="sym-Camera2d-zoom_target" data-name="camera2d::zoom_target"><div class="sig"><a class="anchor" href="#sym-Camera2d-zoom_target" aria-label="Link to Camera2d::zoom_target">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">zoom_target</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The zoom target.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d;</h1>
+<p>assert_eq!(Camera2d::new([1280, 720]).zoom_target(), 1.0);
+```</p></div></div><div class="item" id="sym-Camera2d-scale" data-name="camera2d::scale"><div class="sig"><a class="anchor" href="#sym-Camera2d-scale" aria-label="Link to Camera2d::scale">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">scale</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The zoom now, before a shot changes it.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d;</h1>
+<p>assert_eq!(Camera2d::new([1280, 720]).scale(), 1.0);
+```</p></div></div><div class="item" id="sym-Camera2d-fit_scale" data-name="camera2d::fit_scale"><div class="sig"><a class="anchor" href="#sym-Camera2d-fit_scale" aria-label="Link to Camera2d::fit_scale">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">fit_scale</span>(&amp;<span class="k">self</span>, points: &amp;[<span class="t">Vec2</span>], margin: f32) -&gt; f32</code></div><div class="doc"><p>The scale that shows every point with a <code>margin</code> fraction of space
+around them, at the base rotation of this camera. The result does
+not obey <code>min_scale</code> and <code>max_scale</code>.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let cam = Camera2d::new([200, 100]);
+let s = cam.fit_scale(&amp;[Vec2::new(-4.0, 0.0), Vec2::new(4.0, 0.0)], 0.0);
+assert_eq!(s, 2.0);
+```</p></div></div><div class="item" id="sym-Camera2d-update" data-name="camera2d::update"><div class="sig"><a class="anchor" href="#sym-Camera2d-update" aria-label="Link to Camera2d::update">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">update</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32, target: <span class="t">Vec2</span>)</code></div><div class="doc"><p>One frame of follow. <code>target</code> is the world position to follow.
+Call it once per frame, before you draw.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let mut cam = Camera2d::new([1280, 720]);
+cam.update(1.0 / 60.0, Vec2::new(1.0, 0.0));
+```</p></div></div><div class="item" id="sym-Camera2d-update_group" data-name="camera2d::update_group"><div class="sig"><a class="anchor" href="#sym-Camera2d-update_group" aria-label="Link to Camera2d::update_group">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">update_group</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32, points: &amp;[<span class="t">Vec2</span>], margin: f32)</code></div><div class="doc"><p>One frame that frames a group: the target is the centre of the
+points, and the zoom eases to fit them all with a <code>margin</code> fraction
+of space. Use it for co-op, a boss fight or a battle overview.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let mut cam = Camera2d::new([1280, 720]);
+let players = [Vec2::new(-3.0, 0.0), Vec2::new(6.0, 2.0)];
+cam.update_group(1.0 / 60.0, &amp;players, 0.2);
+```</p></div></div><div class="item" id="sym-Camera2d-add_trauma" data-name="camera2d::add_trauma"><div class="sig"><a class="anchor" href="#sym-Camera2d-add_trauma" aria-label="Link to Camera2d::add_trauma">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">add_trauma</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, amount: f32)</code></div><div class="doc"><p>Add screen shake. <code>amount</code> adds to the trauma, which stays in 0 to 1.
+About 0.2 is a small hit, 0.5 a large hit, 1.0 an explosion.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d;</h1>
+<p>let mut cam = Camera2d::new([1280, 720]);
+cam.add_trauma(0.5);
+assert_eq!(cam.trauma(), 0.5);
+```</p></div></div><div class="item" id="sym-Camera2d-trauma" data-name="camera2d::trauma"><div class="sig"><a class="anchor" href="#sym-Camera2d-trauma" aria-label="Link to Camera2d::trauma">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">trauma</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The trauma now, 0 to 1.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d;</h1>
+<p>assert_eq!(Camera2d::new([1280, 720]).trauma(), 0.0);
+```</p></div></div><div class="item" id="sym-Camera2d-shake_now" data-name="camera2d::shake_now"><div class="sig"><a class="anchor" href="#sym-Camera2d-shake_now" aria-label="Link to Camera2d::shake_now">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">shake_now</span>(&amp;<span class="k">self</span>) -&gt; (<span class="t">Vec2</span>, f32)</code></div><div class="doc"><p>The shake of the last frame: translation in world units and rotation
+in radians.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d;</h1>
+<p>let (offset, angle) = Camera2d::new([1280, 720]).shake_now();
+assert_eq!(angle, 0.0);
+```</p></div></div><div class="item" id="sym-Camera2d-play" data-name="camera2d::play"><div class="sig"><a class="anchor" href="#sym-Camera2d-play" aria-label="Link to Camera2d::play">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">play</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, shot: <span class="t">Shot</span>)</code></div><div class="doc"><p>Start a cinematic shot. A new shot replaces the shot that plays.
+Follow continues below the shot, so the return goes to where the
+target is now.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::{Camera2d, Shot}; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let mut cam = Camera2d::new([1280, 720]);
+cam.play(Shot::to(Vec2::new(20.0, 3.0)).hold(2.0).letterbox(0.1));
+assert!(cam.shot_active());
+```</p></div></div><div class="item" id="sym-Camera2d-cut_shot" data-name="camera2d::cut_shot"><div class="sig"><a class="anchor" href="#sym-Camera2d-cut_shot" aria-label="Link to Camera2d::cut_shot">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cut_shot</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Stop the shot at once. For a smooth exit, let the shot finish.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::{Camera2d, Shot}; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let mut cam = Camera2d::new([1280, 720]);
+cam.play(Shot::to(Vec2::zero()));
+cam.cut_shot();
+assert!(!cam.shot_active());
+```</p></div></div><div class="item" id="sym-Camera2d-shot_active" data-name="camera2d::shot_active"><div class="sig"><a class="anchor" href="#sym-Camera2d-shot_active" aria-label="Link to Camera2d::shot_active">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">shot_active</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True while a shot plays. Use it to lock the player input.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d;</h1>
+<p>assert!(!Camera2d::new([1280, 720]).shot_active());
+```</p></div></div><div class="item" id="sym-Camera2d-letterbox" data-name="camera2d::letterbox"><div class="sig"><a class="anchor" href="#sym-Camera2d-letterbox" aria-label="Link to Camera2d::letterbox">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">letterbox</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The height of each letterbox bar now, as a fraction of the screen
+height. It eases in and out with the shot.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d;</h1>
+<p>assert_eq!(Camera2d::new([1280, 720]).letterbox(), 0.0);
+```</p></div></div><div class="item" id="sym-Camera2d-paint_letterbox" data-name="camera2d::paint_letterbox"><div class="sig"><a class="anchor" href="#sym-Camera2d-paint_letterbox" aria-label="Link to Camera2d::paint_letterbox">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">paint_letterbox</span>(&amp;<span class="k">self</span>, painter: &amp;<span class="k">crate</span>::egui::<span class="t">Painter</span>, screen: <span class="k">crate</span>::egui::<span class="t">Rect</span>)</code></div><div class="doc"><p>Paint the letterbox bars on an egui painter that covers <code>screen</code>.
+Call it from <code>gui</code> with the background layer painter, so the bars
+go below the game panels.</p>
+<p><code>ignore
+let painter = ctx.layer_painter(egui::LayerId::background());
+cam.paint_letterbox(&amp;painter, ctx.screen_rect());</code></p></div></div><div class="item" id="sym-Camera2d-view" data-name="camera2d::view"><div class="sig"><a class="anchor" href="#sym-Camera2d-view" aria-label="Link to Camera2d::view">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">view</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">View2d</span></code></div><div class="doc"><p>The final view of the last <code>update</code>.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d;</h1>
+<p>let v = Camera2d::new([1280, 720]).view();
+assert_eq!(v.scale, 1.0);
+```</p></div></div><div class="item" id="sym-Camera2d-world_to_screen" data-name="camera2d::world_to_screen"><div class="sig"><a class="anchor" href="#sym-Camera2d-world_to_screen" aria-label="Link to Camera2d::world_to_screen">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">world_to_screen</span>(&amp;<span class="k">self</span>, world: <span class="t">Vec2</span>) -&gt; <span class="t">Vec2</span></code></div><div class="doc"><p>A world position to a screen pixel, with the view of the last update.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let cam = Camera2d::new([200, 100]);
+assert_eq!(cam.world_to_screen(Vec2::zero()), Vec2::new(100.0, 50.0));
+```</p></div></div><div class="item" id="sym-Camera2d-screen_to_world" data-name="camera2d::screen_to_world"><div class="sig"><a class="anchor" href="#sym-Camera2d-screen_to_world" aria-label="Link to Camera2d::screen_to_world">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">screen_to_world</span>(&amp;<span class="k">self</span>, screen: <span class="t">Vec2</span>) -&gt; <span class="t">Vec2</span></code></div><div class="doc"><p>A screen pixel to a world position, with the view of the last update.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let cam = Camera2d::new([200, 100]);
+assert_eq!(cam.screen_to_world(Vec2::new(100.0, 50.0)), Vec2::zero());
+```</p></div></div><div class="item" id="sym-Camera2d-apply" data-name="camera2d::apply"><div class="sig"><a class="anchor" href="#sym-Camera2d-apply" aria-label="Link to Camera2d::apply">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">apply</span>(&amp;<span class="k">self</span>, ctx: &amp;<span class="k">mut</span> <span class="k">crate</span>::<span class="t">RenderContext</span>)</code></div><div class="doc"><p>Send the view to the engine renderer: position, scale and rotation.</p>
+<p><code>ignore
+fn render(&amp;mut self, _v: ViewportId, ctx: &amp;mut RenderContext) {
+self.cam.update(dt, self.player);
+self.cam.apply(ctx);
+}</code></p></div></div><div class="item" id="sym-Camera2d-apply_to_view" data-name="camera2d::apply_to_view"><div class="sig"><a class="anchor" href="#sym-Camera2d-apply_to_view" aria-label="Link to Camera2d::apply_to_view">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">apply_to_view</span>(&amp;<span class="k">self</span>, view: &amp;<span class="k">mut</span> <span class="k">crate</span>::types::<span class="t">View</span>)</code></div><div class="doc"><p>Write the view into an engine <code>View</code>. The engine stores the position
+relative to the render origin, so this subtracts the origin.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d;</h1>
+<p>let mut v = warp_sdk::types::View::default();
+Camera2d::new([1280, 720]).apply_to_view(&amp;mut v);
+assert_eq!(v.scale, 1.0);
+```</p></div></div><div class="item" id="sym-Camera2d-lit2d" data-name="camera2d::lit2d"><div class="sig"><a class="anchor" href="#sym-Camera2d-lit2d" aria-label="Link to Camera2d::lit2d">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">lit2d</span>(&amp;<span class="k">self</span>, time: f32) -&gt; <span class="k">crate</span>::lit2d::<span class="t">Camera</span></code></div><div class="doc"><p>The <code>lit2d</code> camera of this view. <code>time</code> is the material clock in
+seconds.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Camera2d;</h1>
+<p>let c = Camera2d::new([1280, 720]).lit2d(0.0);
+assert_eq!(c.size, [1280, 720]);
+```</p></div></div></details></div><h2 id="see-also">See also</h2><ul><li><a href="juice.html" data-slug="juice">Juice</a></li><li><a href="lit2d.html" data-slug="lit2d">Lit2d</a></li><li><a href="cine.html" data-slug="cine">Cine</a></li><li><a href="render.html" data-slug="render">Render passes</a></li><li><a href="teach.html" data-slug="teach">Teach kit</a></li><li><a href="world.html" data-slug="world">World kit</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/camera.rs</code> - <code>a 2D game camera that works like a camera operator.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/camera.rs</code> - <code>keep the same screen size at every zoom.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/camera.rs</code> - <code>THE FRAME, IN ORDER</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/camera.rs</code> - <code>target goes. The lag term cancels the spring lag, which is about</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/camera.rs</code> - <code>The approximation of exp() can step past the target. Stop at the target.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/camera.rs</code> - <code>so small hits</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/camera.rs</code> - <code>Follow continues below the shot, so the return goes to where the</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/src/camera.rs</code> - <code>If the view is larger than the bounds on one axis, the view centres</code></li></ol><table class="navbox"><tr><th><a href="category-look.html">Look</a></th></tr><tr><td><a href="visual.html" data-slug="visual">Visual language</a> · <a href="semiotics.html" data-slug="semiotics">Semiotics</a> · <a href="palette-kit.html" data-slug="palette-kit">Palette kit</a> · <a href="post.html" data-slug="post">Post effects</a> · <b>Camera</b> · <a href="juice.html" data-slug="juice">Juice</a> · <a href="lit2d.html" data-slug="lit2d">Lit2d</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-look.html">Look</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

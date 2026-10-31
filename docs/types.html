@@ -1,0 +1,1027 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Types - Warp Wiki</title>
+<meta name="description" content="shared state and channels that the engine and the application both read">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="types">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#display-settings">Display settings</a></li><li><a href="#any-thread-stores">Any-thread stores</a></li><li><a href="#keyboard-channels">Keyboard channels</a><ul><li><a href="#the-raw-key-ring">The raw key ring</a></li><li><a href="#input-capture">Input capture</a></li><li><a href="#pending-flags">Pending flags</a></li></ul></li><li><a href="#transport">Transport</a></li><li><a href="#the-game-view">The game view</a></li><li><a href="#gpu-data">GPU data</a></li><li><a href="#windows-and-viewports">Windows and viewports</a></li><li><a href="#instrumentation">Instrumentation</a></li><li><a href="#application-identity-and-previews">Application identity and previews</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Types</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">shared state and channels that the engine and the application both read</p><table class="infobox"><caption>Types</caption><tr><th>Category</th><td><a href="category-engine.html">Engine</a></td></tr><tr><th>Module</th><td><code>warp_sdk::types</code></td></tr><tr><th>Source</th><td><code>warp_core/src/types/mod.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">184</a></td></tr></table><p><strong>Types</strong> is the <a class="sym" href="types.html"><code>types</code></a> module of <code>warp_core</code>, re-exported by <code>warp_sdk</code>, which holds the shared types and process-global channels that the engine and an application both read. It holds no single concept. The module was one 2700-line file with a dozen unrelated concerns, and it is now a directory with one concern per file, which re-exports all items so that each item keeps its path.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<p>Most of the surface is globals with a small accessor pair. A game normally reaches these through a kit: <a href="display-mode.html" data-slug="display-mode">Display mode</a> uses the display store, and <a href="post.html" data-slug="post">Post effects</a> uses the post store. This article groups the items by concept.</p>
+<h2 id="display-settings">Display settings</h2>
+<p><a class="sym" href="#sym-DisplaySettings"><code>DisplaySettings</code></a> is the one block of attributes for the whole application: the CRT filter, HDR chain, depth of field, FXAA, motion blur and lighting wrap. They describe how the game image looks, and they are not a property of a window. They were once a field on each viewport, so a second window could render the game with different settings and nothing reported the difference.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup> One global replaced them.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Function</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-display_settings"><code>display_settings</code></a></td>
+<td>Read a copy</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-set_display_settings"><code>set_display_settings</code></a></td>
+<td>Replace the block</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-with_display_settings"><code>with_display_settings</code></a></td>
+<td>Borrow mutably for one call</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-display_is_borrowed"><code>display_is_borrowed</code></a></td>
+<td>Whether a frame holds the borrow</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-display_section"><code>display_section</code></a></td>
+<td>The <a href="project-settings.html" data-slug="project-settings">Project settings</a> section</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="renderer.html#sym-Renderer-gui"><code>Renderer::gui</code></a> receives <code>&amp;mut DisplaySettings</code>, a borrow of this global for the whole GUI frame. The lock is held across the closure, so anything in the frame that takes the global again deadlocks with no panic and no log. The source records that this froze the editor the day that the settings registry was wired in.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> <a class="sym" href="#sym-display_is_borrowed"><code>display_is_borrowed</code></a> lets such a call fail loudly. It is a flag and not <code>try_lock</code>, because <code>try_lock</code> cannot tell this thread from another thread that holds the lock for a moment.</p>
+<p>Every effect is off in <a class="sym" href="#sym-DisplaySettings-DEFAULT"><code>DisplaySettings::DEFAULT</code></a>, and the tuned values beside the switches stay. A new project draws its rects and lines with the colours that it chose, and a game that wants the old look sets <code>pp_enabled</code> and <code>crt_enabled</code>.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<h2 id="any-thread-stores">Any-thread stores</h2>
+<p>Two stores let any thread change the frame without touching the lock above. Both are a mutex and a revision that never wait for a frame, and the frame applies the newest value at one fixed point.</p>
+<p>The post store is a second copy of the post fields. <a class="sym" href="#sym-post_store_get"><code>post_store_get</code></a>, <a class="sym" href="#sym-post_store_update"><code>post_store_update</code></a> and <a class="sym" href="#sym-post_store_revision"><code>post_store_revision</code></a> serve the <a href="post.html" data-slug="post">Post effects</a> kit, and <a class="sym" href="#sym-sync_post_store"><code>sync_post_store</code></a> runs in the frame. A <a class="sym" href="post.html#sym-set"><code>post::set</code></a> applies once, at the next frame. If no update arrived, the global is copied into the store, so <a class="sym" href="post.html#sym-get"><code>post::get</code></a> shows what the editor and the game wrote. The store does not hold an override that wins each frame, because that would make the Post panel dead.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<p>The display store holds <a class="sym" href="#sym-DisplayMode"><code>DisplayMode</code></a>, <a class="sym" href="#sym-DisplayWindow"><code>DisplayWindow</code></a> and <a class="sym" href="#sym-MonitorInfo"><code>MonitorInfo</code></a>, with <a class="sym" href="#sym-display_store_get"><code>display_store_get</code></a>, <a class="sym" href="#sym-display_store_update"><code>display_store_update</code></a>, <a class="sym" href="#sym-sync_display_store"><code>sync_display_store</code></a> and the monitor functions. <a href="display-mode.html" data-slug="display-mode">Display mode</a> describes these and the frame order. <a class="sym" href="#sym-pick_present_mode"><code>pick_present_mode</code></a> and <a class="sym" href="#sym-frame_cap_budget_us"><code>frame_cap_budget_us</code></a> are its pure helpers.</p>
+<h2 id="keyboard-channels">Keyboard channels</h2>
+<p><a class="sym" href="#sym-RawKey"><code>RawKey</code></a> is a physical key as winit reports it. Warp has two paths that bypass egui and the winit input helper.</p>
+<h3 id="the-raw-key-ring">The raw key ring</h3>
+<p>egui consumes a key event whenever a TextEdit holds keyboard focus, so a console whose own field has focus goes deaf to the key that closes it. The event loop mirrors each watched press into <a class="sym" href="#sym-RAW_KEY_PRESSES"><code>RAW_KEY_PRESSES</code></a> from the raw window event, before egui gets it.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup> The watch list bounds the ring, because mirroring all presses would let held keys evict a real press. A full ring of <a class="sym" href="#sym-RAW_KEY_RING_LIMIT"><code>RAW_KEY_RING_LIMIT</code></a>, 64, drops its oldest entry, so the newest press always lands.</p>
+<p>The list is keyed by owner, and the effective watch is the union. <a class="sym" href="#sym-watch_raw_keys"><code>watch_raw_keys</code></a> replaces only the list of its owner, so no registration can delete another subsystem's key. <a class="sym" href="#sym-set_raw_key_watch"><code>set_raw_key_watch</code></a> is the <a class="sym" href="#sym-RAW_WATCH_APP"><code>RAW_WATCH_APP</code></a> slot. The owner keying exists because a single list once let one subsystem clear another's keys, and the debug console could not be opened.</p>
+<p><a class="sym" href="#sym-take_raw_key"><code>take_raw_key</code></a> removes all pending presses of one key and reports whether any existed, and <a class="sym" href="#sym-drain_raw_keys"><code>drain_raw_keys</code></a> takes them all. <a class="sym" href="#sym-push_raw_key"><code>push_raw_key</code></a> and <a class="sym" href="#sym-push_raw_key_from"><code>push_raw_key_from</code></a> are the producers: the first is for a shipped game and the web loop, and the second is for an editor that hosts a game.</p>
+<h3 id="input-capture">Input capture</h3>
+<p>Keyboard and pointer capture are two independent grabs, and the engine gives neither a meaning.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<p><a class="sym" href="#sym-set_input_capture"><code>set_input_capture</code></a> diverts key transitions into <a class="sym" href="#sym-CAPTURED_KEYS"><code>CAPTURED_KEYS</code></a> in place of the raw ring and egui. <a class="sym" href="#sym-pop_captured_key"><code>pop_captured_key</code></a> takes them, with <code>true</code> for a press. <a class="sym" href="#sym-set_capture_passthrough_keys"><code>set_capture_passthrough_keys</code></a> names the keys that stay global: a console toggle belongs there, because the user must always be able to leave.</p>
+<p>The queue carries transitions and not presses, so the two edges of one key live or die together. At <a class="sym" href="#sym-CAPTURED_KEY_LIMIT"><code>CAPTURED_KEY_LIMIT</code></a>, 64, it drops the oldest press with the release that closes it, and it never drops a release alone. A lost release would leave a key locked on, and the source judges a lost press to be the smaller fault.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup> <a class="sym" href="#sym-captured_keys_dropped"><code>captured_keys_dropped</code></a> counts the cost.</p>
+<p><a class="sym" href="#sym-set_pointer_capture"><code>set_pointer_capture</code></a> hides the cursor, warps it to the window centre each frame, and accumulates the drift. <a class="sym" href="#sym-take_pointer_delta"><code>take_pointer_delta</code></a> returns the drift since the last call, and <a class="sym" href="#sym-pointer_buttons"><code>pointer_buttons</code></a> the held buttons. <a class="sym" href="#sym-set_pointer_release_keys"><code>set_pointer_release_keys</code></a> names keys that drop the capture. Such a press also reaches the raw ring, so one keystroke can release the pointer and mean something.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Function</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-set_input_capture"><code>set_input_capture</code></a>, <a class="sym" href="#sym-input_captured"><code>input_captured</code></a></td>
+<td>Keyboard grab</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-set_pointer_capture"><code>set_pointer_capture</code></a>, <a class="sym" href="#sym-pointer_captured"><code>pointer_captured</code></a></td>
+<td>Pointer grab</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-is_capture_passthrough"><code>is_capture_passthrough</code></a>, <a class="sym" href="#sym-is_pointer_release_key"><code>is_pointer_release_key</code></a></td>
+<td>Test one key</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-clear_captured_keys"><code>clear_captured_keys</code></a></td>
+<td>Empty the queue</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-push_captured_key"><code>push_captured_key</code></a></td>
+<td>The producer, in the event loop</td>
+</tr>
+</tbody>
+</table>
+<h3 id="pending-flags">Pending flags</h3>
+<p><a class="sym" href="#sym-PENDING_SCROLL"><code>PENDING_SCROLL</code></a> and the <code>PENDING_MOUSE_*</code> flags carry input across event batches between render frames. Without them, scroll would read as 0 on a frame that the render budget skipped.</p>
+<h2 id="transport">Transport</h2>
+<p><a class="sym" href="#sym-PlayState"><code>PlayState</code></a> is what the play bar says the simulation should do: Stopped, Playing or Paused. This is deliberately not the pause flag of a game. Game systems write such a flag freely, so a play bar built on one would resume when a story overlay closed. Game code must not clear an editor pause.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Function</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-play_state"><code>play_state</code></a>, <a class="sym" href="#sym-set_play_state"><code>set_play_state</code></a></td>
+<td>Read and write the transport</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-play_debug"><code>play_debug</code></a>, <a class="sym" href="#sym-set_play_debug"><code>set_play_debug</code></a></td>
+<td>The debug configuration for the next boot</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-transport_active"><code>transport_active</code></a>, <a class="sym" href="#sym-set_transport_active"><code>set_transport_active</code></a></td>
+<td>Whether a play bar owns the transport</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-request_step"><code>request_step</code></a>, <a class="sym" href="#sym-take_step_request"><code>take_step_request</code></a></td>
+<td>Run one pass while paused</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-step_pending"><code>step_pending</code></a></td>
+<td>Peek at a step, with no consumption</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-take_play_state_change"><code>take_play_state_change</code></a></td>
+<td>Report the state once per change</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-take_step_request"><code>take_step_request</code></a> has one consumer, the simulation loop. <a class="sym" href="#sym-step_pending"><code>step_pending</code></a> has no caller today and stays for a reader that has a stake in a step. <a class="sym" href="#sym-take_play_state_change"><code>take_play_state_change</code></a> exists because a host that wrote its state every frame overwrote what the application did. The first call returns nothing, so a host does not disturb a boot sequence.</p>
+<h2 id="the-game-view">The game view</h2>
+<p>These items carry the scene as a texture in an egui panel. See <a class="sym" href="gpu.html#sym-GameView"><code>GameView</code></a> in <a href="gpu.html#the-game-view" data-slug="gpu">gpu</a>. The normal frame draws egui into the LDR image, so the scene is the backdrop of the GUI. In embedded mode, the finished scene is a texture, and a panel draws it.</p>
+<p><a class="sym" href="#sym-set_game_view_embedded"><code>set_game_view_embedded</code></a> is a declaration that a host makes once at startup, because it decides whether the chrome is post-processed. It used to be a side effect of a panel draw, so closing a tab could send the whole window through the CRT shader.<sup class="ref"><a href="#ref-10" id="cite-10">[10]</a></sup></p>
+<p><a class="sym" href="#sym-GameViewRect"><code>GameViewRect</code></a> is the rect that a panel drew, with the window that it drew in. The window is a field of the rect, because four numbers with no window are numbers that every window believes are its own. The panel publishes the rect each frame, and <a class="sym" href="#sym-tick_game_view"><code>tick_game_view</code></a> and <a class="sym" href="#sym-mark_game_view_drawn"><code>mark_game_view_drawn</code></a> expire it when the panel stops drawing. <a class="sym" href="#sym-game_view_remap"><code>game_view_remap</code></a>, <a class="sym" href="#sym-game_view_contains"><code>game_view_contains</code></a> and their <code>_in</code> forms map the pointer.</p>
+<p>Key routing is separate, because a key has no position. <a class="sym" href="#sym-game_view_focused"><code>game_view_focused</code></a> says that the panel holds the keyboard, <a class="sym" href="#sym-game_focus_vote"><code>game_focus_vote</code></a> and <a class="sym" href="#sym-publish_game_focus"><code>publish_game_focus</code></a> let each window vote, and <a class="sym" href="#sym-game_keys_from"><code>game_keys_from</code></a> combines the two. Outside embedded mode, <a class="sym" href="#sym-game_keys_from"><code>game_keys_from</code></a> is true unconditionally, because otherwise a shipped game would be deaf.<sup class="ref"><a href="#ref-11" id="cite-11">[11]</a></sup> <a class="sym" href="#sym-game_view_host"><code>game_view_host</code></a> names the window of the panel.</p>
+<h2 id="gpu-data">GPU data</h2>
+<p>These are the plain structs that scene shaders read.</p>
+<ul>
+<li><a class="sym" href="#sym-View"><code>View</code></a> is the view uniform: camera position and scale, star data, time, depth-of-field and lighting values, occluders and the debug mode. The <code>xy</code> field packs the HDR target size into one word, with the width in the low 16 bits and the height in the high 16 bits. This is not the window size. <a class="sym" href="#sym-View-width"><code>View::width</code></a>, <a class="sym" href="#sym-View-height"><code>View::height</code></a> and <a class="sym" href="#sym-View-pack_xy"><code>View::pack_xy</code></a> read and write it.<sup class="ref"><a href="#ref-12" id="cite-12">[12]</a></sup></li>
+<li><a class="sym" href="#sym-Rect"><code>Rect</code></a> is a rect instance, with min, max, colour, rotation and flags. <a class="sym" href="#sym-RECT_FLAG_RECEIVE_SHADOW"><code>RECT_FLAG_RECEIVE_SHADOW</code></a> is its one flag.</li>
+<li><a class="sym" href="#sym-Vertex"><code>Vertex</code></a> is a position and colour.</li>
+<li><a class="sym" href="#sym-Instance"><code>Instance</code></a> holds a position, radius, colour, texture index and rotation.</li>
+</ul>
+<h2 id="windows-and-viewports">Windows and viewports</h2>
+<p><a class="sym" href="#sym-ViewportId"><code>ViewportId</code></a> is a <code>u32</code> that names one OS window, with its own surface, post chain, egui context and camera. <a class="sym" href="#sym-PRIMARY_VIEWPORT"><code>PRIMARY_VIEWPORT</code></a> is 0 and always exists. <a class="sym" href="#sym-SECONDARY_VIEWPORT_REQUESTED"><code>SECONDARY_VIEWPORT_REQUESTED</code></a> asks for the secondary view, which has id 1.</p>
+<p><a class="sym" href="#sym-alloc_viewport_id"><code>alloc_viewport_id</code></a> starts at 2 and never reuses an id. The application allocates the id and then asks for a window, because a dock must fill the new window on the frame of the drop.<sup class="ref"><a href="#ref-13" id="cite-13">[13]</a></sup> <a class="sym" href="#sym-request_window"><code>request_window</code></a> queues a <a class="sym" href="#sym-WindowRequest"><code>WindowRequest</code></a> of open, close, focus or retitle, and <a class="sym" href="#sym-drain_window_requests"><code>drain_window_requests</code></a> takes the queue once per frame. <a class="sym" href="#sym-push_window_closed"><code>push_window_closed</code></a> and <a class="sym" href="#sym-push_panel_closed"><code>push_panel_closed</code></a> report closures.</p>
+<p><a class="sym" href="#sym-WindowGeometry"><code>WindowGeometry</code></a> holds the client origin, size and pixels per point of each window. <a class="sym" href="#sym-WindowGeometry-to_desktop"><code>to_desktop</code></a>, <a class="sym" href="#sym-WindowGeometry-to_local"><code>to_local</code></a> and <a class="sym" href="#sym-WindowGeometry-to_desktop_size"><code>to_desktop_size</code></a> convert positions across windows. <a class="sym" href="#sym-DragProxyState"><code>DragProxyState</code></a>, <a class="sym" href="#sym-set_drag_proxy"><code>set_drag_proxy</code></a> and <a class="sym" href="#sym-drag_proxy"><code>drag_proxy</code></a> carry a drag between windows, and <a class="sym" href="#sym-NewWindowPreview"><code>NewWindowPreview</code></a> previews the window that a drop would open.</p>
+<p><a class="sym" href="#sym-FULLSCREEN_TOGGLE_REQUESTED"><code>FULLSCREEN_TOGGLE_REQUESTED</code></a>, <a class="sym" href="#sym-FULLSCREEN_STATE"><code>FULLSCREEN_STATE</code></a>, <a class="sym" href="#sym-WINDOW_MODE_REQUESTED"><code>WINDOW_MODE_REQUESTED</code></a>, <a class="sym" href="#sym-WINDOW_SIZE_REQ_W"><code>WINDOW_SIZE_REQ_W</code></a> and <a class="sym" href="#sym-WINDOW_SIZE_REQ_H"><code>WINDOW_SIZE_REQ_H</code></a> are the requests that the event loop applies. A game uses <a href="display-mode.html" data-slug="display-mode">Display mode</a> instead.</p>
+<h2 id="instrumentation">Instrumentation</h2>
+<p><a class="sym" href="#sym-RENDER_DRAW_US"><code>RENDER_DRAW_US</code></a>, <a class="sym" href="#sym-RENDER_UPLOAD_US"><code>RENDER_UPLOAD_US</code></a>, <a class="sym" href="#sym-RENDER_GPU_US"><code>RENDER_GPU_US</code></a> and <a class="sym" href="#sym-RENDER_FRAME_US"><code>RENDER_FRAME_US</code></a> hold the phase times of the last frame, in microseconds. <a class="sym" href="#sym-GPU_DESCRIPTION"><code>GPU_DESCRIPTION</code></a> holds the adapter and surface as lines of text, and is empty until the device exists. <a class="sym" href="#sym-WINDOW_PHYS_W"><code>WINDOW_PHYS_W</code></a>, <a class="sym" href="#sym-WINDOW_PHYS_H"><code>WINDOW_PHYS_H</code></a>, <a class="sym" href="#sym-WINDOW_SCALE_BITS"><code>WINDOW_SCALE_BITS</code></a>, <a class="sym" href="#sym-SURFACE_W"><code>SURFACE_W</code></a> and <a class="sym" href="#sym-SURFACE_H"><code>SURFACE_H</code></a> hold the sizes of the primary window. An application can read these for a performance report. See <a href="perf.html" data-slug="perf">Perf</a> and <a href="profile.html" data-slug="profile">Profiler</a>.</p>
+<h2 id="application-identity-and-previews">Application identity and previews</h2>
+<p><a class="sym" href="#sym-app_name"><code>app_name</code></a> returns the product name that <a class="sym" href="renderer.html#sym-run"><code>run</code></a> stored with <a class="sym" href="#sym-set_app_name"><code>set_app_name</code></a>, or a neutral placeholder before that. The first call wins. The name is a global because the GPU failure dialog must name the product and cannot take a parameter.<sup class="ref"><a href="#ref-14" id="cite-14">[14]</a></sup></p>
+<p><a class="sym" href="#sym-PLANET_PREVIEW_REQUEST"><code>PLANET_PREVIEW_REQUEST</code></a>, <a class="sym" href="#sym-PLANET_PREVIEW_TEXTURE"><code>PLANET_PREVIEW_TEXTURE</code></a> and <a class="sym" href="#sym-PlanetPreviewRequest"><code>PlanetPreviewRequest</code></a> feed the planet preview in <a href="gpu.html" data-slug="gpu">GPU module</a>. <a class="sym" href="#sym-GUI_ATLAS_TEXTURES"><code>GUI_ATLAS_TEXTURES</code></a> holds egui texture ids of atlases for sprites in panels.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 184 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-types" class="modhead"><code>warp_sdk::types</code></h3><h4>Functions</h4><div class="item" id="sym-app_name" data-name="app_name"><div class="sig"><a class="anchor" href="#sym-app_name" aria-label="Link to app_name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">app_name</span>() -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>The host application name, or a neutral placeholder before <code>run</code> stores one.</p></div></div><div class="item" id="sym-set_app_name" data-name="set_app_name"><div class="sig"><a class="anchor" href="#sym-set_app_name" aria-label="Link to set_app_name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_app_name</span>(name: &amp;str)</code></div><div class="doc"><p>Store the host application name. The first call wins.</p></div></div><div class="item" id="sym-set_input_capture" data-name="set_input_capture"><div class="sig"><a class="anchor" href="#sym-set_input_capture" aria-label="Link to set_input_capture">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_input_capture</span>(on: bool)</code></div><div class="doc"><p>Grab or release the raw keyboard.</p></div></div><div class="item" id="sym-input_captured" data-name="input_captured"><div class="sig"><a class="anchor" href="#sym-input_captured" aria-label="Link to input_captured">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">input_captured</span>() -&gt; bool</code></div><div class="doc"><p>True while an app subsystem owns the raw keyboard.</p></div></div><div class="item" id="sym-set_pointer_capture" data-name="set_pointer_capture"><div class="sig"><a class="anchor" href="#sym-set_pointer_capture" aria-label="Link to set_pointer_capture">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_pointer_capture</span>(on: bool)</code></div><div class="doc"><p>Grab or release the pointer.</p></div></div><div class="item" id="sym-pointer_captured" data-name="pointer_captured"><div class="sig"><a class="anchor" href="#sym-pointer_captured" aria-label="Link to pointer_captured">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pointer_captured</span>() -&gt; bool</code></div><div class="doc"><p>True while the pointer is locked to the window center.</p></div></div><div class="item" id="sym-set_capture_passthrough_keys" data-name="set_capture_passthrough_keys"><div class="sig"><a class="anchor" href="#sym-set_capture_passthrough_keys" aria-label="Link to set_capture_passthrough_keys">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_capture_passthrough_keys</span>(keys: &amp;[<span class="t">RawKey</span>])</code></div><div class="doc"><p>Name the keys that stay global under keyboard capture.</p></div></div><div class="item" id="sym-is_capture_passthrough" data-name="is_capture_passthrough"><div class="sig"><a class="anchor" href="#sym-is_capture_passthrough" aria-label="Link to is_capture_passthrough">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_capture_passthrough</span>(key: <span class="t">RawKey</span>) -&gt; bool</code></div><div class="doc"><p>True if this key stays global under keyboard capture.</p></div></div><div class="item" id="sym-set_pointer_release_keys" data-name="set_pointer_release_keys"><div class="sig"><a class="anchor" href="#sym-set_pointer_release_keys" aria-label="Link to set_pointer_release_keys">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_pointer_release_keys</span>(keys: &amp;[<span class="t">RawKey</span>])</code></div><div class="doc"><p>Name the keys that release pointer capture.</p></div></div><div class="item" id="sym-is_pointer_release_key" data-name="is_pointer_release_key"><div class="sig"><a class="anchor" href="#sym-is_pointer_release_key" aria-label="Link to is_pointer_release_key">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_pointer_release_key</span>(key: <span class="t">RawKey</span>) -&gt; bool</code></div><div class="doc"><p>True if this key releases pointer capture.</p></div></div><div class="item" id="sym-push_captured_key" data-name="push_captured_key"><div class="sig"><a class="anchor" href="#sym-push_captured_key" aria-label="Link to push_captured_key">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">push_captured_key</span>(key: <span class="t">RawKey</span>, pressed: bool)</code></div><div class="doc"><p>Queue one diverted key transition.</p>
+<p>── A RELEASE IS NEVER THE ENTRY THAT GOES ─────────────────────────────
+This queue carries TRANSITIONS, not presses. The consumer reads one edge
+at a time and holds the key between the two, so the two edges of one key
+must live or die together.</p>
+<p>The queue used to refuse the new entry when it was full. That is the one
+policy this queue cannot have: with the queue full of presses, every later
+RELEASE was refused while the presses stayed. The consumer then held keys
+that nobody was touching, which is the stuck-key fault the pointer and
+keyboard paths in hostlink/input.rs describe.</p>
+<p>Plain drop-oldest is not enough either. A consumer that has already taken
+a press leaves the matching release at the front, and drop-oldest takes
+exactly that entry. So the queue drops the oldest PRESS and the release
+that closes it, in one step, and never a release on its own.</p>
+<p>A press is refused only when the queue holds no press to evict. Losing a
+press loses an action; losing a release locks one on.</p></div></div><div class="item" id="sym-captured_keys_dropped" data-name="captured_keys_dropped"><div class="sig"><a class="anchor" href="#sym-captured_keys_dropped" aria-label="Link to captured_keys_dropped">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">captured_keys_dropped</span>() -&gt; u64</code></div><div class="doc"><p>How many diverted transitions the bound has cost, over the life of the
+process.</p></div></div><div class="item" id="sym-pop_captured_key" data-name="pop_captured_key"><div class="sig"><a class="anchor" href="#sym-pop_captured_key" aria-label="Link to pop_captured_key">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pop_captured_key</span>() -&gt; <span class="t">Option</span>&lt;(<span class="t">RawKey</span>, bool)&gt;</code></div><div class="doc"><p>Take the oldest diverted key transition.</p></div></div><div class="item" id="sym-clear_captured_keys" data-name="clear_captured_keys"><div class="sig"><a class="anchor" href="#sym-clear_captured_keys" aria-label="Link to clear_captured_keys">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear_captured_keys</span>()</code></div><div class="doc"><p>Drop every pending diverted transition.</p></div></div><div class="item" id="sym-take_pointer_delta" data-name="take_pointer_delta"><div class="sig"><a class="anchor" href="#sym-take_pointer_delta" aria-label="Link to take_pointer_delta">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_pointer_delta</span>() -&gt; (f32, f32)</code></div><div class="doc"><p>Take the pointer drift accumulated since the last call.</p></div></div><div class="item" id="sym-pointer_buttons" data-name="pointer_buttons"><div class="sig"><a class="anchor" href="#sym-pointer_buttons" aria-label="Link to pointer_buttons">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pointer_buttons</span>() -&gt; u8</code></div><div class="doc"><p>Mouse buttons held under pointer capture.</p></div></div><div class="item" id="sym-display_settings" data-name="display_settings"><div class="sig"><a class="anchor" href="#sym-display_settings" aria-label="Link to display_settings">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">display_settings</span>() -&gt; <span class="t">DisplaySettings</span></code></div><div class="doc"><p>Read a copy of the settings.</p>
+<p>Poison is stepped over rather than unwrapped, which is what the rest of the
+engine does with its globals. A panic somewhere in a GUI frame must not
+turn every later read of the picture's settings into a second panic — the
+value behind the lock is a plain struct that no partial write can corrupt.</p></div></div><div class="item" id="sym-set_display_settings" data-name="set_display_settings"><div class="sig"><a class="anchor" href="#sym-set_display_settings" aria-label="Link to set_display_settings">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_display_settings</span>(next: <span class="t">DisplaySettings</span>)</code></div><div class="doc"><p>Replace them.</p></div></div><div class="item" id="sym-with_display_settings" data-name="with_display_settings"><div class="sig"><a class="anchor" href="#sym-with_display_settings" aria-label="Link to with_display_settings">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> with_display_settings&lt;<span class="t">R</span>&gt;(f: <span class="k">impl</span> <span class="t">FnOnce</span>(&amp;<span class="k">mut</span> <span class="t">DisplaySettings</span>) -&gt; <span class="t">R</span>) -&gt; <span class="t">R</span></code></div><div class="doc"><p>Borrow them mutably for the length of a call.</p>
+<p>The lock is held across <code>f</code>, so <code>f</code> must not call back into anything that
+locks it again. Everything that does — the Display section, the game's
+settings window — receives the borrow rather than reaching for the global.</p></div></div><div class="item" id="sym-display_is_borrowed" data-name="display_is_borrowed"><div class="sig"><a class="anchor" href="#sym-display_is_borrowed" aria-label="Link to display_is_borrowed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">display_is_borrowed</span>() -&gt; bool</code></div><div class="doc"><p>Whether a frame is holding the display settings right now.</p>
+<p>A flag and not <code>try_lock</code>: <code>try_lock</code> cannot tell "this thread already has
+it" from "another thread has it for a moment", and the second is ordinary —
+a hosted game applies an editor's push from the socket thread.</p></div></div><div class="item" id="sym-display_section" data-name="display_section"><div class="sig"><a class="anchor" href="#sym-display_section" aria-label="Link to display_section">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">display_section</span>() -&gt; <span class="k">crate</span>::project_settings::<span class="t">Section</span></code></div><div class="doc"><p>The viewport's settings block, as the project settings registry wants it.</p>
+<p>It lives here and not in <code>project_settings</code> because the two pointers reach
+the global in this file, and a section that reads its own subsystem's
+global from another module is a second place that has to be kept in step
+with the accessors.</p>
+<p><code>load</code> calls <code>set_display_settings</code> and not <code>with_display_settings</code>: the
+block is installed WHOLE. A merge over the live value would leave the
+previous project's tube in every field the new project does not name, and
+"absent means default" is the rule the file is written against.</p></div></div><div class="item" id="sym-set_game_view_embedded" data-name="set_game_view_embedded"><div class="sig"><a class="anchor" href="#sym-set_game_view_embedded" aria-label="Link to set_game_view_embedded">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_game_view_embedded</span>(on: bool)</code></div><div class="doc"><p>Declare whether this host presents the game inside a panel.</p>
+<p>Call it once, when the application is built. See the static above for why
+this is a host's declaration rather than a widget's side effect.</p></div></div><div class="item" id="sym-set_game_view_focused" data-name="set_game_view_focused"><div class="sig"><a class="anchor" href="#sym-set_game_view_focused" aria-label="Link to set_game_view_focused">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_game_view_focused</span>(on: bool)</code></div><div class="doc"><p>Say whether the Game panel is what a key press means right now.</p>
+<p>Once a frame, before the GUI pass. A host that stops calling it leaves the
+game deaf, which is the safe direction to fail: keys land in the chrome.</p></div></div><div class="item" id="sym-game_view_focused" data-name="game_view_focused"><div class="sig"><a class="anchor" href="#sym-game_view_focused" aria-label="Link to game_view_focused">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">game_view_focused</span>() -&gt; bool</code></div><div class="doc"><p>Whether a key press belongs to the game this frame. Outside embedded mode
+nobody asks: the game is the window, and <code>gate_keys_to_game_view</code> returns
+before it reads this.</p></div></div><div class="item" id="sym-game_focus_vote" data-name="game_focus_vote"><div class="sig"><a class="anchor" href="#sym-game_focus_vote" aria-label="Link to game_focus_vote">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">game_focus_vote</span>(vp: <span class="t">ViewportId</span>, holds: <span class="t">Option</span>&lt;<span class="t">ViewportId</span>&gt;) -&gt; bool</code></div><div class="doc"><p>Whether window <code>vp</code> is the one entitled to answer for the flag above.</p>
+<p>── ONE WINDOW GETS A VOTE, AND EVERY WINDOW MUST BE ABLE TO CAST IT ────
+The flag is one global and the host calls it once per window per frame, so
+the windows that do not hold the panel must say nothing — or the last one
+drawn decides whether the game hears anything, and draw order is not a
+thing a person controls.</p>
+<p><code>holds</code> is the window the Game panel is laid out in, which the dock knows.
+<code>None</code> is a shut panel, and then the primary window answers: without that
+arm the last <code>true</code> would stand, and the game would keep swallowing keys
+with no panel on screen.</p>
+<p>A pure rule rather than a branch inside the host, because the host's own
+frame method returns early for every window except the primary one. The
+vote lived below that return, so a panel in a tool window was voted on by
+nobody and the flag held its tear-off value for the life of the process:
+permanently deaf, or permanently deaf to the chrome instead.</p></div></div><div class="item" id="sym-publish_game_focus" data-name="publish_game_focus"><div class="sig"><a class="anchor" href="#sym-publish_game_focus" aria-label="Link to publish_game_focus">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">publish_game_focus</span>(vp: <span class="t">ViewportId</span>, holds: <span class="t">Option</span>&lt;<span class="t">ViewportId</span>&gt;, has_keys: bool)</code></div><div class="doc"><p>Cast this window's vote, and store it when the window is the one entitled.</p>
+<p>The pair above, in the order a host wants them. Every window calls it every
+frame with its own id.</p></div></div><div class="item" id="sym-game_keys_from" data-name="game_keys_from"><div class="sig"><a class="anchor" href="#sym-game_keys_from" aria-label="Link to game_keys_from">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">game_keys_from</span>(vp: <span class="t">ViewportId</span>) -&gt; bool</code></div><div class="doc"><p>Whether a key event that came from window <code>vp</code> belongs to the game.</p>
+<p>── THE FLAG ANSWERS FOR A PANEL, AND A PANEL IS IN ONE WINDOW ──────────
+<code>game_view_focused</code> says the Game panel holds the keyboard. It does not say
+WHERE, because it is one process-global with no window on it. A consumer
+that reads it alone therefore takes keys from EVERY window at once, and the
+window the panel is not in is exactly the window a person types the editor's
+own text into.</p>
+<p>Both halves together are the rule: the panel holds the keyboard, AND this is
+the window it draws in. <code>game_view_host</code> is the second half, published by the
+panel's own draw and cleared when the panel stops drawing.</p>
+<p>True unconditionally outside embedded mode. A shipped game has no panel and
+no host to publish one, so the flag stays at its default — and a gate that
+read it there would make every shipped game deaf for the life of the process.</p></div></div><div class="item" id="sym-game_view_texture" data-name="game_view_texture"><div class="sig"><a class="anchor" href="#sym-game_view_texture" aria-label="Link to game_view_texture">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">game_view_texture</span>(vp: <span class="t">ViewportId</span>) -&gt; <span class="t">Option</span>&lt;egui::<span class="t">TextureId</span>&gt;</code></div><div class="doc"><p>What this window's egui calls the game image, if it has registered it.</p></div></div><div class="item" id="sym-set_game_view_texture" data-name="set_game_view_texture"><div class="sig"><a class="anchor" href="#sym-set_game_view_texture" aria-label="Link to set_game_view_texture">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_game_view_texture</span>(vp: <span class="t">ViewportId</span>, tex: <span class="t">Option</span>&lt;egui::<span class="t">TextureId</span>&gt;)</code></div><div class="doc"><p>Record what one window's egui calls the game image, or forget it.</p>
+<p><code>None</code> is what a window closing says, and what a texture REBUILD says for
+every window that has not re-registered yet — a stale id outlives the
+texture it named and would sample freed memory.</p></div></div><div class="item" id="sym-game_view_texture_nearest" data-name="game_view_texture_nearest"><div class="sig"><a class="anchor" href="#sym-game_view_texture_nearest" aria-label="Link to game_view_texture_nearest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">game_view_texture_nearest</span>(vp: <span class="t">ViewportId</span>) -&gt; <span class="t">Option</span>&lt;egui::<span class="t">TextureId</span>&gt;</code></div><div class="doc"><p>What this window's egui calls the nearest-sampled game image.</p></div></div><div class="item" id="sym-set_game_view_texture_nearest" data-name="set_game_view_texture_nearest"><div class="sig"><a class="anchor" href="#sym-set_game_view_texture_nearest" aria-label="Link to set_game_view_texture_nearest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_game_view_texture_nearest</span>(vp: <span class="t">ViewportId</span>, tex: <span class="t">Option</span>&lt;egui::<span class="t">TextureId</span>&gt;)</code></div><div class="doc"><p>Record what one window's egui calls the nearest-sampled game image, or
+forget it. The mirror of <code>set_game_view_texture</code>, and <code>None</code> means the same
+two things: a window closing, and a texture rebuild that no window has
+re-registered against yet.</p></div></div><div class="item" id="sym-note_game_view_nearest_window" data-name="note_game_view_nearest_window"><div class="sig"><a class="anchor" href="#sym-note_game_view_nearest_window" aria-label="Link to note_game_view_nearest_window">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">note_game_view_nearest_window</span>(vp: <span class="t">ViewportId</span>)</code></div><div class="doc"><p>Say which window is about to draw. Called by <code>register_nearest_in</code>.</p></div></div><div class="item" id="sym-take_game_view_texture_nearest" data-name="take_game_view_texture_nearest"><div class="sig"><a class="anchor" href="#sym-take_game_view_texture_nearest" aria-label="Link to take_game_view_texture_nearest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_game_view_texture_nearest</span>() -&gt; <span class="t">Option</span>&lt;egui::<span class="t">TextureId</span>&gt;</code></div><div class="doc"><p>The nearest-sampled id THIS window may draw, once.</p>
+<p>It CLEARS the marker, and that is the safety property rather than a
+micro-optimisation. A window that never calls <code>register_nearest_in</code> leaves
+the marker pointing at some earlier window, and an id from another
+renderer is either absent there — egui-wgpu skips the mesh — or is a
+different texture entirely, which draws the wrong picture with nothing
+reporting it. Consuming the marker turns that case into no picture, which
+the caller already draws a placeholder for.</p></div></div><div class="item" id="sym-game_view_host" data-name="game_view_host"><div class="sig"><a class="anchor" href="#sym-game_view_host" aria-label="Link to game_view_host">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">game_view_host</span>() -&gt; <span class="t">Option</span>&lt;<span class="t">ViewportId</span>&gt;</code></div><div class="doc"><p>Which window the Game panel drew in last frame, if it drew.</p>
+<p>The engine's answer to "where is the game", for the input path: the window
+whose pointer and keys the game is entitled to. None while the panel is
+closed, while the transport is Stopped, and on the first frame of embedded
+mode before anything has been published.</p></div></div><div class="item" id="sym-game_view_embedded" data-name="game_view_embedded"><div class="sig"><a class="anchor" href="#sym-game_view_embedded" aria-label="Link to game_view_embedded">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">game_view_embedded</span>() -&gt; bool</code></div><div class="doc"><p>True while the game runs inside a panel and the rect is known.</p></div></div><div class="item" id="sym-tick_game_view" data-name="tick_game_view"><div class="sig"><a class="anchor" href="#sym-tick_game_view" aria-label="Link to tick_game_view">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">tick_game_view</span>()</code></div><div class="doc"><p>Open a frame. Called once per event-loop turn by the host that owns the
+window, which is the only place that knows where a frame begins.</p>
+<p>In <code>run</code> only. A satellite is another process with its own copy of these
+statics and no Game panel to publish into them.</p></div></div><div class="item" id="sym-mark_game_view_drawn" data-name="mark_game_view_drawn"><div class="sig"><a class="anchor" href="#sym-mark_game_view_drawn" aria-label="Link to mark_game_view_drawn">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">mark_game_view_drawn</span>()</code></div><div class="doc"><p>Stamp the rect as drawn on this tick. Called by the panel as it publishes.</p></div></div><div class="item" id="sym-game_view_rect" data-name="game_view_rect"><div class="sig"><a class="anchor" href="#sym-game_view_rect" aria-label="Link to game_view_rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">game_view_rect</span>() -&gt; <span class="t">Option</span>&lt;<span class="t">GameViewRect</span>&gt;</code></div><div class="doc"><p>The published rect, copied out — if the panel still draws it. The lock is
+released before the caller sees the value, so a caller can lock something
+else without a deadlock.</p>
+<p>── A RECT IS ONLY TRUE WHILE THE PANEL IS DRAWING IT ───────────────────
+The rect is published as a side effect of <code>playbar::game_view</code>, so it is
+written only on frames the panel actually draws. Under a fixed layout that
+was every frame and the static could be read at face value. Under a dock
+it is not: Code, Strudel and Sauron are tabs of the Game panel's own leaf,
+so selecting one leaves the panel undrawn — and the last rect standing,
+naming the very screen area that tab now covers.</p>
+<p>What that cost was the POINTER. <code>game_view_contains_in</code> answered true for
+a point over the Code panel, <code>gui</code>'s cursor arbiter read that as "the game
+owns this pointer" and let the game's <code>CursorIcon::None</code> through, and
+egui-winit's per-State icon cache meant the chrome never asked for the
+cursor back. Hovering the Code panel made the mouse vanish.</p>
+<p>So a rect expires. One tick of grace, because events for frame N+1 are
+read BEFORE that frame redraws and republishes: expiring at zero would
+blank the rect for every event between two frames, which is where the
+clicks are. Two ticks without a draw is a panel that has stopped.</p>
+<p>Clearing at the top of each frame instead would be simpler and wrong: with
+the panel torn off into its own window, each window walks its own dock, so
+whichever walked second would wipe a rect the first had just published.
+A stamp does not care what order the windows draw in.</p></div></div><div class="item" id="sym-game_view_remap" data-name="game_view_remap"><div class="sig"><a class="anchor" href="#sym-game_view_remap" aria-label="Link to game_view_remap">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">game_view_remap</span>(px: f32, py: f32) -&gt; (f32, f32)</code></div><div class="doc"><p>Panel-rect pixels to game-image pixels, both in render space. Outside
+embedded mode, and before the host publishes a rect, this is the identity
+— so every call site is safe to convert unconditionally.</p>
+<p>The game keeps believing the screen is the image it renders, which is what
+Unity does: in play mode <code>Screen.width</code> reports the Game view, not the
+monitor. That already holds here, because the game is told the screen is
+<code>render_size</code> and the game view texture is <code>render_size</code>. Only the pointer
+moves, so no picking or camera path changes.</p>
+<p>For the GAME's own mouse code, which has a pointer and no notion of a
+window. It does not need one: the pointer it is handed comes from whatever
+window is showing the Game panel, because that is the only window whose
+events reach the game at all. So this resolves the host itself.</p></div></div><div class="item" id="sym-game_view_contains" data-name="game_view_contains"><div class="sig"><a class="anchor" href="#sym-game_view_contains" aria-label="Link to game_view_contains">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">game_view_contains</span>(px: f32, py: f32) -&gt; bool</code></div><div class="doc"><p>True when the game's pointer lies inside the published rect. Outside
+embedded mode every point is inside, because the game fills the window.</p></div></div><div class="item" id="sym-game_view_remap_in" data-name="game_view_remap_in"><div class="sig"><a class="anchor" href="#sym-game_view_remap_in" aria-label="Link to game_view_remap_in">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">game_view_remap_in</span>(vp: <span class="t">ViewportId</span>, px: f32, py: f32) -&gt; (f32, f32)</code></div><div class="doc"><p>The same remap, for a caller that knows which window its point came from.</p>
+<p>A point from any window OTHER than the one the panel drew in passes through
+unchanged, because there is no rect for it to be inside: the panel is not
+there. Answering anyway is the failure this argument exists to prevent —
+the maths is affine and returns a plausible coordinate for a click three
+windows away, with nothing to report.</p>
+<p>warp_core's own input path uses this and never the pair above: a
+<code>GuiHandler</code> always knows whose events it is reading, and a handler that
+guessed would be the bug this exists to make unrepresentable.</p></div></div><div class="item" id="sym-game_view_contains_in" data-name="game_view_contains_in"><div class="sig"><a class="anchor" href="#sym-game_view_contains_in" aria-label="Link to game_view_contains_in">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">game_view_contains_in</span>(vp: <span class="t">ViewportId</span>, px: f32, py: f32) -&gt; bool</code></div><div class="doc"><p>True when a point from window <code>vp</code> lies inside the published rect.</p>
+<p>False for every point of a window the panel is not in — see the remap
+above for why that is a test and not an oversight.</p>
+<p>False as well while a Peek panel is placing its scope. A click that places
+a scope must not also reach the game, or arming the tool fires whatever the
+game does on click. This is the one function that decides whether a point
+belongs to the game, so the one condition here covers every pointer path.</p>
+<p>The keyboard already had a gate of the same shape: <code>publish_game_focus</code>
+stops the chrome and the game both taking one key. The pointer had no
+equivalent until the placement gesture needed one.</p></div></div><div class="item" id="sym-play_state" data-name="play_state"><div class="sig"><a class="anchor" href="#sym-play_state" aria-label="Link to play_state">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">play_state</span>() -&gt; <span class="t">PlayState</span></code></div></div><div class="item" id="sym-set_play_state" data-name="set_play_state"><div class="sig"><a class="anchor" href="#sym-set_play_state" aria-label="Link to set_play_state">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_play_state</span>(s: <span class="t">PlayState</span>)</code></div></div><div class="item" id="sym-play_debug" data-name="play_debug"><div class="sig"><a class="anchor" href="#sym-play_debug" aria-label="Link to play_debug">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">play_debug</span>() -&gt; bool</code></div><div class="doc"><p>True when the world the transport is asking for is the debug one.</p>
+<p>Read this where the game builds a world, not once at startup. The answer
+changes between a Stop and the next Play, which is the point: a person
+switches configuration by pressing a different button, not by relaunching.</p></div></div><div class="item" id="sym-set_play_debug" data-name="set_play_debug"><div class="sig"><a class="anchor" href="#sym-set_play_debug" aria-label="Link to set_play_debug">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_play_debug</span>(on: bool)</code></div><div class="doc"><p>Choose the configuration the next boot uses.</p>
+<p>The play bar calls this before it sets Playing, and clears it on Stop.</p></div></div><div class="item" id="sym-transport_active" data-name="transport_active"><div class="sig"><a class="anchor" href="#sym-transport_active" aria-label="Link to transport_active">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">transport_active</span>() -&gt; bool</code></div><div class="doc"><p>True while a play bar owns the transport.</p></div></div><div class="item" id="sym-set_transport_active" data-name="set_transport_active"><div class="sig"><a class="anchor" href="#sym-set_transport_active" aria-label="Link to set_transport_active">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_transport_active</span>(on: bool)</code></div><div class="doc"><p>Hand the transport to a play bar, or give it back to the game.</p></div></div><div class="item" id="sym-request_step" data-name="request_step"><div class="sig"><a class="anchor" href="#sym-request_step" aria-label="Link to request_step">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">request_step</span>()</code></div><div class="doc"><p>Ask for one step. Ignored unless the transport is Paused.</p></div></div><div class="item" id="sym-take_step_request" data-name="take_step_request"><div class="sig"><a class="anchor" href="#sym-take_step_request" aria-label="Link to take_step_request">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_step_request</span>() -&gt; bool</code></div><div class="doc"><p>Consume a pending step request. True means run one pass now.</p></div></div><div class="item" id="sym-step_pending" data-name="step_pending"><div class="sig"><a class="anchor" href="#sym-step_pending" aria-label="Link to step_pending">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">step_pending</span>() -&gt; bool</code></div><div class="doc"><p>Is a step waiting to be run? Does NOT consume it.</p>
+<p><code>take_step_request</code> is owned by the sim loop and there can only be one
+consumer: two swaps against one flag means whichever thread wins runs the
+pass and the other silently loses the request. So a second reader gets a
+peek instead.</p>
+<p>It exists for a thread that has a stake in a step it does not own. The sim
+loop owns the consuming <code>take_step_request</code>; two swaps against one flag
+would mean a step one reader saw was a step the sim never ran, so any other
+reader gets this peek instead.</p>
+<p>NO CALLER TODAY, and the reason is worth recording. The render thread used
+to read it: an editor pause parked a viewport selection, and the thing that
+let a parked one land was time moving. Selection is no longer gated on the
+transport, so nothing asks. The peek is kept because the shape of the
+problem has not gone away — a step is invisible in <code>play_state</code>, which
+reports Paused throughout one.</p></div></div><div class="item" id="sym-take_play_state_change" data-name="take_play_state_change"><div class="sig"><a class="anchor" href="#sym-take_play_state_change" aria-label="Link to take_play_state_change">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_play_state_change</span>() -&gt; <span class="t">Option</span>&lt;<span class="t">PlayState</span>&gt;</code></div><div class="doc"><p>Report the transport state once per change, and nothing in between.</p>
+<p>A host that maps the transport onto its own state — a render phase, a
+camera, a scene — must write that state only when the transport moves.
+Writing it every frame overwrites whatever the application did in the
+meantime, and the application then cannot leave the state the host keeps
+re-asserting.</p>
+<p>The first call returns None and records the current state, so a host that
+starts up does not disturb an application still working through its own
+boot sequence.</p></div></div><div class="item" id="sym-post_store_get" data-name="post_store_get"><div class="sig"><a class="anchor" href="#sym-post_store_get" aria-label="Link to post_store_get">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">post_store_get</span>() -&gt; <span class="t">DisplaySettings</span></code></div><div class="doc"><p>A copy of the newest post fields. Callable from any thread, and from inside
+<code>Renderer::gui</code>.</p></div></div><div class="item" id="sym-post_store_update" data-name="post_store_update"><div class="sig"><a class="anchor" href="#sym-post_store_update" aria-label="Link to post_store_update">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">post_store_update</span>(f: <span class="k">impl</span> <span class="t">FnOnce</span>(&amp;<span class="k">mut</span> <span class="t">DisplaySettings</span>)) -&gt; u64</code></div><div class="doc"><p>Change the post fields, and return the new revision. The frame applies the
+change to the global at its next <code>sync_post_store</code>.</p>
+<p>The store is locked while <code>f</code> runs. <code>f</code> must not call <code>post_store_get</code> or
+<code>post_store_update</code>, or the thread hangs.</p></div></div><div class="item" id="sym-post_store_revision" data-name="post_store_revision"><div class="sig"><a class="anchor" href="#sym-post_store_revision" aria-label="Link to post_store_revision">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">post_store_revision</span>() -&gt; u64</code></div><div class="doc"><p>How many <code>post_store_update</code> calls the process has made. A change in this
+number tells a reader that the post fields changed.</p></div></div><div class="item" id="sym-sync_post_store" data-name="sync_post_store"><div class="sig"><a class="anchor" href="#sym-sync_post_store" aria-label="Link to sync_post_store">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">sync_post_store</span>(display: &amp;<span class="k">mut</span> <span class="t">DisplaySettings</span>) -&gt; bool</code></div><div class="doc"><p>Step 2 of the frame order in the module header. Returns true when it wrote
+the store into <code>display</code>.</p></div></div><div class="item" id="sym-display_store_get" data-name="display_store_get"><div class="sig"><a class="anchor" href="#sym-display_store_get" aria-label="Link to display_store_get">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">display_store_get</span>() -&gt; <span class="t">DisplayMode</span></code></div><div class="doc"><p>A copy of the newest display mode. Callable from any thread, and from
+inside <code>Renderer::gui</code>.</p></div></div><div class="item" id="sym-display_store_update" data-name="display_store_update"><div class="sig"><a class="anchor" href="#sym-display_store_update" aria-label="Link to display_store_update">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">display_store_update</span>(f: <span class="k">impl</span> <span class="t">FnOnce</span>(&amp;<span class="k">mut</span> <span class="t">DisplayMode</span>)) -&gt; u64</code></div><div class="doc"><p>Change the display mode, and return the new revision. The primary
+viewport applies it at its next frame.</p>
+<p>The store is locked while <code>f</code> runs. <code>f</code> must not call another
+<code>display_store_*</code> function, or the thread hangs.</p></div></div><div class="item" id="sym-display_store_revision" data-name="display_store_revision"><div class="sig"><a class="anchor" href="#sym-display_store_revision" aria-label="Link to display_store_revision">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">display_store_revision</span>() -&gt; u64</code></div><div class="doc"><p>How many <code>display_store_update</code> calls the process has made.</p></div></div><div class="item" id="sym-sync_display_store" data-name="sync_display_store"><div class="sig"><a class="anchor" href="#sym-sync_display_store" aria-label="Link to sync_display_store">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">sync_display_store</span>(fullscreen: <span class="t">Option</span>&lt;bool&gt;) -&gt; <span class="t">Option</span>&lt;<span class="t">DisplayMode</span>&gt;</code></div><div class="doc"><p>Step 2 of the frame order. Gives the display mode once for each new
+revision. With no new revision, copies <code>fullscreen</code> (the real window
+state) into the window field and gives <code>None</code>.</p>
+<p><code>fullscreen</code> is <code>None</code> while a window mode request waits in
+<code>WINDOW_MODE_REQUESTED</code>. The event loop has not applied it, so
+<code>FULLSCREEN_STATE</code> is old, and the window field stays as the game set it.</p></div></div><div class="item" id="sym-take_display_vsync_pending" data-name="take_display_vsync_pending"><div class="sig"><a class="anchor" href="#sym-take_display_vsync_pending" aria-label="Link to take_display_vsync_pending">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_display_vsync_pending</span>() -&gt; <span class="t">Option</span>&lt;bool&gt;</code></div><div class="doc"><p>The vsync value that the next frame must apply to the surface, once.</p></div></div><div class="item" id="sym-display_store_exclusive_size" data-name="display_store_exclusive_size"><div class="sig"><a class="anchor" href="#sym-display_store_exclusive_size" aria-label="Link to display_store_exclusive_size">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">display_store_exclusive_size</span>() -&gt; <span class="t">Option</span>&lt;[u32; <span class="n">2</span>]&gt;</code></div><div class="doc"><p>The exclusive video mode size the game asked for, when the window field
+is <code>ExclusiveFullscreen</code>. The event loop tries it before the desktop size.</p></div></div><div class="item" id="sym-display_store_set_present_modes" data-name="display_store_set_present_modes"><div class="sig"><a class="anchor" href="#sym-display_store_set_present_modes" aria-label="Link to display_store_set_present_modes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">display_store_set_present_modes</span>(modes: &amp;[wgpu::<span class="t">PresentMode</span>])</code></div><div class="doc"><p>Record the present modes of the primary surface. The viewport build
+calls it with the surface capabilities.</p></div></div><div class="item" id="sym-display_store_present_modes" data-name="display_store_present_modes"><div class="sig"><a class="anchor" href="#sym-display_store_present_modes" aria-label="Link to display_store_present_modes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">display_store_present_modes</span>() -&gt; <span class="t">Vec</span>&lt;wgpu::<span class="t">PresentMode</span>&gt;</code></div><div class="doc"><p>The present modes of the primary surface. Empty before the first build.</p></div></div><div class="item" id="sym-pick_present_mode" data-name="pick_present_mode"><div class="sig"><a class="anchor" href="#sym-pick_present_mode" aria-label="Link to pick_present_mode">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pick_present_mode</span>(vsync: bool, supported: &amp;[wgpu::<span class="t">PresentMode</span>]) -&gt; wgpu::<span class="t">PresentMode</span></code></div><div class="doc"><p>Pick a present mode from <code>supported</code>.</p>
+<p>Vsync on: Fifo. Vsync off: Mailbox (no tear, no wait), else Immediate
+(tears), else Fifo. A list with none of the three gives its first entry.
+An empty list gives Fifo, which wgpu makes all surfaces support.</p></div></div><div class="item" id="sym-frame_cap_budget_us" data-name="frame_cap_budget_us"><div class="sig"><a class="anchor" href="#sym-frame_cap_budget_us" aria-label="Link to frame_cap_budget_us">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">frame_cap_budget_us</span>(cap: <span class="t">Option</span>&lt;u32&gt;) -&gt; <span class="t">Option</span>&lt;u64&gt;</code></div><div class="doc"><p>The frame budget in microseconds for a cap in hertz. <code>None</code> for no cap
+(<code>None</code> or <code>Some(0)</code>).</p></div></div><div class="item" id="sym-display_store_note_manifest_cap" data-name="display_store_note_manifest_cap"><div class="sig"><a class="anchor" href="#sym-display_store_note_manifest_cap" aria-label="Link to display_store_note_manifest_cap">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">display_store_note_manifest_cap</span>(current_us: u64) -&gt; u64</code></div><div class="doc"><p>The budget to put back when the game sets <code>frame_cap</code> to <code>None</code>.
+<code>current_us</code> is the engine budget now. The first call keeps it.</p></div></div><div class="item" id="sym-display_store_set_monitors" data-name="display_store_set_monitors"><div class="sig"><a class="anchor" href="#sym-display_store_set_monitors" aria-label="Link to display_store_set_monitors">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">display_store_set_monitors</span>(monitors: <span class="t">Vec</span>&lt;<span class="t">MonitorInfo</span>&gt;)</code></div><div class="doc"><p>Replace the monitor list. The frame calls it on the main thread.</p></div></div><div class="item" id="sym-display_store_monitors_stale" data-name="display_store_monitors_stale"><div class="sig"><a class="anchor" href="#sym-display_store_monitors_stale" aria-label="Link to display_store_monitors_stale">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">display_store_monitors_stale</span>() -&gt; bool</code></div><div class="doc"><p>True when the frame must read the monitors again: at start, and after
+each applied display mode.</p></div></div><div class="item" id="sym-display_store_mark_monitors_stale" data-name="display_store_mark_monitors_stale"><div class="sig"><a class="anchor" href="#sym-display_store_mark_monitors_stale" aria-label="Link to display_store_mark_monitors_stale">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">display_store_mark_monitors_stale</span>()</code></div><div class="doc"><p>Mark the monitor list old, so the next frame reads it again.</p></div></div><div class="item" id="sym-display_store_monitors" data-name="display_store_monitors"><div class="sig"><a class="anchor" href="#sym-display_store_monitors" aria-label="Link to display_store_monitors">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">display_store_monitors</span>() -&gt; <span class="t">Vec</span>&lt;<span class="t">MonitorInfo</span>&gt;</code></div><div class="doc"><p>A copy of the monitor list. Empty before the first frame.</p></div></div><div class="item" id="sym-unique_resolutions" data-name="unique_resolutions"><div class="sig"><a class="anchor" href="#sym-unique_resolutions" aria-label="Link to unique_resolutions">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">unique_resolutions</span>(<span class="k">mut</span> sizes: <span class="t">Vec</span>&lt;[u32; <span class="n">2</span>]&gt;) -&gt; <span class="t">Vec</span>&lt;[u32; <span class="n">2</span>]&gt;</code></div><div class="doc"><p>Sort and remove the duplicates of a list of video mode sizes, largest
+area first.</p></div></div><div class="item" id="sym-watch_raw_keys" data-name="watch_raw_keys"><div class="sig"><a class="anchor" href="#sym-watch_raw_keys" aria-label="Link to watch_raw_keys">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">watch_raw_keys</span>(owner: &amp;<span class="a">'static</span> str, keys: &amp;[<span class="t">RawKey</span>])</code></div><div class="doc"><p>Declare which keys one subsystem needs on the focus-immune path.</p>
+<p>Replaces that owner's earlier list and touches nobody else's, so this is
+also how a subsystem follows a rebind: call it again with the new keys.
+<code>owner</code> is a stable name for the caller, never shown to a person.</p></div></div><div class="item" id="sym-set_raw_key_watch" data-name="set_raw_key_watch"><div class="sig"><a class="anchor" href="#sym-set_raw_key_watch" aria-label="Link to set_raw_key_watch">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_raw_key_watch</span>(keys: &amp;[<span class="t">RawKey</span>])</code></div><div class="doc"><p>Declare the application's own keys. The <code>RAW_WATCH_APP</code> slot of
+<code>watch_raw_keys</code>, kept because it is what every host already calls.</p></div></div><div class="item" id="sym-raw_key_watched" data-name="raw_key_watched"><div class="sig"><a class="anchor" href="#sym-raw_key_watched" aria-label="Link to raw_key_watched">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">raw_key_watched</span>(key: <span class="t">RawKey</span>) -&gt; bool</code></div><div class="doc"><p>True if any subsystem watches this key.</p></div></div><div class="item" id="sym-push_raw_key" data-name="push_raw_key"><div class="sig"><a class="anchor" href="#sym-push_raw_key" aria-label="Link to push_raw_key">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">push_raw_key</span>(key: <span class="t">RawKey</span>)</code></div><div class="doc"><p>Record a press. Ignores keys outside the watch list.</p>
+<p>The ungated form, for a host with no panels: a shipped game, and the wasm
+event loop. An editor hosting a game calls <code>push_raw_key_from</code> instead.</p></div></div><div class="item" id="sym-push_raw_key_from" data-name="push_raw_key_from"><div class="sig"><a class="anchor" href="#sym-push_raw_key_from" aria-label="Link to push_raw_key_from">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">push_raw_key_from</span>(vp: <span class="t">ViewportId</span>, key: <span class="t">RawKey</span>)</code></div><div class="doc"><p>Record a press that came from window <code>vp</code>, if that window may make it.</p>
+<p>── THE RING IS FOCUS-IMMUNE, WHICH IS NOT THE SAME AS PANEL-IMMUNE ─────
+The ring exists to survive EGUI focus: egui swallows a key whenever any
+TextEdit holds it, so a console whose own field has focus could not be
+closed. That is a fact about one widget and the ring is right to ignore it.</p>
+<p>It is not a licence to ignore which PANEL is being worked in. The app slot
+is not the two keys the ring was built for — <code>refresh_raw_watch</code> in the game
+registers every key its whole action catalog is bound to, and re-registers
+them after a rebind. So a ring written from every key press meant that
+typing into Sauron, the terminal or the code editor fired game actions, on a
+path none of the other three gates could see.</p>
+<p>The app slot alone is gated, and the union rule is what makes that possible:
+the code panel's own three punctuation keys live in a different slot and are
+unaffected, so this cannot make the editor's own keys depend on where the
+game is. A key both slots want is admitted for the code panel's sake, which
+is the safe direction — the editor's key is the one a person is looking at.</p></div></div><div class="item" id="sym-take_raw_key" data-name="take_raw_key"><div class="sig"><a class="anchor" href="#sym-take_raw_key" aria-label="Link to take_raw_key">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_raw_key</span>(key: <span class="t">RawKey</span>) -&gt; bool</code></div><div class="doc"><p>Remove every pending press of one key, and report whether the ring held
+one. This is the drain for a single meaning, such as pause or a console
+toggle. Repeated presses of the same key inside one frame collapse to a
+single true, which is what the atomic flags this replaced also did.</p></div></div><div class="item" id="sym-drain_raw_keys" data-name="drain_raw_keys"><div class="sig"><a class="anchor" href="#sym-drain_raw_keys" aria-label="Link to drain_raw_keys">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drain_raw_keys</span>() -&gt; <span class="t">Vec</span>&lt;<span class="t">RawKey</span>&gt;</code></div><div class="doc"><p>Take every pending press, oldest first.</p></div></div><div class="item" id="sym-clear_raw_keys" data-name="clear_raw_keys"><div class="sig"><a class="anchor" href="#sym-clear_raw_keys" aria-label="Link to clear_raw_keys">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear_raw_keys</span>()</code></div><div class="doc"><p>Drop every pending press. A screen that must swallow keys calls this.</p></div></div><div class="item" id="sym-alloc_viewport_id" data-name="alloc_viewport_id"><div class="sig"><a class="anchor" href="#sym-alloc_viewport_id" aria-label="Link to alloc_viewport_id">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">alloc_viewport_id</span>() -&gt; <span class="t">ViewportId</span></code></div><div class="doc"><p>Name a window that does not exist yet.</p>
+<p>The application allocates the id, then asks the engine to open a window
+carrying it. The alternative — the engine allocating on creation and the
+application learning the id a frame later — cannot work for tear-off: the
+dock has to put the panel into its new window on the frame the drop
+happens, and a window it cannot name yet is a window it cannot fill.</p>
+<p>Ids are never reused. A closed window's id stays spent, so a stale one
+names nothing rather than naming somebody else's window.</p></div></div><div class="item" id="sym-request_window" data-name="request_window"><div class="sig"><a class="anchor" href="#sym-request_window" aria-label="Link to request_window">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">request_window</span>(req: <span class="t">WindowRequest</span>)</code></div><div class="doc"><p>Ask the event loop for something. Applied at the next MainEventsCleared.</p></div></div><div class="item" id="sym-drain_window_requests" data-name="drain_window_requests"><div class="sig"><a class="anchor" href="#sym-drain_window_requests" aria-label="Link to drain_window_requests">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drain_window_requests</span>() -&gt; <span class="t">Vec</span>&lt;<span class="t">WindowRequest</span>&gt;</code></div><div class="doc"><p>Take everything queued. Called by the event loop and by nothing else.</p></div></div><div class="item" id="sym-set_window_geometry" data-name="set_window_geometry"><div class="sig"><a class="anchor" href="#sym-set_window_geometry" aria-label="Link to set_window_geometry">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_window_geometry</span>(all: <span class="t">Vec</span>&lt;(<span class="t">ViewportId</span>, <span class="t">WindowGeometry</span>)&gt;)</code></div><div class="doc"><p>Replace the published geometry. Called by the event loop each frame.</p></div></div><div class="item" id="sym-window_geometry" data-name="window_geometry"><div class="sig"><a class="anchor" href="#sym-window_geometry" aria-label="Link to window_geometry">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">window_geometry</span>(vp: <span class="t">ViewportId</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">WindowGeometry</span>&gt;</code></div><div class="doc"><p>Where one window is, if it is open.</p></div></div><div class="item" id="sym-all_window_geometry" data-name="all_window_geometry"><div class="sig"><a class="anchor" href="#sym-all_window_geometry" aria-label="Link to all_window_geometry">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">all_window_geometry</span>() -&gt; <span class="t">Vec</span>&lt;(<span class="t">ViewportId</span>, <span class="t">WindowGeometry</span>)&gt;</code></div><div class="doc"><p>Every live window's geometry.</p></div></div><div class="item" id="sym-to_desktop" data-name="to_desktop"><div class="sig"><a class="anchor" href="#sym-to_desktop" aria-label="Link to to_desktop">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">to_desktop</span>(vp: <span class="t">ViewportId</span>, p: egui::<span class="t">Pos2</span>) -&gt; egui::<span class="t">Pos2</span></code></div><div class="doc"><p>A position <code>vp</code>'s egui painted at, on the desktop.</p>
+<p>The identity for a window the engine has not published yet, which is the
+one frame between asking for a window and having it. Cross-window aim is
+wrong for that frame and nothing else is.</p></div></div><div class="item" id="sym-to_local" data-name="to_local"><div class="sig"><a class="anchor" href="#sym-to_local" aria-label="Link to to_local">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">to_local</span>(vp: <span class="t">ViewportId</span>, p: egui::<span class="t">Pos2</span>) -&gt; egui::<span class="t">Pos2</span></code></div><div class="doc"><p>A desktop position, in the coordinates <code>vp</code> paints in.</p></div></div><div class="item" id="sym-to_desktop_size" data-name="to_desktop_size"><div class="sig"><a class="anchor" href="#sym-to_desktop_size" aria-label="Link to to_desktop_size">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">to_desktop_size</span>(vp: <span class="t">ViewportId</span>, v: egui::<span class="t">Vec2</span>) -&gt; egui::<span class="t">Vec2</span></code></div><div class="doc"><p>A length <code>vp</code>'s egui measured, as a desktop length.</p></div></div><div class="item" id="sym-push_window_closed" data-name="push_window_closed"><div class="sig"><a class="anchor" href="#sym-push_window_closed" aria-label="Link to push_window_closed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">push_window_closed</span>(vp: <span class="t">ViewportId</span>)</code></div><div class="doc"><p>Record that a window went away. Called by the event loop.</p></div></div><div class="item" id="sym-drain_window_closed" data-name="drain_window_closed"><div class="sig"><a class="anchor" href="#sym-drain_window_closed" aria-label="Link to drain_window_closed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drain_window_closed</span>() -&gt; <span class="t">Vec</span>&lt;<span class="t">ViewportId</span>&gt;</code></div><div class="doc"><p>Take the list of windows that closed since the last call.</p></div></div><div class="item" id="sym-push_panel_closed" data-name="push_panel_closed"><div class="sig"><a class="anchor" href="#sym-push_panel_closed" aria-label="Link to push_panel_closed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">push_panel_closed</span>(kind: <span class="t">String</span>)</code></div><div class="doc"><p>Record that a panel kind was closed. Called by the dock's close path.</p></div></div><div class="item" id="sym-drain_panel_closed" data-name="drain_panel_closed"><div class="sig"><a class="anchor" href="#sym-drain_panel_closed" aria-label="Link to drain_panel_closed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drain_panel_closed</span>() -&gt; <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;</code></div><div class="doc"><p>Take the panel kinds closed since the last call.</p></div></div><div class="item" id="sym-set_drag_proxy" data-name="set_drag_proxy"><div class="sig"><a class="anchor" href="#sym-set_drag_proxy" aria-label="Link to set_drag_proxy">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_drag_proxy</span>(state: <span class="t">Option</span>&lt;<span class="t">DragProxyState</span>&gt;)</code></div><div class="doc"><p>Ask for the follower, or dismiss it. Called every frame by whatever owns
+the drag; the event loop reads it and does not clear it.</p></div></div><div class="item" id="sym-drag_proxy" data-name="drag_proxy"><div class="sig"><a class="anchor" href="#sym-drag_proxy" aria-label="Link to drag_proxy">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drag_proxy</span>() -&gt; <span class="t">Option</span>&lt;<span class="t">DragProxyState</span>&gt;</code></div><div class="doc"><p>What the follower should be showing right now.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-DisplaySettings" data-name="displaysettings"><div class="sig"><a class="anchor" href="#sym-DisplaySettings" aria-label="Link to DisplaySettings">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">DisplaySettings</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> fxaa_enabled: bool,
+<span class="k">pub</span> fxaa_subpix: f32,
+<span class="k">pub</span> fxaa_edge_threshold: f32,
+<span class="k">pub</span> motion_blur_enabled: bool,
+<span class="k">pub</span> motion_blur_intensity: f32,
+<span class="k">pub</span> z_dof_enabled: bool,
+<span class="k">pub</span> z_dof_aperture: f32,
+<span class="k">pub</span> z_dof_max_blur: f32,
+<span class="k">pub</span> dof_enabled: bool,
+<span class="k">pub</span> dof_aperture: f32,
+<span class="k">pub</span> dof_focal_radius: f32,
+<span class="k">pub</span> dof_max_blur: f32,
+<span class="k">pub</span> pp_enabled: bool,
+<span class="k">pub</span> pp_exposure: f32,
+<span class="c">/// The bloom switch, under `pp_enabled`. False skips the extract, the</span>
+<span class="c">/// four downsample and the four upsample passes, and the composite adds</span>
+<span class="c">/// zero bloom. True by default, so a project saved before the switch</span>
+<span class="c">/// existed keeps its picture.</span>
+<span class="k">pub</span> pp_bloom_enabled: bool,
+<span class="k">pub</span> pp_bloom_threshold: f32,
+<span class="k">pub</span> pp_bloom_intensity: f32,
+<span class="k">pub</span> pp_bloom_radius: f32,
+<span class="c">/// The grade switch, under `pp_enabled`. False sends the identity grade</span>
+<span class="c">/// (saturation 1, contrast 1, temperature 0, brightness 0) to the</span>
+<span class="c">/// tonemap pass and keeps the four values below. True by default, for</span>
+<span class="c">/// the same reason as `pp_bloom_enabled`.</span>
+<span class="k">pub</span> pp_grade_enabled: bool,
+<span class="k">pub</span> pp_saturation: f32,
+<span class="k">pub</span> pp_contrast: f32,
+<span class="k">pub</span> pp_temperature: f32,
+<span class="k">pub</span> pp_brightness: f32,
+<span class="k">pub</span> crt_enabled: bool,
+<span class="k">pub</span> crt_curvature: f32,
+<span class="k">pub</span> crt_corner_radius: f32,
+<span class="k">pub</span> crt_scanline_intensity: f32,
+<span class="k">pub</span> crt_vignette_intensity: f32,
+<span class="k">pub</span> crt_aberration_amount: f32,
+<span class="k">pub</span> crt_flicker_intensity: f32,
+<span class="k">pub</span> crt_jitter_intensity: f32,
+<span class="k">pub</span> crt_hsync_intensity: f32,
+<span class="k">pub</span> crt_grain_intensity: f32,
+<span class="k">pub</span> crt_grain_size: f32,
+<span class="k">pub</span> crt_grain_speed: f32,
+<span class="k">pub</span> crt_grain_color: f32,
+<span class="c">/// 1.0 is spherical, 0.0 is cylindrical. `curve_y = crt_curvature * this`.</span>
+<span class="k">pub</span> crt_curve_aspect: f32,
+<span class="c">/// Faceplate thickness, in units of half the screen width.</span>
+<span class="k">pub</span> crt_glass_thickness: f32,
+<span class="c">/// Refractive index of the faceplate. Soda-lime glass is about 1.52.</span>
+<span class="k">pub</span> crt_glass_ior: f32,
+<span class="c">/// Mask-to-phosphor spacing, same units as `crt_glass_thickness`.</span>
+<span class="k">pub</span> crt_mask_gap: f32,
+<span class="c">/// Virtual viewer position, screen widths from centre.</span>
+<span class="k">pub</span> crt_eye_x: f32,
+<span class="k">pub</span> crt_eye_y: f32,
+<span class="c">/// Viewer distance. Larger is more orthographic and flattens the parallax.</span>
+<span class="k">pub</span> crt_eye_dist: f32,
+<span class="c">/// Master scale on the parallax offset. Zero pins the mask to the image.</span>
+<span class="k">pub</span> crt_parallax_strength: f32,
+<span class="k">pub</span> crt_conv_r_x: f32,
+<span class="k">pub</span> crt_conv_r_y: f32,
+<span class="k">pub</span> crt_conv_b_x: f32,
+<span class="k">pub</span> crt_conv_b_y: f32,
+<span class="c">/// Radial divergence — the bow that grows toward the corners.</span>
+<span class="k">pub</span> crt_conv_radial_r: f32,
+<span class="k">pub</span> crt_conv_radial_b: f32,
+<span class="c">/// 0 none, 1 aperture grille, 2 shadow mask, 3 slot mask, 4 Trinitron.</span>
+<span class="k">pub</span> crt_mask_type: u32,
+<span class="c">/// Destination pixels per full RGB triad, measured at screen centre.</span>
+<span class="k">pub</span> crt_mask_triad_px: f32,
+<span class="k">pub</span> crt_mask_strength: f32,
+<span class="c">/// Brightness compensation. A mask eats most of the light.</span>
+<span class="k">pub</span> crt_mask_boost: f32,
+<span class="c">/// Slot mask only: vertical slot period in destination pixels.</span>
+<span class="k">pub</span> crt_slot_height_px: f32,
+<span class="c">/// Trinitron only: how many damper wires cross the screen.</span>
+<span class="k">pub</span> crt_damper_count: f32,
+<span class="k">pub</span> crt_damper_strength: f32,
+<span class="c">/// How much the mask parallax biases each channel's aperture separately.</span>
+<span class="k">pub</span> crt_parallax_coupling: f32,
+<span class="c">/// The destination height the three COUNTS below were chosen for, or</span>
+<span class="c">/// zero to leave them alone.</span>
+<span class="c">/// </span>
+<span class="c">/// WHY A COUNT LOSES ITS DENSITY ON A BIGGER SCREEN. `crt_mask_triad_px`</span>
+<span class="c">/// is a pitch in destination pixels, so the continuous mask holds its</span>
+<span class="c">/// fineness on any surface. `crt_scanline_count`, `crt_phosphor_triads_x`</span>
+<span class="c">/// and `crt_phosphor_rows` are counts across the whole picture, so every</span>
+<span class="c">/// feature they describe grows with the surface: a window at twice the</span>
+<span class="c">/// height draws the same number of cells at twice the size, which is half</span>
+<span class="c">/// the density in pixels, and the mask and the cells stop agreeing.</span>
+<span class="c">/// </span>
+<span class="c">/// A project that sets this states the height its counts were tuned at.</span>
+<span class="c">/// The three are then multiplied by `output_h / crt_density_ref_h` before</span>
+<span class="c">/// they reach the GPU, so the pitch in pixels is what carries across</span>
+<span class="c">/// screens and the count is what follows them.</span>
+<span class="c">/// </span>
+<span class="c">/// THE HORIZONTAL FOLLOWS THE VERTICAL, and one number is why. A cell</span>
+<span class="c">/// keeps its shape on any surface of the reference ASPECT and stretches</span>
+<span class="c">/// on any other, which is what a tube fed a signal of the wrong shape</span>
+<span class="c">/// does. Two reference numbers would fix the shape and would also let a</span>
+<span class="c">/// project set an aspect it never renders at.</span>
+<span class="c">/// </span>
+<span class="c">/// Zero is the default and is off, so a project that never heard of this</span>
+<span class="c">/// gets the tube it got yesterday at every size.</span>
+<span class="k">pub</span> crt_density_ref_h: f32,
+<span class="c">/// Lines across the tube. 240 is an arcade signal, 480 a broadcast field.</span>
+<span class="c">/// A count, and `crt_density_ref_h` decides whether it holds across</span>
+<span class="c">/// surfaces or scales with them.</span>
+<span class="k">pub</span> crt_scanline_count: f32,
+<span class="c">/// Beam width as a fraction of the line pitch.</span>
+<span class="k">pub</span> crt_scanline_thickness: f32,
+<span class="c">/// How much a bright beam widens.</span>
+<span class="k">pub</span> crt_beam_bloom: f32,
+<span class="c">/// True alternates the field every frame.</span>
+<span class="k">pub</span> crt_interlace: bool,
+<span class="c">/// 0 off, 1 warp grid, 2 displacement, 3 convergence, 4 mask only,</span>
+<span class="c">/// 5 magnifier.</span>
+<span class="k">pub</span> crt_viz_mode: u32,
+<span class="c">/// Loupe centre, in normalized destination coordinates.</span>
+<span class="k">pub</span> crt_viz_probe_x: f32,
+<span class="k">pub</span> crt_viz_probe_y: f32,
+<span class="k">pub</span> crt_viz_zoom: f32,
+<span class="k">pub</span> crt_viz_grid_div: f32,
+<span class="c">/// False is the shipped state, because the cells are an ADDITIONAL</span>
+<span class="c">/// effect. An existing project must get the tube it got yesterday.</span>
+<span class="k">pub</span> crt_phosphor_on: bool,
+<span class="c">/// How many RGB triads fit across the screen. A COUNT, not a pitch:</span>
+<span class="c">/// "how many are there" is the question a person asks, and a pitch in</span>
+<span class="c">/// pixels answers it only after a division. `crt_density_ref_h` is what</span>
+<span class="c">/// keeps that count from meaning a different pitch on a bigger surface.</span>
+<span class="k">pub</span> crt_phosphor_triads_x: f32,
+<span class="c">/// How many phosphor rows fit down the screen.</span>
+<span class="k">pub</span> crt_phosphor_rows: f32,
+<span class="c">/// The black matrix: the fraction of a cell that is the gap around it.</span>
+<span class="k">pub</span> crt_phosphor_gap: f32,
+<span class="c">/// Beam spot radius, in cells. How many cells the beam averages over.</span>
+<span class="k">pub</span> crt_phosphor_beam: f32,
+<span class="c">/// Cell shape, 0 rectangular through 1 elliptical.</span>
+<span class="k">pub</span> crt_phosphor_round: f32,
+<span class="c">/// How much a lit cell spills into the dark matrix around it.</span>
+<span class="k">pub</span> crt_phosphor_bleed: f32,
+<span class="c">/// How hard a phosphor cell's edge is, 0 analytic through 1 square.</span>
+<span class="c">/// </span>
+<span class="c">/// At zero the edge is one destination pixel wide. That width is the</span>
+<span class="c">/// correct one, and it is not always the wanted one: a cell at the default</span>
+<span class="c">/// density is under three pixels across, so a one-pixel edge is a third of</span>
+<span class="c">/// the cell and the grid reads as soft. Toward one the width goes to</span>
+<span class="c">/// nothing, which trades aliasing for an edge a person can see.</span>
+<span class="k">pub</span> crt_phosphor_sharp: f32,
+<span class="c">/// The three emission colours, each as linear RGB.</span>
+<span class="c">/// </span>
+<span class="c">/// An array and not nine scalars, because `DEFAULT` has to stay readable</span>
+<span class="c">/// and a colour picker takes a `[f32; 3]`. The uniform block holds nine</span>
+<span class="c">/// separate `ph_*_*` scalars, and `sync_display_to_gpu` unpacks these</span>
+<span class="c">/// into them.</span>
+<span class="c">/// </span>
+<span class="c">/// Pure primaries by default: a red cell emits red and nothing else.</span>
+<span class="c">/// </span>
+<span class="c">/// A real tube's phosphors are not the primaries — P22 red is an</span>
+<span class="c">/// orange-red and P22 green is a yellow-green — and these shipped at</span>
+<span class="c">/// those values first. The measured set is the wrong default at the size</span>
+<span class="c">/// a cell actually is: the three desaturate each other and the grid reads</span>
+<span class="c">/// as a haze rather than as a tube. The measured values remain one drag</span>
+<span class="c">/// away for anybody who wants them. The rest of</span>
+<span class="c">/// what makes a photographed CRT look like a CRT, so it is a control.</span>
+<span class="k">pub</span> crt_ph_r: [f32; <span class="n">3</span>],
+<span class="k">pub</span> crt_ph_g: [f32; <span class="n">3</span>],
+<span class="k">pub</span> crt_ph_b: [f32; <span class="n">3</span>],
+<span class="c">/// DORMANT. Nothing reads it, and no slider drives it.</span>
+<span class="c">/// </span>
+<span class="c">/// A partial exemption from the phosphor grid was never a real choice.</span>
+<span class="c">/// The grid is a NEIGHBOURHOOD operator — nine taps around a cell centre</span>
+<span class="c">/// quantised to the cell — and the exemption was a per-fragment blend, so</span>
+<span class="c">/// any value between the ends drew the menu twice: sharp over a combed</span>
+<span class="c">/// copy of itself. The chrome has its own render target now and the</span>
+<span class="c">/// question is gone with it.</span>
+<span class="c">/// </span>
+<span class="c">/// The field is KEPT so a saved settings file keeps round-tripping, and</span>
+<span class="c">/// because the uniform block it feeds is a fixed 304 bytes that the</span>
+<span class="c">/// Shader Lab reflects one slider per member off.</span>
+<span class="k">pub</span> crt_phosphor_gui_exempt: f32,
+<span class="c">/// The GUI's share of the raster, the mask and the grain, 0 none through</span>
+<span class="c">/// 1 whole. Read by `fs_gui`, which composites the chrome layer over the</span>
+<span class="c">/// finished tube.</span>
+<span class="c">/// </span>
+<span class="c">/// WHY THE LIST STOPS AT THREE</span>
+<span class="c">/// </span>
+<span class="c">/// Only an effect that MULTIPLIES the emitted light can be exempted this</span>
+<span class="c">/// way, and these are all of them. The warp, the convergence and the</span>
+<span class="c">/// h-sync shift decide WHERE the composite samples; the chrome takes them</span>
+<span class="c">/// on purpose, because a menu that stays flat over a picture that bends</span>
+<span class="c">/// stops pointing at what it labels. The phosphor cells and the mask</span>
+<span class="c">/// parallax are absent for the opposite reason — the chrome never gets</span>
+<span class="c">/// them at all.</span>
+<span class="k">pub</span> crt_gui_exempt_scan: f32,
+<span class="k">pub</span> crt_gui_exempt_mask: f32,
+<span class="k">pub</span> crt_gui_exempt_grain: f32,
+<span class="c">/// Output gain, spent after the mask and the cells.</span>
+<span class="k">pub</span> crt_pic_brightness: f32,
+<span class="c">/// Contrast around sRGB mid grey. One leaves the picture alone.</span>
+<span class="k">pub</span> crt_pic_contrast: f32,
+<span class="c">/// The exponent on the graded picture. Below one lifts the mid tones.</span>
+<span class="k">pub</span> crt_pic_gamma: f32,
+<span class="c">/// Where the output ceiling starts to compress. One is a hard clamp.</span>
+<span class="k">pub</span> crt_pic_knee: f32,
+<span class="k">pub</span> lighting_wrap: f32,
+<span class="k">pub</span> light_z: f32,</code></pre></div><div class="doc"><p>Serialisable because the game is a second process now. The Post-processing
+section edits the copy in the EDITOR, and the picture is composed by the
+child — so the struct has to cross a socket or the panel writes a global
+nobody with a framebuffer is reading.</p>
+<p><code>PartialEq</code> for the same reason: the editor sends this on the change and
+not on the frame, so something has to answer whether it changed.
+<code>serde(default)</code> is the contract with <code>project_settings</code>. The table on disk
+holds ONLY the keys that differ from <code>DEFAULT</code>, so every absent field must
+fall back to it rather than fail the whole block for being incomplete.</p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-DisplaySettings-DEFAULT" data-name="displaysettings::default"><div class="sig"><a class="anchor" href="#sym-DisplaySettings-DEFAULT" aria-label="Link to DisplaySettings::DEFAULT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">DEFAULT</span>: <span class="t">DisplaySettings</span> = <span class="t">DisplaySettings</span></code></div><div class="doc"><p>What a game gets before it asks for anything, as a const so a
+<code>static Mutex</code> can hold it.</p>
+<p><code>Default::default()</code> is not callable in a const initializer, and the
+settings are one global now — so the values live here and <code>Default</code>
+returns this rather than the other way round.</p>
+<h2>EVERY EFFECT IS OFF, AND THE VALUES BESIDE THE SWITCHES ARE NOT</h2>
+<p>A new project draws what it drew: the rects and lines its <code>render</code>
+method submits, at the colours it chose. It used to draw those through
+an HDR chain and a barrel-distorted CRT filter, because this const held
+the look of one game — so the first picture anybody made in this engine
+came out bloomed, saturated and bent, and nothing in the project said
+where that came from.</p>
+<p>The tuned numbers stay. They are the look those two passes had, and a
+game that wants it sets <code>pp_enabled</code> and <code>crt_enabled</code> and gets it back
+whole; a game that wants its own moves the fields beside them. What
+changed is which of the two states costs a line of code.</p>
+<h2>AND THE TUBE GREW THIRTY-ONE MORE FIELDS WITHOUT MOVING THE PICTURE</h2>
+<p>The CRT filter gained a phosphor mask, a parallax model, a per-channel
+convergence block and a set of visualisation modes. A project that sets
+only <code>crt_enabled = true</code> today must get exactly the picture it got
+before them, so every one of those features is off in this const:
+<code>crt_mask_type</code> 0, <code>crt_mask_strength</code> 0, <code>crt_parallax_strength</code> 0,
+all six <code>crt_conv_*</code> 0, <code>crt_viz_mode</code> 0, and <code>crt_phosphor_on</code> false.
+<code>crt_curve_aspect</code> is 1.0, which makes the two-axis barrel equal to the
+single scalar it replaced.</p>
+<p>The fields those switches multiply keep real values rather than zero —
+<code>crt_mask_triad_px</code>, <code>crt_slot_height_px</code>, <code>crt_eye_dist</code>, <code>crt_glass_ior</code>
+and <code>crt_mask_boost</code> are divisors, periods or a gain of one, where zero
+is a divide or a black screen and not a no-op.</p>
+<p><code>crt_phosphor_gui_exempt</code> defaults to 1.0 and is dormant. The default
+is left where it was because the field is only carried, never read;
+changing it would rewrite every saved project for no visible effect.</p></div></div><div class="item" id="sym-DisplaySettings-copy_crt_tuning_from" data-name="displaysettings::copy_crt_tuning_from"><div class="sig"><a class="anchor" href="#sym-DisplaySettings-copy_crt_tuning_from" aria-label="Link to DisplaySettings::copy_crt_tuning_from">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">copy_crt_tuning_from</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, src: &amp;<span class="t">DisplaySettings</span>)</code></div><div class="doc"><p>Copy every <code>crt_*</code> field except <code>crt_enabled</code> from <code>src</code>.</p>
+<p>The tube's tuning is sixty-odd fields that a game sets as one block,
+so <code>warp_sdk::post::CrtTuning</code> carries them in a <code>DisplaySettings</code>
+and moves them with this. The list is in ONE place: a field added to
+the struct and not here is a field the SDK drops, and the test below
+fails on it: it changes every <code>crt_*</code> key the struct serialises.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-GameViewRect" data-name="gameviewrect"><div class="sig"><a class="anchor" href="#sym-GameViewRect" aria-label="Link to GameViewRect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">GameViewRect</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The window the panel drew in.</span>
+<span class="c">/// </span>
+<span class="c">/// Carried IN the rect rather than beside it, because a rect and the</span>
+<span class="c">/// coordinate space it is expressed in cannot be allowed to drift apart.</span>
+<span class="c">/// This was the second thing pinning the Game view to the primary window:</span>
+<span class="c">/// four numbers with no window on them are four numbers every window</span>
+<span class="c">/// believes are its own, and a click in the wrong one lands somewhere</span>
+<span class="c">/// plausible with no error.</span>
+<span class="k">pub</span> viewport: <span class="t">ViewportId</span>,
+<span class="c">/// Panel rect in render space: left, top, width, height.</span>
+<span class="k">pub</span> x: f32,
+<span class="k">pub</span> y: f32,
+<span class="k">pub</span> w: f32,
+<span class="k">pub</span> h: f32,
+<span class="c">/// Size of the game image the rect shows. The rect scales it to fit.</span>
+<span class="k">pub</span> tex_w: f32,
+<span class="k">pub</span> tex_h: f32,</code></pre></div><div class="doc"><p>Where the host drew the game image last frame, and how large that image
+is.</p>
+<p>Every field is in the RENDER space OF <code>viewport</code>, not window space. egui
+lays out at that window's <code>render_size</code>, and the engine already scales
+pointer events from window pixels into that space before anything here
+runs. So a panel rect read from egui and a remapped pointer are the same
+space, and this type never needs the window size.</p></div></div></div><div class="typeblock"><div class="item" id="sym-View" data-name="view"><div class="sig"><a class="anchor" href="#sym-View" aria-label="Link to View">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">View</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> position: <span class="t">Vec2</span>,
+<span class="k">pub</span> scale: f32,
+<span class="c">/// The render size in pixels, two numbers in one word. The width is in</span>
+<span class="c">/// the low 16 bits and the height is in the high 16 bits:</span>
+<span class="c">/// `width = xy &amp; 0xffff`, `height = xy &gt;&gt; 16`. This is the size of the</span>
+<span class="c">/// HDR render target, not the window size. Use `width()` and `height()`</span>
+<span class="c">/// to read it and `View::pack_xy` to write it.</span>
+<span class="c">/// </span>
+<span class="c">/// ```ignore</span>
+<span class="c">/// let aspect = view.width() as f32 / view.height() as f32;</span>
+<span class="c">/// view.xy = View::pack_xy(1920, 1080);</span>
+<span class="c">/// ```</span>
+<span class="k">pub</span> xy: u32,
+<span class="k">pub</span> star_pos: <span class="t">Vec2</span>,
+<span class="c">/// The floating render origin X, so a pass that owns its camera uniform can</span>
+<span class="c">/// recover the raw camera as position + render_origin. Was `occluder_count`</span>
+<span class="c">/// for the removed eclipse-shadow test. No scene shader reads it, so the</span>
+<span class="c">/// slot reuse costs no bytes and moves no field.</span>
+<span class="k">pub</span> render_origin_x: f32,
+<span class="k">pub</span> time: f32,
+<span class="c">/// The floating render origin Y, the pair of render_origin_x. Was</span>
+<span class="c">/// `particle_count` for the removed solar-corona effect. Unread by every</span>
+<span class="c">/// scene shader, so the slot reuse moves no field.</span>
+<span class="k">pub</span> render_origin_y: f32,
+<span class="k">pub</span> star_radius: f32,
+<span class="k">pub</span> focal_z: f32,
+<span class="k">pub</span> dof_aperture: f32,
+<span class="k">pub</span> lighting_wrap: f32,
+<span class="c">/// Cast-shadow occluder count, 0 to 32. This count and two reserved pads</span>
+<span class="c">/// fill three slots that a removed feature left free.</span>
+<span class="k">pub</span> occluder_count: u32,
+<span class="k">pub</span> _pad_occ_a: f32,
+<span class="k">pub</span> _pad_occ_b: f32,
+<span class="k">pub</span> light_z: f32,
+<span class="c">/// Which debug channel every scene shader reports instead of shading.</span>
+<span class="c">/// Zero is the shipped frame; see `MODES` for the rest.</span>
+<span class="c">/// </span>
+<span class="c">/// It sits in what was the first of three reserved padding floats, so it</span>
+<span class="c">/// costs no bytes and moves no field.</span>
+<span class="k">pub</span> debug_mode: u32,
+<span class="c">/// The view azimuth every scene shader spins the frame by, radians, CCW</span>
+<span class="c">/// positive. Zero is the shipped frame (north up).</span>
+<span class="c">/// </span>
+<span class="c">/// It took the first of the two remaining pad floats, the same way</span>
+<span class="c">/// `debug_mode` took the slot before it, so no field moves.</span>
+<span class="k">pub</span> view_rotation: f32,
+<span class="k">pub</span> _pad_light: f32,
+<span class="c">/// Cast-shadow occluders, each [center_x, center_y, radius, caster_alpha].</span>
+<span class="c">/// The shaders read only the first `occluder_count` entries. This array</span>
+<span class="c">/// sits at offset 80, which is 16-aligned, so no field above it moves.</span>
+<span class="k">pub</span> occluders: [[f32; <span class="n">4</span>]; <span class="n">32</span>],</code></pre></div></div><details class="members"><summary>3 methods</summary><div class="item" id="sym-View-width" data-name="view::width"><div class="sig"><a class="anchor" href="#sym-View-width" aria-label="Link to View::width">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">width</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div><div class="doc"><p>The render width in pixels: the low 16 bits of <code>xy</code>.</p>
+<p><code>ignore
+let w = view.width();</code></p></div></div><div class="item" id="sym-View-height" data-name="view::height"><div class="sig"><a class="anchor" href="#sym-View-height" aria-label="Link to View::height">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">height</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div><div class="doc"><p>The render height in pixels: the high 16 bits of <code>xy</code>.</p>
+<p><code>ignore
+let h = view.height();</code></p></div></div><div class="item" id="sym-View-pack_xy" data-name="view::pack_xy"><div class="sig"><a class="anchor" href="#sym-View-pack_xy" aria-label="Link to View::pack_xy">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pack_xy</span>(width: u32, height: u32) -&gt; u32</code></div><div class="doc"><p>Pack a render size into the <code>xy</code> word. Each value keeps its low 16 bits.</p>
+<p><code>ignore
+view.xy = View::pack_xy(1280, 720);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Rect" data-name="rect"><div class="sig"><a class="anchor" href="#sym-Rect" aria-label="Link to Rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Rect</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> min: <span class="t">Vec2</span>,
+<span class="k">pub</span> max: <span class="t">Vec2</span>,
+<span class="k">pub</span> color: [u8; <span class="n">4</span>],
+<span class="k">pub</span> rotation: f32,
+<span class="c">/// Per-instance render flags. `RECT_FLAG_RECEIVE_SHADOW` is the only bit so</span>
+<span class="c">/// far. Zero reproduces every rect written before the flag, so a floor and</span>
+<span class="c">/// a world-space mark keep the bit clear and do not darken.</span>
+<span class="k">pub</span> flags: u32,</code></pre></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Rect-desc" data-name="rect::desc"><div class="sig"><a class="anchor" href="#sym-Rect-desc" aria-label="Link to Rect::desc">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> desc&lt;<span class="a">'a</span>&gt;() -&gt; wgpu::<span class="t">VertexBufferLayout</span>&lt;<span class="a">'a</span>&gt;</code></div></div></details></div><div class="typeblock"><div class="item" id="sym-Vertex" data-name="vertex"><div class="sig"><a class="anchor" href="#sym-Vertex" aria-label="Link to Vertex">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Vertex</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> pos: <span class="t">Vec2</span>,
+<span class="k">pub</span> color: [u8; <span class="n">4</span>],</code></pre></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Vertex-desc" data-name="vertex::desc"><div class="sig"><a class="anchor" href="#sym-Vertex-desc" aria-label="Link to Vertex::desc">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> desc&lt;<span class="a">'a</span>&gt;() -&gt; wgpu::<span class="t">VertexBufferLayout</span>&lt;<span class="a">'a</span>&gt;</code></div></div></details></div><div class="typeblock"><div class="item" id="sym-Instance" data-name="instance"><div class="sig"><a class="anchor" href="#sym-Instance" aria-label="Link to Instance">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Instance</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> position: <span class="t">Vec2</span>,
+<span class="k">pub</span> radius: f32,
+<span class="k">pub</span> color: [u8; <span class="n">4</span>],
+<span class="k">pub</span> texture_index: i32,
+<span class="k">pub</span> rotation: [f32; <span class="n">4</span>],</code></pre></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Instance-desc" data-name="instance::desc"><div class="sig"><a class="anchor" href="#sym-Instance-desc" aria-label="Link to Instance::desc">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> desc&lt;<span class="a">'a</span>&gt;() -&gt; wgpu::<span class="t">VertexBufferLayout</span>&lt;<span class="a">'a</span>&gt;</code></div></div></details></div><div class="typeblock"><div class="item" id="sym-PlayState" data-name="playstate"><div class="sig"><a class="anchor" href="#sym-PlayState" aria-label="Link to PlayState">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">PlayState</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// No world. Play builds one.</span>
+<span class="t">Stopped</span> = <span class="n">0</span>,
+<span class="c">/// The world steps.</span>
+<span class="t">Playing</span> = <span class="n">1</span>,
+<span class="c">/// The world holds still and the renderer keeps drawing it.</span>
+<span class="t">Paused</span> = <span class="n">2</span>,</code></pre></div><div class="doc"><p>What the transport says the simulation should be doing.</p></div></div></div><div class="typeblock"><div class="item" id="sym-DisplayWindow" data-name="displaywindow"><div class="sig"><a class="anchor" href="#sym-DisplayWindow" aria-label="Link to DisplayWindow">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">DisplayWindow</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A window with a frame. `DisplayMode::resolution` sets its size.</span>
+<span class="t">Windowed</span>,
+<span class="c">/// A window with no frame that covers the monitor. The desktop video</span>
+<span class="c">/// mode stays. Alt-tab is fast.</span>
+<span class="t">BorderlessFullscreen</span>,
+<span class="c">/// The monitor changes to a video mode. `DisplayMode::resolution` picks</span>
+<span class="c">/// the mode when the monitor has one of that size. Else the desktop size.</span>
+<span class="c">/// With no video mode at all, the engine uses borderless.</span>
+<span class="t">ExclusiveFullscreen</span>,</code></pre></div><div class="doc"><p>How the primary window covers the screen.</p></div></div></div><div class="typeblock"><div class="item" id="sym-DisplayMode" data-name="displaymode"><div class="sig"><a class="anchor" href="#sym-DisplayMode" aria-label="Link to DisplayMode">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">DisplayMode</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> window: <span class="t">DisplayWindow</span>,
+<span class="c">/// True: present waits for the monitor refresh (Fifo). No tearing.</span>
+<span class="c">/// False: present does not wait (Mailbox, else Immediate). The frame cap</span>
+<span class="c">/// then sets the rate.</span>
+<span class="k">pub</span> vsync: bool,
+<span class="c">/// The most frames per second the engine renders. `None` keeps the</span>
+<span class="c">/// manifest's `window.frame_cap_hz` (60 when the manifest has none).</span>
+<span class="c">/// `Some(0)` is the same as `None`.</span>
+<span class="k">pub</span> frame_cap: <span class="t">Option</span>&lt;u32&gt;,
+<span class="c">/// The windowed size in physical pixels, and the exclusive video mode</span>
+<span class="c">/// size. `None` keeps the current size.</span>
+<span class="k">pub</span> resolution: <span class="t">Option</span>&lt;[u32; <span class="n">2</span>]&gt;,</code></pre></div><div class="doc"><p>The display state a game asks for. All fields apply together, at the
+next frame.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-DisplayMode-DEFAULT" data-name="displaymode::default"><div class="sig"><a class="anchor" href="#sym-DisplayMode-DEFAULT" aria-label="Link to DisplayMode::DEFAULT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">DEFAULT</span>: <span class="t">DisplayMode</span> = <span class="t">DisplayMode</span></code></div><div class="doc"><p>The state of a window that <code>run</code> opened with no change: windowed, no
+vsync (the engine picks Mailbox), the manifest frame cap.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-MonitorInfo" data-name="monitorinfo"><div class="sig"><a class="anchor" href="#sym-MonitorInfo" aria-label="Link to MonitorInfo">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">MonitorInfo</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> name: <span class="t">String</span>,
+<span class="c">/// The desktop size in physical pixels.</span>
+<span class="k">pub</span> size: [u32; <span class="n">2</span>],
+<span class="c">/// The highest refresh rate of the desktop size, in hertz. 0 when the</span>
+<span class="c">/// platform reports none.</span>
+<span class="k">pub</span> refresh_hz: f32,
+<span class="k">pub</span> scale_factor: f64,
+<span class="c">/// True for the monitor that holds the primary window.</span>
+<span class="k">pub</span> current: bool,
+<span class="c">/// The sizes of the exclusive video modes, unique, largest first.</span>
+<span class="k">pub</span> resolutions: <span class="t">Vec</span>&lt;[u32; <span class="n">2</span>]&gt;,</code></pre></div><div class="doc"><p>One monitor, as winit reports it.</p></div></div></div><div class="typeblock"><div class="item" id="sym-PlanetPreviewRequest" data-name="planetpreviewrequest"><div class="sig"><a class="anchor" href="#sym-PlanetPreviewRequest" aria-label="Link to PlanetPreviewRequest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">PlanetPreviewRequest</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Selected body id. The texture layer = (id.abs() % scene_texture_count),</span>
+<span class="c">/// resolved in warp_core so the count stays a single source of truth.</span>
+<span class="k">pub</span> body_id: i64,
+<span class="c">/// Live surface rotation quaternion, so the preview spins in lockstep with</span>
+<span class="c">/// the world planet.</span>
+<span class="k">pub</span> rotation: [f32; <span class="n">4</span>],
+<span class="c">/// World-space planet centre. Used verbatim so the star→planet light</span>
+<span class="c">/// direction (hence the day/night terminator) matches the world exactly.</span>
+<span class="k">pub</span> center: [f32; <span class="n">2</span>],
+<span class="c">/// World-space planet radius; the preview view scales it to fill the square.</span>
+<span class="k">pub</span> radius: f32,
+<span class="c">/// Planet radius as a share of the square half-extent. Zero or less takes</span>
+<span class="c">/// the default (0.92). A ringed planet asks for less, so its rings fit.</span>
+<span class="k">pub</span> fill: f32,</code></pre></div><div class="doc"><p>One frame's request to render a live planet preview into the offscreen
+PlanetPreview texture. Written by the planet selection panel every frame it
+is shown (during the GUI closure, viewport.rs ~line 359), and consumed by
+the primary viewport the SAME frame, before the GUI is drawn — so the
+preview shows the currently-selected planet with no latency.</p></div></div></div><div class="typeblock"><div class="item" id="sym-RawKey" data-name="rawkey"><div class="sig"><a class="anchor" href="#sym-RawKey" aria-label="Link to RawKey">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">type</span> <span class="t">RawKey</span> = winit::event::<span class="t">VirtualKeyCode</span></code></div><div class="doc"><p>A physical key, as winit reports it.</p></div></div></div><div class="typeblock"><div class="item" id="sym-ViewportId" data-name="viewportid"><div class="sig"><a class="anchor" href="#sym-ViewportId" aria-label="Link to ViewportId">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">type</span> <span class="t">ViewportId</span> = u32</code></div><div class="doc"><p>Unique identifier for a render viewport.</p>
+<p>Each viewport corresponds to one OS window with its own wgpu surface,
+postprocess chain, egui context, and camera state. The simulation
+thread is shared — all viewports read the same frame's entity data.</p></div></div></div><div class="typeblock"><div class="item" id="sym-WindowRequest" data-name="windowrequest"><div class="sig"><a class="anchor" href="#sym-WindowRequest" aria-label="Link to WindowRequest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">WindowRequest</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Open a tool window under an id the application already allocated.</span>
+<span class="t">Open</span> {
+    id: <span class="t">ViewportId</span>,
+    title: <span class="t">String</span>,
+    pos: <span class="t">Option</span>&lt;[i32; <span class="n">2</span>]&gt;,
+    size: [u32; <span class="n">2</span>],
+},
+<span class="c">/// Close a tool window. Unknown ids are ignored, so a double close from a</span>
+<span class="c">/// panel drag and an OS close arriving together is not an error.</span>
+<span class="t">Close</span>(<span class="t">ViewportId</span>),
+<span class="c">/// Raise a tool window and give it focus.</span>
+<span class="t">Focus</span>(<span class="t">ViewportId</span>),
+<span class="c">/// Rename a tool window's title bar. The title is set once at open, but the</span>
+<span class="c">/// panel inside can change what it shows — a code tab opens another file, a</span>
+<span class="c">/// buffer becomes dirty — so the application resends the name when it</span>
+<span class="c">/// changes. Unknown ids are ignored, like `Close`.</span>
+<span class="t">Retitle</span> { id: <span class="t">ViewportId</span>, title: <span class="t">String</span> },</code></pre></div><div class="doc"><p>One thing the application wants the event loop to do to a window.</p>
+<p>A queue rather than a flag, because tear-off can produce two of these in
+one frame — a window opens as another empties and closes — and a flag can
+only carry the last one.</p></div></div></div><div class="typeblock"><div class="item" id="sym-WindowGeometry" data-name="windowgeometry"><div class="sig"><a class="anchor" href="#sym-WindowGeometry" aria-label="Link to WindowGeometry">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">WindowGeometry</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Top-left of the window's CLIENT area, in screen coordinates.</span>
+<span class="k">pub</span> origin: [i32; <span class="n">2</span>],
+<span class="k">pub</span> size: [u32; <span class="n">2</span>],
+<span class="c">/// Desktop pixels per egui point of this window. One for a ToolWindow.</span>
+<span class="k">pub</span> pixels_per_point: f32,</code></pre></div><div class="doc"><p>Where one window is on the desktop, in physical pixels.</p>
+<h2>TWO SPACES, AND THE FACTOR BETWEEN THEM</h2>
+<p><code>origin</code> and <code>size</code> are desktop pixels. A window's own egui counts in
+POINTS, and for one window kind those are not the same length: a Viewport
+lays the chrome out at a fixed internal resolution and blits up to the
+window, so one of its points is <code>pixels_per_point</code> desktop pixels. A
+ToolWindow lays out at its own surface size, where the factor is one.</p>
+<p>The dock aims across windows in desktop pixels, so every conversion goes
+through <code>to_desktop</code> and <code>to_local</code> here. They used to be a bare add and
+subtract of <code>origin</code>, which is correct only while the factor is one. On a
+primary window smaller than its render floor the factor is about 0.75, and
+every drop target, tear-off position and follower chip landed up to a third
+of the window away from the pointer. The error changed with the window's
+size, so it changed when the window moved to another monitor.</p></div></div><details class="members"><summary>6 methods</summary><div class="item" id="sym-WindowGeometry-rect" data-name="windowgeometry::rect"><div class="sig"><a class="anchor" href="#sym-WindowGeometry-rect" aria-label="Link to WindowGeometry::rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">rect</span>(&amp;<span class="k">self</span>) -&gt; egui::<span class="t">Rect</span></code></div><div class="doc"><p>The window's client area as a screen-space rect.</p></div></div><div class="item" id="sym-WindowGeometry-to_desktop" data-name="windowgeometry::to_desktop"><div class="sig"><a class="anchor" href="#sym-WindowGeometry-to_desktop" aria-label="Link to WindowGeometry::to_desktop">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">to_desktop</span>(&amp;<span class="k">self</span>, p: egui::<span class="t">Pos2</span>) -&gt; egui::<span class="t">Pos2</span></code></div><div class="doc"><p>A position this window's egui painted at, on the desktop.</p></div></div><div class="item" id="sym-WindowGeometry-to_local" data-name="windowgeometry::to_local"><div class="sig"><a class="anchor" href="#sym-WindowGeometry-to_local" aria-label="Link to WindowGeometry::to_local">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">to_local</span>(&amp;<span class="k">self</span>, p: egui::<span class="t">Pos2</span>) -&gt; egui::<span class="t">Pos2</span></code></div><div class="doc"><p>A desktop position, in the coordinates this window paints in.</p></div></div><div class="item" id="sym-WindowGeometry-to_desktop_size" data-name="windowgeometry::to_desktop_size"><div class="sig"><a class="anchor" href="#sym-WindowGeometry-to_desktop_size" aria-label="Link to WindowGeometry::to_desktop_size">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">to_desktop_size</span>(&amp;<span class="k">self</span>, v: egui::<span class="t">Vec2</span>) -&gt; egui::<span class="t">Vec2</span></code></div><div class="doc"><p>A length this window's egui measured, as a desktop length.</p></div></div><div class="item" id="sym-WindowGeometry-to_desktop_rect" data-name="windowgeometry::to_desktop_rect"><div class="sig"><a class="anchor" href="#sym-WindowGeometry-to_desktop_rect" aria-label="Link to WindowGeometry::to_desktop_rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">to_desktop_rect</span>(&amp;<span class="k">self</span>, r: egui::<span class="t">Rect</span>) -&gt; egui::<span class="t">Rect</span></code></div><div class="doc"><p>A rect this window's egui painted, on the desktop.</p></div></div><div class="item" id="sym-WindowGeometry-to_local_rect" data-name="windowgeometry::to_local_rect"><div class="sig"><a class="anchor" href="#sym-WindowGeometry-to_local_rect" aria-label="Link to WindowGeometry::to_local_rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">to_local_rect</span>(&amp;<span class="k">self</span>, r: egui::<span class="t">Rect</span>) -&gt; egui::<span class="t">Rect</span></code></div><div class="doc"><p>A desktop rect, in the coordinates this window paints in.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-NewWindowPreview" data-name="newwindowpreview"><div class="sig"><a class="anchor" href="#sym-NewWindowPreview" aria-label="Link to NewWindowPreview">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">NewWindowPreview</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Top-left on the desktop, in physical pixels. Exactly where the window</span>
+<span class="c">/// will open — the preview and the drop share one calculation.</span>
+<span class="k">pub</span> origin: [i32; <span class="n">2</span>],
+<span class="k">pub</span> size: [u32; <span class="n">2</span>],
+<span class="c">/// True when the drop makes a separate application rather than a window of</span>
+<span class="c">/// this process. The two look identical up to the moment of release and</span>
+<span class="c">/// are not the same thing, so the preview says which.</span>
+<span class="k">pub</span> separate_process: bool,</code></pre></div><div class="doc"><p>The window a drop would create, if it happened where the pointer is.</p></div></div></div><div class="typeblock"><div class="item" id="sym-DragProxyState" data-name="dragproxystate"><div class="sig"><a class="anchor" href="#sym-DragProxyState" aria-label="Link to DragProxyState">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">DragProxyState</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The panel's title. Application-supplied.</span>
+<span class="k">pub</span> label: <span class="t">String</span>,
+<span class="c">/// The panel's hue, as RGB.</span>
+<span class="c">/// </span>
+<span class="c">/// Carried rather than derived here, because the hue is a function of the</span>
+<span class="c">/// panel's ID and this struct holds its TITLE — a code tab says the name</span>
+<span class="c">/// of the file it has open. Recomputing from the title would make a</span>
+<span class="c">/// carried tab change colour the moment it left the strip, which is the</span>
+<span class="c">/// one thing the follower window exists not to do.</span>
+<span class="k">pub</span> accent: [u8; <span class="n">3</span>],
+<span class="c">/// Pointer position on the desktop, in physical pixels.</span>
+<span class="k">pub</span> pos: [i32; <span class="n">2</span>],
+<span class="c">/// The window that would be created. None while some existing window is</span>
+<span class="c">/// going to take the panel instead — that window paints its own preview,</span>
+<span class="c">/// and a mock over the top of it would hide what is being aimed at.</span>
+<span class="k">pub</span> preview: <span class="t">Option</span>&lt;<span class="t">NewWindowPreview</span>&gt;,</code></pre></div><div class="doc"><p>What the follower window should say, and where it should be.</p></div></div></div><h4>Constants</h4><div class="item" id="sym-APP_NAME" data-name="app_name"><div class="sig"><a class="anchor" href="#sym-APP_NAME" aria-label="Link to APP_NAME">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">APP_NAME</span>: std::sync::<span class="t">OnceLock</span>&lt;<span class="t">String</span>&gt; = std::sync::<span class="t">OnceLock</span>::<span class="f">new</span>()</code></div><div class="doc"><p>Product name of the host application. <code>run</code> and <code>run_web</code> store it from
+<code>Config</code> before the window exists, because the GPU failure dialog in
+gpu/device.rs must name the product and cannot take a parameter: its
+caller chain runs through State, which the engine owns.</p></div></div><div class="item" id="sym-INPUT_CAPTURED" data-name="input_captured"><div class="sig"><a class="anchor" href="#sym-INPUT_CAPTURED" aria-label="Link to INPUT_CAPTURED">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">INPUT_CAPTURED</span>: <span class="t">AtomicBool</span> = <span class="t">AtomicBool</span>::<span class="f">new</span>(<span class="k">false</span>)</code></div><div class="doc"><p>True while an app subsystem owns the raw keyboard. The app sets it; the
+event loop reads it when it routes each KeyboardInput event.</p></div></div><div class="item" id="sym-CAPTURED_KEYS" data-name="captured_keys"><div class="sig"><a class="anchor" href="#sym-CAPTURED_KEYS" aria-label="Link to CAPTURED_KEYS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">CAPTURED_KEYS</span>: <span class="t">LazyLock</span>&lt;<span class="t">Mutex</span>&lt;<span class="t">VecDeque</span>&lt;(<span class="t">RawKey</span>, bool)&gt;&gt;&gt; = <span class="t">LazyLock</span>::<span class="f">new</span>(|| <span class="t">Mutex</span>::<span class="f">new</span>(<span class="t">VecDeque</span>::<span class="f">new</span>()))</code></div><div class="doc"><p>Key transitions diverted by keyboard capture, oldest first. <code>true</code> means
+the key went down. Producer: the event loop. Consumer: whatever app code
+owns the capture.</p></div></div><div class="item" id="sym-CAPTURED_KEY_LIMIT" data-name="captured_key_limit"><div class="sig"><a class="anchor" href="#sym-CAPTURED_KEY_LIMIT" aria-label="Link to CAPTURED_KEY_LIMIT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">CAPTURED_KEY_LIMIT</span>: usize = <span class="n">64</span></code></div><div class="doc"><p>How many pending transitions the capture queue holds.</p>
+<p>The queue makes room by dropping the oldest press, together with the
+release that closes it. A release alone is never dropped, so the count can
+go above this limit by the releases of the keys a person holds down. That
+overshoot is bounded by the keyboard, and it is the safe direction.</p></div></div><div class="item" id="sym-CAPTURE_PASSTHROUGH_KEYS" data-name="capture_passthrough_keys"><div class="sig"><a class="anchor" href="#sym-CAPTURE_PASSTHROUGH_KEYS" aria-label="Link to CAPTURE_PASSTHROUGH_KEYS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">CAPTURE_PASSTHROUGH_KEYS</span>: <span class="t">LazyLock</span>&lt;<span class="t">Mutex</span>&lt;<span class="t">Vec</span>&lt;<span class="t">RawKey</span>&gt;&gt;&gt; = <span class="t">LazyLock</span>::<span class="f">new</span>(|| <span class="t">Mutex</span>::<span class="f">new</span>(<span class="t">Vec</span>::<span class="f">new</span>()))</code></div><div class="doc"><p>Keys that stay global while keyboard capture is active. A console toggle
+belongs here: the user must always be able to leave.</p></div></div><div class="item" id="sym-POINTER_RELEASE_KEYS" data-name="pointer_release_keys"><div class="sig"><a class="anchor" href="#sym-POINTER_RELEASE_KEYS" aria-label="Link to POINTER_RELEASE_KEYS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">POINTER_RELEASE_KEYS</span>: <span class="t">LazyLock</span>&lt;<span class="t">Mutex</span>&lt;<span class="t">Vec</span>&lt;<span class="t">RawKey</span>&gt;&gt;&gt; = <span class="t">LazyLock</span>::<span class="f">new</span>(|| <span class="t">Mutex</span>::<span class="f">new</span>(<span class="t">Vec</span>::<span class="f">new</span>()))</code></div><div class="doc"><p>Keys that drop pointer capture when pressed. Such a press also reaches the
+raw ring, so one keystroke can both release the pointer and mean something.</p></div></div><div class="item" id="sym-POINTER_CAPTURED" data-name="pointer_captured"><div class="sig"><a class="anchor" href="#sym-POINTER_CAPTURED" aria-label="Link to POINTER_CAPTURED">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">POINTER_CAPTURED</span>: <span class="t">AtomicBool</span> = <span class="t">AtomicBool</span>::<span class="f">new</span>(<span class="k">false</span>)</code></div><div class="doc"><p>True while the pointer is locked to the window center.</p></div></div><div class="item" id="sym-POINTER_DELTA_X" data-name="pointer_delta_x"><div class="sig"><a class="anchor" href="#sym-POINTER_DELTA_X" aria-label="Link to POINTER_DELTA_X">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">POINTER_DELTA_X</span>: std::sync::atomic::<span class="t">AtomicU32</span> = std::sync::atomic::<span class="t">AtomicU32</span>::<span class="f">new</span>(<span class="n">0</span>)</code></div><div class="doc"><p>Pointer drift accumulated under capture, as f32 bits.</p></div></div><div class="item" id="sym-POINTER_DELTA_Y" data-name="pointer_delta_y"><div class="sig"><a class="anchor" href="#sym-POINTER_DELTA_Y" aria-label="Link to POINTER_DELTA_Y">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">POINTER_DELTA_Y</span>: std::sync::atomic::<span class="t">AtomicU32</span> = std::sync::atomic::<span class="t">AtomicU32</span>::<span class="f">new</span>(<span class="n">0</span>)</code></div></div><div class="item" id="sym-POINTER_BUTTONS" data-name="pointer_buttons"><div class="sig"><a class="anchor" href="#sym-POINTER_BUTTONS" aria-label="Link to POINTER_BUTTONS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">POINTER_BUTTONS</span>: std::sync::atomic::<span class="t">AtomicU8</span> = std::sync::atomic::<span class="t">AtomicU8</span>::<span class="f">new</span>(<span class="n">0</span>)</code></div><div class="doc"><p>Mouse buttons held under capture: bit0 left, bit1 right, bit2 middle.</p></div></div><div class="item" id="sym-PENDING_SCROLL" data-name="pending_scroll"><div class="sig"><a class="anchor" href="#sym-PENDING_SCROLL" aria-label="Link to PENDING_SCROLL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">PENDING_SCROLL</span>: std::sync::atomic::<span class="t">AtomicU32</span> = std::sync::atomic::<span class="t">AtomicU32</span>::<span class="f">new</span>(<span class="n">0</span>)</code></div><div class="doc"><p>Scroll accumulated across event batches between render frames.
+The event loop adds scroll_diff() at each MainEventsCleared.
+handle_input() drains this instead of reading scroll_diff() directly,
+which would return 0 on frames where the render budget was skipped.</p></div></div><div class="item" id="sym-PENDING_MOUSE_RELEASE_LEFT" data-name="pending_mouse_release_left"><div class="sig"><a class="anchor" href="#sym-PENDING_MOUSE_RELEASE_LEFT" aria-label="Link to PENDING_MOUSE_RELEASE_LEFT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">PENDING_MOUSE_RELEASE_LEFT</span>: <span class="t">AtomicBool</span> = <span class="t">AtomicBool</span>::<span class="f">new</span>(<span class="k">false</span>)</code></div><div class="doc"><p>Mouse release flags accumulated across skipped render frames.</p></div></div><div class="item" id="sym-PENDING_MOUSE_RELEASE_RIGHT" data-name="pending_mouse_release_right"><div class="sig"><a class="anchor" href="#sym-PENDING_MOUSE_RELEASE_RIGHT" aria-label="Link to PENDING_MOUSE_RELEASE_RIGHT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">PENDING_MOUSE_RELEASE_RIGHT</span>: <span class="t">AtomicBool</span> = <span class="t">AtomicBool</span>::<span class="f">new</span>(<span class="k">false</span>)</code></div></div><div class="item" id="sym-PENDING_MOUSE_PRESS_LEFT" data-name="pending_mouse_press_left"><div class="sig"><a class="anchor" href="#sym-PENDING_MOUSE_PRESS_LEFT" aria-label="Link to PENDING_MOUSE_PRESS_LEFT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">PENDING_MOUSE_PRESS_LEFT</span>: <span class="t">AtomicBool</span> = <span class="t">AtomicBool</span>::<span class="f">new</span>(<span class="k">false</span>)</code></div></div><div class="item" id="sym-PENDING_MOUSE_PRESS_RIGHT" data-name="pending_mouse_press_right"><div class="sig"><a class="anchor" href="#sym-PENDING_MOUSE_PRESS_RIGHT" aria-label="Link to PENDING_MOUSE_PRESS_RIGHT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">PENDING_MOUSE_PRESS_RIGHT</span>: <span class="t">AtomicBool</span> = <span class="t">AtomicBool</span>::<span class="f">new</span>(<span class="k">false</span>)</code></div></div><div class="item" id="sym-DISPLAY_SETTINGS_TEST_LOCK" data-name="display_settings_test_lock"><div class="sig"><a class="anchor" href="#sym-DISPLAY_SETTINGS_TEST_LOCK" aria-label="Link to DISPLAY_SETTINGS_TEST_LOCK">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">DISPLAY_SETTINGS_TEST_LOCK</span>: <span class="t">Mutex</span>&lt;()&gt; = <span class="t">Mutex</span>::<span class="f">new</span>(())</code></div><div class="doc"><p>Held by every test that installs a value in <code>DISPLAY_SETTINGS</code> and then
+reads back something derived from it.</p>
+<p>The settings are ONE global for the whole process and cargo runs tests in
+parallel, so two such tests interleave: one installs a tube, another resets
+the block, and the first reads the reset. The failure surfaces in whichever
+test lost the race, which is never the one that needs changing, and it does
+not reproduce when that test is run alone.</p>
+<p>It lives beside the global rather than in any one test module because the
+tests that need it are in three of them, and a second lock would not
+exclude the first.</p></div></div><div class="item" id="sym-GAME_VIEW_EMBEDDED" data-name="game_view_embedded"><div class="sig"><a class="anchor" href="#sym-GAME_VIEW_EMBEDDED" aria-label="Link to GAME_VIEW_EMBEDDED">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">GAME_VIEW_EMBEDDED</span>: <span class="t">AtomicBool</span> = <span class="t">AtomicBool</span>::<span class="f">new</span>(<span class="k">false</span>)</code></div><div class="doc"><p>True while the host draws the scene inside an egui panel. False restores
+the shipped path exactly: egui on the LDR image, one blit to the surface.</p>
+<p>THIS DECIDES WHETHER THE CHROME IS POST-PROCESSED, so it is a declaration a
+host makes about itself and not a fact a widget discovers.</p>
+<p>It used to be written by <code>playbar::game_view</code> as a side effect of that
+panel drawing, which made "is the toolbar barrel-distorted" a consequence
+of which tab happened to be in front. With a fixed layout the panel drew
+every frame and the coupling never showed; with a dock it is one closed tab
+away from the entire window going through the CRT shader.</p>
+<p>A host that embeds the game now says so once, at startup, through
+<code>set_game_view_embedded</code>. The panel still publishes its RECT every frame,
+because that genuinely is a layout fact and it changes as panels move.</p></div></div><div class="item" id="sym-GAME_VIEW_FOCUSED" data-name="game_view_focused"><div class="sig"><a class="anchor" href="#sym-GAME_VIEW_FOCUSED" aria-label="Link to GAME_VIEW_FOCUSED">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">GAME_VIEW_FOCUSED</span>: <span class="t">AtomicBool</span> = <span class="t">AtomicBool</span>::<span class="f">new</span>(<span class="k">false</span>)</code></div><div class="doc"><p>True while the Game panel is the panel this window's keys are aimed at.</p>
+<p>The rect above answers where the POINTER is; a key has no position, so it
+needs the other question — which panel is being worked in. The two are
+separate on purpose: a cursor resting over the toolbar must not deafen the
+game to the movement keys, and a click in the code editor must silence its
+hotkeys even if the cursor then drifts back over the game.</p>
+<p>Without it both egui contexts saw every key press, and one Command-plus
+zoomed the editor's panel AND rescaled the game's HUD — two effects from a
+keystroke that named one.</p>
+<p>A host publishes it each frame, from whatever it already uses to decide
+where a shortcut goes; the engine cannot work it out, because a panel is
+not a thing the engine has. Never written under a game with no editor, so
+it stays at the default and the gate never runs.</p></div></div><div class="item" id="sym-GAME_VIEW_TEXTURE" data-name="game_view_texture"><div class="sig"><a class="anchor" href="#sym-GAME_VIEW_TEXTURE" aria-label="Link to GAME_VIEW_TEXTURE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">GAME_VIEW_TEXTURE</span>: <span class="t">Mutex</span>&lt;<span class="t">Vec</span>&lt;(<span class="t">ViewportId</span>, egui::<span class="t">TextureId</span>)&gt;&gt; = <span class="t">Mutex</span>::<span class="f">new</span>(<span class="t">Vec</span>::<span class="f">new</span>())</code></div><div class="doc"><p>egui texture id of the finished game image, PER WINDOW.</p>
+<p>One wgpu texture, registered separately in every window's egui renderer.
+A <code>TextureId</code> is an index into the renderer that issued it and means
+nothing to another one — so a single id was the whole reason the Game
+panel could not leave the primary window. The texture itself crosses
+freely: every window in this process shares one <code>wgpu::Device</code>.</p>
+<p>A Vec and not a map: the count is the number of open windows, which is
+ones, and <code>Vec::new</code> is const so the static needs no lazy init.</p>
+<p>Empty until the first frame of embedded mode, and missing an entry for any
+window that has not registered yet — so a panel must handle the absence
+rather than unwrap.</p></div></div><div class="item" id="sym-GAME_VIEW_TEXTURE_NEAREST" data-name="game_view_texture_nearest"><div class="sig"><a class="anchor" href="#sym-GAME_VIEW_TEXTURE_NEAREST" aria-label="Link to GAME_VIEW_TEXTURE_NEAREST">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">GAME_VIEW_TEXTURE_NEAREST</span>: <span class="t">Mutex</span>&lt;<span class="t">Vec</span>&lt;(<span class="t">ViewportId</span>, egui::<span class="t">TextureId</span>)&gt;&gt; = <span class="t">Mutex</span>::<span class="f">new</span>(<span class="t">Vec</span>::<span class="f">new</span>())</code></div><div class="doc"><p>The SAME game image, named a second time with a NEAREST sampler.</p>
+<p>One texture, two names. <code>GAME_VIEW_TEXTURE</code> above is registered with a
+linear filter, which is right for the Game panel: that rect almost never
+matches the texture size, and a nearest filter would alias the whole
+picture while the panel moves.</p>
+<p>A MAGNIFIED draw wants the opposite. The CRT pass writes the phosphor cells
+into this texture, and a linear sampler blends neighbouring cells into a
+grey smear as soon as one output pixel covers less than one texel. So the
+preview box in the CRT panel draws through this id instead, and sees the
+cells the shader wrote.</p></div></div><div class="item" id="sym-GAME_VIEW_RECT" data-name="game_view_rect"><div class="sig"><a class="anchor" href="#sym-GAME_VIEW_RECT" aria-label="Link to GAME_VIEW_RECT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">GAME_VIEW_RECT</span>: <span class="t">Mutex</span>&lt;<span class="t">Option</span>&lt;<span class="t">GameViewRect</span>&gt;&gt; = <span class="t">Mutex</span>::<span class="f">new</span>(<span class="t">None</span>)</code></div><div class="doc"><p>The rect published by the host during the GUI closure. The pointer remap
+reads it. None while the game fills the window.</p>
+<p>ONE rect, for however many windows there are, and that is not an
+approximation: the dock guarantees a <code>PanelId</code> names one leaf across every
+window, so there is one Game panel and it publishes from one window. The
+<code>viewport</code> field says which. Were two panels able to exist, both would
+write here every frame and the last one drawn would own the pointer.</p></div></div><div class="item" id="sym-GAME_VIEW_TICK" data-name="game_view_tick"><div class="sig"><a class="anchor" href="#sym-GAME_VIEW_TICK" aria-label="Link to GAME_VIEW_TICK">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">GAME_VIEW_TICK</span>: std::sync::atomic::<span class="t">AtomicU64</span> = std::sync::atomic::<span class="t">AtomicU64</span>::<span class="f">new</span>(<span class="n">0</span>)</code></div><div class="doc"><p>RENDERED FRAMES since start, bumped by the host inside its frame gate.</p>
+<p>Frames and not event-loop turns, and the difference is the whole value of
+the counter. Under <code>ControlFlow::Poll</code> the loop turns about 110,000 times a
+second and renders 60 — count turns and the "one tick of grace" below spans
+a sixty-thousandth of the gap it was written to span.</p></div></div><div class="item" id="sym-GAME_VIEW_SEEN" data-name="game_view_seen"><div class="sig"><a class="anchor" href="#sym-GAME_VIEW_SEEN" aria-label="Link to GAME_VIEW_SEEN">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">GAME_VIEW_SEEN</span>: std::sync::atomic::<span class="t">AtomicU64</span> = std::sync::atomic::<span class="t">AtomicU64</span>::<span class="f">new</span>(<span class="n">0</span>)</code></div><div class="doc"><p>The tick the panel last published a rect on.</p></div></div><div class="item" id="sym-RECT_FLAG_RECEIVE_SHADOW" data-name="rect_flag_receive_shadow"><div class="sig"><a class="anchor" href="#sym-RECT_FLAG_RECEIVE_SHADOW" aria-label="Link to RECT_FLAG_RECEIVE_SHADOW">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">RECT_FLAG_RECEIVE_SHADOW</span>: u32 = <span class="n">1</span></code></div><div class="doc"><p>Receive the station shadow coverage. A rect with this bit reads the coverage
+buffer at its screen position and darkens by it. The rect shader binds the
+coverage buffer at group 1, and the flag gates the read, so a rect without
+the bit reads nothing and does not darken. It is the rect analogue of
+<code>IMAGE_FLAG_RECEIVE_SHADOW</code>, in the rect flags word rather than the image
+one. The application sets it on procedural furniture that stands on a floor,
+like the planter box, and leaves it clear on floors and world-space marks.</p></div></div><div class="item" id="sym-EDITOR_PLAY_STATE" data-name="editor_play_state"><div class="sig"><a class="anchor" href="#sym-EDITOR_PLAY_STATE" aria-label="Link to EDITOR_PLAY_STATE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">EDITOR_PLAY_STATE</span>: std::sync::atomic::<span class="t">AtomicU8</span> = std::sync::atomic::<span class="t">AtomicU8</span>::<span class="f">new</span>(<span class="t">PlayState</span>::<span class="t">Stopped</span> <span class="k">as</span> u8)</code></div><div class="doc"><p>The transport state. Stopped until a play bar, or the host, sets it.</p></div></div><div class="item" id="sym-EDITOR_STEP_ONCE" data-name="editor_step_once"><div class="sig"><a class="anchor" href="#sym-EDITOR_STEP_ONCE" aria-label="Link to EDITOR_STEP_ONCE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">EDITOR_STEP_ONCE</span>: <span class="t">AtomicBool</span> = <span class="t">AtomicBool</span>::<span class="f">new</span>(<span class="k">false</span>)</code></div><div class="doc"><p>Set by Step. The sim loop runs exactly one pass while paused, then clears
+it, which is what <code>EditorApplication.Step()</code> does.</p></div></div><div class="item" id="sym-EDITOR_TRANSPORT_ACTIVE" data-name="editor_transport_active"><div class="sig"><a class="anchor" href="#sym-EDITOR_TRANSPORT_ACTIVE" aria-label="Link to EDITOR_TRANSPORT_ACTIVE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">EDITOR_TRANSPORT_ACTIVE</span>: <span class="t">AtomicBool</span> = <span class="t">AtomicBool</span>::<span class="f">new</span>(<span class="k">false</span>)</code></div><div class="doc"><p>True once the host has handed the transport to a play bar. While false the
+sim loop ignores every field above, so a game with no editor shell runs the
+shipped path untouched.</p></div></div><div class="item" id="sym-EDITOR_PLAY_DEBUG" data-name="editor_play_debug"><div class="sig"><a class="anchor" href="#sym-EDITOR_PLAY_DEBUG" aria-label="Link to EDITOR_PLAY_DEBUG">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">EDITOR_PLAY_DEBUG</span>: <span class="t">AtomicBool</span> = <span class="t">AtomicBool</span>::<span class="f">new</span>(<span class="k">false</span>)</code></div><div class="doc"><p>Which configuration the next boot uses. Set by the debug-play button,
+cleared by Stop and by a plain Play.</p>
+<h2>WHY THE ENGINE HOLDS A FLAG IT CANNOT ACT ON</h2>
+<p>warp_core has no idea what a debug configuration IS for any given game.
+For this one it is a hardware tier, a seed, a fixed dt, a skipped tutorial
+and eight console commands — none of which are engine concepts, and all of
+which the launch script has been passing as argv to a fresh process.</p>
+<p>The hosted game has no argv. It is compiled into the editor, so
+<code>std::env::args()</code> there belongs to the editor and the game's own flag
+parsing never sees a <code>--debug</code>. That is the whole reason this is a global
+rather than a parameter: it is the seam the argv used to come through.</p>
+<p>So the bar writes it and the game reads it at the moment it builds a
+world — the same contract as the three fields above, which the bar writes
+and the sim loop reads. The engine stays ignorant of what it means.</p>
+<h2>WHAT IT CANNOT REACH</h2>
+<p><code>./run.sh --debug</code> also adds <code>--features sauron_panel</code> to the build. That
+is a compile-time feature of the binary the editor is ITSELF part of, so
+no runtime flag can turn it on. The hosted debug boot gets the scenario
+and the dev flags; it does not get the sauron pane. The launch button in
+its own window is still the one that does.</p></div></div><div class="item" id="sym-GUI_ATLAS_TEXTURES" data-name="gui_atlas_textures"><div class="sig"><a class="anchor" href="#sym-GUI_ATLAS_TEXTURES" aria-label="Link to GUI_ATLAS_TEXTURES">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">GUI_ATLAS_TEXTURES</span>: std::sync::<span class="t">Mutex</span>&lt;<span class="t">Vec</span>&lt;(<span class="t">String</span>, egui::<span class="t">TextureId</span>)&gt;&gt; = std::sync::<span class="t">Mutex</span>::<span class="f">new</span>(<span class="t">Vec</span>::<span class="f">new</span>())</code></div><div class="doc"><p>Atlas texture IDs registered with egui for glossary sprite rendering.
+Populated by Viewport::register_atlas_textures_for_gui after asset load.
+Vec of (key, TextureId) pairs. Keys: "res:{resource_kind}", "str:{type_index}".</p></div></div><div class="item" id="sym-PLANET_PREVIEW_REQUEST" data-name="planet_preview_request"><div class="sig"><a class="anchor" href="#sym-PLANET_PREVIEW_REQUEST" aria-label="Link to PLANET_PREVIEW_REQUEST">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">PLANET_PREVIEW_REQUEST</span>: std::sync::<span class="t">Mutex</span>&lt;<span class="t">Option</span>&lt;<span class="t">PlanetPreviewRequest</span>&gt;&gt; = std::sync::<span class="t">Mutex</span>::<span class="f">new</span>(<span class="t">None</span>)</code></div></div><div class="item" id="sym-PLANET_PREVIEW_TEXTURE" data-name="planet_preview_texture"><div class="sig"><a class="anchor" href="#sym-PLANET_PREVIEW_TEXTURE" aria-label="Link to PLANET_PREVIEW_TEXTURE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">PLANET_PREVIEW_TEXTURE</span>: std::sync::<span class="t">Mutex</span>&lt;<span class="t">Option</span>&lt;egui::<span class="t">TextureId</span>&gt;&gt; = std::sync::<span class="t">Mutex</span>::<span class="f">new</span>(<span class="t">None</span>)</code></div><div class="doc"><p>egui texture id of the offscreen planet preview, published once the primary
+viewport has created + registered it. The panel reads this to draw the live
+square; None until the first primary-viewport frame.</p></div></div><div class="item" id="sym-RAW_KEY_WATCH" data-name="raw_key_watch"><div class="sig"><a class="anchor" href="#sym-RAW_KEY_WATCH" aria-label="Link to RAW_KEY_WATCH">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">RAW_KEY_WATCH</span>: <span class="t">LazyLock</span>&lt;<span class="t">Mutex</span>&lt;<span class="t">Vec</span>&lt;(&amp;<span class="a">'static</span> str, <span class="t">Vec</span>&lt;<span class="t">RawKey</span>&gt;)&gt;&gt;&gt; = <span class="t">LazyLock</span>::<span class="f">new</span>(|| <span class="t">Mutex</span>::<span class="f">new</span>(<span class="t">Vec</span>::<span class="f">new</span>()))</code></div><div class="doc"><p>The keys the app wants on the focus-immune path, one slot per subsystem
+that asked. Empty by default, so an app that installs no list gets no ring
+entries at all.</p>
+<p>egui consumes a key event whenever any TextEdit holds keyboard focus, and
+WinitInputHelper then never sees that key. A console whose own text field
+has focus therefore goes deaf to the key that closes it. The event loop
+mirrors every watched press into RAW_KEY_PRESSES from the raw WindowEvent
+arm, before egui gets the event, so one path always survives focus.</p>
+<p>The watch list exists to bound the ring. Mirroring every press would let
+held movement keys and OS key repeat evict a real press within seconds.</p>
+<h2>ONE LIST, SEVERAL OWNERS</h2>
+<p>This was a single Vec that every caller replaced wholesale, and a process
+with two subsystems on the ring silently lost one of them. The editor
+hosting the game is exactly that process: the game registers its bound keys
+before the window opens, and the code panel then registered its three
+punctuation keys from <code>Renderer::new</code> — which ran later and cleared the
+game's. The backtick was no longer mirrored, so the debug console, whose
+toggle reads only this ring, could not be opened at all.</p>
+<p>The rule the old shape needed — "a host that needs its own keys registers
+them together with the others" — cannot be honoured across a crate
+boundary, because neither crate can name the other's keys. So the list is
+keyed by owner and the effective watch is the union: a subsystem replaces
+only its own slot, and no registration can delete somebody else's key.</p></div></div><div class="item" id="sym-RAW_WATCH_APP" data-name="raw_watch_app"><div class="sig"><a class="anchor" href="#sym-RAW_WATCH_APP" aria-label="Link to RAW_WATCH_APP">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">RAW_WATCH_APP</span>: &amp;str = <span class="s">"app"</span></code></div><div class="doc"><p>The slot <code>set_raw_key_watch</code> writes: the application's own keys.</p></div></div><div class="item" id="sym-RAW_KEY_PRESSES" data-name="raw_key_presses"><div class="sig"><a class="anchor" href="#sym-RAW_KEY_PRESSES" aria-label="Link to RAW_KEY_PRESSES">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">RAW_KEY_PRESSES</span>: <span class="t">LazyLock</span>&lt;<span class="t">Mutex</span>&lt;<span class="t">VecDeque</span>&lt;<span class="t">RawKey</span>&gt;&gt;&gt; = <span class="t">LazyLock</span>::<span class="f">new</span>(|| <span class="t">Mutex</span>::<span class="f">new</span>(<span class="t">VecDeque</span>::<span class="f">new</span>()))</code></div><div class="doc"><p>Pending watched presses, oldest first. A full ring drops its oldest entry,
+so the newest press always lands. std Mutex on purpose — warp_core has no
+parking_lot dependency.</p></div></div><div class="item" id="sym-RAW_KEY_RING_LIMIT" data-name="raw_key_ring_limit"><div class="sig"><a class="anchor" href="#sym-RAW_KEY_RING_LIMIT" aria-label="Link to RAW_KEY_RING_LIMIT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">RAW_KEY_RING_LIMIT</span>: usize = <span class="n">64</span></code></div><div class="doc"><p>How many pending presses the ring holds.</p></div></div><div class="item" id="sym-RENDER_DRAW_US" data-name="render_draw_us"><div class="sig"><a class="anchor" href="#sym-RENDER_DRAW_US" aria-label="Link to RENDER_DRAW_US">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">RENDER_DRAW_US</span>: std::sync::atomic::<span class="t">AtomicU64</span> = std::sync::atomic::<span class="t">AtomicU64</span>::<span class="f">new</span>(<span class="n">0</span>)</code></div><div class="doc"><p>CPU draw time (renderer.render call), microseconds.</p></div></div><div class="item" id="sym-RENDER_UPLOAD_US" data-name="render_upload_us"><div class="sig"><a class="anchor" href="#sym-RENDER_UPLOAD_US" aria-label="Link to RENDER_UPLOAD_US">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">RENDER_UPLOAD_US</span>: std::sync::atomic::<span class="t">AtomicU64</span> = std::sync::atomic::<span class="t">AtomicU64</span>::<span class="f">new</span>(<span class="n">0</span>)</code></div><div class="doc"><p>GPU buffer upload time (state.set_* calls), microseconds.</p></div></div><div class="item" id="sym-RENDER_GPU_US" data-name="render_gpu_us"><div class="sig"><a class="anchor" href="#sym-RENDER_GPU_US" aria-label="Link to RENDER_GPU_US">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">RENDER_GPU_US</span>: std::sync::atomic::<span class="t">AtomicU64</span> = std::sync::atomic::<span class="t">AtomicU64</span>::<span class="f">new</span>(<span class="n">0</span>)</code></div><div class="doc"><p>GPU render + postprocess + egui + present time, microseconds.</p></div></div><div class="item" id="sym-RENDER_FRAME_US" data-name="render_frame_us"><div class="sig"><a class="anchor" href="#sym-RENDER_FRAME_US" aria-label="Link to RENDER_FRAME_US">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">RENDER_FRAME_US</span>: std::sync::atomic::<span class="t">AtomicU64</span> = std::sync::atomic::<span class="t">AtomicU64</span>::<span class="f">new</span>(<span class="n">0</span>)</code></div><div class="doc"><p>Total render frame time (draw + upload + GPU), microseconds.</p></div></div><div class="item" id="sym-GPU_DESCRIPTION" data-name="gpu_description"><div class="sig"><a class="anchor" href="#sym-GPU_DESCRIPTION" aria-label="Link to GPU_DESCRIPTION">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">GPU_DESCRIPTION</span>: std::sync::<span class="t">Mutex</span>&lt;<span class="t">String</span>&gt; = std::sync::<span class="t">Mutex</span>::<span class="f">new</span>(<span class="t">String</span>::<span class="f">new</span>())</code></div><div class="doc"><p>The adapter and the primary surface configuration, as <code>key value</code> lines.
+Written once by <code>create_device_and_surface</code>. Empty until the device exists.</p></div></div><div class="item" id="sym-WINDOW_PHYS_W" data-name="window_phys_w"><div class="sig"><a class="anchor" href="#sym-WINDOW_PHYS_W" aria-label="Link to WINDOW_PHYS_W">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">WINDOW_PHYS_W</span>: std::sync::atomic::<span class="t">AtomicU32</span> = std::sync::atomic::<span class="t">AtomicU32</span>::<span class="f">new</span>(<span class="n">0</span>)</code></div><div class="doc"><p>The primary window in physical pixels, written by each primary frame.</p></div></div><div class="item" id="sym-WINDOW_PHYS_H" data-name="window_phys_h"><div class="sig"><a class="anchor" href="#sym-WINDOW_PHYS_H" aria-label="Link to WINDOW_PHYS_H">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">WINDOW_PHYS_H</span>: std::sync::atomic::<span class="t">AtomicU32</span> = std::sync::atomic::<span class="t">AtomicU32</span>::<span class="f">new</span>(<span class="n">0</span>)</code></div><div class="doc"><p>See <code>WINDOW_PHYS_W</code>.</p></div></div><div class="item" id="sym-WINDOW_SCALE_BITS" data-name="window_scale_bits"><div class="sig"><a class="anchor" href="#sym-WINDOW_SCALE_BITS" aria-label="Link to WINDOW_SCALE_BITS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">WINDOW_SCALE_BITS</span>: std::sync::atomic::<span class="t">AtomicU32</span> = std::sync::atomic::<span class="t">AtomicU32</span>::<span class="f">new</span>(<span class="n">0</span>)</code></div><div class="doc"><p>The primary window's OS scale factor, as <code>f32::to_bits</code>.</p></div></div><div class="item" id="sym-SURFACE_W" data-name="surface_w"><div class="sig"><a class="anchor" href="#sym-SURFACE_W" aria-label="Link to SURFACE_W">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">SURFACE_W</span>: std::sync::atomic::<span class="t">AtomicU32</span> = std::sync::atomic::<span class="t">AtomicU32</span>::<span class="f">new</span>(<span class="n">0</span>)</code></div><div class="doc"><p>The primary surface configuration size in pixels.</p></div></div><div class="item" id="sym-SURFACE_H" data-name="surface_h"><div class="sig"><a class="anchor" href="#sym-SURFACE_H" aria-label="Link to SURFACE_H">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">SURFACE_H</span>: std::sync::atomic::<span class="t">AtomicU32</span> = std::sync::atomic::<span class="t">AtomicU32</span>::<span class="f">new</span>(<span class="n">0</span>)</code></div><div class="doc"><p>See <code>SURFACE_W</code>.</p></div></div><div class="item" id="sym-PRIMARY_VIEWPORT" data-name="primary_viewport"><div class="sig"><a class="anchor" href="#sym-PRIMARY_VIEWPORT" aria-label="Link to PRIMARY_VIEWPORT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">PRIMARY_VIEWPORT</span>: <span class="t">ViewportId</span> = <span class="n">0</span></code></div><div class="doc"><p>The main game window. Always exists. Created first during startup.</p></div></div><div class="item" id="sym-SECONDARY_VIEWPORT_REQUESTED" data-name="secondary_viewport_requested"><div class="sig"><a class="anchor" href="#sym-SECONDARY_VIEWPORT_REQUESTED" aria-label="Link to SECONDARY_VIEWPORT_REQUESTED">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">SECONDARY_VIEWPORT_REQUESTED</span>: <span class="t">AtomicBool</span> = <span class="t">AtomicBool</span>::<span class="f">new</span>(<span class="k">false</span>)</code></div><div class="doc"><p>Flag for secondary viewport lifecycle.</p>
+<p>Set to <code>true</code> by game GUI to request opening a secondary window.
+Set to <code>false</code> to request closing it. The event loop in lib.rs
+polls this each frame during MainEventsCleared.</p></div></div><div class="item" id="sym-WINDOW_REQUESTS" data-name="window_requests"><div class="sig"><a class="anchor" href="#sym-WINDOW_REQUESTS" aria-label="Link to WINDOW_REQUESTS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">WINDOW_REQUESTS</span>: <span class="t">Mutex</span>&lt;<span class="t">Vec</span>&lt;<span class="t">WindowRequest</span>&gt;&gt; = <span class="t">Mutex</span>::<span class="f">new</span>(<span class="t">Vec</span>::<span class="f">new</span>())</code></div><div class="doc"><p>Requests waiting for the event loop. Drained once per frame.</p></div></div><div class="item" id="sym-WINDOW_GEOMETRY" data-name="window_geometry"><div class="sig"><a class="anchor" href="#sym-WINDOW_GEOMETRY" aria-label="Link to WINDOW_GEOMETRY">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">WINDOW_GEOMETRY</span>: <span class="t">Mutex</span>&lt;<span class="t">Vec</span>&lt;(<span class="t">ViewportId</span>, <span class="t">WindowGeometry</span>)&gt;&gt; = <span class="t">Mutex</span>::<span class="f">new</span>(<span class="t">Vec</span>::<span class="f">new</span>())</code></div><div class="doc"><p>Every live window's position and size, republished each frame.</p>
+<p>This is what makes a drag between windows possible. The pointer belongs to
+whichever window the OS is routing motion to, and every OTHER window has to
+decide whether that pointer is over one of its panels — which needs its own
+position on the desktop, not just inside its own client area. egui knows
+nothing about where its window sits, so the engine publishes it.</p>
+<p>Keyed by ViewportId. The primary window is in here too.</p></div></div><div class="item" id="sym-WINDOW_CLOSED" data-name="window_closed"><div class="sig"><a class="anchor" href="#sym-WINDOW_CLOSED" aria-label="Link to WINDOW_CLOSED">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">WINDOW_CLOSED</span>: <span class="t">Mutex</span>&lt;<span class="t">Vec</span>&lt;<span class="t">ViewportId</span>&gt;&gt; = <span class="t">Mutex</span>::<span class="f">new</span>(<span class="t">Vec</span>::<span class="f">new</span>())</code></div><div class="doc"><p>Windows the OS closed, waiting for the application to notice.</p>
+<p>A tool window can go away without the application asking: someone presses
+the red button. The dock still holds that window's tree, so it has to hear
+about it or the panels inside stay "open" with nowhere to be drawn.</p></div></div><div class="item" id="sym-PANEL_CLOSED" data-name="panel_closed"><div class="sig"><a class="anchor" href="#sym-PANEL_CLOSED" aria-label="Link to PANEL_CLOSED">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">PANEL_CLOSED</span>: <span class="t">Mutex</span>&lt;<span class="t">Vec</span>&lt;<span class="t">String</span>&gt;&gt; = <span class="t">Mutex</span>::<span class="f">new</span>(<span class="t">Vec</span>::<span class="f">new</span>())</code></div><div class="doc"><p>Panel kinds the user closed, waiting for the frame loop to release them.</p>
+<p>The dock knows which panel a person closed, but holds no renderer. A tool's
+egui <code>TextureId</code> lives in a renderer the frame loop owns. This is the bridge:
+the dock records the closed kind here, and the primary frame drains it and
+calls <code>window::disable</code>, the same shape as <code>WINDOW_CLOSED</code> above.</p></div></div><div class="item" id="sym-DRAG_PROXY" data-name="drag_proxy"><div class="sig"><a class="anchor" href="#sym-DRAG_PROXY" aria-label="Link to DRAG_PROXY">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">DRAG_PROXY</span>: <span class="t">Mutex</span>&lt;<span class="t">Option</span>&lt;<span class="t">DragProxyState</span>&gt;&gt; = <span class="t">Mutex</span>::<span class="f">new</span>(<span class="t">None</span>)</code></div><div class="doc"><p>The follower window's wanted state, or None while nothing is in flight.</p></div></div><div class="item" id="sym-FULLSCREEN_TOGGLE_REQUESTED" data-name="fullscreen_toggle_requested"><div class="sig"><a class="anchor" href="#sym-FULLSCREEN_TOGGLE_REQUESTED" aria-label="Link to FULLSCREEN_TOGGLE_REQUESTED">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">FULLSCREEN_TOGGLE_REQUESTED</span>: <span class="t">AtomicBool</span> = <span class="t">AtomicBool</span>::<span class="f">new</span>(<span class="k">false</span>)</code></div><div class="doc"><p>One-shot signal: Display tab sets true, event loop swaps to false and
+toggles window.set_fullscreen(). Same pattern as SECONDARY_VIEWPORT_REQUESTED.</p></div></div><div class="item" id="sym-FULLSCREEN_STATE" data-name="fullscreen_state"><div class="sig"><a class="anchor" href="#sym-FULLSCREEN_STATE" aria-label="Link to FULLSCREEN_STATE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">FULLSCREEN_STATE</span>: <span class="t">AtomicBool</span> = <span class="t">AtomicBool</span>::<span class="f">new</span>(<span class="k">false</span>)</code></div><div class="doc"><p>Tracks current fullscreen state for GUI readback. Seeded from Config at
+launch, updated by event loop when toggle completes.</p></div></div><div class="item" id="sym-WINDOW_MODE_REQUESTED" data-name="window_mode_requested"><div class="sig"><a class="anchor" href="#sym-WINDOW_MODE_REQUESTED" aria-label="Link to WINDOW_MODE_REQUESTED">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">WINDOW_MODE_REQUESTED</span>: std::sync::atomic::<span class="t">AtomicU8</span> = std::sync::atomic::<span class="t">AtomicU8</span>::<span class="f">new</span>(<span class="n">255</span>)</code></div><div class="doc"><p>One-shot display-mode request. The event loop reads it, applies the winit
+mode, and stores 255 back. This mirrors FULLSCREEN_TOGGLE_REQUESTED, but a
+value instead of a toggle carries three modes in one word.
+0 = windowed
+1 = borderless fullscreen
+2 = exclusive fullscreen
+255 = no request</p></div></div><div class="item" id="sym-WINDOW_SIZE_REQ_W" data-name="window_size_req_w"><div class="sig"><a class="anchor" href="#sym-WINDOW_SIZE_REQ_W" aria-label="Link to WINDOW_SIZE_REQ_W">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">WINDOW_SIZE_REQ_W</span>: std::sync::atomic::<span class="t">AtomicU32</span> = std::sync::atomic::<span class="t">AtomicU32</span>::<span class="f">new</span>(<span class="n">0</span>)</code></div><div class="doc"><p>One-shot windowed-size request, in physical pixels. Both words nonzero
+means a resize is wanted. The event loop applies set_inner_size and stores
+0 back. This is standalone only: a hosted window follows its panel, so the
+drain skips the request when the process is hosted.</p></div></div><div class="item" id="sym-WINDOW_SIZE_REQ_H" data-name="window_size_req_h"><div class="sig"><a class="anchor" href="#sym-WINDOW_SIZE_REQ_H" aria-label="Link to WINDOW_SIZE_REQ_H">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">static</span> <span class="t">WINDOW_SIZE_REQ_H</span>: std::sync::atomic::<span class="t">AtomicU32</span> = std::sync::atomic::<span class="t">AtomicU32</span>::<span class="f">new</span>(<span class="n">0</span>)</code></div></div><h2 id="see-also">See also</h2><ul><li><a href="renderer.html" data-slug="renderer">Renderer and run</a></li><li><a href="display-mode.html" data-slug="display-mode">Display mode</a></li><li><a href="post.html" data-slug="post">Post effects</a></li><li><a href="project-settings.html" data-slug="project-settings">Project settings</a></li><li><a href="render.html" data-slug="render">Render passes</a></li><li><a href="hostlink.html" data-slug="hostlink">Host link</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/types/mod.rs</code> - <code>This module was one 2700-line file carrying a dozen unrelated concerns.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_core/src/types/display.rs</code> - <code>a second window silently rendered the game with</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/types/display.rs</code> - <code>It exists so that re-entering the global can FAIL rather than HANG.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/types/display.rs</code> - <code>EVERY EFFECT IS OFF, AND THE VALUES BESIDE THE SWITCHES ARE NOT</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_core/src/types/post_store.rs</code> - <code>hold an override that wins every frame, because that makes the panel dead.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_core/src/types/rawkey.rs</code> - <code>egui consumes a key event whenever any TextEdit holds keyboard focus</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_core/src/types/capture.rs</code> - <code>Two independent grabs.</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_core/src/types/capture.rs</code> - <code>A RELEASE IS NEVER THE ENTRY THAT GOES</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_core/src/types/playstate.rs</code> - <code>This is deliberately NOT the game&#x27;s own pause flag.</code></li><li id="ref-10"><a class="back" href="#cite-10" aria-label="Back to the text">^</a> <code>warp_core/src/types/gameview.rs</code> - <code>THIS DECIDES WHETHER THE CHROME IS POST-PROCESSED</code></li><li id="ref-11"><a class="back" href="#cite-11" aria-label="Back to the text">^</a> <code>warp_core/src/types/gameview.rs</code> - <code>True unconditionally outside embedded mode.</code></li><li id="ref-12"><a class="back" href="#cite-12" aria-label="Back to the text">^</a> <code>warp_core/src/types/gpudata.rs</code> - <code>This is the size of the</code></li><li id="ref-13"><a class="back" href="#cite-13" aria-label="Back to the text">^</a> <code>warp_core/src/types/windows.rs</code> - <code>Name a window that does not exist yet.</code></li><li id="ref-14"><a class="back" href="#cite-14" aria-label="Back to the text">^</a> <code>warp_core/src/types/appid.rs</code> - <code>because the GPU failure dialog in</code></li></ol><table class="navbox"><tr><th><a href="category-engine.html">Engine</a></th></tr><tr><td><a href="display-mode.html" data-slug="display-mode">Display mode</a> · <a href="perf.html" data-slug="perf">Perf</a> · <a href="gpu.html" data-slug="gpu">GPU module</a> · <a href="render.html" data-slug="render">Render passes</a> · <a href="scene.html" data-slug="scene">Scene</a> · <a href="image.html" data-slug="image">Image atlases</a> · <a href="assets.html" data-slug="assets">Assets</a> · <a href="manifest.html" data-slug="manifest">App manifest</a> · <a href="project-settings.html" data-slug="project-settings">Project settings</a> · <a href="scale.html" data-slug="scale">Interface scale</a> · <b>Types</b></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-engine.html">Engine</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

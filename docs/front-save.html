@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Save slots - Warp Wiki</title>
+<meta name="description" content="Numbered save files with metadata, atomic writes, and a version check">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="front-save">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#usage">Usage</a></li><li><a href="#where-the-files-are">Where the files are</a></li><li><a href="#the-file-format">The file format</a></li><li><a href="#atomic-writes">Atomic writes</a></li><li><a href="#versions">Versions</a></li><li><a href="#reading-and-listing">Reading and listing</a></li><li><a href="#errors">Errors</a></li><li><a href="#fields">Fields</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Save slots</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">Numbered save files with metadata, atomic writes, and a version check</p><table class="infobox"><caption>Save slots</caption><tr><th>Category</th><td><a href="category-front-end.html">Front end</a></td></tr><tr><th>Module</th><td><code>warp_sdk::front::save</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/front/save.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">24</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example front</code></td></tr></table><p><strong>Save slots</strong> are numbered save files with metadata, in the <a class="sym" href="front-save.html"><code>warp_sdk::front::save</code></a> module. <a class="sym" href="#sym-Slots"><code>Slots</code></a> manages a fixed number of files for one game, writes each one atomically, and checks versions on read. The payload is text that the game owns. <a class="sym" href="#sym-Fields"><code>Fields</code></a> is a small key=value map for a game that has no format of its own.</p>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::front::save::{<span class="t">Fields</span>, <span class="t">Slots</span>};
+<span class="k">let</span> slots = <span class="t">Slots</span>::<span class="f">new</span>(<span class="s">"reef"</span>, <span class="n">3</span>).<span class="f">version</span>(<span class="n">2</span>);
+<span class="c">// Save:</span>
+<span class="k">let</span> <span class="k">mut</span> f = <span class="t">Fields</span>::<span class="f">new</span>();
+f.<span class="f">set</span>(<span class="s">"depth"</span>, <span class="n">41.5</span>).<span class="f">set</span>(<span class="s">"polyps"</span>, <span class="n">12</span>);
+slots.<span class="f">write</span>(<span class="n">1</span>, <span class="s">"Outer shelf"</span>, playtime_secs, &amp;f.<span class="f">to_text</span>())?;
+<span class="c">// Continue:</span>
+<span class="k">if</span> <span class="k">let</span> <span class="t">Some</span>(meta) = slots.<span class="f">latest</span>() {
+    <span class="k">let</span> save = slots.<span class="f">read</span>(meta.slot)?;
+    <span class="k">let</span> f = <span class="t">Fields</span>::<span class="f">parse</span>(&amp;save.payload);
+    <span class="k">let</span> depth: f32 = f.<span class="f">get</span>(<span class="s">"depth"</span>).<span class="f">unwrap_or</span>(<span class="n">0.0</span>);
+}</code></pre></div>
+<p>Slots are numbered from 1. <a class="sym" href="#sym-Slots-latest"><code>latest</code></a> gives the slot written last, which is what a Continue button reads. Set <a class="sym" href="front-menu.html#sym-Title-has_save"><code>Title::has_save</code></a> from it, as in <a href="front-menu.html" data-slug="front-menu">Menu screens</a>.</p>
+<h2 id="where-the-files-are">Where the files are</h2>
+<p><a class="sym" href="#sym-Slots-new"><code>Slots::new</code></a> puts the files under the per-user application data folder, at <code>games/&lt;game&gt;/saves/slot-&lt;k&gt;.save</code>. The game name becomes a folder name, so the kit keeps only letters, digits, <code>-</code> and <code>_</code>, and replaces each other character with <code>_</code>. A count of zero becomes one.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Platform</th>
+<th>Application data root</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Windows</td>
+<td><code>%LOCALAPPDATA%\Warp</code></td>
+</tr>
+<tr>
+<td>macOS</td>
+<td><code>Library/Application Support/Warp</code>, in the home folder</td>
+</tr>
+<tr>
+<td>Linux</td>
+<td><code>$XDG_DATA_HOME/warp</code></td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Slots-at"><code>Slots::at</code></a> uses any directory, which suits tests.</p>
+<h2 id="the-file-format">The file format</h2>
+<p>A save is plain text, so a person can read it.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-text">warp-save=1          the kit format, SAVE_FORMAT
+version=2            the game's own format, from Slots::version
+saved=1793212345     unix seconds
+playtime=812.5       seconds of play
+label=Outer shelf    escaped: \\ \n \r
+thumbnail=C:/...     optional
+---
+&lt;payload, the game's text, as it was given&gt;</code></pre></div>
+<p>The first <code>---</code> line ends the header, so a payload may hold its own <code>---</code> lines. warp_sdk has no serde, which is why the payload is text.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<h2 id="atomic-writes">Atomic writes</h2>
+<p>A write goes to <code>slot-&lt;k&gt;.save.tmp</code>, is flushed to disk, and then a rename replaces the slot file. A crash during the write leaves the old save whole.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup> The parent folders are created on the first write.</p>
+<p><a class="sym" href="#sym-Slots-write"><code>write</code></a> takes a slot, a label, the play time in seconds and the payload. <a class="sym" href="#sym-Slots-write_with"><code>write_with</code></a> also takes a thumbnail path, which the kit stores as a path and does not copy. Negative play time is clamped to zero. Both return the <a class="sym" href="#sym-SaveMeta"><code>SaveMeta</code></a> that they wrote.</p>
+<h2 id="versions">Versions</h2>
+<p>Two numbers are in a file. <code>warp-save</code> is the layout of the kit, <a class="sym" href="#sym-SAVE_FORMAT"><code>SAVE_FORMAT</code></a>, which is 1. <a class="sym" href="#sym-Slots-version"><code>version</code></a> is the format of the game, set by <a class="sym" href="#sym-Slots-version"><code>Slots::version</code></a> and 1 by default.</p>
+<p>A file with a higher game version does not read, and gives SaveError::TooNew. A file with a lower version reads, and the game migrates it from <code>meta.version</code>.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup> A file with a newer kit format also gives TooNew.</p>
+<h2 id="reading-and-listing">Reading and listing</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Call</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Slots-read"><code>read(slot)</code></a></td>
+<td>The whole <a class="sym" href="#sym-SaveFile"><code>SaveFile</code></a>: metadata and payload</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Slots-list"><code>list()</code></a></td>
+<td>One <code>Option&lt;SaveMeta&gt;</code> per slot, in slot order</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Slots-latest"><code>latest()</code></a></td>
+<td>The slot with the highest saved time, or <code>None</code></td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Slots-first_empty"><code>first_empty()</code></a></td>
+<td>The lowest empty slot, or <code>None</code> when all are full</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Slots-delete"><code>delete(slot)</code></a></td>
+<td>Removes the file. An empty slot is not an error</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Slots-count"><code>count()</code></a>, <a class="sym" href="#sym-Slots-dir"><code>dir()</code></a></td>
+<td>The slot count, and the folder if the platform has one</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Slots-list"><code>list</code></a> treats an unreadable slot in the same way as an empty one: both are <code>None</code>. A damaged or too-new save therefore disappears from <a class="sym" href="#sym-Slots-latest"><code>latest</code></a>, and <a class="sym" href="#sym-Slots-first_empty"><code>first_empty</code></a> reports its slot as free. Ties on the saved time go to the higher slot number. <code>saved</code> has a resolution of one second.</p>
+<p><a class="sym" href="#sym-SaveMeta"><code>SaveMeta</code></a> holds <code>slot</code>, <a class="sym" href="#sym-Slots-version"><code>version</code></a>, <code>saved</code>, <code>playtime</code>, <code>label</code> and <code>thumbnail</code>.</p>
+<h2 id="errors">Errors</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th><a class="sym" href="#sym-SaveError"><code>SaveError</code></a></th>
+<th>Cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NoSuchSlot(n)</td>
+<td>The slot number is 0 or more than the count</td>
+</tr>
+<tr>
+<td>Empty(n)</td>
+<td>The slot has no save</td>
+</tr>
+<tr>
+<td>NoDataDir</td>
+<td>The platform has no application data folder</td>
+</tr>
+<tr>
+<td>Corrupt(text)</td>
+<td>The file is not a save, or its header is damaged</td>
+</tr>
+<tr>
+<td><code>TooNew { found, supported }</code></td>
+<td>The file is newer than this build</td>
+</tr>
+<tr>
+<td>Io(error)</td>
+<td>Any other file error</td>
+</tr>
+</tbody>
+</table>
+<h2 id="fields">Fields</h2>
+<p><a class="sym" href="#sym-Fields"><code>Fields</code></a> is a sorted map of text. <a class="sym" href="#sym-Fields-set"><code>set</code></a> stores any <a class="sym" href="front-settings.html#sym-Display"><code>Display</code></a> value, and <a class="sym" href="#sym-Fields-get"><code>get</code></a> parses it into a <code>FromStr</code> type, with <code>None</code> when the key is absent or does not parse. <a class="sym" href="#sym-Fields-text"><code>text</code></a> gives the raw string. <a class="sym" href="#sym-Fields-to_text"><code>to_text</code></a> writes one <code>key=value</code> line per field, in key order, and <a class="sym" href="#sym-Fields-parse"><code>parse</code></a> reads that text and skips lines with no <code>=</code>.</p>
+<p>Keys must not hold <code>=</code> or a line break, and <a class="sym" href="#sym-Fields-set"><code>set</code></a> removes those characters. Values are escaped, so any text survives.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> <span class="k">mut</span> f = <span class="t">Fields</span>::<span class="f">new</span>();
+f.<span class="f">set</span>(<span class="s">"hp"</span>, <span class="n">3</span>).<span class="f">set</span>(<span class="s">"name"</span>, <span class="s">"Ana\nB"</span>);
+<span class="k">let</span> back = <span class="t">Fields</span>::<span class="f">parse</span>(&amp;f.<span class="f">to_text</span>());
+assert_eq!(back.get::&lt;i32&gt;(<span class="s">"hp"</span>), <span class="t">Some</span>(<span class="n">3</span>));
+assert_eq!(back.<span class="f">text</span>(<span class="s">"name"</span>), <span class="t">Some</span>(<span class="s">"Ana\nB"</span>));</code></pre></div><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 24 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-front--save" class="modhead"><code>warp_sdk::front::save</code></h3><h4>Types</h4><div class="typeblock"><div class="item" id="sym-SaveMeta" data-name="savemeta"><div class="sig"><a class="anchor" href="#sym-SaveMeta" aria-label="Link to SaveMeta">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">SaveMeta</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The slot number, from 1.</span>
+<span class="k">pub</span> slot: usize,
+<span class="c">/// The game's format version at the time of the write.</span>
+<span class="k">pub</span> version: u32,
+<span class="c">/// Unix seconds at the time of the write.</span>
+<span class="k">pub</span> saved: u64,
+<span class="c">/// Seconds of play.</span>
+<span class="k">pub</span> playtime: f64,
+<span class="c">/// A short text the slot list shows, for example the area name.</span>
+<span class="k">pub</span> label: <span class="t">String</span>,
+<span class="c">/// An image the slot list shows, if the game wrote one.</span>
+<span class="k">pub</span> thumbnail: <span class="t">Option</span>&lt;<span class="t">PathBuf</span>&gt;,</code></pre></div><div class="doc"><p>The metadata of one slot. <code>read</code>, <code>list</code> and <code>latest</code> return it.</p></div></div></div><div class="typeblock"><div class="item" id="sym-SaveFile" data-name="savefile"><div class="sig"><a class="anchor" href="#sym-SaveFile" aria-label="Link to SaveFile">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">SaveFile</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> meta: <span class="t">SaveMeta</span>,
+<span class="k">pub</span> payload: <span class="t">String</span>,</code></pre></div><div class="doc"><p>A slot read whole: the metadata and the game's payload.</p></div></div></div><div class="typeblock"><div class="item" id="sym-SaveError" data-name="saveerror"><div class="sig"><a class="anchor" href="#sym-SaveError" aria-label="Link to SaveError">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">SaveError</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The slot number is 0 or more than the slot count.</span>
+<span class="t">NoSuchSlot</span>(usize),
+<span class="c">/// The slot has no save.</span>
+<span class="t">Empty</span>(usize),
+<span class="c">/// The platform has no app data folder.</span>
+<span class="t">NoDataDir</span>,
+<span class="c">/// The file is not a warp save, or its header is damaged.</span>
+<span class="t">Corrupt</span>(<span class="t">String</span>),
+<span class="c">/// The file was written by a newer game version than this one.</span>
+<span class="t">TooNew</span> { found: u32, supported: u32 },
+<span class="t">Io</span>(std::io::<span class="t">Error</span>),</code></pre></div><div class="doc"><p>Why a save operation failed.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Slots" data-name="slots"><div class="sig"><a class="anchor" href="#sym-Slots" aria-label="Link to Slots">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Slots</span></code></div><div class="doc"><p>N numbered save slots in one folder.</p>
+<p><code>ignore
+let slots = Slots::new("reef", 3);
+slots.write(1, "Shelf", 60.0, "depth=4")?;
+assert_eq!(slots.latest().unwrap().slot, 1);</code></p></div></div><details class="members"><summary>12 methods</summary><div class="item" id="sym-Slots-new" data-name="slots::new"><div class="sig"><a class="anchor" href="#sym-Slots-new" aria-label="Link to Slots::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(game: &amp;str, count: usize) -&gt; <span class="t">Slots</span></code></div><div class="doc"><p><code>count</code> slots for <code>game</code> under the per-user app data folder. <code>game</code>
+becomes a folder name, so the kit keeps only letters, digits, <code>-</code>
+and <code>_</code>.</p></div></div><div class="item" id="sym-Slots-at" data-name="slots::at"><div class="sig"><a class="anchor" href="#sym-Slots-at" aria-label="Link to Slots::at">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">at</span>(dir: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">PathBuf</span>&gt;, count: usize) -&gt; <span class="t">Slots</span></code></div><div class="doc"><p><code>count</code> slots in <code>dir</code>.</p></div></div><div class="item" id="sym-Slots-version" data-name="slots::version"><div class="sig"><a class="anchor" href="#sym-Slots-version" aria-label="Link to Slots::version">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">version</span>(<span class="k">mut</span> <span class="k">self</span>, v: u32) -&gt; <span class="t">Slots</span></code></div><div class="doc"><p>Set the game's save format version. A file with a higher version
+does not read. A file with a lower version reads, and the game
+migrates it from <code>meta.version</code>.</p></div></div><div class="item" id="sym-Slots-count" data-name="slots::count"><div class="sig"><a class="anchor" href="#sym-Slots-count" aria-label="Link to Slots::count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">count</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>The number of slots.</p></div></div><div class="item" id="sym-Slots-dir" data-name="slots::dir"><div class="sig"><a class="anchor" href="#sym-Slots-dir" aria-label="Link to Slots::dir">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">dir</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Path</span>&gt;</code></div><div class="doc"><p>The folder of the slot files, if the platform has one.</p></div></div><div class="item" id="sym-Slots-write" data-name="slots::write"><div class="sig"><a class="anchor" href="#sym-Slots-write" aria-label="Link to Slots::write">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">write</span>(&amp;<span class="k">self</span>, slot: usize, label: &amp;str, playtime: f64, payload: &amp;str) -&gt; <span class="t">Result</span>&lt;<span class="t">SaveMeta</span>, <span class="t">SaveError</span>&gt;</code></div><div class="doc"><p>Write <code>payload</code> to <code>slot</code> with no thumbnail. The time is now.</p></div></div><div class="item" id="sym-Slots-write_with" data-name="slots::write_with"><div class="sig"><a class="anchor" href="#sym-Slots-write_with" aria-label="Link to Slots::write_with">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">write_with</span>(&amp;<span class="k">self</span>, slot: usize, label: &amp;str, playtime: f64, thumbnail: <span class="t">Option</span>&lt;&amp;<span class="t">Path</span>&gt;, payload: &amp;str) -&gt; <span class="t">Result</span>&lt;<span class="t">SaveMeta</span>, <span class="t">SaveError</span>&gt;</code></div><div class="doc"><p>Write <code>payload</code> to <code>slot</code>, atomically: temp file, flush, rename.</p></div></div><div class="item" id="sym-Slots-read" data-name="slots::read"><div class="sig"><a class="anchor" href="#sym-Slots-read" aria-label="Link to Slots::read">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">read</span>(&amp;<span class="k">self</span>, slot: usize) -&gt; <span class="t">Result</span>&lt;<span class="t">SaveFile</span>, <span class="t">SaveError</span>&gt;</code></div><div class="doc"><p>Read <code>slot</code> whole.</p></div></div><div class="item" id="sym-Slots-list" data-name="slots::list"><div class="sig"><a class="anchor" href="#sym-Slots-list" aria-label="Link to Slots::list">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">list</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">Option</span>&lt;<span class="t">SaveMeta</span>&gt;&gt;</code></div><div class="doc"><p>The metadata of each slot, in slot order. <code>None</code> is an empty or
+unreadable slot.</p></div></div><div class="item" id="sym-Slots-latest" data-name="slots::latest"><div class="sig"><a class="anchor" href="#sym-Slots-latest" aria-label="Link to Slots::latest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">latest</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">SaveMeta</span>&gt;</code></div><div class="doc"><p>The slot written last, for "Continue". <code>None</code> when no slot reads.</p></div></div><div class="item" id="sym-Slots-first_empty" data-name="slots::first_empty"><div class="sig"><a class="anchor" href="#sym-Slots-first_empty" aria-label="Link to Slots::first_empty">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">first_empty</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;usize&gt;</code></div><div class="doc"><p>The lowest empty slot, or <code>None</code> when every slot is full.</p></div></div><div class="item" id="sym-Slots-delete" data-name="slots::delete"><div class="sig"><a class="anchor" href="#sym-Slots-delete" aria-label="Link to Slots::delete">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">delete</span>(&amp;<span class="k">self</span>, slot: usize) -&gt; <span class="t">Result</span>&lt;(), <span class="t">SaveError</span>&gt;</code></div><div class="doc"><p>Delete the save in <code>slot</code>. An empty slot is not an error.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Fields" data-name="fields"><div class="sig"><a class="anchor" href="#sym-Fields" aria-label="Link to Fields">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Fields</span>(<span class="t">BTreeMap</span>&lt;<span class="t">String</span>, <span class="t">String</span>&gt;)</code></div><div class="doc"><p>A small key=value map for a save payload. Keys must not hold <code>=</code> or a
+line break. Values are escaped, so any text survives.</p>
+<p><code>ignore
+let mut f = Fields::new();
+f.set("hp", 3).set("name", "Ana\nB");
+let back = Fields::parse(&amp;f.to_text());
+assert_eq!(back.get::&lt;i32&gt;("hp"), Some(3));
+assert_eq!(back.text("name"), Some("Ana\nB"));</code></p></div></div><details class="members"><summary>6 methods</summary><div class="item" id="sym-Fields-new" data-name="fields::new"><div class="sig"><a class="anchor" href="#sym-Fields-new" aria-label="Link to Fields::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="t">Fields</span></code></div></div><div class="item" id="sym-Fields-set" data-name="fields::set"><div class="sig"><a class="anchor" href="#sym-Fields-set" aria-label="Link to Fields::set">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, key: &amp;str, value: <span class="k">impl</span> std::fmt::<span class="t">Display</span>) -&gt; &amp;<span class="k">mut</span> <span class="t">Fields</span></code></div><div class="doc"><p>Store <code>value</code> as its <code>Display</code> text under <code>key</code>.</p></div></div><div class="item" id="sym-Fields-get" data-name="fields::get"><div class="sig"><a class="anchor" href="#sym-Fields-get" aria-label="Link to Fields::get">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> get&lt;<span class="t">T</span>: std::str::<span class="t">FromStr</span>&gt;(&amp;<span class="k">self</span>, key: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="t">T</span>&gt;</code></div><div class="doc"><p>The value under <code>key</code>, parsed. <code>None</code> when it is absent or does not parse.</p></div></div><div class="item" id="sym-Fields-text" data-name="fields::text"><div class="sig"><a class="anchor" href="#sym-Fields-text" aria-label="Link to Fields::text">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">text</span>(&amp;<span class="k">self</span>, key: &amp;str) -&gt; <span class="t">Option</span>&lt;&amp;str&gt;</code></div><div class="doc"><p>The raw text under <code>key</code>.</p></div></div><div class="item" id="sym-Fields-to_text" data-name="fields::to_text"><div class="sig"><a class="anchor" href="#sym-Fields-to_text" aria-label="Link to Fields::to_text">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">to_text</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">String</span></code></div><div class="doc"><p>One <code>key=value</code> line per field, in key order.</p></div></div><div class="item" id="sym-Fields-parse" data-name="fields::parse"><div class="sig"><a class="anchor" href="#sym-Fields-parse" aria-label="Link to Fields::parse">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">parse</span>(text: &amp;str) -&gt; <span class="t">Fields</span></code></div><div class="doc"><p>The fields of a text from <code>to_text</code>. Lines with no <code>=</code> are skipped.</p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-SAVE_FORMAT" data-name="save_format"><div class="sig"><a class="anchor" href="#sym-SAVE_FORMAT" aria-label="Link to SAVE_FORMAT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SAVE_FORMAT</span>: u32 = <span class="n">1</span></code></div><div class="doc"><p>The version of the file layout this kit writes and reads.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="front.html" data-slug="front">Front end</a></li><li><a href="front-menu.html" data-slug="front-menu">Menu screens</a></li><li><a href="front-settings.html" data-slug="front-settings">Settings</a></li><li><a href="metaprog.html" data-slug="metaprog">Metaprogression</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/save.rs</code> - <code>/// becomes a folder name, so the kit keeps only letters, digits, `-`</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/save.rs</code> - <code>//! Plain text, so a person can read a save:</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/save.rs</code> - <code>//! warp_sdk has no serde, so the payload is text the game owns. [`Fields`</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/save.rs</code> - <code>//! file. A crash during the write leaves the old save whole.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/save.rs</code> - <code>/// does not read. A file with a lower version reads, and the game</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/save.rs</code> - <code>/// A small key=value map for a save payload. Keys must not hold `=` or a</code></li></ol><table class="navbox"><tr><th><a href="category-front-end.html">Front end</a></th></tr><tr><td><a href="front.html" data-slug="front">Front end</a> · <a href="front-menu.html" data-slug="front-menu">Menu screens</a> · <b>Save slots</b> · <a href="front-settings.html" data-slug="front-settings">Settings</a> · <a href="fonts.html" data-slug="fonts">Fonts</a> · <a href="cine.html" data-slug="cine">Cine</a> · <a href="icon.html" data-slug="icon">Application icon</a> · <a href="boot.html" data-slug="boot">Boot splash and screenshots</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-front-end.html">Front end</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

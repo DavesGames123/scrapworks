@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dev console - Warp Wiki</title>
+<meta name="description" content="the Console panel, a mirror of the game&#x27;s own scrollback">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="devconsole">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#design">Design</a><ul><li><a href="#a-snapshot-and-a-revision">A snapshot and a revision</a></li><li><a href="#the-want-clock-counts-polls">The want clock counts polls</a></li><li><a href="#typing-is-a-queue">Typing is a queue</a></li></ul></li><li><a href="#usage">Usage</a></li><li><a href="#api">API</a></li><li><a href="#across-processes">Across processes</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Dev console</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">the Console panel, a mirror of the game&#x27;s own scrollback</p><table class="infobox"><caption>Dev console</caption><tr><th>Category</th><td><a href="category-editor-channels.html">Editor channels</a></td></tr><tr><th>Module</th><td><code>warp_sdk::devconsole</code></td></tr><tr><th>Source</th><td><code>warp_core/src/devconsole.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">20</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example pong</code><br><code>cargo run -p warp_sdk --example starter</code></td></tr></table><p><strong>The dev console</strong> is the channel behind the Console panel, a dock panel that shows the console an application already has and types back into it. The <a class="sym" href="devconsole.html"><code>devconsole</code></a> module of <code>warp_core</code>, re-exported by <code>warp_sdk</code>, is the whole of the part that the engine plays. There is one scrollback with two views: a line printed in the game appears in the panel, and a command entered in the panel runs in the game and prints in both.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<h2 id="design">Design</h2>
+<p>The console lives in the application, and the dependency runs one way, so the engine cannot name its commands or interpreter. The application publishes, and the engine draws. Every line that crosses is a string and three bytes of colour.</p>
+<h3 id="a-snapshot-and-a-revision">A snapshot and a revision</h3>
+<p>The obvious build hooks the function that appends a line, and forwards each line. It fails because a buffer is also cleared, and it drops its oldest lines at a cap. An append-only stream carries neither, so the first <code>cls</code> would leave the panel showing lines that the game no longer has.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<p>So the unit that crosses is a snapshot. The publisher bumps a counter on each change to its buffer, and it republishes when that counter differs from <a class="sym" href="#sym-published_revision"><code>published_revision</code></a>.</p>
+<h3 id="the-want-clock-counts-polls">The want clock counts polls</h3>
+<p><a class="sym" href="#sym-want_console"><code>want_console</code></a> is the same brake as <a class="sym" href="census.html#sym-want_census"><code>want_census</code></a>, with one difference. Console output changes only when a command runs, so a publish clock would stand still through each idle frame, and a deadline against a stopped clock never arrives. <a class="sym" href="#sym-console_wanted"><code>console_wanted</code></a> advances the clock instead, so the per-frame question of the publisher is the tick.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> <a class="sym" href="#sym-WANT_GRACE"><code>WANT_GRACE</code></a> is 3.</p>
+<h3 id="typing-is-a-queue">Typing is a queue</h3>
+<p>Running a command needs a renderer, a world, or a mutable borrow of both, and none of these exist when a person presses Return inside a panel draw. The panel records the text, and the application runs it on its own frame. <a class="sym" href="#sym-MAX_PENDING"><code>MAX_PENDING</code></a> is 64.</p>
+<p>The panel does not echo what it sends. The console of the application prints the echo, and it arrives with the next publish. A local echo would show each command twice, in this panel only.</p>
+<h2 id="usage">Usage</h2>
+<p>Drain the commands where the game holds what they need, and publish when the buffer changes. <a class="sym" href="#sym-Seg"><code>Seg</code></a> is one coloured run, and <a class="sym" href="#sym-Line"><code>Line</code></a> is a row of them.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">fn</span> <span class="f">gui</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, _v: <span class="t">ViewportId</span>, ctx: &amp;warp_sdk::egui::<span class="t">Context</span>, _d: &amp;<span class="k">mut</span> <span class="t">DisplaySettings</span>) {
+    <span class="k">for</span> cmd <span class="k">in</span> devconsole::<span class="f">take_submissions</span>() {
+        <span class="k">if</span> cmd == <span class="s">"reset"</span> {
+            <span class="k">self</span>.score = [<span class="n">0</span>, <span class="n">0</span>];
+            <span class="k">self</span>.<span class="f">point</span>();
+        }
+    }
+}
+
+<span class="c">/// Announce the score on the console.</span>
+<span class="k">fn</span> <span class="f">point</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) {
+    <span class="k">self</span>.rev += <span class="n">1</span>;
+    <span class="k">let</span> line = format!(<span class="s">"score  {} : {}"</span>, <span class="k">self</span>.score[<span class="n">0</span>], <span class="k">self</span>.score[<span class="n">1</span>]);
+    devconsole::<span class="f">publish</span>(
+        <span class="k">self</span>.rev,
+        vec![devconsole::<span class="t">Line</span>::<span class="f">new</span>(vec![devconsole::<span class="t">Seg</span>::<span class="f">new</span>(line, [<span class="n">200</span>, <span class="n">200</span>, <span class="n">200</span>])])],
+    );
+}</code></pre></div>
+<p><a class="sym" href="#sym-publish_words"><code>devconsole::publish_words</code></a> sends the completion vocabulary once, in <a class="sym" href="#sym-Seg-new"><code>new</code></a>. <a class="sym" href="#sym-words_published"><code>words_published</code></a> says whether that was done. On the panel side, <a class="sym" href="#sym-completions"><code>completions</code></a> gives the matches for a prefix and <a class="sym" href="#sym-common_prefix"><code>common_prefix</code></a> gives their shared start, and <a class="sym" href="#sym-with_console"><code>with_console</code></a> and <a class="sym" href="#sym-with_words"><code>with_words</code></a> lend the data for drawing.</p>
+<h2 id="api">API</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Side</th>
+<th>Function</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Panel</td>
+<td><a class="sym" href="#sym-want_console"><code>want_console</code></a></td>
+<td>I am open, or closed</td>
+</tr>
+<tr>
+<td>Panel</td>
+<td><a class="sym" href="#sym-with_console"><code>with_console</code></a></td>
+<td>Borrow the lines to draw</td>
+</tr>
+<tr>
+<td>Panel</td>
+<td><a class="sym" href="#sym-submit"><code>submit</code></a></td>
+<td>Queue a command</td>
+</tr>
+<tr>
+<td>Publisher</td>
+<td><a class="sym" href="#sym-console_wanted"><code>console_wanted</code></a></td>
+<td>Is anyone looking; ticks the clock</td>
+</tr>
+<tr>
+<td>Publisher</td>
+<td><a class="sym" href="#sym-publish"><code>publish</code></a></td>
+<td>Install a snapshot</td>
+</tr>
+<tr>
+<td>Publisher</td>
+<td><a class="sym" href="#sym-published_revision"><code>published_revision</code></a></td>
+<td>Is the snapshot stale</td>
+</tr>
+<tr>
+<td>Publisher</td>
+<td><a class="sym" href="#sym-take_submissions"><code>take_submissions</code></a></td>
+<td>What was typed since the last frame</td>
+</tr>
+<tr>
+<td>Publisher</td>
+<td><a class="sym" href="#sym-has_submissions"><code>has_submissions</code></a></td>
+<td>Peek at the queue</td>
+</tr>
+</tbody>
+</table>
+<p><a href="perf.html" data-slug="perf">Perf</a> returns its warnings as <a class="sym" href="#sym-Line"><code>Line</code></a> values, because this console is a snapshot that the game owns and the kit cannot add to it.</p>
+<h2 id="across-processes">Across processes</h2>
+<p>Nothing in this file changed when the editor stopped linking the game. The panel arms <a class="sym" href="#sym-want_console"><code>want_console</code></a> and reads <a class="sym" href="#sym-with_console"><code>with_console</code></a> in its own copy, and the game polls and publishes in its copy. <a href="hostlink.html" data-slug="hostlink">Host link</a> carries a snapshot up and a want down in <a class="sym" href="hostlink.html#sym-pump_console"><code>pump_console</code></a>. The cost is a frame of lag.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 20 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-devconsole" class="modhead"><code>warp_sdk::devconsole</code></h3><h4>Functions</h4><div class="item" id="sym-want_console" data-name="want_console"><div class="sig"><a class="anchor" href="#sym-want_console" aria-label="Link to want_console">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">want_console</span>(on: bool)</code></div><div class="doc"><p>Panel: I am drawing this. Call it on every frame the panel draws.</p>
+<p><code>false</code> gives up immediately, for a host that knows the panel has gone.
+Not calling it at all gives up within <code>WANT_GRACE</code> polls, which is the path
+that actually carries the weight — a torn-off panel whose window was closed
+never gets to say so.</p></div></div><div class="item" id="sym-console_wanted" data-name="console_wanted"><div class="sig"><a class="anchor" href="#sym-console_wanted" aria-label="Link to console_wanted">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">console_wanted</span>() -&gt; bool</code></div><div class="doc"><p>Publisher: is it worth comparing revisions at all. Advances the clock.</p>
+<p>One relaxed add and one relaxed load per frame when the answer is no, which
+is the common case and the one that had to be free.</p></div></div><div class="item" id="sym-publish" data-name="publish"><div class="sig"><a class="anchor" href="#sym-publish" aria-label="Link to publish">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">publish</span>(rev: u64, lines: <span class="t">Vec</span>&lt;<span class="t">Line</span>&gt;)</code></div><div class="doc"><p>Publisher: install a snapshot, and say which revision of yours it is.</p>
+<p><code>rev</code> is the publisher's own counter and is never interpreted here. It is
+compared for equality and nothing else, so any value that changes on every
+mutation will do.</p></div></div><div class="item" id="sym-published_revision" data-name="published_revision"><div class="sig"><a class="anchor" href="#sym-published_revision" aria-label="Link to published_revision">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">published_revision</span>() -&gt; u64</code></div><div class="doc"><p>The revision of the snapshot now installed, without taking the lock.</p>
+<p>A publisher republishes when this differs from the revision it holds.</p></div></div><div class="item" id="sym-with_console" data-name="with_console"><div class="sig"><a class="anchor" href="#sym-with_console" aria-label="Link to with_console">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> with_console&lt;<span class="t">R</span>&gt;(f: <span class="k">impl</span> <span class="t">FnOnce</span>(&amp;[<span class="t">Line</span>]) -&gt; <span class="t">R</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">R</span>&gt;</code></div><div class="doc"><p>Panel: read the scrollback.</p>
+<p>A closure rather than a clone, because the panel reads it once per frame
+and copying the whole buffer to paint the thirty rows that fit is the cost
+the revision protocol exists to avoid.</p></div></div><div class="item" id="sym-submit" data-name="submit"><div class="sig"><a class="anchor" href="#sym-submit" aria-label="Link to submit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">submit</span>(cmd: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;)</code></div><div class="doc"><p>Panel: run this on the application's next frame.</p>
+<p>Blank lines are dropped here rather than at the far end, so a publisher
+does not have to guard against a Return pressed at an empty prompt.</p></div></div><div class="item" id="sym-take_submissions" data-name="take_submissions"><div class="sig"><a class="anchor" href="#sym-take_submissions" aria-label="Link to take_submissions">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_submissions</span>() -&gt; <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;</code></div><div class="doc"><p>Publisher: everything typed since the last call, oldest first.</p>
+<p>Drains, so a command runs once. Order is kept because console commands are
+not commutative — <code>cd learn</code> then <code>ls</code> is not <code>ls</code> then <code>cd learn</code>.</p></div></div><div class="item" id="sym-has_submissions" data-name="has_submissions"><div class="sig"><a class="anchor" href="#sym-has_submissions" aria-label="Link to has_submissions">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">has_submissions</span>() -&gt; bool</code></div><div class="doc"><p>Whether anything is waiting, without draining it.</p></div></div><div class="item" id="sym-publish_words" data-name="publish_words"><div class="sig"><a class="anchor" href="#sym-publish_words" aria-label="Link to publish_words">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">publish_words</span>(words: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;)</code></div><div class="doc"><p>Publisher: these are the words worth completing.</p>
+<p>Sent whole and replaced whole. A command table is fixed at build time in
+most applications, so this is normally called once and never again — but
+replacing rather than appending means a publisher whose vocabulary DOES
+change has nothing extra to do.</p></div></div><div class="item" id="sym-words_published" data-name="words_published"><div class="sig"><a class="anchor" href="#sym-words_published" aria-label="Link to words_published">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">words_published</span>() -&gt; bool</code></div><div class="doc"><p>Publisher: have I sent one already.</p></div></div><div class="item" id="sym-with_words" data-name="with_words"><div class="sig"><a class="anchor" href="#sym-with_words" aria-label="Link to with_words">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> with_words&lt;<span class="t">R</span>&gt;(f: <span class="k">impl</span> <span class="t">FnOnce</span>(&amp;[<span class="t">String</span>]) -&gt; <span class="t">R</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">R</span>&gt;</code></div><div class="doc"><p>Panel: borrow the vocabulary to complete against.</p></div></div><div class="item" id="sym-completions" data-name="completions"><div class="sig"><a class="anchor" href="#sym-completions" aria-label="Link to completions">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">completions</span>(prefix: &amp;str) -&gt; <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;</code></div><div class="doc"><p>The words that extend <code>prefix</code>, in the order the publisher gave them.</p>
+<p>Case-sensitive, because a console's commands are. An empty prefix completes
+to nothing rather than everything: Tab at an empty prompt should do nothing
+visible, not paste the entire command table into the line.</p></div></div><div class="item" id="sym-common_prefix" data-name="common_prefix"><div class="sig"><a class="anchor" href="#sym-common_prefix" aria-label="Link to common_prefix">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">common_prefix</span>(candidates: &amp;[<span class="t">String</span>]) -&gt; <span class="t">String</span></code></div><div class="doc"><p>The longest prefix every candidate shares.</p>
+<p>What Tab actually inserts when several words match. Completing to the first
+candidate instead would pick one of several equally good answers and be
+wrong most of the time; completing to the shared stem is never wrong, and
+it is what leaves the caret where a second Tab is useful.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Seg" data-name="seg"><div class="sig"><a class="anchor" href="#sym-Seg" aria-label="Link to Seg">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Seg</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> text: <span class="t">String</span>,
+<span class="k">pub</span> color: [u8; <span class="n">3</span>],</code></pre></div><div class="doc"><p>One run of text in one colour.</p>
+<p>Straight RGB, and no style beyond it. A console's own palette is the
+publisher's business, and a channel that carried bold, italic and a font
+would be describing a text layout rather than a line of output.</p>
+<p>Serialisable because the publisher is now usually in another process and
+the snapshot travels as JSON. See <code>ToEditor::Console</code>.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Seg-new" data-name="seg::new"><div class="sig"><a class="anchor" href="#sym-Seg-new" aria-label="Link to Seg::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(text: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, color: [u8; <span class="n">3</span>]) -&gt; <span class="k">Self</span></code></div></div></details></div><div class="typeblock"><div class="item" id="sym-Line" data-name="line"><div class="sig"><a class="anchor" href="#sym-Line" aria-label="Link to Line">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Line</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> segments: <span class="t">Vec</span>&lt;<span class="t">Seg</span>&gt;,</code></pre></div><div class="doc"><p>One row of the scrollback, as however many colours it takes.</p>
+<p>A row and not a paragraph. The publisher decides where lines break; this
+panel wraps a long one to the panel width but never joins two.</p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-Line-new" data-name="line::new"><div class="sig"><a class="anchor" href="#sym-Line-new" aria-label="Link to Line::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(segments: <span class="t">Vec</span>&lt;<span class="t">Seg</span>&gt;) -&gt; <span class="k">Self</span></code></div></div><div class="item" id="sym-Line-text" data-name="line::text"><div class="sig"><a class="anchor" href="#sym-Line-text" aria-label="Link to Line::text">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">text</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">String</span></code></div><div class="doc"><p>The row as plain text, for a copy or a search.</p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-WANT_GRACE" data-name="want_grace"><div class="sig"><a class="anchor" href="#sym-WANT_GRACE" aria-label="Link to WANT_GRACE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">WANT_GRACE</span>: u64 = <span class="n">3</span></code></div><div class="doc"><p>How many polls one assertion of interest survives.</p>
+<p>Three, not one: the panel and the publisher run on the same thread but in
+an order neither controls, so a claim made after this frame's poll must
+still be alive at the next one.</p></div></div><div class="item" id="sym-MAX_PENDING" data-name="max_pending"><div class="sig"><a class="anchor" href="#sym-MAX_PENDING" aria-label="Link to MAX_PENDING">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MAX_PENDING</span>: usize = <span class="n">64</span></code></div><div class="doc"><p>How many unrun commands are kept.</p>
+<p>Bounded because the far side may not be draining: a stopped application
+runs no frames, and a person can keep pressing Return at a panel that looks
+alive. The oldest goes, which matches what a queue of intentions should do
+when it overflows — the newest command is the one still wanted.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="editor-panels.html" data-slug="editor-panels">Editor panels</a></li><li><a href="perf.html" data-slug="perf">Perf</a></li><li><a href="hostlink.html" data-slug="hostlink">Host link</a></li><li><a href="census.html" data-slug="census">Census</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/devconsole.rs</code> - <code>One scrollback, two views</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_core/src/devconsole.rs</code> - <code>WHY A REVISION AND NOT A HOOK ON THE PRINT</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/devconsole.rs</code> - <code>WHY THE WANT CLOCK COUNTS POLLS AND NOT PUBLISHES</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/devconsole.rs</code> - <code>What that costs is a frame of lag and nothing else.</code></li></ol><table class="navbox"><tr><th><a href="category-editor-channels.html">Editor channels</a></th></tr><tr><td><a href="editor-panels.html" data-slug="editor-panels">Editor panels</a> · <a href="census.html" data-slug="census">Census</a> · <b>Dev console</b> · <a href="bindings.html" data-slug="bindings">Bindings</a> · <a href="audio.html" data-slug="audio">Audio</a> · <a href="palette.html" data-slug="palette">Palette roles</a> · <a href="profile.html" data-slug="profile">Profiler</a> · <a href="hostlink.html" data-slug="hostlink">Host link</a> · <a href="window.html" data-slug="window">Custom windows</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-editor-channels.html">Editor channels</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

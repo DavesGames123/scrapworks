@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Terrain - Warp Wiki</title>
+<meta name="description" content="chunked density field with a dig brush, exact surface, and SDF texture">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="world-terrain">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#overview">Overview</a></li><li><a href="#lifecycle">Lifecycle</a></li><li><a href="#how-it-works">How it works</a><ul><li><a href="#marching-squares">Marching squares</a></li><li><a href="#signed-distance">Signed distance</a></li><li><a href="#the-brush">The brush</a></li><li><a href="#the-generator">The generator</a></li></ul></li><li><a href="#configuration">Configuration</a><ul><li><a href="#materials">Materials</a></li><li><a href="#custom-shapes">Custom shapes</a></li></ul></li><li><a href="#the-gpu-contract">The GPU contract</a></li><li><a href="#drawing">Drawing</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Terrain</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">chunked density field with a dig brush, exact surface, and SDF texture</p><table class="infobox"><caption>Terrain</caption><tr><th>Category</th><td><a href="category-world-and-simulation.html">World and simulation</a></td></tr><tr><th>Module</th><td><code>warp_sdk::world::terrain</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/world/terrain.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">33</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example world</code></td></tr></table><p><strong>Terrain</strong> is a chunked density field that the player can dig, with an exact surface and an exact signed distance near that surface. It is the type <a class="sym" href="#sym-Terrain"><code>Terrain</code></a> in <a class="sym" href="world-terrain.html"><code>warp_sdk::world::terrain</code></a>. A game uses it for a seeded cave or island world, for a Terraria style brush, and as the one source of collision and GPU distance data for the rest of the <a href="world.html" data-slug="world">world kit</a>.</p>
+<h2 id="overview">Overview</h2>
+<p>The world is a grid of density values at the grid nodes. A density above 0.5 is solid, and the surface is the 0.5 contour, found per cell by marching squares with linear interpolation on each cell edge.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> Node (i, j) sits at <code>origin + (i, j) * cell</code>. The module has no half-cell offset, so the mesh, the signed distance, the collision and the GPU texture all read the same segments.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<p>A chunk is a square of cells. Chunks exist for dirty tracking, meshing and partial uploads. They are not streamed. <a class="sym" href="#sym-Terrain-generate"><code>Terrain::generate</code></a> and <a class="sym" href="#sym-Terrain-from_fn"><code>Terrain::from_fn</code></a> fill every node of the world when they run, and the world size stays fixed after that.</p>
+<h2 id="lifecycle">Lifecycle</h2>
+<p>The order of calls for a game is as follows.</p>
+<ol>
+<li>Make a <a class="sym" href="#sym-TerrainConfig"><code>TerrainConfig</code></a>, usually from <a class="sym" href="#sym-TerrainConfig-side"><code>TerrainConfig::side</code></a> or <a class="sym" href="#sym-TerrainConfig-top_down"><code>TerrainConfig::top_down</code></a>.</li>
+<li>Call <a class="sym" href="#sym-Terrain-generate"><code>Terrain::generate</code></a>, or <a class="sym" href="#sym-Terrain-from_fn"><code>Terrain::from_fn</code></a> for a shape of your own.</li>
+<li>Each frame, query <a class="sym" href="#sym-Terrain-sdf"><code>Terrain::sdf</code></a>, <a class="sym" href="#sym-Terrain-normal"><code>Terrain::normal</code></a> or <a class="sym" href="#sym-Terrain-is_solid"><code>Terrain::is_solid</code></a>, or pass the terrain to <a href="world-collide.html" data-slug="world-collide">Surface collision</a>.</li>
+<li>On player input, call <a class="sym" href="#sym-Terrain-dig"><code>Terrain::dig</code></a> or <a class="sym" href="#sym-Terrain-fill"><code>Terrain::fill</code></a>.</li>
+<li>Call <a class="sym" href="#sym-Terrain-take_dirty_chunks"><code>Terrain::take_dirty_chunks</code></a> and rebuild the mesh of each returned chunk with <a class="sym" href="#sym-Terrain-chunk_mesh"><code>Terrain::chunk_mesh</code></a>.</li>
+<li>If a GPU kit reads the terrain, call <a class="sym" href="#sym-Terrain-sdf_texture"><code>Terrain::sdf_texture</code></a>. The call re-bakes only the dirty chunks.</li>
+</ol>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::world::terrain::{<span class="t">Terrain</span>, <span class="t">TerrainConfig</span>};
+<span class="k">use</span> warp_sdk::ultraviolet::<span class="t">Vec2</span>;
+<span class="k">let</span> <span class="k">mut</span> t = <span class="t">Terrain</span>::<span class="f">generate</span>(<span class="t">TerrainConfig</span>::<span class="f">side</span>(<span class="n">7</span>));   <span class="c">// a seeded cave world</span>
+t.<span class="f">dig</span>(<span class="t">Vec2</span>::<span class="f">new</span>(<span class="n">20.0</span>, <span class="n">30.0</span>), <span class="n">2.5</span>);                       <span class="c">// the Terraria brush</span>
+<span class="k">let</span> d = t.<span class="f">sdf</span>(<span class="t">Vec2</span>::<span class="f">new</span>(<span class="n">20.0</span>, <span class="n">30.0</span>));                    <span class="c">// &gt; 0 in open water</span>
+<span class="k">for</span> c <span class="k">in</span> t.<span class="f">take_dirty_chunks</span>() { <span class="k">let</span> mesh = t.<span class="f">chunk_mesh</span>(c); <span class="c">/* upload */</span> }</code></pre></div>
+<p>Generation is deterministic. The same seed and settings give the same density and material values, and a test compares two runs.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<h2 id="how-it-works">How it works</h2>
+<h3 id="marching-squares">Marching squares</h3>
+<p>Each cell reads its four corner densities. An edge point is interpolated from its solid node, so the two cells that share an edge get the same point.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup> A cell yields up to two polygons and two surface segments. The module caches the segments for each cell, and a brush stroke rebuilds only the cells that it touched.</p>
+<p>A saddle cell, with solid on two opposite corners, is ambiguous. The module breaks the tie with the mean of the four corners. If the mean is at or below 0.5, the cell gets two separate corner triangles. Otherwise the cell gets one joined polygon.[[src:warp_sdk/src/world/terrain.rs|let centre = (d[0] + d[1] + d[2] + d[3]) * 0.25 &gt; 0.5]]</p>
+<p>Segments have a fixed direction. Solid is on the left of <code>a -&gt; b</code>, both in <code>outline</code> and in <a class="sym" href="#sym-Terrain-surface_segments"><code>Terrain::surface_segments</code></a>.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<h3 id="signed-distance">Signed distance</h3>
+<p><a class="sym" href="#sym-Terrain-sdf"><code>Terrain::sdf</code></a> returns the distance from <code>p</code> to the nearest surface segment, negative inside solid. The sign comes from the same marching-squares polygons that the mesh draws, so the sign and the distance never disagree.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<p>The search scans square rings of cells around <code>p</code>, up to <a class="sym" href="#sym-SDF_REACH_CELLS"><code>SDF_REACH_CELLS</code></a> rings, which is 4. Farther from the surface, the magnitude is that reach. The value is then a lower bound, and a lower bound keeps sphere tracing safe.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup> The cap is deliberate. A segment found in the last ring can lie past the reach while an unscanned one is nearer, and an uncapped value once let a raycast step into rock. A regression test, <code>sdf_is_a_lower_bound_far_from_the_surface</code>, covers that case.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<p>Outside the world rect, <a class="sym" href="#sym-Terrain-sdf"><code>sdf</code></a> grows with the distance to that rect. <a class="sym" href="#sym-Terrain-density"><code>Terrain::density</code></a> is bilinear between nodes, and outside the world the edge value continues. <a class="sym" href="#sym-Terrain-nearest"><code>Terrain::nearest</code></a> returns the nearest surface point if one is in reach. <a class="sym" href="#sym-Terrain-normal"><code>Terrain::normal</code></a> gives the unit direction out of the solid. Near the surface it uses the nearest point, and with no surface in reach it falls back to the density gradient.</p>
+<p>Tests check these claims against an analytic circle. Surface vertices lie within 0.05 cell of the circle, <a class="sym" href="#sym-Terrain-sdf"><code>sdf</code></a> agrees with the true distance within 0.05 near the surface, and the mesh area is within 1% of the circle area.</p>
+<h3 id="the-brush">The brush</h3>
+<p><a class="sym" href="#sym-Terrain-dig"><code>Terrain::dig</code></a> removes solid in a disc, and <a class="sym" href="#sym-Terrain-fill"><code>Terrain::fill</code></a> adds solid of material <code>m</code>. The cut is a smooth circle at any position, not cell steps, because the brush writes a density ramp and combines it with the old density by a minimum for a dig or a maximum for a fill.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup></p>
+<p>Density is linear inside a band of 2 cells on each side of the surface, which keeps the edge interpolation accurate.<sup class="ref"><a href="#ref-10" id="cite-10">[10]</a></sup> A chord of a dug circle sags by less than 0.05 cell at a radius of 6 cells, according to the test <code>dig_cuts_a_disc_and_marks_chunks</code>.</p>
+<p>A brush stroke marks two separate dirty lists. The mesh list covers the edited cells. The GPU list covers those cells plus <code>SDF_REACH_CELLS + 1</code> more, because an edit changes the distance of texels that are several cells away.<sup class="ref"><a href="#ref-11" id="cite-11">[11]</a></sup> <a class="sym" href="#sym-Terrain-take_dirty_chunks"><code>Terrain::take_dirty_chunks</code></a> drains only the mesh list. Its first call names every chunk. <a class="sym" href="#sym-Terrain-sdf_texture"><code>Terrain::sdf_texture</code></a> drains the GPU list.</p>
+<h3 id="the-generator">The generator</h3>
+<p>The side-view field combines these parts: a fractal noise surface line, a domain warp, worm tunnels, caverns, strata and a bedrock frame.<sup class="ref"><a href="#ref-12" id="cite-12">[12]</a></sup> The warp displaces x by a noise term that depends mostly on height, so a cliff can lean and form a true overhang. Tunnels are the near-zero contour of the absolute value of a noise field. Caverns are a high contour of a lower-frequency field. Both fade in between half of <code>cave_depth</code> and all of it, so caves do not break the surface near the top.</p>
+<p>Material follows from position. The frame is mat::BEDROCK, a noisy layer under the surface is mat::SAND, and the rest cycles through mat::ROCK, mat::SOFT_ROCK and mat::DARK_ROCK in wavy bands of thickness <code>strata</code>.</p>
+<p>The top-down field is warped noise islands in open water, with a frame on all four sides. In side view the frame covers only the left, right and bottom edges. The top-down sampler reads <code>seed</code>, <a class="sym" href="scale.html"><code>scale</code></a>, <code>warp</code>, <code>ground</code>, <code>soil</code> and <code>frame</code>, and ignores the other generator fields.</p>
+<p>Both samplers use a private hash and gradient noise, not <a class="sym" href="procgen.html#sym-Rng"><code>procgen::Rng</code></a>.</p>
+<h2 id="configuration">Configuration</h2>
+<p><a class="sym" href="#sym-TerrainConfig"><code>TerrainConfig</code></a> holds every setting, and all lengths are world units. <code>default()</code> for <a class="sym" href="#sym-TerrainConfig"><code>TerrainConfig</code></a> is <a class="sym" href="#sym-TerrainConfig-side"><code>TerrainConfig::side(1)</code></a>. <a class="sym" href="#sym-TerrainConfig-top_down"><code>TerrainConfig::top_down</code></a> starts from the side preset and changes three fields.<sup class="ref"><a href="#ref-13" id="cite-13">[13]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th><a class="sym" href="#sym-TerrainConfig-side"><code>side</code></a></th>
+<th><a class="sym" href="#sym-TerrainConfig-top_down"><code>top_down</code></a></th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Terrain-view"><code>view</code></a></td>
+<td>View::Side</td>
+<td>View::TopDown</td>
+<td>The camera the world is made for</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Terrain-cell"><code>cell</code></a></td>
+<td>0.5</td>
+<td>0.5</td>
+<td>The side of one cell</td>
+</tr>
+<tr>
+<td><code>chunk_cells</code></td>
+<td>32</td>
+<td>32</td>
+<td>Cells per chunk side</td>
+</tr>
+<tr>
+<td><code>chunks</code></td>
+<td>[8, 4]</td>
+<td>[8, 4]</td>
+<td>Chunk count, which gives 128 x 64 world units</td>
+</tr>
+<tr>
+<td><code>origin</code></td>
+<td>zero</td>
+<td>zero</td>
+<td>The min corner of the world</td>
+</tr>
+<tr>
+<td><code>ground</code></td>
+<td>0.72</td>
+<td>0.4</td>
+<td>Mean surface height fraction, or about the land fraction</td>
+</tr>
+<tr>
+<td><code>relief</code></td>
+<td>9.0</td>
+<td>1.0</td>
+<td>The height of hills above and below <code>ground</code></td>
+</tr>
+<tr>
+<td><a class="sym" href="scale.html"><code>scale</code></a></td>
+<td>1/30</td>
+<td>1/20</td>
+<td>Hills per world unit, about</td>
+</tr>
+<tr>
+<td><code>warp</code></td>
+<td>0.6</td>
+<td>0.6</td>
+<td>0..1, leans cliffs and makes overhangs</td>
+</tr>
+<tr>
+<td><code>tunnels</code></td>
+<td>0.8</td>
+<td>0.8</td>
+<td>0..1, how much rock worm tunnels remove</td>
+</tr>
+<tr>
+<td><code>tunnel_width</code></td>
+<td>0.08</td>
+<td>0.08</td>
+<td>Tunnel width in noise units, 0.02..0.2</td>
+</tr>
+<tr>
+<td><code>cave_depth</code></td>
+<td>5.0</td>
+<td>5.0</td>
+<td>The depth where tunnels and caverns start</td>
+</tr>
+<tr>
+<td><code>caverns</code></td>
+<td>0.5</td>
+<td>0.5</td>
+<td>0..1, how much rock large caverns remove</td>
+</tr>
+<tr>
+<td><code>strata</code></td>
+<td>3.0</td>
+<td>3.0</td>
+<td>The thickness of one strata band</td>
+</tr>
+<tr>
+<td><code>soil</code></td>
+<td>1.5</td>
+<td>1.5</td>
+<td>The depth of the sand cap</td>
+</tr>
+<tr>
+<td><code>frame</code></td>
+<td>1.5</td>
+<td>1.5</td>
+<td>The thickness of the bedrock frame</td>
+</tr>
+</tbody>
+</table>
+<p>Change a field with struct update syntax.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> cfg = <span class="t">TerrainConfig</span> { chunks: [<span class="n">24</span>, <span class="n">10</span>], ..<span class="t">TerrainConfig</span>::<span class="f">side</span>(<span class="n">42</span>) };
+<span class="k">let</span> t = <span class="t">Terrain</span>::<span class="f">generate</span>(cfg);</code></pre></div>
+<h3 id="materials">Materials</h3>
+<p>Module <code>mat</code> names the material ids, which are <code>u8</code> constants. A node keeps one id.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Constant</th>
+<th>Value</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mat::SAND</td>
+<td>0</td>
+<td>Loose sand and soil on top of the rock</td>
+</tr>
+<tr>
+<td>mat::ROCK</td>
+<td>1</td>
+<td>Hard rock, the first strata band</td>
+</tr>
+<tr>
+<td>mat::SOFT_ROCK</td>
+<td>2</td>
+<td>Soft rock, the second band</td>
+</tr>
+<tr>
+<td>mat::DARK_ROCK</td>
+<td>3</td>
+<td>Dark rock, the third band</td>
+</tr>
+<tr>
+<td>mat::BEDROCK</td>
+<td>4</td>
+<td>The frame at the world edges</td>
+</tr>
+<tr>
+<td>mat::FILL</td>
+<td>5</td>
+<td>Material that the player put down with <a class="sym" href="#sym-Terrain-fill"><code>fill</code></a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="custom-shapes">Custom shapes</h3>
+<p><a class="sym" href="#sym-Terrain-from_fn"><code>Terrain::from_fn</code></a> builds a world from a field <code>f(p)</code>, and each node gets mat::ROCK. The function must return about the signed distance in world units, and its sign is the opposite of <a class="sym" href="#sym-Terrain-sdf"><code>sdf</code></a>: it is positive inside solid.<sup class="ref"><a href="#ref-14" id="cite-14">[14]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> c = <span class="t">Vec2</span>::<span class="f">new</span>(<span class="n">16.0</span>, <span class="n">16.0</span>);
+<span class="k">let</span> t = <span class="t">Terrain</span>::<span class="f">from_fn</span>(<span class="t">TerrainConfig</span>::<span class="f">side</span>(<span class="n">0</span>), |p| <span class="n">5.0</span> - (p - c).<span class="f">mag</span>());</code></pre></div>
+<h2 id="the-gpu-contract">The GPU contract</h2>
+<p><a class="sym" href="#sym-Terrain-sdf_texture"><code>Terrain::sdf_texture</code></a> gives an R16Float texture view of the signed distance in world units, negative inside solid, and a rect <code>[min_x, min_y, size_x, size_y]</code>. The shader samples it with <code>uv = (p - min) / size</code>. Row 0 is the min y row, so there is no flip, and texel centres sit at <code>min + (texel + 0.5) * size / dims</code>.<sup class="ref"><a href="#ref-15" id="cite-15">[15]</a></sup></p>
+<p>The texture has <a class="sym" href="#sym-SDF_TEXELS_PER_CELL"><code>SDF_TEXELS_PER_CELL</code></a> texels per cell side, which is 2. The first call makes the texture and bakes all chunks. Later calls bake dirty chunks on the CPU and write them with <code>Queue::write_texture</code>. The view stays the same after the first call. <a class="sym" href="#sym-Terrain-sdf_texels"><code>Terrain::sdf_texels</code></a> gives the same data as <a class="sym" href="#sym-SdfTexels"><code>SdfTexels</code></a> on the CPU, without clearing any dirty state.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">let</span> (view, rect) = terrain.<span class="f">sdf_texture</span>(&amp;device, &amp;queue);
+<span class="c">// WGSL: let d = textureSample(sdf, samp, (p - rect.xy) / rect.zw).r;</span></code></pre></div>
+<p>The fluid kit uses a different rect form. See <a href="fluid-ocean.html#rect-conventions" data-slug="fluid-ocean">rect conventions</a>.</p>
+<h2 id="drawing">Drawing</h2>
+<p>The game draws. There are two supported routes.<sup class="ref"><a href="#ref-16" id="cite-16">[16]</a></sup></p>
+<ul>
+<li><strong>Mesh.</strong> <a class="sym" href="#sym-Terrain-chunk_mesh"><code>Terrain::chunk_mesh</code></a> returns a <a class="sym" href="#sym-ChunkMesh"><code>ChunkMesh</code></a> of counter-clockwise triangles with a material id per vertex, plus the outline segments. This route suits flat colour or an outline pass.</li>
+<li><strong>Lit quad.</strong> For <a href="lit2d.html" data-slug="lit2d">Lit2d</a>, submit one quad per chunk at <a class="sym" href="#sym-Terrain-chunk_rect"><code>Terrain::chunk_rect</code></a>. Its material reads the SDF texture and calls <code>terrain_material_side</code> from <code>terrain/shade.wgsl</code> with the id from <a class="sym" href="#sym-Terrain-material_at"><code>Terrain::material_at</code></a>. See <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a>.</li>
+</ul>
+<p>The <a class="sym" href="world.html"><code>world</code></a> example uses neither route. It draws a rect for each cell with four solid corners, and it draws <a class="sym" href="#sym-Terrain-surface_segments"><code>Terrain::surface_segments</code></a> as lines over them.</p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li><a class="sym" href="#sym-Terrain-dig"><code>Terrain::dig</code></a> does not protect bedrock. The <a class="sym" href="world.html"><code>world</code></a> example checks <a class="sym" href="#sym-Terrain-material_at"><code>Terrain::material_at</code></a> first, and it digs only when the point is not mat::BEDROCK.<sup class="ref"><a href="#ref-17" id="cite-17">[17]</a></sup></li>
+<li>A dig leaves node materials as they were, so <a class="sym" href="#sym-Terrain-material_at"><code>Terrain::material_at</code></a> still gives the old id in open water. <a class="sym" href="#sym-Terrain-fill"><code>Terrain::fill</code></a> sets a new id only on a node that crosses from open to solid.</li>
+<li>The distance is exact only within <a class="sym" href="#sym-SDF_REACH_CELLS"><code>SDF_REACH_CELLS</code></a> cells of the surface.</li>
+<li><a class="sym" href="#sym-Terrain-sdf_texture"><code>Terrain::sdf_texture</code></a> bakes on the CPU, and each texel of a dirty chunk costs one <a class="sym" href="#sym-Terrain-sdf"><code>sdf</code></a> query.</li>
+</ul>
+<h2 id="history">History</h2>
+<p>Commit <code>4e564d42</code> added the module on 2026-10-29. Its stated aim was terrain that explores like 2D Terraria terrain. The commit message also records the <a class="sym" href="#sym-Terrain-sdf"><code>sdf</code></a> reach bug and its regression test.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 33 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-world--terrain" class="modhead"><code>warp_sdk::world::terrain</code></h3><h4>Types</h4><div class="typeblock"><div class="item" id="sym-View" data-name="view"><div class="sig"><a class="anchor" href="#sym-View" aria-label="Link to View">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">View</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Side view: y is up, a seabed surface line with caves under it.</span>
+<span class="t">Side</span>,
+<span class="c">/// Top-down view: islands of rock in open water.</span>
+<span class="t">TopDown</span>,</code></pre></div><div class="doc"><p>The camera that the world is made for.</p></div></div></div><div class="typeblock"><div class="item" id="sym-TerrainConfig" data-name="terrainconfig"><div class="sig"><a class="anchor" href="#sym-TerrainConfig" aria-label="Link to TerrainConfig">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">TerrainConfig</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The seed. The same seed and settings give the same world.</span>
+<span class="k">pub</span> seed: u64,
+<span class="c">/// Side view or top-down view.</span>
+<span class="k">pub</span> view: <span class="t">View</span>,
+<span class="c">/// The side of one cell.</span>
+<span class="k">pub</span> cell: f32,
+<span class="c">/// Cells per chunk side.</span>
+<span class="k">pub</span> chunk_cells: usize,
+<span class="c">/// Chunk count along x and y.</span>
+<span class="k">pub</span> chunks: [usize; <span class="n">2</span>],
+<span class="c">/// The min corner of the world.</span>
+<span class="k">pub</span> origin: <span class="t">Vec2</span>,
+<span class="c">/// Side view: the mean surface height as a fraction of the world height.</span>
+<span class="c">/// Top-down view: the land fraction, about.</span>
+<span class="k">pub</span> ground: f32,
+<span class="c">/// The height of hills above and below `ground`.</span>
+<span class="k">pub</span> relief: f32,
+<span class="c">/// Hills per world unit, about.</span>
+<span class="k">pub</span> scale: f32,
+<span class="c">/// 0..1, the domain warp. It leans cliffs and makes true overhangs.</span>
+<span class="k">pub</span> warp: f32,
+<span class="c">/// 0..1, how much rock the worm tunnels remove.</span>
+<span class="k">pub</span> tunnels: f32,
+<span class="c">/// The tunnel width in noise units, 0.02..0.2.</span>
+<span class="k">pub</span> tunnel_width: f32,
+<span class="c">/// The depth under the surface where tunnels and caverns start.</span>
+<span class="k">pub</span> cave_depth: f32,
+<span class="c">/// 0..1, how much rock the large caverns remove.</span>
+<span class="k">pub</span> caverns: f32,
+<span class="c">/// The thickness of one strata band.</span>
+<span class="k">pub</span> strata: f32,
+<span class="c">/// The depth of the sand cap.</span>
+<span class="k">pub</span> soil: f32,
+<span class="c">/// The thickness of the bedrock frame at the left, right and bottom edges.</span>
+<span class="k">pub</span> frame: f32,</code></pre></div><div class="doc"><p>The settings of a generated world. All lengths are in world units.</p>
+<p><code>ignore
+let cfg = TerrainConfig { chunks: [24, 10], ..TerrainConfig::side(42) };
+let t = Terrain::generate(cfg);</code></p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-TerrainConfig-side" data-name="terrainconfig::side"><div class="sig"><a class="anchor" href="#sym-TerrainConfig-side" aria-label="Link to TerrainConfig::side">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">side</span>(seed: u64) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A side-view cave world, 128 x 64 world units, for a seabed to explore.</p></div></div><div class="item" id="sym-TerrainConfig-top_down" data-name="terrainconfig::top_down"><div class="sig"><a class="anchor" href="#sym-TerrainConfig-top_down" aria-label="Link to TerrainConfig::top_down">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">top_down</span>(seed: u64) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A top-down world of rock islands in open water.</p></div></div><div class="item" id="sym-TerrainConfig-cells" data-name="terrainconfig::cells"><div class="sig"><a class="anchor" href="#sym-TerrainConfig-cells" aria-label="Link to TerrainConfig::cells">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cells</span>(&amp;<span class="k">self</span>) -&gt; [usize; <span class="n">2</span>]</code></div><div class="doc"><p>The cell count along x and y.</p></div></div><div class="item" id="sym-TerrainConfig-size" data-name="terrainconfig::size"><div class="sig"><a class="anchor" href="#sym-TerrainConfig-size" aria-label="Link to TerrainConfig::size">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">size</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec2</span></code></div><div class="doc"><p>The world size along x and y.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-TerrainVertex" data-name="terrainvertex"><div class="sig"><a class="anchor" href="#sym-TerrainVertex" aria-label="Link to TerrainVertex">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">TerrainVertex</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The world position.</span>
+<span class="k">pub</span> pos: [f32; <span class="n">2</span>],
+<span class="c">/// The material id, from [`mat`].</span>
+<span class="k">pub</span> material: u32,</code></pre></div><div class="doc"><p>One vertex of a chunk mesh.</p></div></div></div><div class="typeblock"><div class="item" id="sym-ChunkMesh" data-name="chunkmesh"><div class="sig"><a class="anchor" href="#sym-ChunkMesh" aria-label="Link to ChunkMesh">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">ChunkMesh</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The chunk coordinate.</span>
+<span class="k">pub</span> chunk: [usize; <span class="n">2</span>],
+<span class="c">/// The chunk rect `[min_x, min_y, size_x, size_y]`.</span>
+<span class="k">pub</span> rect: [f32; <span class="n">4</span>],
+<span class="c">/// The vertices. Each cell has its own vertices.</span>
+<span class="k">pub</span> vertices: <span class="t">Vec</span>&lt;<span class="t">TerrainVertex</span>&gt;,
+<span class="c">/// Counter-clockwise triangles into `vertices`.</span>
+<span class="k">pub</span> indices: <span class="t">Vec</span>&lt;u32&gt;,
+<span class="c">/// The surface segments. Solid is on the left of `a -&gt; b`.</span>
+<span class="k">pub</span> outline: <span class="t">Vec</span>&lt;[<span class="t">Vec2</span>; <span class="n">2</span>]&gt;,</code></pre></div><div class="doc"><p>One chunk as triangles and outline, for the game to draw.</p>
+<p><code>ignore
+for c in terrain.take_dirty_chunks() {
+let m = terrain.chunk_mesh(c);
+for tri in m.indices.chunks(3) { /* m.vertices[tri[0] as usize] ... */ }
+for [a, b] in &amp;m.outline { ctx.draw_line(*a, *b, [220, 200, 160, 255]); }
+}</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-SdfTexels" data-name="sdftexels"><div class="sig"><a class="anchor" href="#sym-SdfTexels" aria-label="Link to SdfTexels">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">SdfTexels</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Signed distances, row 0 = min y, row-major.</span>
+<span class="k">pub</span> data: <span class="t">Vec</span>&lt;f32&gt;,
+<span class="c">/// Texel count along x and y.</span>
+<span class="k">pub</span> size: [u32; <span class="n">2</span>],
+<span class="c">/// `[min_x, min_y, size_x, size_y]`, the world rect the texture covers.</span>
+<span class="k">pub</span> rect: [f32; <span class="n">4</span>],</code></pre></div><div class="doc"><p>The CPU copy of the SDF texture.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Terrain" data-name="terrain"><div class="sig"><a class="anchor" href="#sym-Terrain" aria-label="Link to Terrain">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Terrain</span></code></div><div class="doc"><p>The world: a chunked density grid with an exact surface.</p>
+<p><code>ignore
+let mut t = Terrain::generate(TerrainConfig::side(3));
+if t.sdf(p) &lt; 0.0 { /* p is inside rock */ }
+t.dig(p, 2.0);</code></p></div></div><details class="members"><summary>21 methods</summary><div class="item" id="sym-Terrain-generate" data-name="terrain::generate"><div class="sig"><a class="anchor" href="#sym-Terrain-generate" aria-label="Link to Terrain::generate">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">generate</span>(cfg: <span class="t">TerrainConfig</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Make a seeded world from the settings. The result is deterministic.</p></div></div><div class="item" id="sym-Terrain-from_fn" data-name="terrain::from_fn"><div class="sig"><a class="anchor" href="#sym-Terrain-from_fn" aria-label="Link to Terrain::from_fn">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_fn</span>(cfg: <span class="t">TerrainConfig</span>, f: <span class="k">impl</span> <span class="t">Fn</span>(<span class="t">Vec2</span>) -&gt; f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Make a world from a field. <code>f(p)</code> is about the signed distance to the
+surface in world units, POSITIVE inside solid. Each node gets <code>mat::ROCK</code>.</p>
+<p><code>ignore
+let c = Vec2::new(16.0, 16.0);
+let t = Terrain::from_fn(TerrainConfig::side(0), |p| 5.0 - (p - c).mag());</code></p></div></div><div class="item" id="sym-Terrain-config" data-name="terrain::config"><div class="sig"><a class="anchor" href="#sym-Terrain-config" aria-label="Link to Terrain::config">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">config</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="t">TerrainConfig</span></code></div><div class="doc"><p>The settings that made this world.</p></div></div><div class="item" id="sym-Terrain-cell" data-name="terrain::cell"><div class="sig"><a class="anchor" href="#sym-Terrain-cell" aria-label="Link to Terrain::cell">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">cell</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The side of one cell.</p></div></div><div class="item" id="sym-Terrain-view" data-name="terrain::view"><div class="sig"><a class="anchor" href="#sym-Terrain-view" aria-label="Link to Terrain::view">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">view</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">View</span></code></div><div class="doc"><p>The camera that the world is made for.</p></div></div><div class="item" id="sym-Terrain-bounds" data-name="terrain::bounds"><div class="sig"><a class="anchor" href="#sym-Terrain-bounds" aria-label="Link to Terrain::bounds">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">bounds</span>(&amp;<span class="k">self</span>) -&gt; [<span class="t">Vec2</span>; <span class="n">2</span>]</code></div><div class="doc"><p>The min and max corners of the world.</p></div></div><div class="item" id="sym-Terrain-chunk_count" data-name="terrain::chunk_count"><div class="sig"><a class="anchor" href="#sym-Terrain-chunk_count" aria-label="Link to Terrain::chunk_count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">chunk_count</span>(&amp;<span class="k">self</span>) -&gt; [usize; <span class="n">2</span>]</code></div><div class="doc"><p>The chunk count along x and y.</p></div></div><div class="item" id="sym-Terrain-chunk_rect" data-name="terrain::chunk_rect"><div class="sig"><a class="anchor" href="#sym-Terrain-chunk_rect" aria-label="Link to Terrain::chunk_rect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">chunk_rect</span>(&amp;<span class="k">self</span>, c: [usize; <span class="n">2</span>]) -&gt; [f32; <span class="n">4</span>]</code></div><div class="doc"><p>The world rect <code>[min_x, min_y, size_x, size_y]</code> of one chunk.</p></div></div><div class="item" id="sym-Terrain-density" data-name="terrain::density"><div class="sig"><a class="anchor" href="#sym-Terrain-density" aria-label="Link to Terrain::density">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">density</span>(&amp;<span class="k">self</span>, p: <span class="t">Vec2</span>) -&gt; f32</code></div><div class="doc"><p>The density at <code>p</code>, bilinear between nodes, 0..1. Above 0.5 is solid.
+Outside the world, the edge value continues.</p></div></div><div class="item" id="sym-Terrain-material_at" data-name="terrain::material_at"><div class="sig"><a class="anchor" href="#sym-Terrain-material_at" aria-label="Link to Terrain::material_at">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">material_at</span>(&amp;<span class="k">self</span>, p: <span class="t">Vec2</span>) -&gt; u8</code></div><div class="doc"><p>The material id of the node nearest to <code>p</code>.</p></div></div><div class="item" id="sym-Terrain-is_solid" data-name="terrain::is_solid"><div class="sig"><a class="anchor" href="#sym-Terrain-is_solid" aria-label="Link to Terrain::is_solid">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_solid</span>(&amp;<span class="k">self</span>, p: <span class="t">Vec2</span>) -&gt; bool</code></div><div class="doc"><p>True when <code>p</code> is inside solid. The same test as the sign of <code>sdf</code>.</p></div></div><div class="item" id="sym-Terrain-sdf" data-name="terrain::sdf"><div class="sig"><a class="anchor" href="#sym-Terrain-sdf" aria-label="Link to Terrain::sdf">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">sdf</span>(&amp;<span class="k">self</span>, p: <span class="t">Vec2</span>) -&gt; f32</code></div><div class="doc"><p>The signed distance from <code>p</code> to the surface in world units, negative
+inside solid. Exact within <code>SDF_REACH_CELLS</code> cells of the surface.
+Farther away, the magnitude is that reach. Outside the world, the
+value grows with the distance to the world rect.</p></div></div><div class="item" id="sym-Terrain-nearest" data-name="terrain::nearest"><div class="sig"><a class="anchor" href="#sym-Terrain-nearest" aria-label="Link to Terrain::nearest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">nearest</span>(&amp;<span class="k">self</span>, p: <span class="t">Vec2</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">Vec2</span>&gt;</code></div><div class="doc"><p>The nearest surface point to <code>p</code>, if one is within <code>SDF_REACH_CELLS</code> cells.</p></div></div><div class="item" id="sym-Terrain-normal" data-name="terrain::normal"><div class="sig"><a class="anchor" href="#sym-Terrain-normal" aria-label="Link to Terrain::normal">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">normal</span>(&amp;<span class="k">self</span>, p: <span class="t">Vec2</span>) -&gt; <span class="t">Vec2</span></code></div><div class="doc"><p>The unit normal at <code>p</code>, pointing out of the solid. Near the surface it
+is the exact direction from the nearest surface point.</p></div></div><div class="item" id="sym-Terrain-surface_segments" data-name="terrain::surface_segments"><div class="sig"><a class="anchor" href="#sym-Terrain-surface_segments" aria-label="Link to Terrain::surface_segments">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">surface_segments</span>(&amp;<span class="k">self</span>, lo: <span class="t">Vec2</span>, hi: <span class="t">Vec2</span>) -&gt; <span class="t">Vec</span>&lt;[<span class="t">Vec2</span>; <span class="n">2</span>]&gt;</code></div><div class="doc"><p>Every surface segment in the cells that touch the world rect
+<code>[lo, hi]</code>. Solid is on the left of <code>a -&gt; b</code>.</p></div></div><div class="item" id="sym-Terrain-dig" data-name="terrain::dig"><div class="sig"><a class="anchor" href="#sym-Terrain-dig" aria-label="Link to Terrain::dig">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">dig</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, center: <span class="t">Vec2</span>, radius: f32)</code></div><div class="doc"><p>Remove solid in a disc, like a Terraria pickaxe. The cut is a smooth
+circle at any position, not cell steps.</p></div></div><div class="item" id="sym-Terrain-fill" data-name="terrain::fill"><div class="sig"><a class="anchor" href="#sym-Terrain-fill" aria-label="Link to Terrain::fill">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">fill</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, center: <span class="t">Vec2</span>, radius: f32, m: u8)</code></div><div class="doc"><p>Add solid of material <code>m</code> in a disc.</p></div></div><div class="item" id="sym-Terrain-take_dirty_chunks" data-name="terrain::take_dirty_chunks"><div class="sig"><a class="anchor" href="#sym-Terrain-take_dirty_chunks" aria-label="Link to Terrain::take_dirty_chunks">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_dirty_chunks</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;[usize; <span class="n">2</span>]&gt;</code></div><div class="doc"><p>The chunks that changed since the last call, then clears the list.
+The first call names every chunk.</p></div></div><div class="item" id="sym-Terrain-chunk_mesh" data-name="terrain::chunk_mesh"><div class="sig"><a class="anchor" href="#sym-Terrain-chunk_mesh" aria-label="Link to Terrain::chunk_mesh">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">chunk_mesh</span>(&amp;<span class="k">self</span>, c: [usize; <span class="n">2</span>]) -&gt; <span class="t">ChunkMesh</span></code></div><div class="doc"><p>One chunk as triangles with material ids and the surface outline.</p></div></div><div class="item" id="sym-Terrain-sdf_texels" data-name="terrain::sdf_texels"><div class="sig"><a class="anchor" href="#sym-Terrain-sdf_texels" aria-label="Link to Terrain::sdf_texels">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">sdf_texels</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">SdfTexels</span></code></div><div class="doc"><p>The whole SDF texture on the CPU, in the same layout as <code>sdf_texture</code>.</p></div></div><div class="item" id="sym-Terrain-sdf_texture" data-name="terrain::sdf_texture"><div class="sig"><a class="anchor" href="#sym-Terrain-sdf_texture" aria-label="Link to Terrain::sdf_texture">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">sdf_texture</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, device: &amp;wgpu::<span class="t">Device</span>, queue: &amp;wgpu::<span class="t">Queue</span>) -&gt; (&amp;wgpu::<span class="t">TextureView</span>, [f32; <span class="n">4</span>])</code></div><div class="doc"><p>The SDF as an R16Float texture, and its world rect
+<code>[min_x, min_y, size_x, size_y]</code>. The first call makes the texture.
+Later calls re-bake the dirty chunks only.</p>
+<p><code>ignore
+let (view, rect) = terrain.sdf_texture(&amp;device, &amp;queue);
+// WGSL: let d = textureSample(sdf, samp, (p - rect.xy) / rect.zw).r;</code></p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-SDF_REACH_CELLS" data-name="sdf_reach_cells"><div class="sig"><a class="anchor" href="#sym-SDF_REACH_CELLS" aria-label="Link to SDF_REACH_CELLS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SDF_REACH_CELLS</span>: i32 = <span class="n">4</span></code></div><div class="doc"><p>The distance range, in cells, where <code>sdf</code> is exact.</p></div></div><div class="item" id="sym-SDF_TEXELS_PER_CELL" data-name="sdf_texels_per_cell"><div class="sig"><a class="anchor" href="#sym-SDF_TEXELS_PER_CELL" aria-label="Link to SDF_TEXELS_PER_CELL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SDF_TEXELS_PER_CELL</span>: u32 = <span class="n">2</span></code></div><div class="doc"><p>Texels per cell side in the SDF texture.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="world.html" data-slug="world">World kit</a></li><li><a href="world-collide.html" data-slug="world-collide">Surface collision</a></li><li><a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a></li><li><a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a></li><li><a href="lit2d.html" data-slug="lit2d">Lit2d</a></li><li><a href="procgen.html" data-slug="procgen">Procedural generation</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/terrain.rs</code> - <code>A density above</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/terrain.rs</code> - <code>half-cell offset anywhere</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/terrain.rs</code> - <code>The same seed and settings give the same world.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/terrain.rs</code> - <code>so the two cells that share the edge get the same point</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/terrain.rs</code> - <code>Solid is on the left of</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/terrain.rs</code> - <code>so the sign and the distance never disagree</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/terrain.rs</code> - <code>which is a lower bound, so sphere tracing stays safe</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/terrain.rs</code> - <code>Cap at the reach to keep a lower bound.</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/terrain.rs</code> - <code>The cut is a smooth</code></li><li id="ref-10"><a class="back" href="#cite-10" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/terrain.rs</code> - <code>is linear inside this band</code></li><li id="ref-11"><a class="back" href="#cite-11" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/terrain.rs</code> - <code>self.mark_dirty(i0 - 1, j0 - 1, i1, j1, SDF_REACH_CELLS + 1, false);</code></li><li id="ref-12"><a class="back" href="#cite-12" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/terrain.rs</code> - <code>The side-view field: fBm surface line, domain warp, worm tunnels,</code></li><li id="ref-13"><a class="back" href="#cite-13" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/terrain.rs</code> - <code>TerrainConfig { view: View::TopDown, ground: 0.4, relief: 1.0, scale: 1.0 / 20.0, ..Self::side(seed) }</code></li><li id="ref-14"><a class="back" href="#cite-14" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/terrain.rs</code> - <code>surface in world units, POSITIVE inside solid.</code></li><li id="ref-15"><a class="back" href="#cite-15" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/terrain.rs</code> - <code>Row 0 is the MIN y row, so there is no flip.</code></li><li id="ref-16"><a class="back" href="#cite-16" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/terrain.rs</code> - <code>The game draws.</code></li><li id="ref-17"><a class="back" href="#cite-17" aria-label="Back to the text">^</a> <code>warp_sdk/examples/world.rs</code> - <code>if self.world.material_at(p) != mat::BEDROCK</code></li></ol><table class="navbox"><tr><th><a href="category-world-and-simulation.html">World and simulation</a></th></tr><tr><td><a href="world.html" data-slug="world">World kit</a> · <b>Terrain</b> · <a href="world-collide.html" data-slug="world-collide">Surface collision</a> · <a href="world-biome.html" data-slug="world-biome">Biomes</a> · <a href="world-reveal.html" data-slug="world-reveal">Reveal grid</a> · <a href="fluid.html" data-slug="fluid">Fluid kit</a> · <a href="fluid-solver.html" data-slug="fluid-solver">Fluid solver</a> · <a href="fluid-particles.html" data-slug="fluid-particles">Fluid particles</a> · <a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a> · <a href="procgen.html" data-slug="procgen">Procedural generation</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-world-and-simulation.html">World and simulation</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

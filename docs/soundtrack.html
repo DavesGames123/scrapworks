@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soundtrack - Warp Wiki</title>
+<meta name="description" content="the player&#x27;s music, tagged ambience and sound effects with ducking">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="soundtrack">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#the-policy">The policy</a></li><li><a href="#usage">Usage</a></li><li><a href="#device-and-tests">Device and tests</a></li><li><a href="#music">Music</a><ul><li><a href="#finding-tracks">Finding tracks</a></li><li><a href="#settings">Settings</a></li><li><a href="#playback">Playback</a></li><li><a href="#ducking">Ducking</a></li></ul></li><li><a href="#ambience">Ambience</a></li><li><a href="#sound-effects">Sound effects</a></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Soundtrack</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">the player&#x27;s music, tagged ambience and sound effects with ducking</p><table class="infobox"><caption>Soundtrack</caption><tr><th>Category</th><td><a href="category-game-systems.html">Game systems</a></td></tr><tr><th>Module</th><td><code>warp_sdk::soundtrack</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/soundtrack.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">69</a></td></tr></table><p><strong>Soundtrack</strong> is the game-audio layer of the Warp SDK: the player's music, the world's ambience, and sound effects. It lives in the <a class="sym" href="soundtrack.html"><code>soundtrack</code></a> module of <code>warp_sdk</code>. <a class="sym" href="#sym-Music"><code>Music</code></a> plays files from a folder that the player picks, <a class="sym" href="#sym-Ambience"><code>Ambience</code></a> crossfades looped beds by a tag, and <a class="sym" href="#sym-Sfx"><code>Sfx</code></a> plays one-shot effects with pan, variation and a voice limit. The module's central policy is that the game does not compose music.</p>
+<h2 id="the-policy">The policy</h2>
+<p>There is no generated or procedural music in this module, and no default makes one. The player owns the soundtrack. <a class="sym" href="#sym-Music"><code>Music</code></a> plays the audio files in a folder that the player picks. When that folder holds no track this build can decode, music is off. The source states that silence is the correct result and is not an error. <sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<p>A game that ships licensed tracks gives them to <a class="sym" href="#sym-Music-bundled"><code>Music::bundled</code></a>. That is the only path to game-owned music, and it takes a license note, so the choice is explicit and shows in review. An empty license gives music that is off. <a class="sym" href="#sym-Music-license"><code>Music::license</code></a> returns the note for a credits screen. <sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<p>The game does own two things: <a class="sym" href="#sym-Ambience"><code>Ambience</code></a>, the looped beds per biome, and <a class="sym" href="#sym-Sfx"><code>Sfx</code></a>, the one-shot effects.</p>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> std::sync::<span class="t">Arc</span>;
+<span class="k">use</span> warp_sdk::soundtrack::{<span class="k">self</span>, <span class="t">Ambience</span>, <span class="t">Music</span>, <span class="t">Sfx</span>, <span class="t">SfxSpec</span>};
+
+<span class="k">let</span> (_stream, handle) = soundtrack::rodio::<span class="t">OutputStream</span>::<span class="f">try_default</span>()?;
+<span class="k">let</span> bus = <span class="t">Arc</span>::<span class="f">new</span>(soundtrack::<span class="t">Bus</span>::<span class="f">new</span>(&amp;handle)?);
+
+<span class="k">let</span> <span class="k">mut</span> music = <span class="t">Music</span>::<span class="f">player</span>(<span class="s">"reef"</span>);          <span class="c">// the player's folder</span>
+music.<span class="f">attach</span>(bus.<span class="f">clone</span>());
+
+<span class="k">let</span> <span class="k">mut</span> amb = <span class="t">Ambience</span>::<span class="f">new</span>();
+amb.<span class="f">add_loop</span>(<span class="s">"reef"</span>, <span class="s">"assets/amb/surf.ogg"</span>, <span class="n">0.7</span>);
+amb.<span class="f">add_loop</span>(<span class="s">"trench"</span>, <span class="s">"assets/amb/drone.ogg"</span>, <span class="n">0.5</span>);
+amb.<span class="f">attach</span>(bus.<span class="f">clone</span>());
+amb.<span class="f">set_tag</span>(<span class="s">"reef"</span>);
+
+<span class="k">let</span> <span class="k">mut</span> sfx = <span class="t">Sfx</span>::<span class="f">new</span>();
+sfx.<span class="f">load</span>(<span class="s">"pickup"</span>, <span class="s">"assets/sfx/pickup.wav"</span>, <span class="t">SfxSpec</span>::<span class="f">default</span>())?;
+sfx.<span class="f">attach</span>(bus.<span class="f">clone</span>());
+
+<span class="c">// Once a frame:</span>
+sfx.<span class="f">play_at</span>(<span class="s">"pickup"</span>, screen_x / screen_w);
+music.<span class="f">duck</span>(sfx.<span class="f">duck_level</span>());
+music.<span class="f">update</span>(dt);
+amb.<span class="f">update</span>(dt);
+sfx.<span class="f">update</span>(dt);</code></pre></div>
+<p>The module re-exports <code>rodio</code>, <a class="sym" href="#sym-Bus"><code>Bus</code></a> and <a class="sym" href="#sym-Lane"><code>Lane</code></a> from the engine. A game names warp_sdk::soundtrack::rodio and adds no rodio line of its own, because one copy of rodio keeps one Sink type in the build. The re-export and each <a class="sym" href="#sym-Music-attach"><code>attach</code></a> call exist only with the <a class="sym" href="audio.html"><code>audio</code></a> feature on a native target. <sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<h2 id="device-and-tests">Device and tests</h2>
+<p>Each type is plain logic first. <a class="sym" href="#sym-Music-attach"><code>attach</code></a> gives it an Arc<Bus>, and only then does it open rodio sinks. Without <a class="sym" href="#sym-Music-attach"><code>attach</code></a>, every call still runs and reports gains, order and voices, so tests need no sound device. <a class="sym" href="#sym-Sfx-add"><code>Sfx::add</code></a> adds an effect with no audio data for the same reason. <sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<h2 id="music">Music</h2>
+<h3 id="finding-tracks">Finding tracks</h3>
+<p><a class="sym" href="#sym-player_folders"><code>player_folders</code></a> gives the folders in order of use. The first is a per-game <code>music</code> folder under the app data directory, which this call creates so that the player can find it. The second is the OS music folder: <code>%USERPROFILE%\Music</code> on Windows, <code>$XDG_MUSIC_DIR</code> or <code>~/Music</code> on Linux, <code>~/Music</code> on macOS. <a class="sym" href="#sym-default_folder"><code>default_folder</code></a> picks the first folder that holds a playable track. When none does, the result is the empty game folder, so music is off until the player adds files. [[src:warp_sdk/src/soundtrack.rs|The first of [<a class="sym" href="#sym-player_folders"><code>player_folders</code></a>] that holds a playable track.]]</p>
+<p><a class="sym" href="#sym-scan_folder"><code>scan_folder</code></a> returns every playable file, sorted by path. The walk goes down at most four folders and keeps at most 4000 tracks, so a wrong root costs bounded work. It reads folder entries only and opens no file. A folder that cannot be read gives an empty list. <a class="sym" href="#sym-MUSIC_EXTS"><code>MUSIC_EXTS</code></a> lists the decodable extensions, <code>mp3</code>, <code>ogg</code>, <code>flac</code> and <code>wav</code>, and <a class="sym" href="#sym-is_playable"><code>is_playable</code></a> ignores case. A file with a correct extension that fails to decode is skipped when it comes up. One pass over the list is the limit, so a folder of broken files stops instead of looping. <sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<h3 id="settings">Settings</h3>
+<p><a class="sym" href="#sym-MusicSettings"><code>MusicSettings</code></a> belongs in the game's settings screen. <a class="sym" href="#sym-Music-with_settings"><code>Music::with_settings</code></a> starts from saved values, and <a class="sym" href="#sym-Music-player"><code>Music::player</code></a> uses the defaults.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="profile.html#sym-enabled"><code>enabled</code></a></td>
+<td>true</td>
+<td>False turns music off and keeps the other settings</td>
+</tr>
+<tr>
+<td><code>folder</code></td>
+<td>None</td>
+<td>The folder the player chose. None uses <a class="sym" href="#sym-default_folder"><code>default_folder</code></a></td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Music-order"><code>order</code></a></td>
+<td>Order::Shuffle</td>
+<td>Order::Sequential or Order::Shuffle</td>
+</tr>
+<tr>
+<td><code>crossfade</code></td>
+<td>4.0</td>
+<td>Seconds between two tracks. 0 cuts</td>
+</tr>
+<tr>
+<td><code>volume</code></td>
+<td>0.5</td>
+<td>Music volume</td>
+</tr>
+<tr>
+<td><code>duck_depth</code></td>
+<td>0.5</td>
+<td>How much a loud effect lowers the music</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Sfx-seed"><code>seed</code></a></td>
+<td>None</td>
+<td>Shuffle seed. None takes a seed from the clock</td>
+</tr>
+</tbody>
+</table>
+<h3 id="playback">Playback</h3>
+<p><a class="sym" href="#sym-Music-update"><code>Music::update</code></a> runs once a frame. It starts the first track, moves the crossfade and the duck, and goes to the next track before the current one ends. The next track starts <code>crossfade</code> seconds before the end when the decoder knows the length. Otherwise the change comes when the sink drains. <a class="sym" href="#sym-Music-next"><code>Music::next</code></a> crossfades at once. <a class="sym" href="#sym-Music-pause"><code>Music::pause</code></a> and <a class="sym" href="#sym-Music-resume"><code>Music::resume</code></a> hold the place. <a class="sym" href="#sym-Music-set_folder"><code>Music::set_folder</code></a> rescans when the player picks a folder, and clears any license note. <a class="sym" href="#sym-Music-is_off"><code>Music::is_off</code></a> and <a class="sym" href="#sym-Music-current"><code>Music::current</code></a> report the state.</p>
+<p>Shuffle makes a new order on each pass with <a class="sym" href="#sym-shuffle_order"><code>shuffle_order</code></a>, and a new pass does not play the same track twice in a row. <a class="sym" href="#sym-crossfade_gains"><code>crossfade_gains</code></a> is constant power: the squares of the two gains sum to 1 at every point, so the loudness does not drop in the middle of the fade. <sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<h3 id="ducking">Ducking</h3>
+<p><a class="sym" href="#sym-Music-duck"><code>Music::duck</code></a> lowers the music under loud effects. The usual input is <a class="sym" href="#sym-Sfx-duck_level"><code>Sfx::duck_level</code></a>, given once a frame. The gain is <code>volume * (1 - duck_depth * duck)</code>. The duck comes down over 0.08 s, so a hit is not late, and rises over 0.8 s, so the music does not pump. These are time constants of an exponential approach. <sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<h2 id="ambience">Ambience</h2>
+<p><a class="sym" href="#sym-Ambience"><code>Ambience</code></a> holds looped layers by tag, for example one tag per biome. A tag can have more than one layer, for example surf and gulls under "beach". <a class="sym" href="#sym-Ambience-set_tag"><code>Ambience::set_tag</code></a> crossfades from the layers of the old tag to the layers of the new tag, and an unknown tag fades all layers out. <a class="sym" href="#sym-Ambience-clear_tag"><code>Ambience::clear_tag</code></a> does that too. The crossfade defaults to 3 seconds. A layer opens its sink when it starts to fade in and closes it at silence, so only audible layers hold a sink. <a class="sym" href="#sym-Ambience-gain"><code>Ambience::gain</code></a> reports the current level of one tag. Ambience goes to the <a class="sym" href="#sym-Sfx"><code>Sfx</code></a> lane of the bus.</p>
+<h2 id="sound-effects">Sound effects</h2>
+<p><a class="sym" href="#sym-Sfx-load"><code>Sfx::load</code></a> reads a file once. <a class="sym" href="#sym-Sfx-add_bytes"><code>Sfx::add_bytes</code></a> takes encoded bytes. <a class="sym" href="#sym-Sfx-play"><code>Sfx::play</code></a> plays at the center, and <a class="sym" href="#sym-Sfx-play_at"><code>Sfx::play_at</code></a> pans from <code>screen_x</code>, where 0 is the left edge and 1 the right. Both return a <a class="sym" href="#sym-Shot"><code>Shot</code></a> with the values chosen, or None when the name is unknown, the effect is in its cooldown, or all voices are busy with effects of higher priority.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th><a class="sym" href="#sym-SfxSpec"><code>SfxSpec</code></a> field</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>volume</code></td>
+<td>1.0</td>
+<td>Base volume</td>
+</tr>
+<tr>
+<td><code>volume_jitter</code></td>
+<td>0.1</td>
+<td>Random volume change, as a fraction</td>
+</tr>
+<tr>
+<td><code>pitch_jitter</code></td>
+<td>0.05</td>
+<td>Random speed change, as a fraction</td>
+</tr>
+<tr>
+<td><code>cooldown</code></td>
+<td>0.05</td>
+<td>Seconds before the same effect plays again</td>
+</tr>
+<tr>
+<td><code>priority</code></td>
+<td>1</td>
+<td>Which voice survives a full table</td>
+</tr>
+<tr>
+<td><code>length</code></td>
+<td>1.0</td>
+<td>Seconds that a voice holds its place</td>
+</tr>
+<tr>
+<td><code>ducks_music</code></td>
+<td>false</td>
+<td>The effect lowers the music while it plays</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Sfx"><code>Sfx</code></a> has 16 voices by default in Sfx::max_voices. A full voice table drops the voice of lowest priority, oldest first, for a voice of equal or higher priority. Sfx::stereo_width, 0.8 by default, limits how far the screen edge pans, which keeps some sound in both ears. <a class="sym" href="#sym-pan_gains"><code>pan_gains</code></a> is constant power: the center gives 0.707 on each side. <a class="sym" href="#sym-Sfx-seed"><code>Sfx::seed</code></a> fixes the jitter for a test or a replay. <sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<p><a class="sym" href="#sym-Sfx-update"><code>Sfx::update</code></a> moves the effect clock and frees ended voices. It must run each frame, because cooldowns use this clock. <a class="sym" href="#sym-Sfx-duck_level"><code>Sfx::duck_level</code></a> gives the volume of the loudest voice that ducks music.</p>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<p>The low-level bus and lanes belong to <a href="audio.html" data-slug="audio">Audio</a>. A biome name from <a href="world-biome.html" data-slug="world-biome">Biomes</a> is the intended ambience tag. <a class="sym" href="#sym-MusicSettings"><code>MusicSettings</code></a> is meant for a settings screen such as <a href="front-settings.html" data-slug="front-settings">Settings</a>. The kit calls neither: the game connects them.</p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li><a class="sym" href="#sym-Music-attach"><code>Music::attach</code></a> sends music to the <a class="sym" href="#sym-Music"><code>Music</code></a> lane, and <a class="sym" href="#sym-Ambience"><code>Ambience</code></a> and <a class="sym" href="#sym-Sfx"><code>Sfx</code></a> both use the <a class="sym" href="#sym-Sfx"><code>Sfx</code></a> lane.</li>
+<li>Ducking is not automatic. The game must pass <a class="sym" href="#sym-Sfx-duck_level"><code>Sfx::duck_level</code></a> to <a class="sym" href="#sym-Music-duck"><code>Music::duck</code></a> each frame.</li>
+<li>With the <a class="sym" href="audio.html"><code>audio</code></a> feature off, or in a browser build, the types run as logic only and make no sound.</li>
+<li><a class="sym" href="#sym-Music-bundled"><code>Music::bundled</code></a> keeps only files that pass <a class="sym" href="#sym-is_playable"><code>is_playable</code></a>, and does not test that they decode until they come up.</li>
+</ul>
+<h2 id="history">History</h2>
+<p>The module was added to the SDK on 2026-10-29.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 69 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-soundtrack" class="modhead"><code>warp_sdk::soundtrack</code></h3><h4>Functions</h4><div class="item" id="sym-is_playable" data-name="is_playable"><div class="sig"><a class="anchor" href="#sym-is_playable" aria-label="Link to is_playable">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_playable</span>(path: &amp;<span class="t">Path</span>) -&gt; bool</code></div><div class="doc"><p>True when the extension of <code>path</code> is in [<code>MUSIC_EXTS</code>]. Case does not matter.</p>
+<p><code>ignore
+assert!(warp_sdk::soundtrack::is_playable("a/Song.MP3".as_ref()));
+assert!(!warp_sdk::soundtrack::is_playable("a/cover.jpg".as_ref()));</code></p></div></div><div class="item" id="sym-scan_folder" data-name="scan_folder"><div class="sig"><a class="anchor" href="#sym-scan_folder" aria-label="Link to scan_folder">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">scan_folder</span>(dir: &amp;<span class="t">Path</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">PathBuf</span>&gt;</code></div><div class="doc"><p>Every playable file below <code>dir</code>, sorted by path.</p>
+<p>The walk goes down at most four folders and keeps at most 4000 tracks.
+A folder that does not exist or cannot be read gives an empty list.
+The walk reads folder entries only. It does not open a file.</p>
+<p><code>ignore
+let tracks = warp_sdk::soundtrack::scan_folder("C:/Users/me/Music".as_ref());</code></p></div></div><div class="item" id="sym-player_folders" data-name="player_folders"><div class="sig"><a class="anchor" href="#sym-player_folders" aria-label="Link to player_folders">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">player_folders</span>(game: &amp;str) -&gt; <span class="t">Vec</span>&lt;<span class="t">PathBuf</span>&gt;</code></div><div class="doc"><p>The folders where the player's music for <code>game</code> can be, in order of use.</p>
+<ol>
+<li><code>&lt;app data&gt;/&lt;game&gt;/music</code>. The player drops files here for this game
+only. This call makes the folder, so the player can find it.</li>
+<li>The OS music folder: <code>%USERPROFILE%\Music</code> on Windows,
+<code>$XDG_MUSIC_DIR</code> or <code>~/Music</code> on Linux, <code>~/Music</code> on macOS.</li>
+</ol>
+<p><code>ignore
+for dir in warp_sdk::soundtrack::player_folders("reef") { println!("{}", dir.display()); }</code></p></div></div><div class="item" id="sym-default_folder" data-name="default_folder"><div class="sig"><a class="anchor" href="#sym-default_folder" aria-label="Link to default_folder">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">default_folder</span>(game: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="t">PathBuf</span>&gt;</code></div><div class="doc"><p>The first of [<code>player_folders</code>] that holds a playable track.</p>
+<p>When no folder holds a track, the result is the game folder, which is
+empty, so music is off until the player adds files.</p>
+<p><code>ignore
+let dir = warp_sdk::soundtrack::default_folder("reef");</code></p></div></div><div class="item" id="sym-crossfade_gains" data-name="crossfade_gains"><div class="sig"><a class="anchor" href="#sym-crossfade_gains" aria-label="Link to crossfade_gains">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">crossfade_gains</span>(t: f32) -&gt; (f32, f32)</code></div><div class="doc"><p>The gains <code>(outgoing, incoming)</code> at crossfade progress <code>t</code> in <code>0..=1</code>.</p>
+<p>Constant power: <code>out² + in² = 1</code> at every <code>t</code>, so the loudness does not
+drop in the middle of the fade.</p>
+<p><code>ignore
+let (out, inc) = warp_sdk::soundtrack::crossfade_gains(0.5);
+assert!((out * out + inc * inc - 1.0).abs() &lt; 1e-5);</code></p></div></div><div class="item" id="sym-pan_gains" data-name="pan_gains"><div class="sig"><a class="anchor" href="#sym-pan_gains" aria-label="Link to pan_gains">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pan_gains</span>(pan: f32) -&gt; (f32, f32)</code></div><div class="doc"><p>The gains <code>(left, right)</code> for stereo pan <code>pan</code> in <code>-1..=1</code>.</p>
+<p>Constant power: the center gives <code>0.707</code> on each side.</p>
+<p><code>ignore
+let (l, r) = warp_sdk::soundtrack::pan_gains(-1.0);
+assert!(l &gt; 0.99 &amp;&amp; r &lt; 0.01);</code></p></div></div><div class="item" id="sym-shuffle_order" data-name="shuffle_order"><div class="sig"><a class="anchor" href="#sym-shuffle_order" aria-label="Link to shuffle_order">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">shuffle_order</span>(n: usize, seed: u64) -&gt; <span class="t">Vec</span>&lt;usize&gt;</code></div><div class="doc"><p>A permutation of <code>0..n</code>. The same <code>seed</code> gives the same order.</p>
+<p><code>ignore
+assert_eq!(warp_sdk::soundtrack::shuffle_order(5, 7), warp_sdk::soundtrack::shuffle_order(5, 7));</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Order" data-name="order"><div class="sig"><a class="anchor" href="#sym-Order" aria-label="Link to Order">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Order</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Sorted by path, then from the start again.</span>
+<span class="t">Sequential</span>,
+<span class="c">/// A new seeded shuffle each pass through the list.</span>
+<span class="t">Shuffle</span>,</code></pre></div><div class="doc"><p>The order in which [<code>Music</code>] plays the tracks.</p>
+<p><code>ignore
+let s = warp_sdk::soundtrack::MusicSettings { order: warp_sdk::soundtrack::Order::Sequential, ..Default::default() };</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-MusicSettings" data-name="musicsettings"><div class="sig"><a class="anchor" href="#sym-MusicSettings" aria-label="Link to MusicSettings">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">MusicSettings</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// False turns music off and keeps the other settings.</span>
+<span class="k">pub</span> enabled: bool,
+<span class="c">/// The folder the player chose. `None` uses [`default_folder`].</span>
+<span class="k">pub</span> folder: <span class="t">Option</span>&lt;<span class="t">PathBuf</span>&gt;,
+<span class="k">pub</span> order: <span class="t">Order</span>,
+<span class="c">/// Crossfade length in seconds between two tracks. `0` cuts.</span>
+<span class="k">pub</span> crossfade: f32,
+<span class="c">/// Music volume, `0..=1`.</span>
+<span class="k">pub</span> volume: f32,
+<span class="c">/// How much a loud effect lowers the music, `0..=1`. `0.5` halves it.</span>
+<span class="k">pub</span> duck_depth: f32,
+<span class="c">/// Shuffle seed. `None` takes a seed from the clock.</span>
+<span class="k">pub</span> seed: <span class="t">Option</span>&lt;u64&gt;,</code></pre></div><div class="doc"><p>The player's music settings. Put these in the game's settings screen.</p>
+<p>The defaults: on, the default player folder, shuffle, a 4 second
+crossfade, volume 0.5, and ducking that halves the music under loud effects.</p>
+<p><code>ignore
+let settings = warp_sdk::soundtrack::MusicSettings { folder: Some("D:/tunes".into()), ..Default::default() };
+let music = warp_sdk::soundtrack::Music::with_settings("reef", settings);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Music" data-name="music"><div class="sig"><a class="anchor" href="#sym-Music" aria-label="Link to Music">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Music</span></code></div><div class="doc"><p>The player's music: a playlist from a folder, crossfades, pause, volume
+and ducking. Music is off when the folder holds no playable track.</p>
+<p><code>ignore
+let mut music = warp_sdk::soundtrack::Music::player("reef");
+music.attach(bus.clone());
+// each frame:
+music.duck(sfx.duck_level());
+music.update(dt);</code></p></div></div><details class="members"><summary>20 methods</summary><div class="item" id="sym-Music-player" data-name="music::player"><div class="sig"><a class="anchor" href="#sym-Music-player" aria-label="Link to Music::player">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">player</span>(game: &amp;str) -&gt; <span class="t">Music</span></code></div><div class="doc"><p>The player's music for <code>game</code>, with default settings.</p>
+<p><code>ignore
+let music = warp_sdk::soundtrack::Music::player("reef");
+if music.is_off() { /* show "add music to &lt;folder&gt;" in settings */ }</code></p></div></div><div class="item" id="sym-Music-with_settings" data-name="music::with_settings"><div class="sig"><a class="anchor" href="#sym-Music-with_settings" aria-label="Link to Music::with_settings">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with_settings</span>(game: &amp;str, settings: <span class="t">MusicSettings</span>) -&gt; <span class="t">Music</span></code></div><div class="doc"><p>The player's music for <code>game</code>, with the settings the player chose.</p>
+<p><code>ignore
+let music = warp_sdk::soundtrack::Music::with_settings("reef", saved_settings);</code></p></div></div><div class="item" id="sym-Music-bundled" data-name="music::bundled"><div class="sig"><a class="anchor" href="#sym-Music-bundled" aria-label="Link to Music::bundled">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">bundled</span>(tracks: <span class="t">Vec</span>&lt;<span class="t">PathBuf</span>&gt;, license: &amp;str, settings: <span class="t">MusicSettings</span>) -&gt; <span class="t">Music</span></code></div><div class="doc"><p>Licensed tracks that ship with the game. This is the only path to
+game-owned music, and it is an opt-in.</p>
+<p><code>license</code> names the license or the source of the tracks. An empty
+<code>license</code> gives music that is off.</p>
+<p><code>ignore
+let music = Music::bundled(vec!["assets/music/theme.ogg".into()], "CC-BY 4.0, A. Artist", Default::default());</code></p></div></div><div class="item" id="sym-Music-attach" data-name="music::attach"><div class="sig"><a class="anchor" href="#sym-Music-attach" aria-label="Link to Music::attach">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">attach</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, bus: <span class="t">DeviceArc</span>&lt;<span class="t">Bus</span>&gt;)</code></div><div class="doc"><p>Send the music to the <code>Music</code> lane of <code>bus</code>. Before this call, the
+music runs as logic only and makes no sound.</p>
+<p><code>ignore
+music.attach(bus.clone());</code></p></div></div><div class="item" id="sym-Music-set_folder" data-name="music::set_folder"><div class="sig"><a class="anchor" href="#sym-Music-set_folder" aria-label="Link to Music::set_folder">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_folder</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, game: &amp;str, folder: <span class="t">Option</span>&lt;<span class="t">PathBuf</span>&gt;)</code></div><div class="doc"><p>Scan <code>folder</code> again and use it. Call this when the player picks a new
+folder in the settings screen. <code>None</code> uses the default folder.</p>
+<p><code>ignore
+music.set_folder("reef", Some("D:/tunes".into()));</code></p></div></div><div class="item" id="sym-Music-is_off" data-name="music::is_off"><div class="sig"><a class="anchor" href="#sym-Music-is_off" aria-label="Link to Music::is_off">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_off</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True when no music plays: no playable track, or the player turned it off.</p>
+<p><code>ignore
+if music.is_off() { ui.label("Music: off. Add files to the music folder."); }</code></p></div></div><div class="item" id="sym-Music-tracks" data-name="music::tracks"><div class="sig"><a class="anchor" href="#sym-Music-tracks" aria-label="Link to Music::tracks">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">tracks</span>(&amp;<span class="k">self</span>) -&gt; &amp;[<span class="t">PathBuf</span>]</code></div><div class="doc"><p>The tracks in the playlist, sorted by path.</p>
+<p><code>ignore
+for t in music.tracks() { ui.label(t.display().to_string()); }</code></p></div></div><div class="item" id="sym-Music-order" data-name="music::order"><div class="sig"><a class="anchor" href="#sym-Music-order" aria-label="Link to Music::order">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">order</span>(&amp;<span class="k">self</span>) -&gt; &amp;[usize]</code></div><div class="doc"><p>The play order, as indices into [<code>Music::tracks</code>].</p>
+<p><code>ignore
+let first = &amp;music.tracks()[music.order()[0]];</code></p></div></div><div class="item" id="sym-Music-current" data-name="music::current"><div class="sig"><a class="anchor" href="#sym-Music-current" aria-label="Link to Music::current">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">current</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">Path</span>&gt;</code></div><div class="doc"><p>The track that plays now, or <code>None</code> when music is off.</p>
+<p><code>ignore
+if let Some(p) = music.current() { ui.label(p.file_stem().unwrap().to_string_lossy()); }</code></p></div></div><div class="item" id="sym-Music-license" data-name="music::license"><div class="sig"><a class="anchor" href="#sym-Music-license" aria-label="Link to Music::license">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">license</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;str&gt;</code></div><div class="doc"><p>The license note given to [<code>Music::bundled</code>], or <code>None</code> for player music.</p>
+<p><code>ignore
+if let Some(l) = music.license() { credits.push(l.to_string()); }</code></p></div></div><div class="item" id="sym-Music-settings" data-name="music::settings"><div class="sig"><a class="anchor" href="#sym-Music-settings" aria-label="Link to Music::settings">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">settings</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="t">MusicSettings</span></code></div><div class="doc"><p>The settings in use.</p>
+<p><code>ignore
+let vol = music.settings().volume;</code></p></div></div><div class="item" id="sym-Music-set_enabled" data-name="music::set_enabled"><div class="sig"><a class="anchor" href="#sym-Music-set_enabled" aria-label="Link to Music::set_enabled">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_enabled</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, on: bool)</code></div><div class="doc"><p>Turn music on or off. Off stops the sinks.</p>
+<p><code>ignore
+music.set_enabled(false);</code></p></div></div><div class="item" id="sym-Music-set_volume" data-name="music::set_volume"><div class="sig"><a class="anchor" href="#sym-Music-set_volume" aria-label="Link to Music::set_volume">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_volume</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, volume: f32)</code></div><div class="doc"><p>Set the music volume, <code>0..=1</code>.</p>
+<p><code>ignore
+music.set_volume(0.3);</code></p></div></div><div class="item" id="sym-Music-pause" data-name="music::pause"><div class="sig"><a class="anchor" href="#sym-Music-pause" aria-label="Link to Music::pause">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pause</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Pause the music. [<code>Music::resume</code>] continues from the same place.</p>
+<p><code>ignore
+if paused_menu_open { music.pause(); }</code></p></div></div><div class="item" id="sym-Music-resume" data-name="music::resume"><div class="sig"><a class="anchor" href="#sym-Music-resume" aria-label="Link to Music::resume">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">resume</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Continue after [<code>Music::pause</code>].</p>
+<p><code>ignore
+music.resume();</code></p></div></div><div class="item" id="sym-Music-is_paused" data-name="music::is_paused"><div class="sig"><a class="anchor" href="#sym-Music-is_paused" aria-label="Link to Music::is_paused">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_paused</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True between [<code>Music::pause</code>] and [<code>Music::resume</code>].</p>
+<p><code>ignore
+let label = if music.is_paused() { "Resume" } else { "Pause" };</code></p></div></div><div class="item" id="sym-Music-next" data-name="music::next"><div class="sig"><a class="anchor" href="#sym-Music-next" aria-label="Link to Music::next">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">next</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Crossfade to the next track now.</p>
+<p><code>ignore
+if ui.button("Skip").clicked() { music.next(); }</code></p></div></div><div class="item" id="sym-Music-duck" data-name="music::duck"><div class="sig"><a class="anchor" href="#sym-Music-duck" aria-label="Link to Music::duck">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">duck</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, level: f32)</code></div><div class="doc"><p>Lower the music under loud effects. <code>level</code> is <code>0..=1</code>: give it
+[<code>Sfx::duck_level</code>] once a frame. The duck comes down fast and goes
+back up slowly.</p>
+<p><code>ignore
+music.duck(sfx.duck_level());</code></p></div></div><div class="item" id="sym-Music-gains" data-name="music::gains"><div class="sig"><a class="anchor" href="#sym-Music-gains" aria-label="Link to Music::gains">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">gains</span>(&amp;<span class="k">self</span>) -&gt; (f32, f32)</code></div><div class="doc"><p>The gains <code>(outgoing, current)</code> that the sinks get now. Each one
+includes volume, duck and crossfade. Music that is off gives <code>(0, 0)</code>.</p>
+<p><code>ignore
+let (_, now) = music.gains();</code></p></div></div><div class="item" id="sym-Music-update" data-name="music::update"><div class="sig"><a class="anchor" href="#sym-Music-update" aria-label="Link to Music::update">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">update</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32)</code></div><div class="doc"><p>Move time on by <code>dt</code> seconds. Call once a frame.</p>
+<p>This starts the first track, moves the crossfade and the duck, and
+goes to the next track before the current one ends.</p>
+<p><code>ignore
+music.update(dt);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Ambience" data-name="ambience"><div class="sig"><a class="anchor" href="#sym-Ambience" aria-label="Link to Ambience">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Ambience</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Crossfade length in seconds.</span>
+<span class="k">pub</span> crossfade: f32,
+<span class="c">/// Volume of all layers, `0..=1`.</span>
+<span class="k">pub</span> volume: f32,</code></pre></div><div class="doc"><p>Looped beds by tag, for example one tag per biome. [<code>Ambience::set_tag</code>]
+crossfades from the layers of the old tag to the layers of the new tag.</p>
+<p><code>ignore
+let mut amb = warp_sdk::soundtrack::Ambience::new();
+amb.add_loop("reef", "assets/amb/surf.ogg", 0.7);
+amb.attach(bus.clone());
+amb.set_tag("reef");
+amb.update(dt); // each frame</code></p></div></div><details class="members"><summary>8 methods</summary><div class="item" id="sym-Ambience-new" data-name="ambience::new"><div class="sig"><a class="anchor" href="#sym-Ambience-new" aria-label="Link to Ambience::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="t">Ambience</span></code></div><div class="doc"><p>No layers, no tag, a 3 second crossfade, volume 1.</p>
+<p><code>ignore
+let amb = warp_sdk::soundtrack::Ambience::new();</code></p></div></div><div class="item" id="sym-Ambience-add_loop" data-name="ambience::add_loop"><div class="sig"><a class="anchor" href="#sym-Ambience-add_loop" aria-label="Link to Ambience::add_loop">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">add_loop</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, tag: &amp;str, path: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">PathBuf</span>&gt;, volume: f32)</code></div><div class="doc"><p>Add a looped file under <code>tag</code> at <code>volume</code>. A tag can have more than
+one layer, for example surf and gulls under "beach".</p>
+<p><code>ignore
+amb.add_loop("beach", "assets/amb/surf.ogg", 0.8);
+amb.add_loop("beach", "assets/amb/gulls.ogg", 0.3);</code></p></div></div><div class="item" id="sym-Ambience-attach" data-name="ambience::attach"><div class="sig"><a class="anchor" href="#sym-Ambience-attach" aria-label="Link to Ambience::attach">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">attach</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, bus: <span class="t">DeviceArc</span>&lt;<span class="t">Bus</span>&gt;)</code></div><div class="doc"><p>Send the ambience to the <code>Sfx</code> lane of <code>bus</code>.</p>
+<p><code>ignore
+amb.attach(bus.clone());</code></p></div></div><div class="item" id="sym-Ambience-set_tag" data-name="ambience::set_tag"><div class="sig"><a class="anchor" href="#sym-Ambience-set_tag" aria-label="Link to Ambience::set_tag">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_tag</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, tag: &amp;str)</code></div><div class="doc"><p>Crossfade to the layers of <code>tag</code>. An unknown tag fades all layers out.</p>
+<p><code>ignore
+amb.set_tag(biome.name());</code></p></div></div><div class="item" id="sym-Ambience-clear_tag" data-name="ambience::clear_tag"><div class="sig"><a class="anchor" href="#sym-Ambience-clear_tag" aria-label="Link to Ambience::clear_tag">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clear_tag</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Fade all layers out.</p>
+<p><code>ignore
+amb.clear_tag();</code></p></div></div><div class="item" id="sym-Ambience-tag" data-name="ambience::tag"><div class="sig"><a class="anchor" href="#sym-Ambience-tag" aria-label="Link to Ambience::tag">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">tag</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;&amp;str&gt;</code></div><div class="doc"><p>The tag set last, or <code>None</code>.</p>
+<p><code>ignore
+let now = amb.tag();</code></p></div></div><div class="item" id="sym-Ambience-gain" data-name="ambience::gain"><div class="sig"><a class="anchor" href="#sym-Ambience-gain" aria-label="Link to Ambience::gain">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">gain</span>(&amp;<span class="k">self</span>, tag: &amp;str) -&gt; f32</code></div><div class="doc"><p>The summed gain of the layers of <code>tag</code>, before layer and master
+volume. <code>1</code> when the tag plays in full, <code>0</code> when it is silent.</p>
+<p><code>ignore
+let g = amb.gain("reef");</code></p></div></div><div class="item" id="sym-Ambience-update" data-name="ambience::update"><div class="sig"><a class="anchor" href="#sym-Ambience-update" aria-label="Link to Ambience::update">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">update</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32)</code></div><div class="doc"><p>Move the fades on by <code>dt</code> seconds. Call once a frame.</p>
+<p><code>ignore
+amb.update(dt);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-SfxSpec" data-name="sfxspec"><div class="sig"><a class="anchor" href="#sym-SfxSpec" aria-label="Link to SfxSpec">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">SfxSpec</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Base volume, `0..=1`.</span>
+<span class="k">pub</span> volume: f32,
+<span class="c">/// Random volume change, as a fraction. `0.1` gives `0.9..1.1` of `volume`.</span>
+<span class="k">pub</span> volume_jitter: f32,
+<span class="c">/// Random speed change, as a fraction. `0.05` gives `0.95..1.05` speed.</span>
+<span class="k">pub</span> pitch_jitter: f32,
+<span class="c">/// Seconds before the same effect plays again. A call in this time does nothing.</span>
+<span class="k">pub</span> cooldown: f32,
+<span class="c">/// A full voice table drops the voice of lowest priority for a voice of</span>
+<span class="c">/// equal or higher priority.</span>
+<span class="k">pub</span> priority: u8,
+<span class="c">/// Seconds that a voice holds its place. `attach` replaces this with the</span>
+<span class="c">/// decoded length when the decoder knows it.</span>
+<span class="k">pub</span> length: f32,
+<span class="c">/// True when this effect lowers the music while it plays.</span>
+<span class="k">pub</span> ducks_music: bool,</code></pre></div><div class="doc"><p>How one effect plays.</p>
+<p>The defaults: volume 1 with ±10 % variation, pitch ±5 %, a 50 ms
+cooldown, priority 1, a 1 second voice life, no ducking.</p>
+<p><code>ignore
+let boom = SfxSpec { priority: 5, ducks_music: true, cooldown: 0.3, ..Default::default() };</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Shot" data-name="shot"><div class="sig"><a class="anchor" href="#sym-Shot" aria-label="Link to Shot">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Shot</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> volume: f32,
+<span class="c">/// Speed factor. `1` is the recorded pitch.</span>
+<span class="k">pub</span> pitch: f32,
+<span class="c">/// `-1` is left, `0` is center, `1` is right.</span>
+<span class="k">pub</span> pan: f32,
+<span class="c">/// Gain of the left channel, from [`pan_gains`].</span>
+<span class="k">pub</span> left: f32,
+<span class="c">/// Gain of the right channel, from [`pan_gains`].</span>
+<span class="k">pub</span> right: f32,</code></pre></div><div class="doc"><p>What [<code>Sfx::play_at</code>] decided for one voice.</p>
+<p><code>ignore
+if let Some(shot) = sfx.play_at("hit", 0.8) { debug!("pan {}", shot.pan); }</code></p></div></div><details class="members"><summary>6 methods</summary><div class="item" id="sym-Shot-to" data-name="shot::to"><div class="sig"><a class="anchor" href="#sym-Shot-to" aria-label="Link to Shot::to">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">to</span>(point: <span class="t">Vec2</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A shot to <code>point</code> with the default timing.</p>
+<p><code>use warp_sdk::camera::Shot;
+use warp_sdk::ultraviolet::Vec2;
+let shot = Shot::to(Vec2::new(5.0, 0.0));
+assert!(shot.scale.is_none());</code></p></div></div><div class="item" id="sym-Shot-zoom" data-name="shot::zoom"><div class="sig"><a class="anchor" href="#sym-Shot-zoom" aria-label="Link to Shot::zoom">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">zoom</span>(<span class="k">mut</span> <span class="k">self</span>, scale: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the zoom scale at the point.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Shot; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let shot = Shot::to(Vec2::zero()).zoom(2.0);
+```</p></div></div><div class="item" id="sym-Shot-travel" data-name="shot::travel"><div class="sig"><a class="anchor" href="#sym-Shot-travel" aria-label="Link to Shot::travel">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">travel</span>(<span class="k">mut</span> <span class="k">self</span>, to: f32, back: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the seconds of the pan to the point and of the pan back.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Shot; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let shot = Shot::to(Vec2::zero()).travel(1.5, 1.0);
+```</p></div></div><div class="item" id="sym-Shot-hold" data-name="shot::hold"><div class="sig"><a class="anchor" href="#sym-Shot-hold" aria-label="Link to Shot::hold">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">hold</span>(<span class="k">mut</span> <span class="k">self</span>, seconds: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Set the seconds at the point.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Shot; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let shot = Shot::to(Vec2::zero()).hold(3.0);
+```</p></div></div><div class="item" id="sym-Shot-letterbox" data-name="shot::letterbox"><div class="sig"><a class="anchor" href="#sym-Shot-letterbox" aria-label="Link to Shot::letterbox">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">letterbox</span>(<span class="k">mut</span> <span class="k">self</span>, fraction: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Show letterbox bars of this fraction of the screen height. A value
+of 0.1 is a good cinematic look.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Shot; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>let shot = Shot::to(Vec2::zero()).letterbox(0.1);
+```</p></div></div><div class="item" id="sym-Shot-duration" data-name="shot::duration"><div class="sig"><a class="anchor" href="#sym-Shot-duration" aria-label="Link to Shot::duration">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">duration</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The full length of the shot in seconds.</p>
+<p>```</p>
+<h1>use warp_sdk::camera::Shot; use warp_sdk::ultraviolet::Vec2;</h1>
+<p>assert!(Shot::to(Vec2::zero()).duration() &gt; 0.0);
+```</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Sfx" data-name="sfx"><div class="sig"><a class="anchor" href="#sym-Sfx" aria-label="Link to Sfx">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Sfx</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The most voices that play at one time.</span>
+<span class="k">pub</span> max_voices: usize,
+<span class="c">/// How far the screen edge pans, `0..=1`. `0.8` keeps some sound in both ears.</span>
+<span class="k">pub</span> stereo_width: f32,
+<span class="c">/// Volume of all effects, `0..=1`.</span>
+<span class="k">pub</span> volume: f32,</code></pre></div><div class="doc"><p>One-shot sound effects with variation, cooldown, pan and a voice limit.</p>
+<p><code>ignore
+let mut sfx = warp_sdk::soundtrack::Sfx::new();
+sfx.load("hit", "assets/sfx/hit.wav", Default::default())?;
+sfx.attach(bus.clone());
+sfx.play_at("hit", x / width);
+sfx.update(dt); // each frame</code></p></div></div><details class="members"><summary>11 methods</summary><div class="item" id="sym-Sfx-new" data-name="sfx::new"><div class="sig"><a class="anchor" href="#sym-Sfx-new" aria-label="Link to Sfx::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="t">Sfx</span></code></div><div class="doc"><p>No effects, 16 voices, stereo width 0.8, volume 1.</p>
+<p><code>ignore
+let sfx = warp_sdk::soundtrack::Sfx::new();</code></p></div></div><div class="item" id="sym-Sfx-seed" data-name="sfx::seed"><div class="sig"><a class="anchor" href="#sym-Sfx-seed" aria-label="Link to Sfx::seed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">seed</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, seed: u64)</code></div><div class="doc"><p>Set the variation seed, so the jitter repeats in a test or a replay.</p>
+<p><code>ignore
+sfx.seed(42);</code></p></div></div><div class="item" id="sym-Sfx-add" data-name="sfx::add"><div class="sig"><a class="anchor" href="#sym-Sfx-add" aria-label="Link to Sfx::add">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">add</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, name: &amp;str, spec: <span class="t">SfxSpec</span>)</code></div><div class="doc"><p>Add an effect with no audio data. It runs the full logic and makes no
+sound. Use it for tests, or before the data loads.</p>
+<p><code>ignore
+sfx.add("hit", SfxSpec::default());</code></p></div></div><div class="item" id="sym-Sfx-add_bytes" data-name="sfx::add_bytes"><div class="sig"><a class="anchor" href="#sym-Sfx-add_bytes" aria-label="Link to Sfx::add_bytes">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">add_bytes</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, name: &amp;str, bytes: <span class="t">Vec</span>&lt;u8&gt;, spec: <span class="t">SfxSpec</span>)</code></div><div class="doc"><p>Add an effect from encoded bytes (wav, ogg, flac or mp3).</p>
+<p><code>ignore</code></p></div></div><div class="item" id="sym-Sfx-load" data-name="sfx::load"><div class="sig"><a class="anchor" href="#sym-Sfx-load" aria-label="Link to Sfx::load">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">load</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, name: &amp;str, path: <span class="k">impl</span> <span class="t">AsRef</span>&lt;<span class="t">Path</span>&gt;, spec: <span class="t">SfxSpec</span>) -&gt; std::io::<span class="t">Result</span>&lt;()&gt;</code></div><div class="doc"><p>Add an effect from a file. The file is read once, here.</p>
+<p><code>ignore
+sfx.load("hit", "assets/sfx/hit.wav", SfxSpec::default())?;</code></p></div></div><div class="item" id="sym-Sfx-attach" data-name="sfx::attach"><div class="sig"><a class="anchor" href="#sym-Sfx-attach" aria-label="Link to Sfx::attach">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">attach</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, bus: <span class="t">DeviceArc</span>&lt;<span class="t">Bus</span>&gt;)</code></div><div class="doc"><p>Send the effects to the <code>Sfx</code> lane of <code>bus</code>.</p>
+<p><code>ignore
+sfx.attach(bus.clone());</code></p></div></div><div class="item" id="sym-Sfx-play" data-name="sfx::play"><div class="sig"><a class="anchor" href="#sym-Sfx-play" aria-label="Link to Sfx::play">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">play</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, name: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="t">Shot</span>&gt;</code></div><div class="doc"><p>Play <code>name</code> at the center. See [<code>Sfx::play_at</code>].</p>
+<p><code>ignore
+sfx.play("click");</code></p></div></div><div class="item" id="sym-Sfx-play_at" data-name="sfx::play_at"><div class="sig"><a class="anchor" href="#sym-Sfx-play_at" aria-label="Link to Sfx::play_at">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">play_at</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, name: &amp;str, screen_x: f32) -&gt; <span class="t">Option</span>&lt;<span class="t">Shot</span>&gt;</code></div><div class="doc"><p>Play <code>name</code>, panned from <code>screen_x</code> (<code>0</code> is the left edge, <code>1</code> the right).</p>
+<p>Gives <code>None</code> when the name is unknown, the effect is in its cooldown,
+or all voices are busy with effects of higher priority.</p>
+<p><code>ignore
+sfx.play_at("splash", fish.x / screen_w);</code></p></div></div><div class="item" id="sym-Sfx-update" data-name="sfx::update"><div class="sig"><a class="anchor" href="#sym-Sfx-update" aria-label="Link to Sfx::update">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">update</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, dt: f32)</code></div><div class="doc"><p>Move the effect clock on by <code>dt</code> seconds and free the voices that ended.</p>
+<p><code>ignore
+sfx.update(dt);</code></p></div></div><div class="item" id="sym-Sfx-voices" data-name="sfx::voices"><div class="sig"><a class="anchor" href="#sym-Sfx-voices" aria-label="Link to Sfx::voices">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">voices</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>The number of voices that play now.</p>
+<p><code>ignore
+ui.label(format!("voices {}", sfx.voices()));</code></p></div></div><div class="item" id="sym-Sfx-duck_level" data-name="sfx::duck_level"><div class="sig"><a class="anchor" href="#sym-Sfx-duck_level" aria-label="Link to Sfx::duck_level">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">duck_level</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The loudest voice that ducks music, <code>0..=1</code>. Give it to [<code>Music::duck</code>].</p>
+<p><code>ignore
+music.duck(sfx.duck_level());</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Bus" data-name="bus"><div class="sig"><a class="anchor" href="#sym-Bus" aria-label="Link to Bus">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Bus</span></code></div><div class="doc"><p>The lanes the game plays into.</p>
+<p>Holds only the controller half of each lane. The mixer half went to rodio
+inside a <code>Tap</code> when the bus was built, and lives on the audio thread from
+then on.</p></div></div><details class="members"><summary>3 methods</summary><div class="item" id="sym-Bus-new" data-name="bus::new"><div class="sig"><a class="anchor" href="#sym-Bus-new" aria-label="Link to Bus::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(handle: &amp;<span class="t">OutputStreamHandle</span>) -&gt; <span class="t">Result</span>&lt;<span class="t">Bus</span>, <span class="t">PlayError</span>&gt;</code></div><div class="doc"><p>Build every lane and hand each one's tap to the output stream.</p>
+<p>Every lane is registered in one pass, before any of them can carry
+sound. rodio defers a pending source until its channel count divides
+the samples it has produced, so lanes offered together are accepted
+together and begin at one offset. Offering them at different times
+would risk starting one a sample later than the other, and the scope
+sums the lanes by index on the promise that this does not happen.</p></div></div><div class="item" id="sym-Bus-sink" data-name="bus::sink"><div class="sig"><a class="anchor" href="#sym-Bus-sink" aria-label="Link to Bus::sink">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">sink</span>(&amp;<span class="k">self</span>, lane: <span class="t">Lane</span>) -&gt; <span class="t">Sink</span></code></div><div class="doc"><p>A sink on one lane.</p>
+<p>Replaces <code>Sink::try_new(&amp;stream_handle)</code> at a call site and changes
+nothing else about it. The returned sink is stopped by dropping it,
+reports <code>empty</code> when its queue drains, and takes volume and pause the
+way it always did.</p></div></div><div class="item" id="sym-Bus-play_raw" data-name="bus::play_raw"><div class="sig"><a class="anchor" href="#sym-Bus-play_raw" aria-label="Link to Bus::play_raw">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> play_raw&lt;<span class="t">S</span>&gt;(&amp;<span class="k">self</span>, lane: <span class="t">Lane</span>, source: <span class="t">S</span>) <span class="k">where</span> <span class="t">S</span>: <span class="t">Source</span>&lt;<span class="t">Item</span> = f32&gt; + <span class="t">Send</span> + <span class="a">'static</span>,</code></div><div class="doc"><p>Play a source on one lane with no handle to control it.</p>
+<p>For sound that is over before anything could want to stop it, and for
+the silent primer a device wants at open. Everything else should take
+a sink, because a sound with no handle cannot be silenced when the
+transport stops.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Lane" data-name="lane"><div class="sig"><a class="anchor" href="#sym-Lane" aria-label="Link to Lane">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Lane</span></code></div><div class="doc"><p>Which of the game's two kinds of sound a block of samples belongs to.</p>
+<p>The two are separated at the bus and stay separated all the way to the
+display, because the question the monitor exists to answer is usually
+about one of them: whether the music is ducking, or whether a sound effect
+fired. A single mixed lane can be summed out of these two, and two lanes
+cannot be recovered from one mixed one.</p>
+<p>A third kind — ambient beds, dialogue — is one variant here, one row in
+<code>ALL</code>, and one arm in <code>label</code>. Nothing else counts lanes.</p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-Lane-ALL" data-name="lane::all"><div class="sig"><a class="anchor" href="#sym-Lane-ALL" aria-label="Link to Lane::ALL">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">ALL</span>: [<span class="t">Lane</span>; <span class="n">2</span>] = [<span class="t">Lane</span>::<span class="t">Music</span>, <span class="t">Lane</span>::<span class="t">Sfx</span>]</code></div><div class="doc"><p>Every lane, in display order.</p></div></div><div class="item" id="sym-Lane-index" data-name="lane::index"><div class="sig"><a class="anchor" href="#sym-Lane-index" aria-label="Link to Lane::index">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="k">fn</span> <span class="f">index</span>(<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>Its index into the ring array.</p></div></div><div class="item" id="sym-Lane-label" data-name="lane::label"><div class="sig"><a class="anchor" href="#sym-Lane-label" aria-label="Link to Lane::label">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="k">fn</span> <span class="f">label</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>The name the panel puts on it.</p></div></div><div class="item" id="sym-Lane-from_index" data-name="lane::from_index"><div class="sig"><a class="anchor" href="#sym-Lane-from_index" aria-label="Link to Lane::from_index">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_index</span>(i: usize) -&gt; <span class="t">Option</span>&lt;<span class="t">Lane</span>&gt;</code></div><div class="doc"><p>The lane at <code>i</code>, or none when <code>i</code> names no lane.</p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-MUSIC_EXTS" data-name="music_exts"><div class="sig"><a class="anchor" href="#sym-MUSIC_EXTS" aria-label="Link to MUSIC_EXTS">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MUSIC_EXTS</span>: &amp;[&amp;str] = &amp;[<span class="s">"mp3"</span>, <span class="s">"ogg"</span>, <span class="s">"flac"</span>, <span class="s">"wav"</span>]</code></div><div class="doc"><p>The file extensions that the rodio in this build decodes, in lower case.</p>
+<p>rodio 0.17 with its default features: hound, claxon, lewton, symphonia-mp3.</p>
+<p><code>ignore
+assert!(warp_sdk::soundtrack::MUSIC_EXTS.contains(&amp;"ogg"));</code></p></div></div><h2 id="see-also">See also</h2><ul><li><a href="audio.html" data-slug="audio">Audio</a></li><li><a href="juice.html" data-slug="juice">Juice</a></li><li><a href="front-settings.html" data-slug="front-settings">Settings</a></li><li><a href="world-biome.html" data-slug="world-biome">Biomes</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/soundtrack.rs</code> - <code>that folder holds no track this build can decode, music is off. Silence is</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/soundtrack.rs</code> - <code>call takes a license note, so the choice is explicit and shows in review.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/soundtrack.rs</code> - <code>line to Cargo.toml. One copy of rodio keeps one `Sink` type in the build.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/soundtrack.rs</code> - <code>then does it open rodio sinks. Without `attach`, every call still runs and</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/soundtrack.rs</code> - <code>so a folder of broken files stops instead of looping.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/soundtrack.rs</code> - <code>A new shuffle must not play the same track twice in a row.</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/soundtrack.rs</code> - <code>Seconds for the duck to come back up. Long, so the music does not pump.</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/src/soundtrack.rs</code> - <code>A full voice table drops the voice of lowest priority for a voice of</code></li></ol><table class="navbox"><tr><th><a href="category-game-systems.html">Game systems</a></th></tr><tr><td><a href="challenge.html" data-slug="challenge">Challenge kit</a> · <a href="economy.html" data-slug="economy">Economy kit</a> · <a href="quest.html" data-slug="quest">Quest kit</a> · <a href="metaprog.html" data-slug="metaprog">Metaprogression</a> · <a href="gamepad.html" data-slug="gamepad">Gamepad</a> · <b>Soundtrack</b></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-game-systems.html">Game systems</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

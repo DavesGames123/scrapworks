@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boot splash and screenshots - Warp Wiki</title>
+<meta name="description" content="The native splash a game owns, and PNG screenshots on every platform">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="boot">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#why-a-splash-exists">Why a splash exists</a></li><li><a href="#usage">Usage</a></li><li><a href="#splash">Splash</a></li><li><a href="#where-it-runs">Where it runs</a></li><li><a href="#screenshots">Screenshots</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Boot splash and screenshots</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">The native splash a game owns, and PNG screenshots on every platform</p><table class="infobox"><caption>Boot splash and screenshots</caption><tr><th>Category</th><td><a href="category-front-end.html">Front end</a></td></tr><tr><th>Modules</th><td><code>warp_sdk::boot</code><br><code>warp_sdk::boot::shot</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/boot.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">27</a></td></tr></table><p><strong>Boot splash and screenshots</strong> are the kit for the first thing that a person sees and for capturing frames, in the <a class="sym" href="boot.html"><code>warp_sdk::boot</code></a> module. <a class="sym" href="#sym-Splash"><code>Splash</code></a> sets the look of a small native window that shows while the main window waits for its first present. <a class="sym" href="boot.html"><code>boot::shot</code></a> saves a frame as a PNG, from the F12 key or from game code. The module re-exports the <code>bootsplash</code> module of <code>warp_core</code> and part of its <a class="sym" href="gpu.html#sym-shot"><code>shot</code></a> module.</p>
+<h2 id="why-a-splash-exists">Why a splash exists</h2>
+<p>The main window is built hidden and is shown on its first present. On DX12 that present waits for every render pipeline, and FXC compiles them again at each launch. The boot log measured that wait at about 35 seconds, with no window and no taskbar button, which reads as a game that did not start.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<p>The splash opens on its own thread at the top of <a class="sym" href="renderer.html#sym-run"><code>run</code></a>, before the GPU. It has its own message loop, so the blocked main thread cannot make it "Not Responding". It closes when the main window becomes visible, or when a fatal error box opens.</p>
+<h2 id="usage">Usage</h2>
+<p>Set the look with one call before <a class="sym" href="renderer.html#sym-run"><code>run</code></a>.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::boot::{<span class="t">Icon</span>, <span class="t">Layout</span>, <span class="t">Progress</span>, <span class="t">Splash</span>, <span class="t">Status</span>};
+
+<span class="k">fn</span> <span class="f">main</span>() {
+    <span class="t">Splash</span>::<span class="f">new</span>(<span class="s">"REEF"</span>)
+        .<span class="f">palette</span>([<span class="n">4</span>, <span class="n">18</span>, <span class="n">28</span>], [<span class="n">80</span>, <span class="n">220</span>, <span class="n">200</span>], [<span class="n">220</span>, <span class="n">240</span>, <span class="n">240</span>])
+        .<span class="f">icon</span>(<span class="t">Icon</span>::<span class="f">from_fn</span>(<span class="n">64</span>, <span class="n">64</span>, |_x, y| [<span class="n">40</span>, <span class="n">120</span> + (y * <span class="n">2</span>) <span class="k">as</span> u8, <span class="n">200</span>, <span class="n">255</span>]))
+        .<span class="f">layout</span>(<span class="t">Layout</span>::<span class="t">Centered</span>)
+        .<span class="f">progress</span>(<span class="t">Progress</span>::<span class="t">Ring</span>)
+        .<span class="f">status</span>(<span class="t">Status</span>::<span class="f">words</span>([<span class="s">"Waking the reef"</span>, <span class="s">"Lighting the water"</span>]))
+        .<span class="f">install</span>();
+    warp_sdk::run::&lt;<span class="t">Game</span>&gt;(warp_sdk::<span class="t">Config</span> { window_title: <span class="s">"Reef"</span>, ..<span class="t">Default</span>::<span class="f">default</span>() });
+}</code></pre></div>
+<p>A game that does not call <a class="sym" href="#sym-install"><code>install</code></a> gets the default: a dark window with the application name, the engine stage word and a thin bar. It has no long sentence and no seconds counter.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<h2 id="splash">Splash</h2>
+<p>The game owns the look, and the engine supplies only the stage text and the step count.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Builder</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Splash-new"><code>Splash::new(title)</code></a></td>
+<td>The application name</td>
+<td>The wordmark</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Splash-font"><code>font(bytes)</code></a></td>
+<td>Segoe UI</td>
+<td>TTF or OTF bytes for the wordmark</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Splash-palette"><code>palette(background, accent, text)</code></a></td>
+<td>12, 14, 20; 96, 168, 255; 226, 230, 238</td>
+<td>The dim text and the track are mixes of these</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Splash-icon"><code>icon(icon)</code></a></td>
+<td>None</td>
+<td>RGBA pixels</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Splash-layout"><code>layout(layout)</code></a></td>
+<td>Layout::Centered</td>
+<td>Where the parts go</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Splash-progress"><code>progress(progress)</code></a></td>
+<td>Progress::Bar</td>
+<td>The progress mark</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Splash-status"><code>status(status)</code></a></td>
+<td>Status::Engine</td>
+<td>The status line</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Splash-size"><code>size(width, height)</code></a></td>
+<td>480 by 220</td>
+<td>Pixels at 96 dpi. The minimum is 240 by 140</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Splash-seconds"><code>seconds(show)</code></a></td>
+<td>Off</td>
+<td>Show the seconds since launch</td>
+</tr>
+</tbody>
+</table>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Value</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Layout::Centered</td>
+<td>The icon, the wordmark, the status and the progress in one centre column</td>
+</tr>
+<tr>
+<td>Layout::Corner</td>
+<td>Icon and wordmark at the top left, status and progress at the bottom right</td>
+</tr>
+<tr>
+<td>Layout::FullBleed</td>
+<td>The icon fills the window as art, with the text at the bottom left</td>
+</tr>
+<tr>
+<td>Progress::Bar</td>
+<td>A thin bar</td>
+</tr>
+<tr>
+<td>Progress::Ring</td>
+<td>A ring that fills clockwise from the top</td>
+</tr>
+<tr>
+<td>Progress::Dots</td>
+<td>Five dots that fill from the left</td>
+</tr>
+<tr>
+<td>Status::IconOnly</td>
+<td>No text</td>
+</tr>
+<tr>
+<td>Status::Engine</td>
+<td>The engine stage words, for example "Drawing the first frame"</td>
+</tr>
+<tr>
+<td>Status::Words</td>
+<td>Short lines from the game</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Status-words"><code>Status::words</code></a> makes the Words form from a list. The splash shows line <code>n</code> at boot stage <code>n</code>, and keeps the last line for every later stage.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<p><a class="sym" href="#sym-Icon-from_fn"><code>Icon::from_fn</code></a> builds art from a function of the pixel position, and <a class="sym" href="#sym-Icon-from_rgba"><code>Icon::from_rgba</code></a> takes straight RGBA bytes and returns <code>None</code> when the length is wrong. <a class="sym" href="#sym-Splash-install"><code>Splash::install</code></a> stores the look, and the free function <a class="sym" href="#sym-install"><code>install</code></a> does the same. <a class="sym" href="#sym-installed"><code>installed</code></a> gives the current look. <a class="sym" href="#sym-Splash-text_lines"><code>Splash::text_lines</code></a> gives the lines for a stage, as pure code.</p>
+<h2 id="where-it-runs">Where it runs</h2>
+<p>The splash runs on Windows only, and only for a standalone game. A hosted game's window is never shown, so a splash would never close. On every other target each function is a no-op, so a call site needs no <code>cfg</code>.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<p>A person can close the splash with the X button, the taskbar or Alt+F4. That ends the process at once with exit code 0. No frame is drawn yet, so there is nothing to save. Before this behaviour, closing the splash destroyed only the splash, and the game opened its main window later anyway.</p>
+<h2 id="screenshots">Screenshots</h2>
+<p><a class="sym" href="boot.html"><code>boot::shot</code></a> has two capture paths.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Path</th>
+<th>Used by</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Readback</td>
+<td>Game code on every platform, and F12 off macOS</td>
+<td>The scene target, with no egui layer and no CRT pass</td>
+</tr>
+<tr>
+<td>Screencapture</td>
+<td>F12 on macOS</td>
+<td>The window rect, with the CRT pass and every egui layer</td>
+</tr>
+</tbody>
+</table>
+<p>Game code asks for a frame with <a class="sym" href="#sym-request"><code>request</code></a>, so a one-shot agent can look at its own game:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="c">// In Renderer::render:</span>
+<span class="k">self</span>.frame += <span class="n">1</span>;
+<span class="k">if</span> <span class="k">self</span>.frame == <span class="n">120</span> {
+    warp_sdk::boot::shot::<span class="f">request</span>(<span class="t">Some</span>(<span class="s">"target/shots/title.png"</span>.<span class="f">into</span>()));
+}</code></pre></div>
+<p><a class="sym" href="#sym-request"><code>request(None)</code></a> writes to <a class="sym" href="#sym-screenshots_dir"><code>screenshots_dir</code></a>, under the application data folder, with a tag and the UTC time in the file name. When the platform has no application data folder, the kit uses a folder in the temporary directory. A request with a path writes to that path and makes the parent folders.</p>
+<p>After the next present, the render loop copies the scene target to a buffer, and a worker thread writes the PNG. The readback stalls the render thread for one frame, once per request, and the encode is not part of the stall. The PNG is on disk some milliseconds after the frame, and <a class="sym" href="#sym-last_saved"><code>last_saved</code></a> gives its path. <a class="sym" href="#sym-pending"><code>pending</code></a> is true while a request waits.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<p>Requests do not queue. Two requests before one frame give one picture, at the path of the last request.</p>
+<p>macOS F12 keeps screencapture so that both sides of a before-and-after pair go through the same capture path. The cost is the Screen Recording permission of macOS: until the user gives it, macOS writes a picture of the desktop with no game window in it. Game code on macOS still uses the readback.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<p>Two lower-level calls are public. <a class="sym" href="#sym-save_texture"><code>save_texture</code></a> reads one texture back and writes a PNG at once. The texture needs <code>COPY_SRC</code> and 4 bytes per pixel. <a class="sym" href="#sym-write_png"><code>write_png</code></a> writes tight RGBA8 bytes as a PNG and makes the parent folders.</p>
+<h2 id="history">History</h2>
+<p>The native progress window was added to the engine on 2026-10-18, and the change that ends the process on a person's close followed on 2026-10-25. The <a class="sym" href="boot.html"><code>boot</code></a> module of the SDK dates from 2026-10-29.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 27 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-boot" class="modhead"><code>warp_sdk::boot</code></h3><h4>Functions</h4><div class="item" id="sym-install" data-name="install"><div class="sig"><a class="anchor" href="#sym-install" aria-label="Link to install">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">install</span>(splash: <span class="t">Splash</span>)</code></div><div class="doc"><p>Store the look <code>open</code> uses. Call before <code>run</code>.</p>
+<p><code>ignore
+warp_sdk::boot::install(warp_sdk::boot::Splash::new("REEF"));</code></p></div></div><div class="item" id="sym-installed" data-name="installed"><div class="sig"><a class="anchor" href="#sym-installed" aria-label="Link to installed">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">installed</span>() -&gt; <span class="t">Splash</span></code></div><div class="doc"><p>The look <code>open</code> uses now: the installed one, else the default.</p>
+<p><code>ignore
+let s = warp_sdk::boot::installed();</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Icon" data-name="icon"><div class="sig"><a class="anchor" href="#sym-Icon" aria-label="Link to Icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Icon</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Width in pixels.</span>
+<span class="k">pub</span> width: u32,
+<span class="c">/// Height in pixels.</span>
+<span class="k">pub</span> height: u32,
+<span class="c">/// `width * height * 4` bytes, rows from the top, alpha not premultiplied.</span>
+<span class="k">pub</span> rgba: <span class="t">Vec</span>&lt;u8&gt;,</code></pre></div><div class="doc"><p>An icon or a piece of art for the splash, as straight RGBA bytes.</p>
+<p><code>ignore
+use warp_sdk::boot::Icon;
+let dot = Icon::from_fn(32, 32, |x, y| {
+let d = (x as i32 - 16).pow(2) + (y as i32 - 16).pow(2);
+if d &lt; 196 { [90, 200, 255, 255] } else { [0, 0, 0, 0] }
+});</code></p></div></div><details class="members"><summary>2 methods</summary><div class="item" id="sym-Icon-from_rgba" data-name="icon::from_rgba"><div class="sig"><a class="anchor" href="#sym-Icon-from_rgba" aria-label="Link to Icon::from_rgba">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_rgba</span>(width: u32, height: u32, rgba: <span class="t">Vec</span>&lt;u8&gt;) -&gt; <span class="t">Option</span>&lt;<span class="t">Icon</span>&gt;</code></div><div class="doc"><p>Make an icon from RGBA bytes. None when the length is not
+<code>width * height * 4</code>, or when a side is zero.</p>
+<p><code>ignore
+let icon = warp_sdk::boot::Icon::from_rgba(1, 1, vec![255, 0, 0, 255]).unwrap();</code></p></div></div><div class="item" id="sym-Icon-from_fn" data-name="icon::from_fn"><div class="sig"><a class="anchor" href="#sym-Icon-from_fn" aria-label="Link to Icon::from_fn">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">from_fn</span>(width: u32, height: u32, f: <span class="k">impl</span> <span class="t">Fn</span>(u32, u32) -&gt; [u8; <span class="n">4</span>]) -&gt; <span class="t">Icon</span></code></div><div class="doc"><p>Make an icon from a callback that gives the RGBA of each pixel.</p>
+<p><code>ignore
+let solid = warp_sdk::boot::Icon::from_fn(8, 8, |_, _| [255, 128, 0, 255]);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Layout" data-name="layout"><div class="sig"><a class="anchor" href="#sym-Layout" aria-label="Link to Layout">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Layout</span></code></div><div class="doc"><p>Where the parts of the splash go.</p>
+<p><code>ignore
+warp_sdk::boot::Splash::new("REEF").layout(warp_sdk::boot::Layout::Corner).install();</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Progress" data-name="progress"><div class="sig"><a class="anchor" href="#sym-Progress" aria-label="Link to Progress">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Progress</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A thin bar. The default.</span>
+<span class="t">Bar</span>,
+<span class="c">/// A ring that fills clockwise from the top.</span>
+<span class="t">Ring</span>,
+<span class="c">/// Five dots that fill from the left.</span>
+<span class="t">Dots</span>,</code></pre></div><div class="doc"><p>How the splash shows progress.</p>
+<p><code>ignore
+warp_sdk::boot::Splash::new("REEF").progress(warp_sdk::boot::Progress::Ring).install();</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Splash" data-name="splash"><div class="sig"><a class="anchor" href="#sym-Splash" aria-label="Link to Splash">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Splash</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The wordmark. None uses the application name (`Config::window_title`).</span>
+<span class="k">pub</span> title: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// TTF or OTF bytes for the wordmark. None uses the system UI font.</span>
+<span class="k">pub</span> font: <span class="t">Option</span>&lt;<span class="t">Vec</span>&lt;u8&gt;&gt;,
+<span class="c">/// The window fill, as RGB.</span>
+<span class="k">pub</span> background: [u8; <span class="n">3</span>],
+<span class="c">/// The progress mark, as RGB.</span>
+<span class="k">pub</span> accent: [u8; <span class="n">3</span>],
+<span class="c">/// The wordmark, as RGB. The status line is this color mixed toward the</span>
+<span class="c">/// background.</span>
+<span class="k">pub</span> text: [u8; <span class="n">3</span>],
+<span class="c">/// The icon, or the art for `Layout::FullBleed`.</span>
+<span class="k">pub</span> icon: <span class="t">Option</span>&lt;<span class="t">Icon</span>&gt;,
+<span class="c">/// Where the parts go.</span>
+<span class="k">pub</span> layout: <span class="t">Layout</span>,
+<span class="c">/// How progress shows.</span>
+<span class="k">pub</span> progress: <span class="t">Progress</span>,
+<span class="c">/// What the status line shows.</span>
+<span class="k">pub</span> status: <span class="t">Status</span>,
+<span class="c">/// The window size in pixels at 96 dpi. The splash scales it to the</span>
+<span class="c">/// system dpi.</span>
+<span class="k">pub</span> size: (u32, u32),
+<span class="c">/// Show the seconds since launch in the top right corner.</span>
+<span class="k">pub</span> show_seconds: bool,</code></pre></div><div class="doc"><p>The look of the boot splash. Build it, then call <code>install</code> before <code>run</code>.</p>
+<p><code>ignore
+use warp_sdk::boot::{Layout, Progress, Splash, Status};
+Splash::new("REEF")
+.palette([4, 18, 28], [80, 220, 200], [220, 240, 240])
+.layout(Layout::Centered)
+.progress(Progress::Dots)
+.status(Status::IconOnly)
+.install();
+warp_sdk::run::&lt;MyGame&gt;(config);</code></p></div></div><details class="members"><summary>11 methods</summary><div class="item" id="sym-Splash-new" data-name="splash::new"><div class="sig"><a class="anchor" href="#sym-Splash-new" aria-label="Link to Splash::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(title: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="t">Splash</span></code></div><div class="doc"><p>A default splash with the wordmark <code>title</code>.</p>
+<p><code>ignore
+let s = warp_sdk::boot::Splash::new("REEF");</code></p></div></div><div class="item" id="sym-Splash-font" data-name="splash::font"><div class="sig"><a class="anchor" href="#sym-Splash-font" aria-label="Link to Splash::font">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">font</span>(<span class="k">mut</span> <span class="k">self</span>, bytes: <span class="t">Vec</span>&lt;u8&gt;) -&gt; <span class="t">Splash</span></code></div><div class="doc"><p>Set the wordmark font from TTF or OTF bytes.</p>
+<p><code>ignore</code></p></div></div><div class="item" id="sym-Splash-palette" data-name="splash::palette"><div class="sig"><a class="anchor" href="#sym-Splash-palette" aria-label="Link to Splash::palette">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">palette</span>(<span class="k">mut</span> <span class="k">self</span>, background: [u8; <span class="n">3</span>], accent: [u8; <span class="n">3</span>], text: [u8; <span class="n">3</span>]) -&gt; <span class="t">Splash</span></code></div><div class="doc"><p>Set the background, accent and text colors, as RGB.</p>
+<p><code>ignore
+let s = Splash::new("REEF").palette([4, 18, 28], [80, 220, 200], [220, 240, 240]);</code></p></div></div><div class="item" id="sym-Splash-icon" data-name="splash::icon"><div class="sig"><a class="anchor" href="#sym-Splash-icon" aria-label="Link to Splash::icon">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">icon</span>(<span class="k">mut</span> <span class="k">self</span>, icon: <span class="t">Icon</span>) -&gt; <span class="t">Splash</span></code></div><div class="doc"><p>Set the icon, or the art for <code>Layout::FullBleed</code>.</p>
+<p><code>ignore
+let s = Splash::new("REEF").icon(Icon::from_fn(64, 64, |x, y| [x as u8 * 4, y as u8 * 4, 200, 255]));</code></p></div></div><div class="item" id="sym-Splash-layout" data-name="splash::layout"><div class="sig"><a class="anchor" href="#sym-Splash-layout" aria-label="Link to Splash::layout">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">layout</span>(<span class="k">mut</span> <span class="k">self</span>, layout: <span class="t">Layout</span>) -&gt; <span class="t">Splash</span></code></div><div class="doc"><p>Set where the parts go.</p>
+<p><code>ignore
+let s = Splash::new("REEF").layout(Layout::FullBleed);</code></p></div></div><div class="item" id="sym-Splash-progress" data-name="splash::progress"><div class="sig"><a class="anchor" href="#sym-Splash-progress" aria-label="Link to Splash::progress">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">progress</span>(<span class="k">mut</span> <span class="k">self</span>, progress: <span class="t">Progress</span>) -&gt; <span class="t">Splash</span></code></div><div class="doc"><p>Set how progress shows.</p>
+<p><code>ignore
+let s = Splash::new("REEF").progress(Progress::Ring);</code></p></div></div><div class="item" id="sym-Splash-status" data-name="splash::status"><div class="sig"><a class="anchor" href="#sym-Splash-status" aria-label="Link to Splash::status">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">status</span>(<span class="k">mut</span> <span class="k">self</span>, status: <span class="t">Status</span>) -&gt; <span class="t">Splash</span></code></div><div class="doc"><p>Set what the status line shows.</p>
+<p><code>ignore
+let s = Splash::new("REEF").status(Status::IconOnly);</code></p></div></div><div class="item" id="sym-Splash-size" data-name="splash::size"><div class="sig"><a class="anchor" href="#sym-Splash-size" aria-label="Link to Splash::size">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">size</span>(<span class="k">mut</span> <span class="k">self</span>, width: u32, height: u32) -&gt; <span class="t">Splash</span></code></div><div class="doc"><p>Set the window size in pixels at 96 dpi. The minimum is 240 by 140,
+so the parts always fit.</p>
+<p><code>ignore
+let s = Splash::new("REEF").size(640, 360);</code></p></div></div><div class="item" id="sym-Splash-seconds" data-name="splash::seconds"><div class="sig"><a class="anchor" href="#sym-Splash-seconds" aria-label="Link to Splash::seconds">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">seconds</span>(<span class="k">mut</span> <span class="k">self</span>, show: bool) -&gt; <span class="t">Splash</span></code></div><div class="doc"><p>Show or hide the seconds since launch.</p>
+<p><code>ignore
+let s = Splash::new("REEF").seconds(true);</code></p></div></div><div class="item" id="sym-Splash-install" data-name="splash::install"><div class="sig"><a class="anchor" href="#sym-Splash-install" aria-label="Link to Splash::install">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">install</span>(<span class="k">self</span>)</code></div><div class="doc"><p>Store this look for <code>open</code>. Call before <code>run</code>. A later call replaces
+the earlier one. A call after the splash opened does not change that
+splash.</p>
+<p><code>ignore
+warp_sdk::boot::Splash::new("REEF").install();</code></p></div></div><div class="item" id="sym-Splash-text_lines" data-name="splash::text_lines"><div class="sig"><a class="anchor" href="#sym-Splash-text_lines" aria-label="Link to Splash::text_lines">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">text_lines</span>(&amp;<span class="k">self</span>, stage: &amp;str, changes: u32) -&gt; <span class="t">Vec</span>&lt;<span class="t">String</span>&gt;</code></div><div class="doc"><p>The text lines the splash draws: the wordmark, then the status line
+when there is one. <code>stage</code> is the engine stage text. <code>changes</code> is the
+count of boot stages so far.</p>
+<p><code>ignore
+let lines = Splash::default().text_lines("Drawing the first frame", 2);
+assert_eq!(lines[1], "Drawing the first frame");</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Status" data-name="status"><div class="sig"><a class="anchor" href="#sym-Status" aria-label="Link to Status">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Status</span></code></div><div class="doc"><p>What the status line shows.</p>
+<p><code>ignore
+use warp_sdk::boot::{Splash, Status};
+Splash::new("REEF").status(Status::words(["Waking the reef", "Lighting the water"])).install();</code></p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Status-words" data-name="status::words"><div class="sig"><a class="anchor" href="#sym-Status-words" aria-label="Link to Status::words">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> words&lt;<span class="t">I</span>, <span class="t">S</span>&gt;(lines: <span class="t">I</span>) -&gt; <span class="t">Status</span> <span class="k">where</span> <span class="t">I</span>: <span class="t">IntoIterator</span>&lt;<span class="t">Item</span> = <span class="t">S</span>&gt;, <span class="t">S</span>: <span class="t">Into</span>&lt;<span class="t">String</span>&gt;,</code></div><div class="doc"><p>Make <code>Status::Words</code> from a list of strings.</p>
+<p><code>ignore
+let s = warp_sdk::boot::Status::words(["Waking", "Lighting"]);</code></p></div></div></details></div><h3 id="mod-boot--shot" class="modhead"><code>warp_sdk::boot::shot</code></h3><h4>Functions</h4><div class="item" id="sym-last_saved" data-name="last_saved"><div class="sig"><a class="anchor" href="#sym-last_saved" aria-label="Link to last_saved">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">last_saved</span>() -&gt; <span class="t">Option</span>&lt;<span class="t">PathBuf</span>&gt;</code></div><div class="doc"><p>The path of the last PNG the readback wrote, or None.</p>
+<p>The PNG encode runs on a worker thread, so the path shows here some
+milliseconds after the frame.</p>
+<p><code>ignore
+if let Some(p) = warp_core::shot::last_saved() { println!("{}", p.display()); }</code></p></div></div><div class="item" id="sym-pending" data-name="pending"><div class="sig"><a class="anchor" href="#sym-pending" aria-label="Link to pending">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pending</span>() -&gt; bool</code></div><div class="doc"><p>True while a request waits for the render loop.</p>
+<p><code>ignore
+warp_core::shot::request(None);
+assert!(warp_core::shot::pending());</code></p></div></div><div class="item" id="sym-request" data-name="request"><div class="sig"><a class="anchor" href="#sym-request" aria-label="Link to request">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">request</span>(path: <span class="t">Option</span>&lt;<span class="t">PathBuf</span>&gt;)</code></div><div class="doc"><p>Capture the next frame of the primary viewport as a PNG.</p>
+<p><code>None</code> writes to <code>screenshots_dir()</code> with a time-stamped name. <code>Some(p)</code>
+writes to <code>p</code> and makes its parent folders. A relative <code>p</code> starts at the
+working folder of the process.</p>
+<p><code>ignore
+// In Renderer::render, look at frame 120 of the game:
+if self.frame == 120 {
+warp_core::shot::request(Some("target/shots/title.png".into()));
+}</code></p></div></div><div class="item" id="sym-save_texture" data-name="save_texture"><div class="sig"><a class="anchor" href="#sym-save_texture" aria-label="Link to save_texture">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">save_texture</span>( device: &amp;wgpu::<span class="t">Device</span>, queue: &amp;wgpu::<span class="t">Queue</span>, texture: &amp;wgpu::<span class="t">Texture</span>, width: u32, height: u32, format: wgpu::<span class="t">TextureFormat</span>, path: &amp;<span class="t">Path</span>, ) -&gt; std::io::<span class="t">Result</span>&lt;()&gt;</code></div><div class="doc"><p>Read one texture back and write it as a PNG at <code>path</code>, before return.</p>
+<p>The texture needs <code>COPY_SRC</code> and 4 bytes a pixel (RGBA8 or BGRA8).</p>
+<p><code>ignore
+warp_core::shot::save_texture(&amp;device, &amp;queue, &amp;tex, 640, 360, format, "a.png".as_ref())?;</code></p></div></div><div class="item" id="sym-screenshots_dir" data-name="screenshots_dir"><div class="sig"><a class="anchor" href="#sym-screenshots_dir" aria-label="Link to screenshots_dir">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">screenshots_dir</span>() -&gt; <span class="t">PathBuf</span></code></div><div class="doc"><p>The folder for readback screenshots: <code>&lt;app data&gt;/screenshots</code>.</p>
+<p>The call makes the folder. When the platform has no app-data folder, the
+call uses <code>&lt;temp&gt;/warp-screenshots</code>.</p>
+<p><code>ignore
+let dir = warp_core::shot::screenshots_dir();</code></p></div></div><div class="item" id="sym-write_png" data-name="write_png"><div class="sig"><a class="anchor" href="#sym-write_png" aria-label="Link to write_png">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">write_png</span>(path: &amp;<span class="t">Path</span>, width: u32, height: u32, rgba: &amp;[u8]) -&gt; std::io::<span class="t">Result</span>&lt;()&gt;</code></div><div class="doc"><p>Write tight RGBA8 bytes (<code>width * height * 4</code>) as a PNG at <code>path</code>. The
+call makes the parent folders.</p>
+<p><code>ignore
+warp_core::shot::write_png("dot.png".as_ref(), 1, 1, &amp;[255, 0, 0, 255])?;</code></p></div></div><h2 id="see-also">See also</h2><ul><li><a href="icon.html" data-slug="icon">Application icon</a></li><li><a href="renderer.html" data-slug="renderer">Renderer and run</a></li><li><a href="display-mode.html" data-slug="display-mode">Display mode</a></li><li><a href="smoke.html" data-slug="smoke">Smoke test</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/bootsplash.rs</code> - <code>*  again at each launch. The bootlog measured that wait at about 35 s, and a</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/boot.rs</code> - <code>//! A game that does not call `install` gets the default: a dark window with</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/bootsplash.rs</code> - <code>*  the installed `Splash` once. The engine supplies only the stage text and</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/bootsplash.rs</code> - <code>/// Short lines from the game. The splash shows line `n` at boot stage</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_core/src/bootsplash.rs</code> - <code>*  never shown, so a splash would never close. On every other target each</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_core/src/shot.rs</code> - <code>Two capture paths write a PNG of the game.</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_core/src/shot.rs</code> - <code>*  The readback stalls the render thread for one frame, once for each</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_core/src/shot.rs</code> - <code>*  Until the user gives it, macOS writes a picture of the desktop with no</code></li></ol><table class="navbox"><tr><th><a href="category-front-end.html">Front end</a></th></tr><tr><td><a href="front.html" data-slug="front">Front end</a> · <a href="front-menu.html" data-slug="front-menu">Menu screens</a> · <a href="front-save.html" data-slug="front-save">Save slots</a> · <a href="front-settings.html" data-slug="front-settings">Settings</a> · <a href="fonts.html" data-slug="fonts">Fonts</a> · <a href="cine.html" data-slug="cine">Cine</a> · <a href="icon.html" data-slug="icon">Application icon</a> · <b>Boot splash and screenshots</b></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-front-end.html">Front end</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project settings - Warp Wiki</title>
+<meta name="description" content="the registry of [settings.*] blocks that keep a project&#x27;s look in its manifest">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="project-settings">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#design">Design</a></li><li><a href="#sections">Sections</a></li><li><a href="#usage">Usage</a></li><li><a href="#reading">Reading</a></li><li><a href="#writing">Writing</a></li><li><a href="#who-reads-the-file">Who reads the file</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Project settings</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">the registry of [settings.*] blocks that keep a project&#x27;s look in its manifest</p><table class="infobox"><caption>Project settings</caption><tr><th>Category</th><td><a href="category-engine.html">Engine</a></td></tr><tr><th>Module</th><td><code>warp_sdk::project_settings</code></td></tr><tr><th>Source</th><td><code>warp_core/src/project_settings.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">9</a></td></tr></table><p><strong>Project settings</strong> is the registry of named settings blocks that live in <code>warp_app.toml</code> under one <code>[settings]</code> table. It is the <a class="sym" href="project-settings.html"><code>project_settings</code></a> module of <code>warp_core</code>, re-exported by <code>warp_sdk</code>. Each subsystem registers a <a class="sym" href="#sym-Section"><code>Section</code></a>, a name with a way to install a table into its global and a way to write that global back. The module owns the file format and the diffing, and a subsystem owns neither.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<h2 id="design">Design</h2>
+<p><code>DisplaySettings</code> is a process global, and once nothing wrote it down. A person could tune a CRT for an hour, close the editor, and get the flat default back. A project that wanted a look had one place to put it: hand-written Rust in its own <code>main.rs</code>.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<p>The <a href="manifest.html" data-slug="manifest">App manifest</a> carries <code>deny_unknown_fields</code>, so a section that is not a declared field fails to parse and takes the whole project with it. A field per section would put every future section in the manifest code. So the manifest declares one field, <code>settings</code>, as a free table, and each section is a sub-table of it. The manifest never learns a section name, and a new section is one <a class="sym" href="#sym-register"><code>register</code></a> call.</p>
+<p>The namespace separates two questions. <code>[app]</code>, <code>[assets]</code> and <code>[build]</code> say what the project is, and a build reads them. <code>[settings.*]</code> says how it looks, and a frame reads them.</p>
+<h2 id="sections">Sections</h2>
+<p><a class="sym" href="#sym-SETTINGS_TABLE"><code>SETTINGS_TABLE</code></a> is the manifest key, <code>"settings"</code>. A <a class="sym" href="#sym-Section"><code>Section</code></a> is a plain value with three fields:</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>The sub-table name. <code>"display"</code> becomes <code>[settings.display]</code>.</td>
+</tr>
+<tr>
+<td><a class="sym" href="bindings.html#sym-load"><code>load</code></a></td>
+<td>Install a table into the global of the subsystem.</td>
+</tr>
+<tr>
+<td><code>save</code></td>
+<td>Merge the live values into a table that is already created.</td>
+</tr>
+</tbody>
+</table>
+<p>The <a class="sym" href="bindings.html#sym-load"><code>load</code></a> function gets nothing when the project names no such table. The subsystem must then install its default, because otherwise one project's look would leak into the next.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> These are function pointers and not closures, so a section costs no allocation. Neither takes state, because a section works on the global that a frame already reads.</p>
+<p>The engine has two built-in sections:</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Block</th>
+<th>Owner</th>
+<th>Holds</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[settings.display]</code></td>
+<td>The viewport</td>
+<td>Post chain, CRT tube, depth of field, anti-aliasing</td>
+</tr>
+<tr>
+<td><code>[settings.theme]</code></td>
+<td>The <a href="palette.html" data-slug="palette">Palette roles</a></td>
+<td>The game palette, on native targets</td>
+</tr>
+</tbody>
+</table>
+<p><code>ensure_builtins</code> seeds these at the first touch, from every entry point of the module. An init function would be one more thing that an application could forget, and the failure would be silent. So registration has no order to get wrong.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<h2 id="usage">Usage</h2>
+<p>An application adds a section with <a class="sym" href="#sym-register"><code>register</code></a>, at any time. A second call with the same name replaces the first, so two writers never share one table.</p>
+<p><a class="sym" href="#sym-read"><code>read</code></a> and <a class="sym" href="#sym-merge"><code>merge</code></a> are what a section normally calls. This is the theme section from the palette module, trimmed:<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">section</span>() -&gt; <span class="k">crate</span>::project_settings::<span class="t">Section</span> {
+    <span class="k">crate</span>::project_settings::<span class="t">Section</span> {
+        name: <span class="s">"theme"</span>,
+        load: |table| <span class="f">set_palette</span>(<span class="k">crate</span>::project_settings::<span class="f">read</span>(table)),
+        save: |into| <span class="k">crate</span>::project_settings::<span class="f">merge</span>(into, &amp;<span class="f">palette</span>(), &amp;<span class="t">Palette</span>::<span class="t">DEFAULT</span>),
+    }
+}</code></pre></div>
+<h2 id="reading">Reading</h2>
+<p><a class="sym" href="#sym-load_all"><code>load_all</code></a> installs each section from a manifest table. <a class="sym" href="renderer.html#sym-run"><code>run</code></a> calls it through a boot step, before the window and GPU exist, so a built artifact boots with the look that it was tuned with. <a class="sym" href="#sym-reset_all"><code>reset_all</code></a> installs each default, which is the engine state that a closed project should leave.</p>
+<p><a class="sym" href="#sym-read"><code>read</code></a> deserialises one table, or gives the default when there is none. A table that does not deserialise also gives the default, with no message. The alternative is refusing to open a project over a typo, and the source judges that a look is not worth it. The value is visibly wrong on screen, which is the report. The type must treat each missing field as its default, through <code>#[serde(default)]</code>, because the table holds only the keys that differ.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<p><a class="sym" href="#sym-load_all"><code>load_all</code></a>, <a class="sym" href="#sym-reset_all"><code>reset_all</code></a> and <a class="sym" href="#sym-save_all"><code>save_all</code></a> must run outside <a class="sym" href="renderer.html#sym-Renderer-gui"><code>Renderer::gui</code></a>. A <code>debug_assert</code> guards this, because a call while a frame holds the display settings otherwise deadlocks with no panic or log.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<h2 id="writing">Writing</h2>
+<p>Only what differs is written. <a class="sym" href="#sym-merge"><code>merge</code></a> serialises the live value and the default, compares key by key, writes the keys that differ, and removes the keys that have gone back to default. The table is therefore exactly the choices of the project, and a fresh project has no <code>[settings]</code> table. Without the removal, a slider dragged away and back would leave a key that says nothing.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<p><a class="sym" href="#sym-save_all"><code>save_all</code></a> merges each registered section into a <code>toml_edit</code> document. It creates the table on demand and removes it when every section comes out empty, so a project that tuned nothing has no first-save diff. The <code>[settings]</code> root is implicit, so a reader sees only <code>[settings.display]</code>.</p>
+<p><a class="sym" href="#sym-fingerprint"><code>fingerprint</code></a> returns what <a class="sym" href="#sym-save_all"><code>save_all</code></a> would write, as text. The editor compares it to the last one to find whether a slider moved. It is defined as the save and not beside it, so it cannot say "unchanged" about a value that a save would write.</p>
+<p>Unknown keys survive. <a class="sym" href="#sym-merge"><code>merge</code></a> touches only keys that it can name, and <a class="sym" href="#sym-save_all"><code>save_all</code></a> walks only registered sections, so an older engine that opens a project tuned by a newer one preserves the settings that it cannot read.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup></p>
+<h2 id="who-reads-the-file">Who reads the file</h2>
+<p>The editor writes the block on save. Its panels change the live viewport during a drag, because a write per drag step would rewrite the manifest sixty times a second. Both processes read the same file. A shipped game reads it in <a class="sym" href="renderer.html#sym-run"><code>run</code></a>, and the editor reads it when the project opens and pushes changes to a hosted game over the socket.</p>
+<h2 id="limitations">Limitations</h2>
+<p>Comments inside a <code>[settings.*]</code> table may not survive a rewrite of their key. Comments elsewhere in the file survive, because the editor holds the document in <code>toml_edit</code> and this module touches one table.</p>
+<h2 id="history">History</h2>
+<p>The module landed on 2026-08-17.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 9 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-project-settings" class="modhead"><code>warp_sdk::project_settings</code></h3><h4>Functions</h4><div class="item" id="sym-register" data-name="register"><div class="sig"><a class="anchor" href="#sym-register" aria-label="Link to register">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">register</span>(section: <span class="t">Section</span>)</code></div><div class="doc"><p>Add a section, replacing any section already registered under its name.</p>
+<p>Replacing and not pushing: an application that registers twice — two
+windows, a satellite, a test that runs after another test — would otherwise
+get two writers of one table, and which of them won would depend on
+registration order.</p></div></div><div class="item" id="sym-load_all" data-name="load_all"><div class="sig"><a class="anchor" href="#sym-load_all" aria-label="Link to load_all">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">load_all</span>(settings: <span class="t">Option</span>&lt;&amp;toml::<span class="t">Table</span>&gt;)</code></div></div><div class="item" id="sym-reset_all" data-name="reset_all"><div class="sig"><a class="anchor" href="#sym-reset_all" aria-label="Link to reset_all">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reset_all</span>()</code></div><div class="doc"><p>Install every registered section's default.</p>
+<p>Closing a project is not the same as opening one with no settings, but the
+engine state it should leave behind is identical.</p></div></div><div class="item" id="sym-save_all" data-name="save_all"><div class="sig"><a class="anchor" href="#sym-save_all" aria-label="Link to save_all">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">save_all</span>(doc: &amp;<span class="k">mut</span> toml_edit::<span class="t">Document</span>)</code></div><div class="doc"><p>Merge every registered section into a document's <code>[settings]</code> table.</p>
+<p>Creates the table on demand and REMOVES it again when every section came
+out empty, so a project that has tuned nothing keeps a manifest with no
+<code>[settings]</code> in it at all. An empty table left behind would be a diff on
+the first save of every project that never touched a slider.</p></div></div><div class="item" id="sym-fingerprint" data-name="fingerprint"><div class="sig"><a class="anchor" href="#sym-fingerprint" aria-label="Link to fingerprint">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">fingerprint</span>() -&gt; <span class="t">String</span></code></div><div class="doc"><p>What <code>save_all</code> would write right now, as text.</p>
+<p>The editor compares this against the last one it saw to decide whether a
+slider has moved. It is deliberately defined AS the save rather than beside
+it: a fingerprint computed some other way could say "unchanged" about a
+value that a save would write, and the person would lose the edit at the
+one moment they were told there was nothing to lose.</p>
+<p>Equal strings therefore mean equal files, and the comparison is exact
+rather than a hash — there is no collision to reason about, and the string
+is a few hundred bytes at most because only non-default keys are in it.</p></div></div><div class="item" id="sym-read" data-name="read"><div class="sig"><a class="anchor" href="#sym-read" aria-label="Link to read">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> read&lt;<span class="t">T</span>: serde::de::<span class="t">DeserializeOwned</span> + <span class="t">Default</span>&gt;(table: <span class="t">Option</span>&lt;&amp;toml::<span class="t">Value</span>&gt;) -&gt; <span class="t">T</span></code></div><div class="doc"><p>Deserialise one section's table, or its default when there is none.</p>
+<p>A table that does not deserialise gives the default too, and says nothing.
+The alternative is refusing to open a project over a settings key somebody
+hand-edited into a typo, and a look is not worth a project that will not
+open. The value is visibly wrong on screen, which is the report.</p>
+<p><code>T</code> must treat every missing field as its default — <code>#[serde(default)]</code> on
+the struct — because the table on disk holds ONLY the keys that differ.</p></div></div><div class="item" id="sym-merge" data-name="merge"><div class="sig"><a class="anchor" href="#sym-merge" aria-label="Link to merge">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> merge&lt;<span class="t">T</span>: serde::<span class="t">Serialize</span> + <span class="t">PartialEq</span>&gt;(into: &amp;<span class="k">mut</span> toml_edit::<span class="t">Table</span>, value: &amp;<span class="t">T</span>, default: &amp;<span class="t">T</span>)</code></div><div class="doc"><p>Write the keys of <code>value</code> that differ from <code>default</code>, and remove the rest.</p>
+<p>One implementation serves every field of every section, which is what the
+registry is for: eighty-four display fields need no per-field code, and the
+next section needs none either.</p>
+<p>The removal half is as load-bearing as the writing half. Without it a
+slider dragged away from its default and back would leave the value behind
+in the file, and the project would carry a key that says nothing forever.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Section" data-name="section"><div class="sig"><a class="anchor" href="#sym-Section" aria-label="Link to Section">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Section</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The sub-table name. `"display"` becomes `[settings.display]`.</span>
+<span class="k">pub</span> name: &amp;<span class="a">'static</span> str,
+<span class="c">/// Install a table into the subsystem's global.</span>
+<span class="c">/// </span>
+<span class="c">/// `None` means the project named no such table, and the subsystem must</span>
+<span class="c">/// install its DEFAULT rather than keep what the last project left. A</span>
+<span class="c">/// section that skipped that would leak one project's look into the next.</span>
+<span class="k">pub</span> load: <span class="k">fn</span>(<span class="t">Option</span>&lt;&amp;toml::<span class="t">Value</span>&gt;),
+<span class="c">/// Merge the subsystem's live values into its own table.</span>
+<span class="c">/// </span>
+<span class="c">/// The table is handed over already created. `merge` is what almost every</span>
+<span class="c">/// implementation should call, and it is what decides that a value equal</span>
+<span class="c">/// to the default is a key that should not exist.</span>
+<span class="k">pub</span> save: <span class="k">fn</span>(&amp;<span class="k">mut</span> toml_edit::<span class="t">Table</span>),</code></pre></div><div class="doc"><p>One subsystem's settings block.</p>
+<p>Function pointers and not closures, so a <code>Section</code> is a plain value that
+costs no allocation and can be built in a <code>const</code>. Neither pointer takes
+the subsystem's state as an argument: a section reads and writes its own
+global, because that global is what a frame already reads.</p></div></div></div><h4>Constants</h4><div class="item" id="sym-SETTINGS_TABLE" data-name="settings_table"><div class="sig"><a class="anchor" href="#sym-SETTINGS_TABLE" aria-label="Link to SETTINGS_TABLE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SETTINGS_TABLE</span>: &amp;str = <span class="s">"settings"</span></code></div><div class="doc"><p>The manifest key every section lives under.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="manifest.html" data-slug="manifest">App manifest</a></li><li><a href="types.html" data-slug="types">Types</a></li><li><a href="palette.html" data-slug="palette">Palette roles</a></li><li><a href="post.html" data-slug="post">Post effects</a></li><li><a href="hostlink.html" data-slug="hostlink">Host link</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/project_settings.rs</code> - <code>This module owns the file format and the diffing; a subsystem owns neither.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_core/src/project_settings.rs</code> - <code>WHAT WAS WRONG</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/project_settings.rs</code> - <code>section that skipped that would leak one project&#x27;s look into the next.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/project_settings.rs</code> - <code>REGISTRATION HAS NO ORDER TO GET WRONG</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_core/src/panels/palette/mod.rs</code> - <code>load: |table| set_palette(crate::project_settings::read(table)),</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_core/src/project_settings.rs</code> - <code>A table that does not deserialise gives the default too, and says nothing.</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_core/src/project_settings.rs</code> - <code>project_settings::{who} was called while a frame holds the display</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_core/src/project_settings.rs</code> - <code>Write the keys of `value` that differ from `default`, and remove the rest.</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_core/src/project_settings.rs</code> - <code>A KEY THIS BUILD DOES NOT KNOW IS LEFT ALONE</code></li></ol><table class="navbox"><tr><th><a href="category-engine.html">Engine</a></th></tr><tr><td><a href="display-mode.html" data-slug="display-mode">Display mode</a> · <a href="perf.html" data-slug="perf">Perf</a> · <a href="gpu.html" data-slug="gpu">GPU module</a> · <a href="render.html" data-slug="render">Render passes</a> · <a href="scene.html" data-slug="scene">Scene</a> · <a href="image.html" data-slug="image">Image atlases</a> · <a href="assets.html" data-slug="assets">Assets</a> · <a href="manifest.html" data-slug="manifest">App manifest</a> · <b>Project settings</b> · <a href="scale.html" data-slug="scale">Interface scale</a> · <a href="types.html" data-slug="types">Types</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-engine.html">Engine</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

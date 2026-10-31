@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pattern shaders - Warp Wiki</title>
+<meta name="description" content="WGSL per-pixel line art, tilings, textiles and seamless pattern motion">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="shader-pattern">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#files">Files</a></li><li><a href="#conventions">Conventions</a></li><li><a href="#coverage-and-fragment-stage">Coverage and fragment stage</a></li><li><a href="#shared-tools">Shared tools</a></li><li><a href="#sample-signatures">Sample signatures</a></li><li><a href="#how-the-ports-became-per-pixel">How the ports became per-pixel</a></li><li><a href="#modifiers">Modifiers</a></li><li><a href="#motion">Motion</a></li><li><a href="#usage">Usage</a></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Pattern shaders</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">WGSL per-pixel line art, tilings, textiles and seamless pattern motion</p><p><strong>Pattern shaders</strong> are the <code>pattern/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL functions that draw graphic patterns per pixel: grids, tilings, mazes, flow lines, textiles, optical art and a Hopf fibration. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::pattern</code></a>. Each function returns ink coverage, so a game maps it to its own palette. Two further files stack modifiers on any pattern and loop any pattern seamlessly. All functions start with <code>pattern_</code>.</p>
+<h2 id="files">Files</h2>
+<table class="wikitable">
+<thead>
+<tr>
+<th>File</th>
+<th>Provides</th>
+<th>Central functions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pattern/kit.wgsl</code></td>
+<td>Coverage, hashes, noise, lattices, phyllotaxis</td>
+<td><code>pattern_px</code>, <code>pattern_fill</code>, <code>pattern_stroke</code>, <code>pattern_ink</code>, <code>pattern_isolines</code>, <code>pattern_phyllo</code></td>
+</tr>
+<tr>
+<td><code>pattern/grid.wgsl</code></td>
+<td>Tiles and modules on a cell grid</td>
+<td><code>pattern_grid_arc_lattice</code>, <code>pattern_grid_running_bond</code>, <code>pattern_grid_basket_weave</code>, <code>pattern_grid_module</code></td>
+</tr>
+<tr>
+<td><code>pattern/tiling.wgsl</code></td>
+<td>Truchet, Wang, star rosettes, bricks</td>
+<td><code>pattern_tiling_nested_truchet</code>, <code>pattern_tiling_hex_arcs</code>, <code>pattern_tiling_star_rosettes</code>, <code>pattern_tiling_herringbone</code></td>
+</tr>
+<tr>
+<td><code>pattern/radial.wgsl</code></td>
+<td>Rings, rays, roses, seed heads</td>
+<td><code>pattern_radial_phase_rings</code>, <code>pattern_radial_rose</code>, <code>pattern_radial_seed_head</code></td>
+</tr>
+<tr>
+<td><code>pattern/geometric.wgsl</code></td>
+<td>Guilloche, Lissajous, superformula, pursuit, Apollonian</td>
+<td><code>pattern_geometric_guilloche</code>, <code>pattern_geometric_lissajous_table</code>, <code>pattern_geometric_apollonian</code></td>
+</tr>
+<tr>
+<td><code>pattern/flow.wgsl</code></td>
+<td>Lines that follow a field</td>
+<td><code>pattern_flow_contour_bands</code>, <code>pattern_flow_topo_lines</code>, <code>pattern_flow_curl_streams</code></td>
+</tr>
+<tr>
+<td><code>pattern/organic.wgsl</code></td>
+<td>Cells, blobs, reaction looks</td>
+<td><code>pattern_organic_voronoi</code>, <code>pattern_organic_soft_cells</code>, <code>pattern_organic_morphogen</code></td>
+</tr>
+<tr>
+<td><code>pattern/mesh.wgsl</code></td>
+<td>Triangles, lead glass, rectangle cuts, cracks</td>
+<td><code>pattern_mesh_triangles</code>, <code>pattern_mesh_lead_glass</code>, <code>pattern_mesh_crackle</code></td>
+</tr>
+<tr>
+<td><code>pattern/paths.wgsl</code></td>
+<td>Mazes and the Hilbert curve</td>
+<td><code>pattern_paths_maze_walls</code>, <code>pattern_paths_ring_labyrinth</code>, <code>pattern_paths_hilbert</code></td>
+</tr>
+<tr>
+<td><code>pattern/physics.wgsl</code></td>
+<td>Field lines, spring nets, spirals</td>
+<td><code>pattern_physics_charge_field</code>, <code>pattern_physics_cyclotron</code></td>
+</tr>
+<tr>
+<td><code>pattern/textile.wgsl</code></td>
+<td>Plaid, twill, chevron, resist-dye bands</td>
+<td><code>pattern_textile_sett_plaid</code>, <code>pattern_textile_twill_check</code>, <code>pattern_textile_flame_chevron</code></td>
+</tr>
+<tr>
+<td><code>pattern/texture.wgsl</code></td>
+<td>Halftone, hatch, stipple from a tone</td>
+<td><code>pattern_texture_screen_dots</code>, <code>pattern_texture_tone_hatch</code>, <code>pattern_texture_grain_stipple</code></td>
+</tr>
+<tr>
+<td><code>pattern/opart.wgsl</code></td>
+<td>Moire, tunnels, waving bands</td>
+<td><code>pattern_opart_moire_lines</code>, <code>pattern_opart_drift_tunnel</code>, <code>pattern_opart_wave_bands</code></td>
+</tr>
+<tr>
+<td><code>pattern/iso.wgsl</code></td>
+<td>Isometric blocks</td>
+<td><code>pattern_iso_face</code>, <code>pattern_iso_tumbling_blocks</code>, <code>pattern_iso_grid</code></td>
+</tr>
+<tr>
+<td><code>pattern/distort.wgsl</code></td>
+<td>Plain bases bent by lenses and waves</td>
+<td><code>pattern_distort_lens</code>, <code>pattern_distort_lens_grid</code>, <code>pattern_distort_twirl_checker</code></td>
+</tr>
+<tr>
+<td><code>pattern/botanical.wgsl</code></td>
+<td>Leaf spirals</td>
+<td><code>pattern_botanical_leaf_sd</code>, <code>pattern_botanical_leaf_spiral</code></td>
+</tr>
+<tr>
+<td><code>pattern/hopf.wgsl</code></td>
+<td>The Hopf fibration as strokes</td>
+<td><code>pattern_hopf_fibres</code>, <code>pattern_hopf_map</code></td>
+</tr>
+<tr>
+<td><code>pattern/modifiers.wgsl</code></td>
+<td>Stackable domain and value changes</td>
+<td><code>pattern_mod_kaleido</code>, <code>pattern_mod_lens</code>, <code>pattern_mod_mask</code></td>
+</tr>
+<tr>
+<td><code>pattern/motion.wgsl</code></td>
+<td>Seamless loops</td>
+<td><code>pattern_motion_phase</code>, <code>pattern_motion_curve</code>, <code>pattern_motion_rotate</code>, <code>pattern_motion_wave</code></td>
+</tr>
+</tbody>
+</table>
+<p>Every file requires <code>pattern/kit.wgsl</code>, which requires <code>noise/hash.wgsl</code>, except <code>pattern/mesh.wgsl</code>, which reaches the kit through <code>pattern/organic.wgsl</code>.</p>
+<h2 id="conventions">Conventions</h2>
+<p><code>p</code> is in board units, with the short side of the board 1. Counts such as <code>cells</code> are measured across the short side. <code>weight</code> is usually a line width as a share of a cell or ring step. <code>seed</code> is a <code>u32</code>. Centred motifs such as <code>pattern/radial.wgsl</code> take <code>p</code> relative to the centre, with a motif radius of 1.</p>
+<p>The output follows the kit.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Output</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>f32</code></td>
+<td>Coverage in 0..1, where 1 is ink and 0 is paper</td>
+</tr>
+<tr>
+<td><code>vec2&lt;f32&gt;</code></td>
+<td>x is coverage, y is an ink key in 0..1</td>
+</tr>
+</tbody>
+</table>
+<p><code>pattern_ink</code> maps an ink key to a slot in 0..n-1, and the game holds the actual colours. <code>pattern/iso.wgsl</code> uses the key for faces: 0 top, 1/3 left, 2/3 right, so three inks shade the three faces. <code>pattern_hopf_fibres</code> is the exception, with linear RGB in xyz and coverage in w.</p>
+<h2 id="coverage-and-fragment-stage">Coverage and fragment stage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">pattern_px</span>(p: vec2&lt;f32&gt;) -&gt; f32
+<span class="k">fn</span> <span class="f">pattern_fill</span>(d: f32, px: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">pattern_stroke</span>(d: f32, w: f32, px: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">pattern_isolines</span>(v: f32, weight: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">pattern_ink</span>(key: f32, n: i32) -&gt; i32</code></pre></div>
+<p><code>pattern_px</code> measures the pixel with <code>fwidth</code>, so a pattern that calls it works in a fragment stage only, in uniform control flow. The caller must therefore not call a pattern function inside a branch that depends on a varying value.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup> The kit comment says that only <code>pattern_px</code> calls <code>fwidth</code>, but <code>pattern_isolines</code> and functions in ten files, the kit included, call it directly. <code>pattern_fill</code> and <code>pattern_stroke</code> take <a class="sym" href="scale.html#sym-px"><code>px</code></a> as an argument.</p>
+<h2 id="shared-tools">Shared tools</h2>
+<p><code>pattern_hash</code>, <code>pattern_hash2</code>, <code>pattern_vnoise</code> and <code>pattern_fbm</code> are the category noise. <code>pattern_vnoise</code> is 0..1 and <code>pattern_fbm</code> is about -1..1. <code>pattern_cell</code> gives square cells, and <code>pattern_hex</code> gives pointy-top hex cells with circumradius 1. Each returns the local point in xy and the cell in zw. <code>pattern_phyllo</code> finds the nearest golden-angle seed among the Fibonacci neighbours of the seed with the same radius.</p>
+<h2 id="sample-signatures">Sample signatures</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">pattern_grid_arc_lattice</span>(p: vec2&lt;f32&gt;, cells: f32, bands: f32, weight: f32, seed: u32) -&gt; vec2&lt;f32&gt;
+<span class="k">fn</span> <span class="f">pattern_tiling_star_rosettes</span>(p: vec2&lt;f32&gt;, size: f32, angle: f32, weight: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">pattern_radial_phase_rings</span>(p: vec2&lt;f32&gt;, rings: f32, lobes: f32, amp: f32, twist: f32, weight: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">pattern_flow_curl_streams</span>(p: vec2&lt;f32&gt;, spacing: f32, scale: f32, weight: f32, seed: u32) -&gt; f32
+<span class="k">fn</span> <span class="f">pattern_paths_hilbert</span>(p: vec2&lt;f32&gt;, order: i32, weight: f32) -&gt; vec2&lt;f32&gt;
+<span class="k">fn</span> <span class="f">pattern_texture_screen_dots</span>(p: vec2&lt;f32&gt;, cells: f32, angle: f32, tone: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">pattern_opart_wave_bands</span>(p: vec2&lt;f32&gt;, bands: f32, amp: f32, waves: f32, lag: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">pattern_hopf_fibres</span>(p: vec2&lt;f32&gt;, n: i32, rot: vec2&lt;f32&gt;, view: vec2&lt;f32&gt;, scale: f32, weight: f32) -&gt; vec4&lt;f32&gt;</code></pre></div>
+<p>The texture functions take a <code>tone</code> in 0..1, where 1 is full ink, and the caller supplies it from an image, a light value or <code>pattern_fbm</code>. Many functions cap a count for a bounded loop: at most 6 lenses, 64 rings, 4 Truchet levels and 64 Hopf fibres.</p>
+<h2 id="how-the-ports-became-per-pixel">How the ports became per-pixel</h2>
+<p>The category ports vector generators to a pixel function, and some forms changed in that step.</p>
+<ul>
+<li><strong>Distortion.</strong> The source bends geometry forward, but a fragment shader bends the domain, sampling the base at the inverse of each lens and twirl.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></li>
+<li><strong>Mazes.</strong> The source carves with a seeded walk that needs the whole grid. <code>pattern_paths_maze_walls</code> uses the binary-tree rule, in which each cell opens one of two walls from its own hash. The result is also a perfect maze.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></li>
+<li><strong>Meshes.</strong> <code>pattern_mesh_triangles</code> jitters a grid and cuts each quad on a seeded diagonal. The result is a valid triangle mesh but not Delaunay.</li>
+<li><strong>Streamlines.</strong> <code>pattern/flow.wgsl</code> draws the level lines of a stream function, which are the streamlines of its curl flow, so the lines are even and never cross.</li>
+<li><strong>Morphogen.</strong> <code>pattern_organic_morphogen</code> is a stand-in for reaction-diffusion, a sum of waves of one wavelength cut at a threshold. <code>feed</code> below 0.4 gives spots, near 0.5 mazes, and above 0.6 holes.</li>
+</ul>
+<p>Several source patterns were not ported, because they need state from earlier steps or recursion. The file headers name them under "Not ported", for example recursive fern fronds and step-by-step orbit trails.</p>
+<h2 id="modifiers">Modifiers</h2>
+<p>A domain modifier returns the point at which to sample the pattern, and a value modifier takes a coverage and returns a new coverage. Domain modifiers apply in the reverse order of a stack, because each one maps back from the screen to the pattern.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Kind</th>
+<th>Functions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Domain</td>
+<td><code>pattern_mod_lens</code>, <code>pattern_mod_twirl</code>, <code>pattern_mod_wave</code>, <code>pattern_mod_noise</code>, <code>pattern_mod_mirror</code>, <code>pattern_mod_kaleido</code>, <code>pattern_mod_repeat</code>, <code>pattern_mod_jitter</code></td>
+</tr>
+<tr>
+<td>Value</td>
+<td><code>pattern_mod_dash</code>, <code>pattern_mod_dots</code>, <code>pattern_mod_mask</code></td>
+</tr>
+<tr>
+<td>Shape</td>
+<td><code>pattern_mod_shape_sd</code>: 0 circle, 1 rounded rectangle, 2 diamond, 3 arch, 4 hex</td>
+</tr>
+</tbody>
+</table>
+<h2 id="motion">Motion</h2>
+<p><code>pattern/motion.wgsl</code> makes seamless loops. <code>t</code> is in seconds, <code>l</code> is the loop length, and <code>cycles</code> is a whole number, so every channel is back at its start at <code>t = l</code>.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">fn</span> <span class="f">pattern_motion_phase</span>(t: f32, l: f32, cycles: f32, phase: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">pattern_motion_curve</span>(kind: i32, x: f32, a: f32, b: f32) -&gt; f32
+<span class="k">fn</span> <span class="f">pattern_motion_rotate</span>(p: vec2&lt;f32&gt;, c: vec2&lt;f32&gt;, amount: f32, kind: i32, x: f32) -&gt; vec2&lt;f32&gt;
+<span class="k">fn</span> <span class="f">pattern_motion_wave</span>(p: vec2&lt;f32&gt;, amount: f32, freq: f32, kind: i32, x: f32) -&gt; vec2&lt;f32&gt;</code></pre></div>
+<p><a class="sym" href="teach.html#sym-kind"><code>kind</code></a> is 0 sine, 1 ease, 2 noise, 3 bounce, 4 ramp. <code>pattern_motion_phase</code> gives the phase <code>x</code>, and each transform takes it. A fragment shader samples the pattern at the inverse point. Rotate, zoom, drift, twist and lens are exact inverses, and wave, ripple and flow subtract the push to first order. Motif channels such as <code>pattern_motion_spin</code>, <code>pattern_motion_breathe</code> and <code>pattern_motion_thin</code> return values for one motif, and <code>pattern_motion_dash</code> feeds <code>pattern_mod_dash</code>.</p>
+<h2 id="usage">Usage</h2>
+<p>The sample below draws lobed rings about the centre and winds them with time. It composes <code>pattern/radial.wgsl</code> and runs in a fragment stage.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-wgsl"><span class="k">let</span> p = uv * <span class="n">2.0</span> - vec2&lt;f32&gt;(<span class="n">1.0</span>);
+<span class="k">let</span> ink = <span class="f">pattern_radial_phase_rings</span>(p, <span class="n">12.0</span>, <span class="n">7.0</span>, <span class="n">1.5</span>, <span class="n">2.0</span> * <span class="f">sin</span>(time * <span class="n">0.3</span>), <span class="n">0.4</span>);</code></pre></div>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<ul>
+<li><code>pattern/kit.wgsl</code> has its own noise, separate from <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a>, apart from the hash file.</li>
+<li>The polar functions in <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> give a related set of anti-aliased ring patterns.</li>
+</ul><h2 id="see-also">See also</h2><ul><li><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></li><li><a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a></li><li><a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a></li><li><a href="art-direction.html" data-slug="art-direction">Art direction</a></li><li><a href="visual.html" data-slug="visual">Visual language</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/pattern/kit.wgsl</code> - <code>// Conventions of the pattern files:</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/pattern/kit.wgsl</code> - <code>//   fwidth     only pattern_px calls fwidth. Call a pattern function in</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/pattern/distort.wgsl</code> - <code>// domain instead: it samples the base at the inverse of each lens and</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/pattern/paths.wgsl</code> - <code>// rule instead: each cell opens one of two walls from its own hash. The</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/pattern/modifiers.wgsl</code> - <code>// modifiers in the reverse order of the source stack, because each one</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/pattern/motion.wgsl</code> - <code>// Inputs: t in seconds, loop length l in seconds, cycles per loop (a whole</code></li></ol><table class="navbox"><tr><th><a href="category-shader-library.html">Shader library</a></th></tr><tr><td><a href="shaderlib.html" data-slug="shaderlib">Shader library</a> · <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a> · <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> · <a href="shader-material.html" data-slug="shader-material">Material shaders</a> · <a href="shader-water.html" data-slug="shader-water">Water shaders</a> · <a href="shader-post.html" data-slug="shader-post">Post shaders</a> · <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> · <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> · <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> · <b>Pattern shaders</b></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-shader-library.html">Shader library</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

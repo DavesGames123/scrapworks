@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Front end - Warp Wiki</title>
+<meta name="description" content="Title and pause menus, save slots, and the settings model and page">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="front">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#parts">Parts</a></li><li><a href="#how-the-parts-meet">How the parts meet</a></li><li><a href="#relation-to-the-shell">Relation to the shell</a></li><li><a href="#history">History</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Front end</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">Title and pause menus, save slots, and the settings model and page</p><table class="infobox"><caption>Front end</caption><tr><th>Category</th><td><a href="category-front-end.html">Front end</a></td></tr><tr><th>Module</th><td><code>warp_sdk::front</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/front/mod.rs</code></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example front</code><br><code>cargo run -p warp_sdk --example settings</code></td></tr></table><p><strong>The front end</strong> is the family of kits that a game uses for its title screen, pause menu, end screen, save slots and settings. It lives in the <a class="sym" href="front.html"><code>warp_sdk::front</code></a> module, which holds three submodules and nothing else: <a class="sym" href="front-menu.html"><code>front::menu</code></a>, <a class="sym" href="front-save.html"><code>front::save</code></a> and <a class="sym" href="front-settings.html"><code>front::settings</code></a>. Each submodule has one owner, and a game uses the full path.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> The family supplies parts that a game composes, and the game keeps its own screen state.</p>
+<h2 id="parts">Parts</h2>
+<div class="hatnote">Main articles: <a href="front-menu.html" data-slug="front-menu">Menu screens</a>, <a href="front-save.html" data-slug="front-save">Save slots</a>, <a href="front-settings.html" data-slug="front-settings">Settings</a></div>
+
+<table class="wikitable">
+<thead>
+<tr>
+<th>Kit</th>
+<th>Holds</th>
+<th>Writes to disk</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="front-menu.html" data-slug="front-menu">Menu screens</a></td>
+<td><a class="sym" href="front-menu.html#sym-Title"><code>Title</code></a>, <a class="sym" href="front-menu.html#sym-Pause"><code>Pause</code></a>, <a class="sym" href="front-menu.html#sym-End"><code>End</code></a>, the shared <code>Button</code> and five layouts</td>
+<td>Nothing</td>
+</tr>
+<tr>
+<td><a href="front-save.html" data-slug="front-save">Save slots</a></td>
+<td><a class="sym" href="front-save.html#sym-Slots"><code>Slots</code></a>, numbered save files with metadata, and the <code>Fields</code> payload helper</td>
+<td><code>saves/slot-&lt;k&gt;.save</code></td>
+</tr>
+<tr>
+<td><a href="front-settings.html" data-slug="front-settings">Settings</a></td>
+<td><a class="sym" href="front-settings.html#sym-Settings"><code>Settings</code></a>, a typed model of six groups, and <a class="sym" href="front-settings.html#sym-Page"><code>Page</code></a>, a page with six tabs</td>
+<td><code>settings.cfg</code></td>
+</tr>
+</tbody>
+</table>
+<p>Save files and the settings file share one root, under the per-user application data folder, at <code>games/&lt;game&gt;/</code>.</p>
+<h2 id="how-the-parts-meet">How the parts meet</h2>
+<p>The worked example <a class="sym" href="front.html"><code>front</code></a> shows the pattern. The screens are one enum in the game. <code>gui</code> asks the menu of the current screen for a <a class="sym" href="front-menu.html#sym-MenuAction"><code>MenuAction</code></a> and moves to the next screen, and <a class="sym" href="icon.html#sym-render"><code>render</code></a> steps the world only in play, so a menu freezes the game.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">fn</span> <span class="f">frame</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ctx: &amp;egui::<span class="t">Context</span>) {
+    <span class="k">let</span> action = <span class="k">match</span> <span class="k">self</span>.screen {
+        <span class="t">Screen</span>::<span class="t">Title</span> =&gt; <span class="k">self</span>.title.<span class="f">show</span>(ctx),
+        <span class="t">Screen</span>::<span class="t">Paused</span> =&gt; <span class="k">self</span>.pause.<span class="f">show</span>(ctx),
+        <span class="t">Screen</span>::<span class="t">End</span> =&gt; <span class="k">self</span>.end.<span class="f">show</span>(ctx),
+        <span class="t">Screen</span>::<span class="t">Play</span> =&gt; {
+            <span class="k">if</span> ctx.<span class="f">input_mut</span>(|i| i.<span class="f">consume_key</span>(egui::<span class="t">Modifiers</span>::<span class="t">NONE</span>, egui::<span class="t">Key</span>::<span class="t">Escape</span>)) {
+                <span class="k">self</span>.pause.<span class="f">reset_focus</span>();
+                <span class="k">self</span>.screen = <span class="t">Screen</span>::<span class="t">Paused</span>;
+            }
+            <span class="t">None</span>
+        }
+    };
+    <span class="k">if</span> <span class="k">let</span> <span class="t">Some</span>(a) = action {
+        <span class="k">self</span>.<span class="f">act</span>(a);
+    }
+}</code></pre></div>
+<p>A menu returns an action and does nothing else, so each action is the game's to carry out.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Action</th>
+<th>Usual result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MenuAction::NewGame, MenuAction::TryAgain</td>
+<td>Start a run</td>
+</tr>
+<tr>
+<td>MenuAction::Continue, MenuAction::Load</td>
+<td>Read a slot through <a href="front-save.html" data-slug="front-save">Save slots</a></td>
+</tr>
+<tr>
+<td>MenuAction::Save</td>
+<td>Write a slot</td>
+</tr>
+<tr>
+<td>MenuAction::Settings</td>
+<td>Show the <a href="front-settings.html" data-slug="front-settings">Settings</a> page</td>
+</tr>
+<tr>
+<td>MenuAction::Resume</td>
+<td>Return to play</td>
+</tr>
+<tr>
+<td>MenuAction::QuitToTitle, MenuAction::Title</td>
+<td>Show the title</td>
+</tr>
+<tr>
+<td>MenuAction::Quit</td>
+<td>End the process</td>
+</tr>
+</tbody>
+</table>
+<p>The kits connect at two points. <a class="sym" href="front-menu.html#sym-Title-has_save"><code>Title::has_save</code></a> comes from <a class="sym" href="front-save.html#sym-Slots-latest"><code>Slots::latest</code></a>, so Continue shows only when a slot holds a save. The title menu and the pause menu embed the same settings page, so a game writes the settings screen once.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<h2 id="relation-to-the-shell">Relation to the shell</h2>
+<p><a href="shell.html" data-slug="shell">Game shell</a> also provides a title, a pause menu and settings, as one wrapper with a fixed look. The two do not share code. <a class="sym" href="front.html"><code>front</code></a> is for a game that owns its screens and its look: it adds save slots, an end screen, five layouts and six tabs of settings. The starter uses <a class="sym" href="front.html"><code>front</code></a>, and it runs each screen change through <a href="cine.html" data-slug="cine">Cine</a>.</p>
+<h2 id="history">History</h2>
+<p>The menu and save kits were added on 2026-10-29, in one commit whose subject records the rule of the title screen: a title that always leads in. The settings page followed the same day.</p><h2 id="see-also">See also</h2><ul><li><a href="front-menu.html" data-slug="front-menu">Menu screens</a></li><li><a href="front-save.html" data-slug="front-save">Save slots</a></li><li><a href="front-settings.html" data-slug="front-settings">Settings</a></li><li><a href="shell.html" data-slug="shell">Game shell</a></li><li><a href="cine.html" data-slug="cine">Cine</a></li><li><a href="fonts.html" data-slug="fonts">Fonts</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/mod.rs</code> - <code>//! Each submodule has one owner; games use the full path, for example</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/examples/front.rs</code> - <code>*  `render` steps the world only in `Screen::Play`, so a menu freezes play.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/front/settings.rs</code> - <code>//! One model, six tabs, one call to draw it. The title menu and the pause</code></li></ol><table class="navbox"><tr><th><a href="category-front-end.html">Front end</a></th></tr><tr><td><b>Front end</b> · <a href="front-menu.html" data-slug="front-menu">Menu screens</a> · <a href="front-save.html" data-slug="front-save">Save slots</a> · <a href="front-settings.html" data-slug="front-settings">Settings</a> · <a href="fonts.html" data-slug="fonts">Fonts</a> · <a href="cine.html" data-slug="cine">Cine</a> · <a href="icon.html" data-slug="icon">Application icon</a> · <a href="boot.html" data-slug="boot">Boot splash and screenshots</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-front-end.html">Front end</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

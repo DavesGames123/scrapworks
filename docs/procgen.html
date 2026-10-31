@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Procedural generation - Warp Wiki</title>
+<meta name="description" content="seeded streams, Poisson-disc scatter, placement, and fair starts">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+<script src="assets/demos/streams.js" defer></script>
+</head>
+<body class="" data-slug="procgen">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#design">Design</a><ul><li><a href="#why-named-streams">Why named streams</a></li><li><a href="#why-a-fair-start">Why a fair start</a></li></ul></li><li><a href="#usage">Usage</a></li><li><a href="#rng">Rng</a></li><li><a href="#area">Area</a></li><li><a href="#poisson-disc">Poisson disc</a></li><li><a href="#weighted-table">Weighted table</a></li><li><a href="#clusters">Clusters</a></li><li><a href="#surface-placement">Surface placement</a></li><li><a href="#fair-start">Fair start</a></li><li><a href="#seed-reports">Seed reports</a></li><li><a href="#interaction-with-other-kits">Interaction with other kits</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Procedural generation</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">seeded streams, Poisson-disc scatter, placement, and fair starts</p><table class="infobox"><caption>Procedural generation</caption><tr><th>Category</th><td><a href="category-world-and-simulation.html">World and simulation</a></td></tr><tr><th>Module</th><td><code>warp_sdk::procgen</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/procgen.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">64</a></td></tr></table><p><strong>Procedural generation</strong> in Warp is the module <a class="sym" href="procgen.html"><code>warp_sdk::procgen</code></a>, a set of seeded tools that make a world that is the same on every run. A game makes its world from one <code>u64</code> seed, and each feature takes its own named stream, so a new feature does not move the old ones.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> The module also holds Poisson-disc scatter, weighted tables, clusters, surface placement, fair start search, and seed reports. It has no GPU code and depends on no other kit.</p>
+<h2 id="design">Design</h2>
+<h3 id="why-named-streams">Why named streams</h3>
+<p>One shared generator makes every feature depend on all the features before it. Add one more fish and every rock moves. A named stream is a hash of the root seed and the name, so each feature has its own fixed sequence.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<h3 id="why-a-fair-start">Why a fair start</h3>
+<p>A random world can start the player in a place where they lose at once. The game scores start sites with its own rule, and <a class="sym" href="#sym-fair_start"><code>fair_start</code></a> tries seeds in order until the best site of a seed scores at or above the threshold. <a class="sym" href="#sym-score_seeds"><code>score_seeds</code></a> in a <code>#[test]</code> shows how often seeds fail before a player sees one.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<h2 id="usage">Usage</h2>
+<p>This sample from the SDK reference derives two streams from one seed and scatters two features.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::procgen::{<span class="k">self</span>, <span class="t">Area</span>, <span class="t">Rng</span>};
+
+<span class="k">let</span> world = <span class="t">Rng</span>::<span class="f">new</span>(<span class="n">42</span>);
+<span class="k">let</span> <span class="k">mut</span> coral = world.<span class="f">stream</span>(<span class="s">"coral"</span>);
+<span class="k">let</span> <span class="k">mut</span> rocks = world.<span class="f">stream</span>(<span class="s">"rocks"</span>);
+<span class="k">let</span> area = <span class="t">Area</span>::<span class="f">new</span>([<span class="n">0.0</span>, <span class="n">0.0</span>], [<span class="n">100.0</span>, <span class="n">60.0</span>]);
+<span class="k">let</span> reef = procgen::<span class="f">poisson_disc_density</span>(&amp;<span class="k">mut</span> coral, area, <span class="n">2.0</span>, <span class="n">8.0</span>, |p| (p[<span class="n">0</span>] / <span class="n">100.0</span>).<span class="f">min</span>(<span class="n">1.0</span>));
+<span class="k">let</span> boulders = procgen::<span class="f">poisson_disc</span>(&amp;<span class="k">mut</span> rocks, area, <span class="n">10.0</span>);</code></pre></div>
+<h2 id="rng">Rng</h2>
+<div class="demo" data-demo="streams"><noscript>This demo needs JavaScript.</noscript></div>
+
+<p><a class="sym" href="#sym-Rng"><code>Rng</code></a> is a xoshiro256** generator. The doc comment states that the same seed gives the same numbers on every machine and every run.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<p>Each generator has a fixed key as well as its running state. <a class="sym" href="#sym-Rng-new"><code>Rng::new</code></a> hashes the seed with splitmix64 to get the key, and the state comes from the key. A sub-stream hashes the key and the name, so it depends only on those, never on how many numbers the parent gave before.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stream</span>(&amp;<span class="k">self</span>, name: &amp;str) -&gt; <span class="t">Rng</span> {
+    <span class="t">Rng</span>::<span class="f">from_key</span>(<span class="f">splitmix64</span>(<span class="k">self</span>.key ^ <span class="f">splitmix64</span>(<span class="f">fnv1a</span>(name))))
+}</code></pre></div>
+<p>The name goes through FNV-1a first. <a class="sym" href="#sym-Rng-stream_n"><code>Rng::stream_n</code></a> makes a named, numbered sub-stream: one per chunk, per level, per wave. A stream has its own key, so streams nest.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Call</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-Rng-next_u64"><code>Rng::next_u64</code></a></td>
+<td>The next 64 random bits</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Rng-next_u32"><code>Rng::next_u32</code></a></td>
+<td>The high 32 bits of the next value</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Rng-f32"><code>Rng::f32</code></a></td>
+<td>A float in <code>[0, 1)</code></td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Rng-range"><code>Rng::range</code></a></td>
+<td>A float in <code>[lo, hi)</code>. If <code>hi &lt;= lo</code>, the result is <code>lo</code></td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Rng-range_i"><code>Rng::range_i</code></a></td>
+<td>An integer in <code>[lo, hi)</code></td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Rng-index"><code>Rng::index</code></a></td>
+<td>An index in <code>[0, len)</code>. If <a class="sym" href="#sym-WeightedTable-len"><code>len</code></a> is 0, the result is 0</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Rng-chance"><code>Rng::chance</code></a></td>
+<td>True with probability <code>p</code>, clamped to <code>[0, 1]</code></td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Rng-pick"><code>Rng::pick</code></a></td>
+<td>One item of a slice, or <code>None</code> if it is empty</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Rng-shuffle"><code>Rng::shuffle</code></a></td>
+<td>A Fisher-Yates shuffle in place</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Rng-normal"><code>Rng::normal</code></a></td>
+<td>A Gaussian value with this mean and standard deviation</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Rng-unit_vec2"><code>Rng::unit_vec2</code></a></td>
+<td>A unit vector in a random direction</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-Rng-in_disc"><code>Rng::in_disc</code></a></td>
+<td>A point in a disc, with even density</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-Rng-range_i"><code>Rng::range_i</code></a> and <a class="sym" href="#sym-Rng-index"><code>Rng::index</code></a> scale by multiplication and a 64-bit shift, not by a modulo.</p>
+<h2 id="area">Area</h2>
+<p><a class="sym" href="#sym-Area"><code>Area</code></a> is an axis-aligned rectangle, where <code>min</code> is inclusive and <code>max</code> is exclusive.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup> <a class="sym" href="#sym-Area-new"><code>Area::new</code></a> takes two corners in any order. <a class="sym" href="#sym-Area-contains"><code>Area::contains</code></a> and <a class="sym" href="#sym-Area-random_point"><code>Area::random_point</code></a> use the same half-open rule.</p>
+<h2 id="poisson-disc">Poisson disc</h2>
+<p>Poisson-disc scatter gives points with a minimum distance between them. There are three forms, and the first two call the third.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Function</th>
+<th>Spacing</th>
+<th>Returns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-poisson_disc"><code>poisson_disc</code></a></td>
+<td>One fixed <code>radius</code></td>
+<td>Points as <code>[f32; 2]</code></td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-poisson_disc_density"><code>poisson_disc_density</code></a></td>
+<td>From a density map in <code>[0, 1]</code>: <code>r_min</code> at 1, toward <code>r_max</code> near 0, no points at 0 or less</td>
+<td>A list of <a class="sym" href="#sym-Sample"><code>Sample</code></a></td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-poisson_disc_variable"><code>poisson_disc_variable</code></a></td>
+<td>From a closure that returns a radius, or <code>None</code> where no point may go</td>
+<td>A list of <a class="sym" href="#sym-Sample"><code>Sample</code></a></td>
+</tr>
+</tbody>
+</table>
+<p>Two points are never closer than the larger of their two radii.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup> A <a class="sym" href="#sym-Sample"><code>Sample</code></a> holds the position and the radius that kept other points away. Results of the radius closure clamp to <code>[r_min, r_max]</code>, and a non-finite value counts as <code>None</code>.</p>
+<p>The algorithm is Bridson's, in rounds. Each round throws up to 120 darts at the area to start a front, then grows the front with 30 attempts per active point in the ring from one to two radii around it. A point with no room leaves the active list. Rounds stop when a whole round of darts finds no space.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup> The darts are what let a fill cross a gap where the closure returns <code>None</code>: when the front stops, random throws look for new free space.</p>
+<p>A background grid speeds up the distance test. Its cell is <code>r_min / sqrt(2)</code>, so a cell holds at most one point, and each test scans the cells within <code>r_max</code>. A very large ratio of <code>r_max</code> to <code>r_min</code> thus costs more per test. An empty area or an <code>r_min</code> that is not positive returns an empty list.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::procgen::{poisson_disc_density, <span class="t">Area</span>, <span class="t">Rng</span>};
+<span class="k">let</span> area = <span class="t">Area</span>::<span class="f">new</span>([<span class="n">0.0</span>, <span class="n">0.0</span>], [<span class="n">40.0</span>, <span class="n">40.0</span>]);
+<span class="c">// Dense at the bottom, empty above y = 30.</span>
+<span class="k">let</span> pts = <span class="f">poisson_disc_density</span>(&amp;<span class="k">mut</span> <span class="t">Rng</span>::<span class="f">new</span>(<span class="n">2</span>), area, <span class="n">1.0</span>, <span class="n">4.0</span>, |p| <span class="n">1.0</span> - p[<span class="n">1</span>] / <span class="n">30.0</span>);
+assert!(pts.<span class="f">iter</span>().<span class="f">all</span>(|s| s.pos[<span class="n">1</span>] &lt; <span class="n">30.0</span>));</code></pre></div>
+<h2 id="weighted-table">Weighted table</h2>
+<p><a class="sym" href="#sym-WeightedTable"><code>WeightedTable</code></a> picks one item from a list by weight. An item with a larger weight comes back more often, and weights of 0 or less never come back.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup> A non-finite weight counts as 0.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::procgen::{<span class="t">Rng</span>, <span class="t">WeightedTable</span>};
+<span class="k">let</span> table = <span class="t">WeightedTable</span>::<span class="f">new</span>()
+    .<span class="f">with</span>(<span class="s">"brain coral"</span>, <span class="n">3.0</span>)
+    .<span class="f">with</span>(<span class="s">"fan coral"</span>, <span class="n">2.0</span>)
+    .<span class="f">with</span>(<span class="s">"giant clam"</span>, <span class="n">0.2</span>);
+<span class="k">let</span> kind = table.<span class="f">pick</span>(&amp;<span class="k">mut</span> <span class="t">Rng</span>::<span class="f">new</span>(<span class="n">4</span>)).<span class="f">unwrap</span>();</code></pre></div>
+<p>The table stores cumulative weights and picks by binary search. <a class="sym" href="#sym-WeightedTable-pick"><code>WeightedTable::pick</code></a> and <a class="sym" href="#sym-WeightedTable-pick_index"><code>WeightedTable::pick_index</code></a> return <code>None</code> if the total weight is 0.</p>
+<h2 id="clusters">Clusters</h2>
+<p><a class="sym" href="#sym-scatter_cluster"><code>scatter_cluster</code></a> places <a class="sym" href="window.html#sym-count"><code>count</code></a> members round a centre, inside a radius, thinning with a <a class="sym" href="#sym-Falloff"><code>Falloff</code></a>. <a class="sym" href="#sym-clusters"><code>clusters</code></a> does the same for each centre in a list, and <code>cluster</code> tells which centre a member belongs to. <code>t</code> is the distance as a fraction of the cluster radius.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Falloff</th>
+<th>Weight at <code>t</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Falloff::Flat</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Falloff::Linear</td>
+<td><code>1 - t</code></td>
+</tr>
+<tr>
+<td>Falloff::Smooth, the default</td>
+<td><code>1 - t * t * (3 - 2 * t)</code></td>
+</tr>
+<tr>
+<td>Falloff::Gaussian</td>
+<td><code>exp(-4.5 * t * t)</code></td>
+</tr>
+</tbody>
+</table>
+<p>Each member draws an evenly distributed <code>t</code> and accepts it with the falloff weight, with up to 64 tries. If every try fails, the member takes a point near the centre.<sup class="ref"><a href="#ref-10" id="cite-10">[10]</a></sup> <a class="sym" href="#sym-Falloff-weight"><code>Falloff::weight</code></a> is public, so a game can also use it to scale props: big at the centre, small at the edge.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::procgen::{clusters, poisson_disc, <span class="t">Area</span>, <span class="t">Falloff</span>, <span class="t">Rng</span>};
+<span class="k">let</span> world = <span class="t">Rng</span>::<span class="f">new</span>(<span class="n">8</span>);
+<span class="k">let</span> area = <span class="t">Area</span>::<span class="f">new</span>([<span class="n">0.0</span>, <span class="n">0.0</span>], [<span class="n">100.0</span>, <span class="n">100.0</span>]);
+<span class="k">let</span> centers = <span class="f">poisson_disc</span>(&amp;<span class="k">mut</span> world.<span class="f">stream</span>(<span class="s">"reef centers"</span>), area, <span class="n">30.0</span>);
+<span class="k">let</span> coral = <span class="f">clusters</span>(&amp;<span class="k">mut</span> world.<span class="f">stream</span>(<span class="s">"reef coral"</span>), &amp;centers, <span class="n">8.0</span>, <span class="n">15</span>, <span class="t">Falloff</span>::<span class="t">Smooth</span>);</code></pre></div>
+<h2 id="surface-placement">Surface placement</h2>
+<p><a class="sym" href="#sym-place_on_surface"><code>place_on_surface</code></a> roots props into terrain through a closure <code>surface(x) -&gt; (y, normal)</code>, so the module does not need a terrain type.<sup class="ref"><a href="#ref-11" id="cite-11">[11]</a></sup> For each <code>x</code>, the call turns the normal to face <code>world_up</code>, measures the slope, and skips a position steeper than <code>max_slope_deg</code>. It then sinks the base along the normal, and tilts the prop by <code>align</code>. A position with a non-finite height or a zero normal is skipped too.</p>
+<p><a class="sym" href="#sym-Rooting"><code>Rooting</code></a> holds the settings.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sink</code></td>
+<td>0.1</td>
+<td>The distance the base goes into the ground, along the normal</td>
+</tr>
+<tr>
+<td><code>align</code></td>
+<td>0.5</td>
+<td>0 keeps the prop upright, and 1 tilts it fully to the normal</td>
+</tr>
+<tr>
+<td><code>max_slope_deg</code></td>
+<td>50.0</td>
+<td>Slopes steeper than this get no prop</td>
+</tr>
+<tr>
+<td><code>world_up</code></td>
+<td>[0, 1]</td>
+<td>The up direction. Use <code>[0, -1]</code> for a screen with y down</td>
+</tr>
+</tbody>
+</table>
+<p>A small positive <code>sink</code> hides the seam between prop and terrain.<sup class="ref"><a href="#ref-12" id="cite-12">[12]</a></sup> The result is a <a class="sym" href="#sym-Placement"><code>Placement</code></a> with the sunk base, the unit normal, the growth direction, a rotation in radians, and the slope.</p>
+<p><a class="sym" href="#sym-surface_normal"><code>surface_normal</code></a> gets the normal of a height function by central difference, and it pairs with a plain height closure.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::procgen::{place_on_surface, surface_normal, <span class="t">Rooting</span>};
+<span class="k">let</span> ground = |x: f32| <span class="n">5.0</span> + (x * <span class="n">0.2</span>).<span class="f">sin</span>() * <span class="n">2.0</span>;
+<span class="k">let</span> props = <span class="f">place_on_surface</span>(
+    (<span class="n">0</span>..<span class="n">20</span>).<span class="f">map</span>(|i| i <span class="k">as</span> f32 * <span class="n">3.0</span>),
+    |x| (<span class="f">ground</span>(x), <span class="f">surface_normal</span>(ground, x, <span class="n">0.05</span>)),
+    &amp;<span class="t">Rooting</span>::<span class="f">default</span>(),
+);</code></pre></div>
+<p><a class="sym" href="#sym-place_on_ground"><code>place_on_ground</code></a> is the 3D form. It takes <code>[x, z]</code> pairs and a closure <code>ground(x, z) -&gt; (y, normal)</code>, and it returns <a class="sym" href="#sym-Placement3"><code>Placement3</code></a>. World up is <code>+y</code>, and it ignores <code>world_up</code>.</p>
+<p>For a cave world from <a href="world-terrain.html" data-slug="world-terrain">Terrain</a>, a surface closure can build on <a class="sym" href="world-collide.html#sym-ground_snap"><code>collide::ground_snap</code></a> with <code>sink</code> set to 0, because that call already sinks the point. See <a href="world-collide.html#props-on-the-ground" data-slug="world-collide">props on the ground</a>.</p>
+<h2 id="fair-start">Fair start</h2>
+<p><a class="sym" href="#sym-best_start"><code>best_start</code></a> returns the site with the highest score. NaN scores never win, and it returns <code>None</code> if there are no sites.<sup class="ref"><a href="#ref-13" id="cite-13">[13]</a></sup></p>
+<p><a class="sym" href="#sym-fair_start"><code>fair_start</code></a> takes a first seed, a <a class="sym" href="#sym-FairStart"><code>FairStart</code></a> rule, and two closures: <code>sites(seed)</code> makes the candidate sites of a seed, and <a class="sym" href="palette-kit.html#sym-score"><code>score(seed, site)</code></a> is the rule of the game. Build the world inside these closures from <a class="sym" href="#sym-Rng-new"><code>Rng::new(seed)</code></a>, so the pick is the same on every run.<sup class="ref"><a href="#ref-14" id="cite-14">[14]</a></sup></p>
+<p><a class="sym" href="#sym-FairStart"><code>FairStart</code></a> has <code>min_score</code>, 0.5 by default, and <code>max_seeds</code>, 64 by default. Seeds run from the first seed upward by 1. On success the result is a <a class="sym" href="#sym-StartPick"><code>StartPick</code></a> with the seed, the site, the score, the seeds tried, and each rejected seed with its best score. A seed with no site enters that list at negative infinity. On failure the result is <a class="sym" href="#sym-NoFairStart"><code>NoFairStart</code></a>, with the best seed seen, if any.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::procgen::{fair_start, poisson_disc, <span class="t">Area</span>, <span class="t">FairStart</span>, <span class="t">Rng</span>};
+<span class="k">let</span> area = <span class="t">Area</span>::<span class="f">new</span>([<span class="n">0.0</span>, <span class="n">0.0</span>], [<span class="n">100.0</span>, <span class="n">100.0</span>]);
+<span class="k">let</span> food = |seed: u64| <span class="f">poisson_disc</span>(&amp;<span class="k">mut</span> <span class="t">Rng</span>::<span class="f">new</span>(seed).<span class="f">stream</span>(<span class="s">"food"</span>), area, <span class="n">25.0</span>);
+<span class="k">let</span> pick = <span class="f">fair_start</span>(
+    <span class="n">1000</span>,
+    &amp;<span class="t">FairStart</span> { min_score: <span class="n">0.0</span>, max_seeds: <span class="n">16</span> },
+    |seed| <span class="f">poisson_disc</span>(&amp;<span class="k">mut</span> <span class="t">Rng</span>::<span class="f">new</span>(seed).<span class="f">stream</span>(<span class="s">"starts"</span>), area, <span class="n">20.0</span>),
+    |seed, site| {
+        <span class="c">// Score: closer food is better.</span>
+        <span class="k">let</span> near = <span class="f">food</span>(seed).<span class="f">iter</span>()
+            .<span class="f">map</span>(|f| ((f[<span class="n">0</span>] - site[<span class="n">0</span>]).<span class="f">powi</span>(<span class="n">2</span>) + (f[<span class="n">1</span>] - site[<span class="n">1</span>]).<span class="f">powi</span>(<span class="n">2</span>)).<span class="f">sqrt</span>())
+            .<span class="f">fold</span>(f32::<span class="t">MAX</span>, f32::min);
+        <span class="n">1.0</span> - near / <span class="n">100.0</span>
+    },
+).<span class="f">expect</span>(<span class="s">"a fair start"</span>);</code></pre></div>
+<p><a class="sym" href="#sym-fair_start"><code>fair_start</code></a> builds candidate sites for each seed until one passes, so the cost of the closures multiplies by the seeds tried.</p>
+<h2 id="seed-reports">Seed reports</h2>
+<p><a class="sym" href="#sym-score_seeds"><code>score_seeds</code></a> scores each seed and returns a <a class="sym" href="#sym-ScoreReport"><code>ScoreReport</code></a>: every pair, the count, min, max, mean, median, the 10th and 90th percentiles, and the worst and best seeds. NaN scores count as negative infinity, and with no seeds every number is 0.</p>
+<p><a class="sym" href="#sym-ScoreReport-pass_rate"><code>ScoreReport::pass_rate</code></a> gives the fraction at or above a threshold, <a class="sym" href="#sym-ScoreReport-failing"><code>ScoreReport::failing</code></a> lists the seeds below it, and <a class="sym" href="#sym-ScoreReport-histogram"><code>ScoreReport::histogram</code></a> gives counts in equal bins. The <a class="sym" href="front-settings.html#sym-Display"><code>Display</code></a> form prints a summary line and a text histogram of 10 bins, so <code>println!("{r}")</code> in a test is a quick view.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::procgen::score_seeds;
+<span class="k">let</span> r = <span class="f">score_seeds</span>(<span class="n">0</span>..<span class="n">100</span>, |seed| (seed % <span class="n">10</span>) <span class="k">as</span> f32 / <span class="n">10.0</span>);
+assert_eq!(r.count, <span class="n">100</span>);
+assert!(r.<span class="f">pass_rate</span>(<span class="n">0.5</span>) &gt; <span class="n">0.4</span>);
+println!(<span class="s">"{r}"</span>);</code></pre></div>
+<h2 id="interaction-with-other-kits">Interaction with other kits</h2>
+<p><a class="sym" href="world-terrain.html#sym-Terrain"><code>Terrain</code></a> and <a class="sym" href="world-biome.html#sym-BiomeSet"><code>BiomeSet</code></a> take their own seeds and use private hash noise, not <a class="sym" href="#sym-Rng"><code>Rng</code></a>. A game that wants one world seed derives those two seeds from named streams, for example with <a class="sym" href="#sym-Rng-next_u64"><code>Rng::next_u64</code></a> and <a class="sym" href="#sym-Rng-next_u32"><code>Rng::next_u32</code></a>.</p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>Points are <code>[f32; 2]</code>, and the module has no chunk streaming of its own. <a class="sym" href="#sym-Rng-stream_n"><code>Rng::stream_n</code></a> supplies the seed for each chunk, and points near a chunk edge are the game's concern.</li>
+<li>Poisson-disc functions take <code>&amp;mut Rng</code> and leave it at a position that depends on the result. Give each call a stream of its own.</li>
+<li>Generation runs on the CPU, and the module has no parallel form.</li>
+</ul>
+<h2 id="history">History</h2>
+<p>Commit <code>9355001c</code> added the module on 2026-10-29. Its stated aim was starting conditions that a new game can rely on. The module has no example in <code>warp_sdk/examples</code>, and its doc comments carry the samples.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 64 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-procgen" class="modhead"><code>warp_sdk::procgen</code></h3><h4>Functions</h4><div class="item" id="sym-poisson_disc" data-name="poisson_disc"><div class="sig"><a class="anchor" href="#sym-poisson_disc" aria-label="Link to poisson_disc">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">poisson_disc</span>(rng: &amp;<span class="k">mut</span> <span class="t">Rng</span>, area: <span class="t">Area</span>, radius: f32) -&gt; <span class="t">Vec</span>&lt;[f32; <span class="n">2</span>]&gt;</code></div><div class="doc"><p>Even Poisson-disc points: no two points are closer than <code>radius</code>.</p>
+<p><code>use warp_sdk::procgen::{poisson_disc, Area, Rng};
+let pts = poisson_disc(&amp;mut Rng::new(5), Area::new([0.0, 0.0], [50.0, 50.0]), 4.0);
+assert!(pts.len() &gt; 20);</code></p></div></div><div class="item" id="sym-poisson_disc_density" data-name="poisson_disc_density"><div class="sig"><a class="anchor" href="#sym-poisson_disc_density" aria-label="Link to poisson_disc_density">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">poisson_disc_density</span>( rng: &amp;<span class="k">mut</span> <span class="t">Rng</span>, area: <span class="t">Area</span>, r_min: f32, r_max: f32, density: <span class="k">impl</span> <span class="t">Fn</span>([f32; <span class="n">2</span>]) -&gt; f32, ) -&gt; <span class="t">Vec</span>&lt;<span class="t">Sample</span>&gt;</code></div><div class="doc"><p>Poisson-disc points from a density map.</p>
+<p><code>density(p)</code> returns a value in <code>[0, 1]</code>. At 1 the spacing is <code>r_min</code>; at
+values near 0 the spacing goes to <code>r_max</code>. At 0 or less the area has no
+points. Two points <code>a</code> and <code>b</code> are never closer than the larger of their
+two radii.</p>
+<p><code>use warp_sdk::procgen::{poisson_disc_density, Area, Rng};
+let area = Area::new([0.0, 0.0], [40.0, 40.0]);
+// Dense at the bottom, empty above y = 30.
+let pts = poisson_disc_density(&amp;mut Rng::new(2), area, 1.0, 4.0, |p| 1.0 - p[1] / 30.0);
+assert!(pts.iter().all(|s| s.pos[1] &lt; 30.0));</code></p></div></div><div class="item" id="sym-poisson_disc_variable" data-name="poisson_disc_variable"><div class="sig"><a class="anchor" href="#sym-poisson_disc_variable" aria-label="Link to poisson_disc_variable">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">poisson_disc_variable</span>( rng: &amp;<span class="k">mut</span> <span class="t">Rng</span>, area: <span class="t">Area</span>, r_min: f32, r_max: f32, radius: <span class="k">impl</span> <span class="t">Fn</span>([f32; <span class="n">2</span>]) -&gt; <span class="t">Option</span>&lt;f32&gt;, ) -&gt; <span class="t">Vec</span>&lt;<span class="t">Sample</span>&gt;</code></div><div class="doc"><p>Poisson-disc points with a radius closure.</p>
+<p><code>radius(p)</code> returns the spacing at <code>p</code>, or <code>None</code> where no point may go.
+The result is clamped to <code>[r_min, r_max]</code>. Two points are never closer
+than the larger of their two radii. Zero-radius gaps do not stop the
+fill: when the front stops, random throws look for new free space.</p>
+<p><code>use warp_sdk::procgen::{poisson_disc_variable, Area, Rng};
+let area = Area::new([0.0, 0.0], [30.0, 30.0]);
+let pts = poisson_disc_variable(&amp;mut Rng::new(3), area, 1.0, 3.0, |p| {
+if p[0] &lt; 15.0 { Some(1.0) } else { Some(3.0) }
+});
+assert!(!pts.is_empty());</code></p></div></div><div class="item" id="sym-scatter_cluster" data-name="scatter_cluster"><div class="sig"><a class="anchor" href="#sym-scatter_cluster" aria-label="Link to scatter_cluster">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">scatter_cluster</span>( rng: &amp;<span class="k">mut</span> <span class="t">Rng</span>, center: [f32; <span class="n">2</span>], radius: f32, count: usize, falloff: <span class="t">Falloff</span>, ) -&gt; <span class="t">Vec</span>&lt;<span class="t">ClusterMember</span>&gt;</code></div><div class="doc"><p>Place <code>count</code> members round <code>center</code>, inside <code>radius</code>, with <code>falloff</code>.</p>
+<p><code>use warp_sdk::procgen::{scatter_cluster, Falloff, Rng};
+let kelp = scatter_cluster(&amp;mut Rng::new(1), [10.0, 0.0], 4.0, 12, Falloff::Gaussian);
+assert_eq!(kelp.len(), 12);</code></p></div></div><div class="item" id="sym-clusters" data-name="clusters"><div class="sig"><a class="anchor" href="#sym-clusters" aria-label="Link to clusters">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">clusters</span>( rng: &amp;<span class="k">mut</span> <span class="t">Rng</span>, centers: &amp;[[f32; <span class="n">2</span>]], radius: f32, per_cluster: usize, falloff: <span class="t">Falloff</span>, ) -&gt; <span class="t">Vec</span>&lt;<span class="t">ClusterMember</span>&gt;</code></div><div class="doc"><p>Place <code>per_cluster</code> members round each center. <code>ClusterMember::cluster</code>
+tells which center a member belongs to.</p>
+<p><code>use warp_sdk::procgen::{clusters, poisson_disc, Area, Falloff, Rng};
+let world = Rng::new(8);
+let area = Area::new([0.0, 0.0], [100.0, 100.0]);
+let centers = poisson_disc(&amp;mut world.stream("reef centers"), area, 30.0);
+let coral = clusters(&amp;mut world.stream("reef coral"), &amp;centers, 8.0, 15, Falloff::Smooth);
+assert_eq!(coral.len(), centers.len() * 15);</code></p></div></div><div class="item" id="sym-surface_normal" data-name="surface_normal"><div class="sig"><a class="anchor" href="#sym-surface_normal" aria-label="Link to surface_normal">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">surface_normal</span>(height: <span class="k">impl</span> <span class="t">Fn</span>(f32) -&gt; f32, x: f32, dx: f32) -&gt; [f32; <span class="n">2</span>]</code></div><div class="doc"><p>The normal of a height function <code>y = height(x)</code> by central difference.
+The normal points to <code>+y</code>.</p>
+<p><code>use warp_sdk::procgen::surface_normal;
+let n = surface_normal(|_| 3.0, 1.0, 0.01);
+assert!((n[1] - 1.0).abs() &lt; 1e-5);</code></p></div></div><div class="item" id="sym-place_on_surface" data-name="place_on_surface"><div class="sig"><a class="anchor" href="#sym-place_on_surface" aria-label="Link to place_on_surface">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">place_on_surface</span>( xs: <span class="k">impl</span> <span class="t">IntoIterator</span>&lt;<span class="t">Item</span> = f32&gt;, surface: <span class="k">impl</span> <span class="t">Fn</span>(f32) -&gt; (f32, [f32; <span class="n">2</span>]), rooting: &amp;<span class="t">Rooting</span>, ) -&gt; <span class="t">Vec</span>&lt;<span class="t">Placement</span>&gt;</code></div><div class="doc"><p>Root props at each <code>x</code> into a surface given as <code>surface(x) -&gt; (y, normal)</code>.</p>
+<p>Positions on slopes steeper than <code>rooting.max_slope_deg</code> get no prop.
+The normal need not be unit length; it is turned to face <code>world_up</code>.</p>
+<p><code>use warp_sdk::procgen::{place_on_surface, surface_normal, Rooting};
+let ground = |x: f32| 5.0 + (x * 0.2).sin() * 2.0;
+let props = place_on_surface(
+(0..20).map(|i| i as f32 * 3.0),
+|x| (ground(x), surface_normal(ground, x, 0.05)),
+&amp;Rooting::default(),
+);
+assert!(props.iter().all(|p| p.pos[1] &lt;= ground(p.pos[0]) + 1.0));</code></p></div></div><div class="item" id="sym-place_on_ground" data-name="place_on_ground"><div class="sig"><a class="anchor" href="#sym-place_on_ground" aria-label="Link to place_on_ground">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">place_on_ground</span>( xz: <span class="k">impl</span> <span class="t">IntoIterator</span>&lt;<span class="t">Item</span> = [f32; <span class="n">2</span>]&gt;, ground: <span class="k">impl</span> <span class="t">Fn</span>(f32, f32) -&gt; (f32, [f32; <span class="n">3</span>]), rooting: &amp;<span class="t">Rooting</span>, ) -&gt; <span class="t">Vec</span>&lt;<span class="t">Placement3</span>&gt;</code></div><div class="doc"><p>Root props at each <code>[x, z]</code> into 3D ground given as
+<code>ground(x, z) -&gt; (y, normal)</code>. World up is <code>+y</code>; <code>rooting.world_up</code> is
+not used.</p>
+<p><code>use warp_sdk::procgen::{place_on_ground, Rooting};
+let flat = |_x: f32, _z: f32| (0.0, [0.0, 1.0, 0.0]);
+let p = place_on_ground([[1.0, 2.0], [3.0, 4.0]], flat, &amp;Rooting::default());
+assert_eq!(p.len(), 2);</code></p></div></div><div class="item" id="sym-best_start" data-name="best_start"><div class="sig"><a class="anchor" href="#sym-best_start" aria-label="Link to best_start">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> best_start&lt;<span class="t">S</span>&gt;( sites: <span class="k">impl</span> <span class="t">IntoIterator</span>&lt;<span class="t">Item</span> = <span class="t">S</span>&gt;, <span class="k">mut</span> score: <span class="k">impl</span> <span class="t">FnMut</span>(&amp;<span class="t">S</span>) -&gt; f32, ) -&gt; <span class="t">Option</span>&lt;(<span class="t">S</span>, f32)&gt;</code></div><div class="doc"><p>The site with the highest score, and that score. NaN scores never win.
+Returns <code>None</code> if there are no sites.</p>
+<p><code>use warp_sdk::procgen::best_start;
+let (site, score) = best_start([[0.0, 0.0], [5.0, 1.0]], |p| p[0]).unwrap();
+assert_eq!((site, score), ([5.0, 1.0], 5.0));</code></p></div></div><div class="item" id="sym-fair_start" data-name="fair_start"><div class="sig"><a class="anchor" href="#sym-fair_start" aria-label="Link to fair_start">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> fair_start&lt;<span class="t">S</span>&gt;( first_seed: u64, rule: &amp;<span class="t">FairStart</span>, <span class="k">mut</span> sites: <span class="k">impl</span> <span class="t">FnMut</span>(u64) -&gt; <span class="t">Vec</span>&lt;<span class="t">S</span>&gt;, <span class="k">mut</span> score: <span class="k">impl</span> <span class="t">FnMut</span>(u64, &amp;<span class="t">S</span>) -&gt; f32, ) -&gt; <span class="t">Result</span>&lt;<span class="t">StartPick</span>&lt;<span class="t">S</span>&gt;, <span class="t">NoFairStart</span>&gt;</code></div><div class="doc"><p>Try seeds from <code>first_seed</code> until one has a start site that scores at or
+above <code>rule.min_score</code>.</p>
+<p><code>sites(seed)</code> makes the candidate start sites of a seed (for example,
+Poisson-disc points over the open floor). <code>score(seed, site)</code> is the
+game's own rule for a good start. Build the world inside these closures
+from <code>Rng::new(seed)</code>, so the pick is the same on every run.</p>
+<p><code>use warp_sdk::procgen::{fair_start, poisson_disc, Area, FairStart, Rng};
+let area = Area::new([0.0, 0.0], [100.0, 100.0]);
+let food = |seed: u64| poisson_disc(&amp;mut Rng::new(seed).stream("food"), area, 25.0);
+let pick = fair_start(
+1000,
+&amp;FairStart { min_score: 0.0, max_seeds: 16 },
+|seed| poisson_disc(&amp;mut Rng::new(seed).stream("starts"), area, 20.0),
+|seed, site| {
+// Score: closer food is better.
+let near = food(seed).iter()
+.map(|f| ((f[0] - site[0]).powi(2) + (f[1] - site[1]).powi(2)).sqrt())
+.fold(f32::MAX, f32::min);
+1.0 - near / 100.0
+},
+).expect("a fair start");
+assert!(pick.score &gt;= 0.0);</code></p></div></div><div class="item" id="sym-score_seeds" data-name="score_seeds"><div class="sig"><a class="anchor" href="#sym-score_seeds" aria-label="Link to score_seeds">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">score_seeds</span>( seeds: <span class="k">impl</span> <span class="t">IntoIterator</span>&lt;<span class="t">Item</span> = u64&gt;, <span class="k">mut</span> score: <span class="k">impl</span> <span class="t">FnMut</span>(u64) -&gt; f32, ) -&gt; <span class="t">ScoreReport</span></code></div><div class="doc"><p>Score each seed and return the distribution. Use it in a <code>#[test]</code> to
+prove that most seeds give a fair world.</p>
+<p><code>use warp_sdk::procgen::{score_seeds, Rng};
+let r = score_seeds(0..50, |seed| Rng::new(seed).stream("start").f32());
+assert!(r.min &gt;= 0.0 &amp;&amp; r.max &lt; 1.0);</code></p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Rng" data-name="rng"><div class="sig"><a class="anchor" href="#sym-Rng" aria-label="Link to Rng">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Rng</span></code></div><div class="doc"><p>A deterministic random number generator (xoshiro256**).</p>
+<p>The same seed gives the same numbers on every machine and every run.
+<code>stream</code> and <code>stream_n</code> give sub-streams that depend only on this
+generator's key and the name, not on the numbers it already gave.</p>
+<p><code>use warp_sdk::procgen::Rng;
+let world = Rng::new(7);
+let mut fish = world.stream("fish");
+let x = fish.range(0.0, 10.0);
+assert!((0.0..10.0).contains(&amp;x));
+assert_eq!(Rng::new(7).stream("fish").next_u64(), Rng::new(7).stream("fish").next_u64());</code></p></div></div><details class="members"><summary>22 methods</summary><div class="item" id="sym-Rng-new" data-name="rng::new"><div class="sig"><a class="anchor" href="#sym-Rng-new" aria-label="Link to Rng::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(seed: u64) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Make a root generator from a world seed.</p>
+<p><code>let mut r = warp_sdk::procgen::Rng::new(1);
+let _ = r.next_u64();</code></p></div></div><div class="item" id="sym-Rng-key" data-name="rng::key"><div class="sig"><a class="anchor" href="#sym-Rng-key" aria-label="Link to Rng::key">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">key</span>(&amp;<span class="k">self</span>) -&gt; u64</code></div><div class="doc"><p>The fixed key of this generator. Sub-streams hash this key.</p>
+<p><code>use warp_sdk::procgen::Rng;
+assert_eq!(Rng::new(3).key(), Rng::new(3).key());</code></p></div></div><div class="item" id="sym-Rng-stream" data-name="rng::stream"><div class="sig"><a class="anchor" href="#sym-Rng-stream" aria-label="Link to Rng::stream">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stream</span>(&amp;<span class="k">self</span>, name: &amp;str) -&gt; <span class="t">Rng</span></code></div><div class="doc"><p>A named sub-stream. It depends only on this generator's key and
+<code>name</code>. Draws from the parent do not change it.</p>
+<p><code>use warp_sdk::procgen::Rng;
+let mut world = Rng::new(9);
+let before = world.stream("kelp").next_u64();
+world.next_u64();
+assert_eq!(world.stream("kelp").next_u64(), before);</code></p></div></div><div class="item" id="sym-Rng-stream_n" data-name="rng::stream_n"><div class="sig"><a class="anchor" href="#sym-Rng-stream_n" aria-label="Link to Rng::stream_n">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stream_n</span>(&amp;<span class="k">self</span>, name: &amp;str, index: u64) -&gt; <span class="t">Rng</span></code></div><div class="doc"><p>A named, numbered sub-stream: one per chunk, per level, per wave.</p>
+<p><code>use warp_sdk::procgen::Rng;
+let world = Rng::new(9);
+let mut chunk_3 = world.stream_n("chunk", 3);
+let _ = chunk_3.f32();</code></p></div></div><div class="item" id="sym-Rng-next_u64" data-name="rng::next_u64"><div class="sig"><a class="anchor" href="#sym-Rng-next_u64" aria-label="Link to Rng::next_u64">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">next_u64</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; u64</code></div><div class="doc"><p>The next 64 random bits.</p>
+<p><code>let _ = warp_sdk::procgen::Rng::new(0).next_u64();</code></p></div></div><div class="item" id="sym-Rng-next_u32" data-name="rng::next_u32"><div class="sig"><a class="anchor" href="#sym-Rng-next_u32" aria-label="Link to Rng::next_u32">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">next_u32</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; u32</code></div><div class="doc"><p>The next 32 random bits.</p>
+<p><code>let _ = warp_sdk::procgen::Rng::new(0).next_u32();</code></p></div></div><div class="item" id="sym-Rng-f32" data-name="rng::f32"><div class="sig"><a class="anchor" href="#sym-Rng-f32" aria-label="Link to Rng::f32">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">f32</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>A float in <code>[0, 1)</code>.</p>
+<p><code>let v = warp_sdk::procgen::Rng::new(0).f32();
+assert!((0.0..1.0).contains(&amp;v));</code></p></div></div><div class="item" id="sym-Rng-range" data-name="rng::range"><div class="sig"><a class="anchor" href="#sym-Rng-range" aria-label="Link to Rng::range">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">range</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, lo: f32, hi: f32) -&gt; f32</code></div><div class="doc"><p>A float in <code>[lo, hi)</code>. If <code>hi &lt;= lo</code>, the result is <code>lo</code>.</p>
+<p><code>let v = warp_sdk::procgen::Rng::new(0).range(2.0, 4.0);
+assert!((2.0..4.0).contains(&amp;v));</code></p></div></div><div class="item" id="sym-Rng-range_i" data-name="rng::range_i"><div class="sig"><a class="anchor" href="#sym-Rng-range_i" aria-label="Link to Rng::range_i">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">range_i</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, lo: i64, hi: i64) -&gt; i64</code></div><div class="doc"><p>An integer in <code>[lo, hi)</code>. If <code>hi &lt;= lo</code>, the result is <code>lo</code>.</p>
+<p><code>let v = warp_sdk::procgen::Rng::new(0).range_i(0, 6);
+assert!((0..6).contains(&amp;v));</code></p></div></div><div class="item" id="sym-Rng-index" data-name="rng::index"><div class="sig"><a class="anchor" href="#sym-Rng-index" aria-label="Link to Rng::index">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">index</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, len: usize) -&gt; usize</code></div><div class="doc"><p>An index in <code>[0, len)</code>. If <code>len</code> is 0, the result is 0.</p>
+<p><code>let i = warp_sdk::procgen::Rng::new(0).index(3);
+assert!(i &lt; 3);</code></p></div></div><div class="item" id="sym-Rng-chance" data-name="rng::chance"><div class="sig"><a class="anchor" href="#sym-Rng-chance" aria-label="Link to Rng::chance">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">chance</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, p: f32) -&gt; bool</code></div><div class="doc"><p>True with probability <code>p</code> (clamped to <code>[0, 1]</code>).</p>
+<p><code>assert!(!warp_sdk::procgen::Rng::new(0).chance(0.0));</code></p></div></div><div class="item" id="sym-Rng-pick" data-name="rng::pick"><div class="sig"><a class="anchor" href="#sym-Rng-pick" aria-label="Link to Rng::pick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> pick&lt;<span class="a">'a</span>, <span class="t">T</span>&gt;(&amp;<span class="k">mut</span> <span class="k">self</span>, items: &amp;<span class="a">'a</span> [<span class="t">T</span>]) -&gt; <span class="t">Option</span>&lt;&amp;<span class="a">'a</span> <span class="t">T</span>&gt;</code></div><div class="doc"><p>One item of a slice, or <code>None</code> if the slice is empty.</p>
+<p><code>let names = ["kelp", "coral"];
+assert!(warp_sdk::procgen::Rng::new(0).pick(&amp;names).is_some());</code></p></div></div><div class="item" id="sym-Rng-shuffle" data-name="rng::shuffle"><div class="sig"><a class="anchor" href="#sym-Rng-shuffle" aria-label="Link to Rng::shuffle">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> shuffle&lt;<span class="t">T</span>&gt;(&amp;<span class="k">mut</span> <span class="k">self</span>, items: &amp;<span class="k">mut</span> [<span class="t">T</span>])</code></div><div class="doc"><p>Shuffle a slice in place (Fisher-Yates).</p>
+<p><code>let mut v = [1, 2, 3, 4];
+warp_sdk::procgen::Rng::new(0).shuffle(&amp;mut v);</code></p></div></div><div class="item" id="sym-Rng-normal" data-name="rng::normal"><div class="sig"><a class="anchor" href="#sym-Rng-normal" aria-label="Link to Rng::normal">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">normal</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, mean: f32, std_dev: f32) -&gt; f32</code></div><div class="doc"><p>A normal (Gaussian) value with this mean and standard deviation.</p>
+<p><code>let _ = warp_sdk::procgen::Rng::new(0).normal(0.0, 1.0);</code></p></div></div><div class="item" id="sym-Rng-unit_vec2" data-name="rng::unit_vec2"><div class="sig"><a class="anchor" href="#sym-Rng-unit_vec2" aria-label="Link to Rng::unit_vec2">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">unit_vec2</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; [f32; <span class="n">2</span>]</code></div><div class="doc"><p>A unit vector in a random direction.</p>
+<p><code>let d = warp_sdk::procgen::Rng::new(0).unit_vec2();
+assert!(((d[0] * d[0] + d[1] * d[1]) - 1.0).abs() &lt; 1e-4);</code></p></div></div><div class="item" id="sym-Rng-in_disc" data-name="rng::in_disc"><div class="sig"><a class="anchor" href="#sym-Rng-in_disc" aria-label="Link to Rng::in_disc">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">in_disc</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, center: [f32; <span class="n">2</span>], radius: f32) -&gt; [f32; <span class="n">2</span>]</code></div><div class="doc"><p>A point in a disc of this radius round <code>center</code>, with even density.</p>
+<p><code>let p = warp_sdk::procgen::Rng::new(0).in_disc([0.0, 0.0], 2.0);
+assert!(p[0].hypot(p[1]) &lt;= 2.0);</code></p></div></div><div class="item" id="sym-Rng-unit" data-name="rng::unit"><div class="sig"><a class="anchor" href="#sym-Rng-unit" aria-label="Link to Rng::unit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">unit</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>A number in <code>0.0..1.0</code>.</p></div></div><div class="item" id="sym-Rng-index" data-name="rng::index"><div class="sig"><a class="anchor" href="#sym-Rng-index" aria-label="Link to Rng::index">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">index</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, n: usize) -&gt; usize</code></div><div class="doc"><p>An index in <code>0..n</code>. Gives 0 when <code>n</code> is 0.</p></div></div><div class="item" id="sym-Rng-new" data-name="rng::new"><div class="sig"><a class="anchor" href="#sym-Rng-new" aria-label="Link to Rng::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(seed: u64) -&gt; <span class="t">Rng</span></code></div><div class="doc"><p>A source from a seed.</p></div></div><div class="item" id="sym-Rng-next_f32" data-name="rng::next_f32"><div class="sig"><a class="anchor" href="#sym-Rng-next_f32" aria-label="Link to Rng::next_f32">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">next_f32</span>(&amp;<span class="k">mut</span> <span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>A value in 0..1.</p></div></div><div class="item" id="sym-Rng-range" data-name="rng::range"><div class="sig"><a class="anchor" href="#sym-Rng-range" aria-label="Link to Rng::range">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">range</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, a: f32, b: f32) -&gt; f32</code></div><div class="doc"><p>A value in a..b.</p></div></div><div class="item" id="sym-Rng-weighted" data-name="rng::weighted"><div class="sig"><a class="anchor" href="#sym-Rng-weighted" aria-label="Link to Rng::weighted">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">weighted</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, w: &amp;[f32]) -&gt; usize</code></div><div class="doc"><p>An index picked with the given weights. Returns 0 if all are 0.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Area" data-name="area"><div class="sig"><a class="anchor" href="#sym-Area" aria-label="Link to Area">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Area</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> min: [f32; <span class="n">2</span>],
+<span class="k">pub</span> max: [f32; <span class="n">2</span>],</code></pre></div><div class="doc"><p>An axis-aligned rectangle: <code>min</code> is inclusive, <code>max</code> is exclusive.</p>
+<p><code>use warp_sdk::procgen::Area;
+let a = Area::new([0.0, 0.0], [10.0, 5.0]);
+assert!(a.contains([1.0, 1.0]));</code></p></div></div><details class="members"><summary>4 methods</summary><div class="item" id="sym-Area-new" data-name="area::new"><div class="sig"><a class="anchor" href="#sym-Area-new" aria-label="Link to Area::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(a: [f32; <span class="n">2</span>], b: [f32; <span class="n">2</span>]) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Make an area from two corners in any order.</p>
+<p><code>let a = warp_sdk::procgen::Area::new([4.0, 4.0], [0.0, 0.0]);
+assert_eq!(a.min, [0.0, 0.0]);</code></p></div></div><div class="item" id="sym-Area-size" data-name="area::size"><div class="sig"><a class="anchor" href="#sym-Area-size" aria-label="Link to Area::size">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">size</span>(&amp;<span class="k">self</span>) -&gt; [f32; <span class="n">2</span>]</code></div><div class="doc"><p>Width and height.</p>
+<p><code>assert_eq!(warp_sdk::procgen::Area::new([0.0, 0.0], [3.0, 2.0]).size(), [3.0, 2.0]);</code></p></div></div><div class="item" id="sym-Area-contains" data-name="area::contains"><div class="sig"><a class="anchor" href="#sym-Area-contains" aria-label="Link to Area::contains">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">contains</span>(&amp;<span class="k">self</span>, p: [f32; <span class="n">2</span>]) -&gt; bool</code></div><div class="doc"><p>True if <code>p</code> is in the area.</p>
+<p><code>assert!(!warp_sdk::procgen::Area::new([0.0, 0.0], [1.0, 1.0]).contains([2.0, 0.0]));</code></p></div></div><div class="item" id="sym-Area-random_point" data-name="area::random_point"><div class="sig"><a class="anchor" href="#sym-Area-random_point" aria-label="Link to Area::random_point">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">random_point</span>(&amp;<span class="k">self</span>, rng: &amp;<span class="k">mut</span> <span class="t">Rng</span>) -&gt; [f32; <span class="n">2</span>]</code></div><div class="doc"><p>A random point in the area.</p>
+<p><code>use warp_sdk::procgen::{Area, Rng};
+let a = Area::new([0.0, 0.0], [1.0, 1.0]);
+assert!(a.contains(a.random_point(&amp;mut Rng::new(0))));</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Sample" data-name="sample"><div class="sig"><a class="anchor" href="#sym-Sample" aria-label="Link to Sample">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Sample</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> pos: [f32; <span class="n">2</span>],
+<span class="k">pub</span> radius: f32,</code></pre></div><div class="doc"><p>One Poisson-disc point and the radius that kept other points away.</p>
+<p><code>use warp_sdk::procgen::{poisson_disc_density, Area, Rng};
+let s = poisson_disc_density(&amp;mut Rng::new(1), Area::new([0.0, 0.0], [20.0, 20.0]), 1.0, 3.0, |_| 1.0);
+assert!(s.iter().all(|s| s.radius == 1.0));</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-WeightedTable" data-name="weightedtable"><div class="sig"><a class="anchor" href="#sym-WeightedTable" aria-label="Link to WeightedTable">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">WeightedTable</span>&lt;<span class="t">T</span>&gt;</code></div><div class="doc"><p>A list of items with weights. <code>pick</code> returns one item; an item with a
+larger weight comes back more often. Weights of 0 or less never come back.</p>
+<p><code>use warp_sdk::procgen::{Rng, WeightedTable};
+let table = WeightedTable::new()
+.with("brain coral", 3.0)
+.with("fan coral", 2.0)
+.with("giant clam", 0.2);
+let kind = table.pick(&amp;mut Rng::new(4)).unwrap();
+assert!(["brain coral", "fan coral", "giant clam"].contains(kind));</code></p></div></div><details class="members"><summary>10 methods</summary><div class="item" id="sym-WeightedTable-new" data-name="weightedtable::new"><div class="sig"><a class="anchor" href="#sym-WeightedTable-new" aria-label="Link to WeightedTable::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>() -&gt; <span class="k">Self</span></code></div><div class="doc"><p>An empty table.</p>
+<p><code>let t: warp_sdk::procgen::WeightedTable&lt;u8&gt; = warp_sdk::procgen::WeightedTable::new();
+assert!(t.is_empty());</code></p></div></div><div class="item" id="sym-WeightedTable-with" data-name="weightedtable::with"><div class="sig"><a class="anchor" href="#sym-WeightedTable-with" aria-label="Link to WeightedTable::with">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">with</span>(<span class="k">mut</span> <span class="k">self</span>, item: <span class="t">T</span>, weight: f32) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Add an item and return the table (builder form).</p>
+<p><code>let t = warp_sdk::procgen::WeightedTable::new().with('a', 1.0);
+assert_eq!(t.len(), 1);</code></p></div></div><div class="item" id="sym-WeightedTable-push" data-name="weightedtable::push"><div class="sig"><a class="anchor" href="#sym-WeightedTable-push" aria-label="Link to WeightedTable::push">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">push</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, item: <span class="t">T</span>, weight: f32)</code></div><div class="doc"><p>Add an item.</p>
+<p><code>let mut t = warp_sdk::procgen::WeightedTable::new();
+t.push('a', 2.0);
+assert_eq!(t.total(), 2.0);</code></p></div></div><div class="item" id="sym-WeightedTable-total" data-name="weightedtable::total"><div class="sig"><a class="anchor" href="#sym-WeightedTable-total" aria-label="Link to WeightedTable::total">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">total</span>(&amp;<span class="k">self</span>) -&gt; f32</code></div><div class="doc"><p>The sum of all weights.</p>
+<p><code>assert_eq!(warp_sdk::procgen::WeightedTable::new().with(1, 0.5).total(), 0.5);</code></p></div></div><div class="item" id="sym-WeightedTable-len" data-name="weightedtable::len"><div class="sig"><a class="anchor" href="#sym-WeightedTable-len" aria-label="Link to WeightedTable::len">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">len</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>The number of items.</p>
+<p><code>assert_eq!(warp_sdk::procgen::WeightedTable::&lt;u8&gt;::new().len(), 0);</code></p></div></div><div class="item" id="sym-WeightedTable-is_empty" data-name="weightedtable::is_empty"><div class="sig"><a class="anchor" href="#sym-WeightedTable-is_empty" aria-label="Link to WeightedTable::is_empty">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_empty</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True if the table has no items.</p>
+<p><code>assert!(warp_sdk::procgen::WeightedTable::&lt;u8&gt;::new().is_empty());</code></p></div></div><div class="item" id="sym-WeightedTable-pick_index" data-name="weightedtable::pick_index"><div class="sig"><a class="anchor" href="#sym-WeightedTable-pick_index" aria-label="Link to WeightedTable::pick_index">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pick_index</span>(&amp;<span class="k">self</span>, rng: &amp;<span class="k">mut</span> <span class="t">Rng</span>) -&gt; <span class="t">Option</span>&lt;usize&gt;</code></div><div class="doc"><p>The index of one item, or <code>None</code> if the total weight is 0.</p>
+<p><code>use warp_sdk::procgen::{Rng, WeightedTable};
+let t = WeightedTable::new().with('a', 0.0).with('b', 1.0);
+assert_eq!(t.pick_index(&amp;mut Rng::new(0)), Some(1));</code></p></div></div><div class="item" id="sym-WeightedTable-pick" data-name="weightedtable::pick"><div class="sig"><a class="anchor" href="#sym-WeightedTable-pick" aria-label="Link to WeightedTable::pick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pick</span>(&amp;<span class="k">self</span>, rng: &amp;<span class="k">mut</span> <span class="t">Rng</span>) -&gt; <span class="t">Option</span>&lt;&amp;<span class="t">T</span>&gt;</code></div><div class="doc"><p>One item, or <code>None</code> if the total weight is 0.</p>
+<p><code>use warp_sdk::procgen::{Rng, WeightedTable};
+assert_eq!(WeightedTable::new().with("x", 1.0).pick(&amp;mut Rng::new(0)), Some(&amp;"x"));</code></p></div></div><div class="item" id="sym-WeightedTable-weight" data-name="weightedtable::weight"><div class="sig"><a class="anchor" href="#sym-WeightedTable-weight" aria-label="Link to WeightedTable::weight">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">weight</span>(&amp;<span class="k">self</span>, i: usize) -&gt; f32</code></div><div class="doc"><p>The weight of item <code>i</code>.</p>
+<p><code>assert_eq!(warp_sdk::procgen::WeightedTable::new().with(1, 2.0).weight(0), 2.0);</code></p></div></div><div class="item" id="sym-WeightedTable-items" data-name="weightedtable::items"><div class="sig"><a class="anchor" href="#sym-WeightedTable-items" aria-label="Link to WeightedTable::items">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">items</span>(&amp;<span class="k">self</span>) -&gt; &amp;[<span class="t">T</span>]</code></div><div class="doc"><p>All items in insertion order.</p>
+<p><code>assert_eq!(warp_sdk::procgen::WeightedTable::new().with(9, 1.0).items(), &amp;[9]);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Falloff" data-name="falloff"><div class="sig"><a class="anchor" href="#sym-Falloff" aria-label="Link to Falloff">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Falloff</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Even density over the whole disc.</span>
+<span class="t">Flat</span>,
+<span class="c">/// Density falls in a straight line to 0 at the edge.</span>
+<span class="t">Linear</span>,
+<span class="c">/// Density falls on a smoothstep curve to 0 at the edge.</span>
+<span class="t">Smooth</span>,
+<span class="c">/// A bell curve: most members near the center, a few far out.</span>
+<span class="t">Gaussian</span>,</code></pre></div><div class="doc"><p>How a cluster thins out from its center (<code>t = 0</code>) to its edge (<code>t = 1</code>).</p>
+<p><code>use warp_sdk::procgen::Falloff;
+assert_eq!(Falloff::Linear.weight(0.0), 1.0);
+assert_eq!(Falloff::Linear.weight(1.0), 0.0);</code></p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Falloff-weight" data-name="falloff::weight"><div class="sig"><a class="anchor" href="#sym-Falloff-weight" aria-label="Link to Falloff::weight">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">weight</span>(<span class="k">self</span>, t: f32) -&gt; f32</code></div><div class="doc"><p>The relative density at distance fraction <code>t</code> in <code>[0, 1]</code>. Use it
+also to scale props: big at the center, small at the edge.</p>
+<p><code>assert!(warp_sdk::procgen::Falloff::Gaussian.weight(0.5) &lt; 1.0);</code></p></div></div></details></div><div class="typeblock"><div class="item" id="sym-ClusterMember" data-name="clustermember"><div class="sig"><a class="anchor" href="#sym-ClusterMember" aria-label="Link to ClusterMember">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">ClusterMember</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> pos: [f32; <span class="n">2</span>],
+<span class="c">/// The index of the cluster center this member belongs to.</span>
+<span class="k">pub</span> cluster: usize,
+<span class="c">/// Distance from the center as a fraction of the cluster radius.</span>
+<span class="k">pub</span> t: f32,</code></pre></div><div class="doc"><p>One member of a cluster.</p>
+<p><code>use warp_sdk::procgen::{scatter_cluster, Falloff, Rng};
+let m = scatter_cluster(&amp;mut Rng::new(0), [0.0, 0.0], 5.0, 10, Falloff::Smooth);
+assert!(m.iter().all(|m| m.t &lt;= 1.0 &amp;&amp; m.cluster == 0));</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Rooting" data-name="rooting"><div class="sig"><a class="anchor" href="#sym-Rooting" aria-label="Link to Rooting">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Rooting</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Distance the base goes into the ground, along the surface normal.</span>
+<span class="c">/// A small positive value hides the seam between prop and terrain.</span>
+<span class="k">pub</span> sink: f32,
+<span class="c">/// 0 keeps the prop upright; 1 tilts it fully to the surface normal.</span>
+<span class="k">pub</span> align: f32,
+<span class="c">/// Slopes steeper than this (degrees from flat) get no prop.</span>
+<span class="k">pub</span> max_slope_deg: f32,
+<span class="c">/// The "up" direction of the world. `[0, -1]` for a screen with y down.</span>
+<span class="k">pub</span> world_up: [f32; <span class="n">2</span>],</code></pre></div><div class="doc"><p>How a prop roots into a surface.</p>
+<p><code>use warp_sdk::procgen::Rooting;
+let r = Rooting { sink: 0.3, ..Rooting::default() };
+assert_eq!(r.world_up, [0.0, 1.0]);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Placement" data-name="placement"><div class="sig"><a class="anchor" href="#sym-Placement" aria-label="Link to Placement">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Placement</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The base of the prop, already sunk into the surface.</span>
+<span class="k">pub</span> pos: [f32; <span class="n">2</span>],
+<span class="c">/// The unit surface normal, turned to point to `world_up`.</span>
+<span class="k">pub</span> normal: [f32; <span class="n">2</span>],
+<span class="c">/// The unit direction the prop grows toward.</span>
+<span class="k">pub</span> up: [f32; <span class="n">2</span>],
+<span class="c">/// Rotation in radians from `world_up` to `up`. Positive is</span>
+<span class="c">/// counterclockwise when `world_up` is `[0, 1]`.</span>
+<span class="k">pub</span> angle: f32,
+<span class="c">/// Slope of the surface in degrees from flat.</span>
+<span class="k">pub</span> slope_deg: f32,</code></pre></div><div class="doc"><p>A prop rooted on a 2D surface.</p>
+<p><code>use warp_sdk::procgen::{place_on_surface, Rooting};
+let p = place_on_surface([1.0], |_| (0.0, [0.0, 1.0]), &amp;Rooting::default());
+assert_eq!(p[0].angle, 0.0);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-Placement3" data-name="placement3"><div class="sig"><a class="anchor" href="#sym-Placement3" aria-label="Link to Placement3">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Placement3</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> pos: [f32; <span class="n">3</span>],
+<span class="k">pub</span> normal: [f32; <span class="n">3</span>],
+<span class="k">pub</span> up: [f32; <span class="n">3</span>],
+<span class="k">pub</span> slope_deg: f32,</code></pre></div><div class="doc"><p>A prop rooted on 3D ground. World up is <code>+y</code>.</p>
+<p><code>use warp_sdk::procgen::{place_on_ground, Rooting};
+let p = place_on_ground([[0.0, 0.0]], |_, _| (1.0, [0.0, 1.0, 0.0]), &amp;Rooting::default());
+assert_eq!(p[0].up, [0.0, 1.0, 0.0]);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-FairStart" data-name="fairstart"><div class="sig"><a class="anchor" href="#sym-FairStart" aria-label="Link to FairStart">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">FairStart</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The best site of a seed must score at or above this value.</span>
+<span class="k">pub</span> min_score: f32,
+<span class="c">/// How many seeds to try (the first seed, then `+1`, `+2`, and so on).</span>
+<span class="k">pub</span> max_seeds: u32,</code></pre></div><div class="doc"><p>The rule for a fair start.</p>
+<p><code>use warp_sdk::procgen::FairStart;
+let rule = FairStart { min_score: 0.6, ..FairStart::default() };
+assert_eq!(rule.max_seeds, 64);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-StartPick" data-name="startpick"><div class="sig"><a class="anchor" href="#sym-StartPick" aria-label="Link to StartPick">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">StartPick</span>&lt;<span class="t">S</span>&gt;</code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> seed: u64,
+<span class="k">pub</span> site: <span class="t">S</span>,
+<span class="k">pub</span> score: f32,
+<span class="c">/// Seeds tried, this one included.</span>
+<span class="k">pub</span> seeds_tried: u32,
+<span class="c">/// Each rejected seed and the score of its best site.</span>
+<span class="k">pub</span> rejected: <span class="t">Vec</span>&lt;(u64, f32)&gt;,</code></pre></div><div class="doc"><p>A seed that passed, its best start site and that site's score.</p>
+<p><code>use warp_sdk::procgen::{fair_start, FairStart};
+let pick = fair_start(0, &amp;FairStart::default(), |_| vec![1.0_f32], |_, s| *s).unwrap();
+assert_eq!(pick.seeds_tried, 1);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-NoFairStart" data-name="nofairstart"><div class="sig"><a class="anchor" href="#sym-NoFairStart" aria-label="Link to NoFairStart">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">NoFairStart</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> seeds_tried: u32,
+<span class="c">/// The best seed seen and its score, if any seed had a site.</span>
+<span class="k">pub</span> best: <span class="t">Option</span>&lt;(u64, f32)&gt;,</code></pre></div><div class="doc"><p>No seed in the range had a fair start.</p>
+<p><code>use warp_sdk::procgen::{fair_start, FairStart};
+let rule = FairStart { min_score: 2.0, max_seeds: 3 };
+let err = fair_start(0, &amp;rule, |_| vec![1.0_f32], |_, s| *s).unwrap_err();
+assert_eq!(err.seeds_tried, 3);</code></p></div></div></div><div class="typeblock"><div class="item" id="sym-ScoreReport" data-name="scorereport"><div class="sig"><a class="anchor" href="#sym-ScoreReport" aria-label="Link to ScoreReport">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">ScoreReport</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Every `(seed, score)` in the order the seeds came.</span>
+<span class="k">pub</span> scores: <span class="t">Vec</span>&lt;(u64, f32)&gt;,
+<span class="k">pub</span> count: usize,
+<span class="k">pub</span> min: f32,
+<span class="k">pub</span> max: f32,
+<span class="k">pub</span> mean: f32,
+<span class="k">pub</span> median: f32,
+<span class="c">/// The 10th percentile: 1 seed in 10 scores at or below it.</span>
+<span class="k">pub</span> p10: f32,
+<span class="k">pub</span> p90: f32,
+<span class="k">pub</span> worst_seed: u64,
+<span class="k">pub</span> best_seed: u64,</code></pre></div><div class="doc"><p>The score distribution over many seeds. NaN scores count as
+negative infinity. With no seeds, every number is 0.</p>
+<p><code>use warp_sdk::procgen::score_seeds;
+let r = score_seeds(0..100, |seed| (seed % 10) as f32 / 10.0);
+assert_eq!(r.count, 100);
+assert!(r.pass_rate(0.5) &gt; 0.4);
+println!("{r}");</code></p></div></div><details class="members"><summary>3 methods</summary><div class="item" id="sym-ScoreReport-pass_rate" data-name="scorereport::pass_rate"><div class="sig"><a class="anchor" href="#sym-ScoreReport-pass_rate" aria-label="Link to ScoreReport::pass_rate">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pass_rate</span>(&amp;<span class="k">self</span>, threshold: f32) -&gt; f32</code></div><div class="doc"><p>The fraction of seeds that score at or above <code>threshold</code>.</p>
+<p><code>let r = warp_sdk::procgen::score_seeds([1, 2], |s| s as f32);
+assert_eq!(r.pass_rate(2.0), 0.5);</code></p></div></div><div class="item" id="sym-ScoreReport-failing" data-name="scorereport::failing"><div class="sig"><a class="anchor" href="#sym-ScoreReport-failing" aria-label="Link to ScoreReport::failing">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">failing</span>(&amp;<span class="k">self</span>, threshold: f32) -&gt; <span class="t">Vec</span>&lt;u64&gt;</code></div><div class="doc"><p>The seeds that score below <code>threshold</code>.</p>
+<p><code>let r = warp_sdk::procgen::score_seeds([1, 2, 3], |s| s as f32);
+assert_eq!(r.failing(2.5), vec![1, 2]);</code></p></div></div><div class="item" id="sym-ScoreReport-histogram" data-name="scorereport::histogram"><div class="sig"><a class="anchor" href="#sym-ScoreReport-histogram" aria-label="Link to ScoreReport::histogram">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">histogram</span>(&amp;<span class="k">self</span>, bins: usize) -&gt; <span class="t">Vec</span>&lt;u32&gt;</code></div><div class="doc"><p>Counts in <code>bins</code> equal bins from <code>min</code> to <code>max</code>.</p>
+<p><code>let r = warp_sdk::procgen::score_seeds(0..10, |s| s as f32);
+assert_eq!(r.histogram(5).iter().sum::&lt;u32&gt;(), 10);</code></p></div></div></details></div><h2 id="see-also">See also</h2><ul><li><a href="world.html" data-slug="world">World kit</a></li><li><a href="world-terrain.html" data-slug="world-terrain">Terrain</a></li><li><a href="world-collide.html" data-slug="world-collide">Surface collision</a></li><li><a href="world-biome.html" data-slug="world-biome">Biomes</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/procgen.rs</code> - <code>named stream, so a new feature does not move the old ones</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/procgen.rs</code> - <code>One shared RNG makes every feature depend on all the features before it.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/procgen.rs</code> - <code>see how often seeds fail before a player sees one.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/procgen.rs</code> - <code>A deterministic random number generator (xoshiro256**).</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/procgen.rs</code> - <code>that depends only on the seed and the name, never on</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/src/procgen.rs</code> - <code>An axis-aligned rectangle: `min` is inclusive, `max` is exclusive.</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/src/procgen.rs</code> - <code>than the larger of their two radii.</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/src/procgen.rs</code> - <code>Rounds stop when a whole round of darts finds no space.</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_sdk/src/procgen.rs</code> - <code>Weights of 0 or less never come back.</code></li><li id="ref-10"><a class="back" href="#cite-10" aria-label="Back to the text">^</a> <code>warp_sdk/src/procgen.rs</code> - <code>A weight near 0 everywhere can refuse every try; use a center point.</code></li><li id="ref-11"><a class="back" href="#cite-11" aria-label="Back to the text">^</a> <code>warp_sdk/src/procgen.rs</code> - <code>root props into terrain through a closure</code></li><li id="ref-12"><a class="back" href="#cite-12" aria-label="Back to the text">^</a> <code>warp_sdk/src/procgen.rs</code> - <code>A small positive value hides the seam between prop and terrain.</code></li><li id="ref-13"><a class="back" href="#cite-13" aria-label="Back to the text">^</a> <code>warp_sdk/src/procgen.rs</code> - <code>NaN scores never win.</code></li><li id="ref-14"><a class="back" href="#cite-14" aria-label="Back to the text">^</a> <code>warp_sdk/src/procgen.rs</code> - <code>from `Rng::new(seed)`, so the pick is the same on every run.</code></li></ol><table class="navbox"><tr><th><a href="category-world-and-simulation.html">World and simulation</a></th></tr><tr><td><a href="world.html" data-slug="world">World kit</a> · <a href="world-terrain.html" data-slug="world-terrain">Terrain</a> · <a href="world-collide.html" data-slug="world-collide">Surface collision</a> · <a href="world-biome.html" data-slug="world-biome">Biomes</a> · <a href="world-reveal.html" data-slug="world-reveal">Reveal grid</a> · <a href="fluid.html" data-slug="fluid">Fluid kit</a> · <a href="fluid-solver.html" data-slug="fluid-solver">Fluid solver</a> · <a href="fluid-particles.html" data-slug="fluid-particles">Fluid particles</a> · <a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a> · <b>Procedural generation</b></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-world-and-simulation.html">World and simulation</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

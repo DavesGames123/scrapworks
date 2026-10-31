@@ -1,0 +1,1101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Host link - Warp Wiki</title>
+<meta name="description" content="the channel between the editor and the game it launched">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="hostlink">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#design">Design</a><ul><li><a href="#a-game-with-no-editor-is-the-normal-case">A game with no editor is the normal case</a></li><li><a href="#there-is-no-per-frame-message">There is no per-frame message</a></li><li><a href="#every-panel-that-read-a-global-is-a-message">Every panel that read a global is a message</a></li><li><a href="#messages-and-the-pipe-are-separate">Messages and the pipe are separate</a></li></ul></li><li><a href="#game-side">Game side</a><ul><li><a href="#the-pumps">The pumps</a></li></ul></li><li><a href="#editor-side">Editor side</a></li><li><a href="#messages">Messages</a></li><li><a href="#the-surface">The surface</a></li><li><a href="#input">Input</a></li><li><a href="#audio">Audio</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Host link</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">the channel between the editor and the game it launched</p><table class="infobox"><caption>Host link</caption><tr><th>Category</th><td><a href="category-editor-channels.html">Editor channels</a></td></tr><tr><th>Modules</th><td><code>warp_sdk::hostlink</code><br><code>warp_sdk::hostlink::audio</code><br><code>warp_sdk::hostlink::child</code><br><code>warp_sdk::hostlink::import</code><br><code>warp_sdk::hostlink::input</code><br><code>warp_sdk::hostlink::present</code><br><code>warp_sdk::hostlink::surface</code></td></tr><tr><th>Source</th><td><code>warp_core/src/hostlink/mod.rs</code><br><code>warp_core/src/hostlink/audio.rs</code><br><code>warp_core/src/hostlink/child/mod.rs</code><br><code>warp_core/src/hostlink/import.rs</code><br><code>warp_core/src/hostlink/input/mod.rs</code><br><code>warp_core/src/hostlink/present.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">100</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example observatory</code><br><code>cargo run -p warp_sdk --example front</code><br><code>cargo run -p warp_sdk --example cine</code></td></tr></table><p><strong>The host link</strong> is the channel between the Warp editor and a game that it launched as a separate process. The <a class="sym" href="hostlink.html"><code>hostlink</code></a> module of <code>warp_core</code>, re-exported by <code>warp_sdk</code>, carries a transport that the editor drives, a surface that the game publishes, and each panel channel. It exists because the editor used to link the game, so a project that did not compile took the tool for fixing it down with it.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup> Every call on the game side costs almost nothing when no editor is listening. The module is native only.</p>
+<h2 id="design">Design</h2>
+<h3 id="a-game-with-no-editor-is-the-normal-case">A game with no editor is the normal case</h3>
+<p><a class="sym" href="#sym-attach"><code>child::attach</code></a> returns false when the launch flag is absent, and every function in <a class="sym" href="hostlink.html"><code>hostlink::child</code></a> is then a cheap no-op. That is the shipped game. One atomic gates the hot paths, so a game does not lock a mutex to learn "no".<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<p>The editor passes <a class="sym" href="#sym-SOCKET_FLAG"><code>SOCKET_FLAG</code></a>, which is <code>--warp-hostlink</code>, on the command line of the game. The constant lives here, because a writer and a reader of a command line that share no constant drift apart silently.</p>
+<h3 id="there-is-no-per-frame-message">There is no per-frame message</h3>
+<p>A frame does not travel on the channel. The game renders into a surface that the editor already holds, so pixels arrive by being written. The channel carries only what changes state: the transport, the size, the focus, and the name of a surface when a resize forces a new one. It is idle while a game runs.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup> Sound crosses the same way, through the name of a shared page.</p>
+<h3 id="every-panel-that-read-a-global-is-a-message">Every panel that read a global is a message</h3>
+<p>The transport, the display settings, the profiler and the census were once statics in one address space. Out of process, each broke in the same quiet way: Debug booted the ordinary configuration, a bloom slider moved nothing, and a hierarchy drew its empty state over a full world. None gave an error. The symptom is always that the editor's own copy changed, so a panel looks as if it works.</p>
+<h3 id="messages-and-the-pipe-are-separate">Messages and the pipe are separate</h3>
+<p>The wire format is newline-delimited JSON with a reader thread and an inbox drained once a frame. Messages are serde over engine types and name no socket or handle. The two payloads too big for JSON carry a string name. So one protocol sits on two transports: a unix domain socket on macOS and Linux, and loopback TCP on Windows.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<p>The source rejects a named pipe on Windows because a synchronous handle lets a parked read hold off a write from the frame, and fixing that means several hundred lines of unsafe whose failure mode is a hung frame. A loopback port is reachable by each process on the machine, so the address carries a random token after the port, and the host refuses a caller that does not present it. The read of that line is bounded.</p>
+<h2 id="game-side">Game side</h2>
+<p>A game calls one function directly. <a class="sym" href="#sym-report_screen"><code>child::report_screen</code></a> names the screen for the Storyboard, once per frame, and sends only on a change.</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust">hostlink::child::<span class="f">report_screen</span>(<span class="s">"deep field"</span>);</code></pre></div>
+<p>The rest runs from the engine: <a class="sym" href="#sym-attach"><code>child::attach</code></a> once in <a class="sym" href="renderer.html#sym-run"><code>run</code></a>, before any window or GPU work, then <a class="sym" href="#sym-poll"><code>child::poll</code></a> and the pumps once per frame.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Function</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-hosted"><code>child::hosted</code></a></td>
+<td>Whether this process has an editor</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-poll"><code>child::poll</code></a></td>
+<td>Drain the channel into the engine statics</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-requested_size"><code>child::requested_size</code></a></td>
+<td>What the editor last asked the image to be</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-take_resize"><code>child::take_resize</code></a></td>
+<td>The resize edge, once per change</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-focused"><code>child::focused</code></a></td>
+<td>Whether keys are aimed at the Game panel</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-visible"><code>child::visible</code></a></td>
+<td>Whether the Game panel is on screen</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-should_exit"><code>child::should_exit</code></a></td>
+<td>Editor gone, or shutdown received</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-memory_pressure"><code>child::memory_pressure</code></a></td>
+<td>The level that the editor last sent</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-report_crash"><code>child::report_crash</code></a></td>
+<td>A last message from the panic hook</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-detach"><code>child::detach</code></a></td>
+<td>Drop the connection and restore the statics</td>
+</tr>
+</tbody>
+</table>
+<p>The transport lands in the same static that an in-process editor wrote, so <a class="sym" href="#sym-poll"><code>child::poll</code></a> writes the game's own copy, and no reader downstream changes.</p>
+<p><a class="sym" href="#sym-visible"><code>child::visible</code></a> is true by default. It arms the frame loop, so each way that the message can fail to arrive lands on the old behaviour. A game that renders when nobody looks wastes power, but a game that does not render when somebody looks is a black panel.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<h3 id="the-pumps">The pumps</h3>
+<p>Each pump re-arms the want of a publisher from what the editor last said, leaves if nobody looks, and sends only when the watched value has a new generation or revision.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Pump</th>
+<th>Carries</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-pump_census"><code>child::pump_census</code></a></td>
+<td><a href="census.html" data-slug="census">Census</a> snapshots</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-pump_console"><code>child::pump_console</code></a></td>
+<td><a href="devconsole.html" data-slug="devconsole">Dev console</a> snapshots</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-pump_controls"><code>child::pump_controls</code></a></td>
+<td><a href="bindings.html" data-slug="bindings">Bindings</a> snapshots</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-pump_profile"><code>child::pump_profile</code></a></td>
+<td><a href="profile.html" data-slug="profile">Profiler</a> reports</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-pump_perf"><code>child::pump_perf</code></a></td>
+<td>Frame costs, in batches</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-pump_screen"><code>child::pump_screen</code></a></td>
+<td>The Storyboard screen name</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-pump_mem"><code>child::pump_mem</code></a></td>
+<td>Memory use</td>
+</tr>
+</tbody>
+</table>
+<h2 id="editor-side">Editor side</h2>
+<p><a class="sym" href="#sym-Host-start"><code>Host::start</code></a> listens, and returns nothing when no socket can be made. <a class="sym" href="#sym-Host-socket"><code>Host::socket</code></a> gives the address for the argv of the game. <a class="sym" href="#sym-Host-drain"><code>Host::drain</code></a> returns messages once a frame, and <a class="sym" href="#sym-Host-send"><code>Host::send</code></a> tells the game something. <a class="sym" href="#sym-Host-is_connected"><code>Host::is_connected</code></a> says whether a game attached.</p>
+<p><a class="sym" href="#sym-Guest"><code>Guest</code></a> is the game's end: <a class="sym" href="#sym-Guest-connect"><code>Guest::connect</code></a>, <a class="sym" href="#sym-Guest-drain"><code>Guest::drain</code></a> and <a class="sym" href="#sym-Guest-send"><code>Guest::send</code></a>, with <a class="sym" href="#sym-Guest-apply_transport"><code>Guest::apply_transport</code></a> to write a received transport to the engine statics.</p>
+<p><a class="sym" href="#sym-reap"><code>reap</code></a> ends the game, the shell that started it, and what that shell left running. On unix this is a process group, and on Windows it is a job object that <a class="sym" href="#sym-contain"><code>contain</code></a> sets up at spawn. A plain kill signals one process, and a script that pipes its output leaves the game running one level down.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<h2 id="messages">Messages</h2>
+<p><a class="sym" href="#sym-ToGame"><code>ToGame</code></a> goes down, with Transport, Step, Resize, Input, Focus, Visible, Scale, Display, Census, CensusInput, Console, Command, Rebind, Profile, Perf, MemoryPressure, Shutdown and others. <a class="sym" href="#sym-ToEditor"><code>ToEditor</code></a> goes up, with Ready, Surface, NoSurface, Audio, Display, Profile, Perf, Census, Console, ConsoleWords, Controls, Screen, Crash and Mem.</p>
+<p><a class="sym" href="#sym-CrashReport"><code>CrashReport</code></a> records a failure with a <a class="sym" href="#sym-CrashKind"><code>CrashKind</code></a>: a panic, a fatal signal, or a stop by the editor to protect memory. The report also goes to a file named for the process, which <a class="sym" href="#sym-crash_file_path"><code>crash_file_path</code></a> and <a class="sym" href="#sym-read_crash_report"><code>read_crash_report</code></a> handle. <a class="sym" href="#sym-MemoryPressureLevel"><code>MemoryPressureLevel</code></a> has Warn and Critical. It is a courtesy, because the guarantee that a game cannot take the editor down rests on the editor being able to stop it.</p>
+<p>Each message has a stated reason. Transport carries the play state and the debug flag, because the editor once set that flag in a static that the linked game read, and out of process Debug booted the ordinary configuration. Screen is sent on change, a handful of lines per session.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup> Crash carries the panic message, the line and a backtrace from the panic hook, because an exit status tells a person that something broke and nothing about what. A fatal signal cannot send it. Display goes up once as a first look, and the editor owns the settings after that. Going down it is sent on change, so a drag on a slider costs one line per frame while the pointer is down and nothing afterwards.</p>
+<h2 id="the-surface">The surface</h2>
+<p>The game allocates and publishes, and the editor looks up and imports. The surface must exist before anything renders into it, and the renderer is on the game side. A resize does not free the old surface at once, because the editor is still drawing from it, and freeing it would give a black flash on each splitter drag.<sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<p><a class="sym" href="#sym-Shared"><code>Shared</code></a> wraps the buffer. On macOS it is an IOSurface, and the handle is a service name and not an integer. The source records that it measured this: the lookup call returns null in a child process, so a mach port crosses through the inherited bootstrap namespace, and the name travels on the JSON channel.<sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup> The deprecated <code>bootstrap_register</code> call has one call site, so that a migration would touch only those two functions.</p>
+<p>The game side has three calls for this.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Function</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-ensure_surface"><code>child::ensure_surface</code></a></td>
+<td>Allocate and publish when the size changed; idempotent at a given size</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-surface_generation"><code>child::surface_generation</code></a></td>
+<td>Which allocation is current</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-with_surface"><code>child::with_surface</code></a></td>
+<td>Borrow the surface through a closure, behind the session mutex</td>
+</tr>
+</tbody>
+</table>
+<p>The generation is a counter and not the surface address, because a pointer freed and reallocated can land on the same address and read as unchanged. <a class="sym" href="#sym-take_resize"><code>child::take_resize</code></a> is an edge detector over the requested size. The size alone is a level, and a frame loop that resized on it would call the window sixty times a second for ever.<sup class="ref"><a href="#ref-10" id="cite-10">[10]</a></sup></p>
+<p><a class="sym" href="#sym-Shared-publish"><code>Shared::publish</code></a> gives the name, <a class="sym" href="#sym-Shared-lookup"><code>Shared::lookup</code></a> finds a surface by name, and <a class="sym" href="#sym-Shared-create"><code>Shared::create</code></a> allocates. <a class="sym" href="#sym-Shared-adopt"><code>Shared::adopt</code></a> is a third constructor for a surface that another producer allocated, and it retains the surface, because dropping a <a class="sym" href="#sym-Shared"><code>Shared</code></a> releases it and the caller still owns its copy.</p>
+<p><a class="sym" href="hostlink.html"><code>hostlink::import</code></a> turns a surface into a wgpu texture, in <a class="sym" href="#sym-texture_from_shared"><code>texture_from_shared</code></a>. <a class="sym" href="#sym-IMPORT_FORMAT"><code>IMPORT_FORMAT</code></a> is its format. Both ends use the same call, so they cannot disagree about the format. The unsafe wgpu-hal use is confined to this file.</p>
+<p><a class="sym" href="hostlink.html"><code>hostlink::present</code></a> draws the composed frame into the surface with <a class="sym" href="#sym-publish_frame"><code>publish_frame</code></a>, in one render pass, with no second scene pass or readback. The pass has no aspect correction. It is a copy only because the size now reaches the window, and the source warns that the correctness of this pass depends on a resize two files away.<sup class="ref"><a href="#ref-11" id="cite-11">[11]</a></sup></p>
+<p>On the editor side, the texture goes in <a class="sym" href="gpu.html#sym-GameView"><code>GameView</code></a> through <a class="sym" href="gpu.html#sym-GameView-adopt"><code>GameView::adopt</code></a>, as <a href="gpu.html#the-game-view" data-slug="gpu">gpu</a> describes.</p>
+<h2 id="input">Input</h2>
+<p>The window of a hosted game is hidden and receives nothing. Each event lands in the editor window, so <a class="sym" href="hostlink.html"><code>hostlink::input</code></a> carries it. <a class="sym" href="#sym-InputEvent"><code>InputEvent</code></a> is the wire type. The editor tap is <a class="sym" href="#sym-capture"><code>input::capture</code></a> and <a class="sym" href="#sym-drain"><code>input::drain</code></a>, and the child side is <a class="sym" href="#sym-accept"><code>input::accept</code></a> and <a class="sym" href="#sym-replay"><code>input::replay</code></a>.</p>
+<p>The child replays winit events and not egui events, because the game consumes input twice: its egui context draws menus, and the winit input helper drives everything else. Forwarding egui events would give a game whose menus click and whose camera cannot move. The replay also writes the raw key ring.<sup class="ref"><a href="#ref-12" id="cite-12">[12]</a></sup></p>
+<p>A click passes through three coordinate spaces. It starts in physical pixels of the editor window, becomes pixels of the game image, and ends in pixels of the child window. The game image is the space on the wire, because it is the one thing that both ends agree on.<sup class="ref"><a href="#ref-13" id="cite-13">[13]</a></sup></p>
+<p>The rules are the ones for a linked game: pointer events inside the published rect, and keys while the panel holds the keyboard and this is the window that it draws in. A drag is exempt from the rect, so an orbit that leaves the panel does not stop. When the key gate shuts under a held key, each forwarded press is paid out as a release, so the game holds no key that nobody presses.<sup class="ref"><a href="#ref-14" id="cite-14">[14]</a></sup></p>
+<h2 id="audio">Audio</h2>
+<p><a class="sym" href="#sym-SharedRings"><code>SharedRings</code></a> is the same arrangement for the <a href="audio.html" data-slug="audio">Audio</a> rings: the game allocates, and the name travels on the channel. It uses <code>shm_open</code> and <code>mmap</code> on POSIX and a file mapping on Windows. A game killed with SIGKILL leaves a quarter megabyte named in the namespace until reboot. <a class="sym" href="#sym-Shared-create"><code>create</code></a> unlinks its own name first, so a second run at the same name reclaims the space.<sup class="ref"><a href="#ref-15" id="cite-15">[15]</a></sup></p>
+<h2 id="history">History</h2>
+<p>The channel and the surface import landed on 2026-08-02.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 100 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-hostlink" class="modhead"><code>warp_sdk::hostlink</code></h3><h4>Functions</h4><div class="item" id="sym-crash_file_path" data-name="crash_file_path"><div class="sig"><a class="anchor" href="#sym-crash_file_path" aria-label="Link to crash_file_path">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">crash_file_path</span>(pid: u32) -&gt; <span class="t">PathBuf</span></code></div><div class="doc"><p>Where a game writes its crash report and the editor reads it.</p>
+<p>Named by pid, so the editor — which spawned the child and holds its pid —
+finds exactly the report it is looking for and not a sibling game's. It
+shares <code>link_dir</code> with the sockets, which is already the directory both
+processes agree on.</p></div></div><div class="item" id="sym-read_crash_report" data-name="read_crash_report"><div class="sig"><a class="anchor" href="#sym-read_crash_report" aria-label="Link to read_crash_report">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">read_crash_report</span>(pid: u32) -&gt; <span class="t">Option</span>&lt;<span class="t">CrashReport</span>&gt;</code></div><div class="doc"><p>Read the crash report a game wrote for <code>pid</code>, if it wrote one.</p>
+<p>Here rather than in the editor because the parse is serde, and serde_json is
+a warp_core dependency the editor does not name. The editor reads the report
+through this so it needs no crate for one call.</p></div></div><div class="item" id="sym-reap" data-name="reap"><div class="sig"><a class="anchor" href="#sym-reap" aria-label="Link to reap">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">reap</span>(child: &amp;<span class="k">mut</span> std::process::<span class="t">Child</span>)</code></div><div class="doc"><p>End a launched game: the process, the shell that started it, and whatever
+that shell left running.</p>
+<p>THE GROUP AND NOT THE PROCESS, and that is the whole reason this exists.
+A manifest target with a <code>command</code> key runs a SHELL, and the shell runs the
+game — <code>./run.sh</code> builds and then launches, and one of its modes pipes the
+game into <code>tee</code> instead of <code>exec</code>ing it. <code>Child::kill</code> signals one pid, so
+Stop killed the script and left the game rendering into a surface nobody
+read and printing its frame loop into the editor's terminal. The terminal
+panel learned this first and states it in the same words.</p>
+<p>The caller sends <code>Shutdown</code> before this. The first loop is the chance that
+message asks for, and it is the only place a game with unsaved state gets
+one; a game that ignores it costs the Stop frame <code>GRACE_TRIES</code> steps and no
+more. Then the group is asked, then the group is told.</p>
+<p><code>launch_project</code> puts the child in a group of its OWN. Without that step
+every signal here would name the editor's group and the editor would be in
+it, so this function would stop warp.</p></div></div><div class="item" id="sym-contain" data-name="contain"><div class="sig"><a class="anchor" href="#sym-contain" aria-label="Link to contain">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">contain</span>(child: &amp;std::process::<span class="t">Child</span>) -&gt; bool</code></div><div class="doc"><p>Put a child the editor has just started in a job object, so <code>reap</code> can end
+the whole tree it grows.</p>
+<h2>WHY THE SPAWN SITE MUST CALL THIS AND <code>reap</code> CANNOT DO IT ALONE</h2>
+<p>A process joins a job and every process it starts AFTERWARDS joins with it.
+Processes it started BEFORE do not. So a job made at Stop time holds the
+handle and nothing else, and a <code>command</code> target — a shell that launched the
+game and waits on it — loses exactly the grandchild the unix <code>killpg</code> was
+written to reach. Call this on the frame the child is spawned.</p>
+<p>It still races the child's own first spawn, and std offers no way to close
+that: <code>CREATE_SUSPENDED</code> needs the thread handle back from <code>CreateProcess</code>,
+which <code>std::process::Child</code> does not give out. The race is microseconds
+against a shell that has not been loaded yet, so in practice the job is set
+before the shell runs a line.</p>
+<p>False means no job was made. The caller carries on: <code>reap</code> then falls back
+to the handle alone, which is what <code>Child::kill</code> always did.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Guest" data-name="guest"><div class="sig"><a class="anchor" href="#sym-Guest" aria-label="Link to Guest">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Guest</span></code></div><div class="doc"><p>The game's side of the link.</p></div></div><details class="members"><summary>9 methods</summary><div class="item" id="sym-Guest-connect" data-name="guest::connect"><div class="sig"><a class="anchor" href="#sym-Guest-connect" aria-label="Link to Guest::connect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">connect</span>(path: &amp;<span class="t">Path</span>) -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div><div class="doc"><p>Attach to an editor. None when there is no editor to attach to, which
+is the shipped game launched by hand and is not an error.</p></div></div><div class="item" id="sym-Guest-editor_alive" data-name="guest::editor_alive"><div class="sig"><a class="anchor" href="#sym-Guest-editor_alive" aria-label="Link to Guest::editor_alive">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">editor_alive</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>False once the editor's socket has closed. A hosted game exits when its
+host does; nothing else would ever close its window.</p></div></div><div class="item" id="sym-Guest-drain" data-name="guest::drain"><div class="sig"><a class="anchor" href="#sym-Guest-drain" aria-label="Link to Guest::drain">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drain</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">ToGame</span>&gt;</code></div></div><div class="item" id="sym-Guest-send" data-name="guest::send"><div class="sig"><a class="anchor" href="#sym-Guest-send" aria-label="Link to Guest::send">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">send</span>(&amp;<span class="k">self</span>, msg: &amp;<span class="t">ToEditor</span>) -&gt; bool</code></div></div><div class="item" id="sym-Guest-socket_from_args" data-name="guest::socket_from_args"><div class="sig"><a class="anchor" href="#sym-Guest-socket_from_args" aria-label="Link to Guest::socket_from_args">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">socket_from_args</span>() -&gt; <span class="t">Option</span>&lt;<span class="t">PathBuf</span>&gt;</code></div><div class="doc"><p>Read the socket address off a command line, if this process was
+launched by an editor. The game calls this instead of parsing argv
+itself.</p>
+<p>It reads text and does not touch the filesystem, which is what lets one
+function serve a unix path and a windows <code>host:port/token</code> alike.</p></div></div><div class="item" id="sym-Guest-apply_transport" data-name="guest::apply_transport"><div class="sig"><a class="anchor" href="#sym-Guest-apply_transport" aria-label="Link to Guest::apply_transport">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">apply_transport</span>(&amp;<span class="k">self</span>, msg: &amp;<span class="t">ToGame</span>)</code></div><div class="doc"><p>Write a received transport message into the engine's own statics.</p>
+<p>This is the whole of what replaces the shared address space. In-process
+the editor wrote <code>EDITOR_PLAY_STATE</code> and the game's sim loop read it;
+out of process the editor sends and THIS writes the same static, in the
+game's own copy of the engine. Every reader downstream is unchanged,
+which is why the sim loop and the render loop did not have to learn
+that they are now in a different process.</p></div></div><div class="item" id="sym-Guest-connect" data-name="guest::connect"><div class="sig"><a class="anchor" href="#sym-Guest-connect" aria-label="Link to Guest::connect">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">connect</span>(_path: &amp;<span class="t">Path</span>) -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div></div><div class="item" id="sym-Guest-send" data-name="guest::send"><div class="sig"><a class="anchor" href="#sym-Guest-send" aria-label="Link to Guest::send">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">send</span>(&amp;<span class="k">self</span>, _msg: &amp;<span class="t">ToEditor</span>) -&gt; bool</code></div></div><div class="item" id="sym-Guest-apply_transport" data-name="guest::apply_transport"><div class="sig"><a class="anchor" href="#sym-Guest-apply_transport" aria-label="Link to Guest::apply_transport">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">apply_transport</span>(&amp;<span class="k">self</span>, _msg: &amp;<span class="t">ToGame</span>)</code></div></div></details></div><div class="typeblock"><div class="item" id="sym-Host" data-name="host"><div class="sig"><a class="anchor" href="#sym-Host" aria-label="Link to Host">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Host</span></code></div><div class="doc"><p>One game, one socket.</p>
+<p>Unlike <code>handoff::Server</code> this accepts a SINGLE connection and drops the
+listener afterwards. A second connection on a game socket is not a second
+game — it is something that should not have found the path, and accepting
+it would give it the transport.</p></div></div><details class="members"><summary>6 methods</summary><div class="item" id="sym-Host-start" data-name="host::start"><div class="sig"><a class="anchor" href="#sym-Host-start" aria-label="Link to Host::start">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">start</span>() -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div><div class="doc"><p>Start listening. None when no socket can be made, which leaves the
+editor working with no game rather than failing to open.</p></div></div><div class="item" id="sym-Host-socket" data-name="host::socket"><div class="sig"><a class="anchor" href="#sym-Host-socket" aria-label="Link to Host::socket">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">socket</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="t">Path</span></code></div><div class="doc"><p>Where the game should connect. Goes on its command line after
+<code>SOCKET_FLAG</code>.</p></div></div><div class="item" id="sym-Host-is_connected" data-name="host::is_connected"><div class="sig"><a class="anchor" href="#sym-Host-is_connected" aria-label="Link to Host::is_connected">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">is_connected</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>Whether a game has attached. False both before the first connection and
+after the process goes away, which are the same thing to every caller.</p></div></div><div class="item" id="sym-Host-drain" data-name="host::drain"><div class="sig"><a class="anchor" href="#sym-Host-drain" aria-label="Link to Host::drain">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drain</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">ToEditor</span>&gt;</code></div><div class="doc"><p>Everything that arrived since the last call.</p>
+<p>Draining is also what releases a reader thread that is waiting for
+room, so the editor must keep calling this once a frame even on the
+frames it ignores the result.</p></div></div><div class="item" id="sym-Host-queued" data-name="host::queued"><div class="sig"><a class="anchor" href="#sym-Host-queued" aria-label="Link to Host::queued">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">queued</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>Messages the game has sent that no frame has taken yet.</p>
+<p>A number sitting at <code>INBOX_QUEUE</code> is a queue nobody is draining,
+which is the shape the leak had before the bound went in.</p></div></div><div class="item" id="sym-Host-send" data-name="host::send"><div class="sig"><a class="anchor" href="#sym-Host-send" aria-label="Link to Host::send">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">send</span>(&amp;<span class="k">self</span>, msg: &amp;<span class="t">ToGame</span>) -&gt; bool</code></div><div class="doc"><p>Tell the game something. A game that has gone is not an error: Stop
+races the process exiting, and both orders are normal.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-Browse" data-name="browse"><div class="sig"><a class="anchor" href="#sym-Browse" aria-label="Link to Browse">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Browse</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="t">Back</span>,
+<span class="t">Forward</span>,
+<span class="t">Reload</span>,</code></pre></div><div class="doc"><p>A move through a page's own history, as a toolbar button means it.</p>
+<p>Its own enum rather than three arms on <code>ToGame</code>, because the three are one
+control group in every browser chrome ever drawn and a caller that had to
+remember which of three arms to send would eventually send the wrong one.</p></div></div></div><div class="typeblock"><div class="item" id="sym-MemoryPressureLevel" data-name="memorypressurelevel"><div class="sig"><a class="anchor" href="#sym-MemoryPressureLevel" aria-label="Link to MemoryPressureLevel">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">MemoryPressureLevel</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Free memory is getting low. Give back what can be given back — caches,</span>
+<span class="c">/// scratch buffers — and keep running.</span>
+<span class="t">Warn</span>,
+<span class="c">/// Free memory has crossed the reserve. The editor is about to stop this</span>
+<span class="c">/// process. This is the last word before `Shutdown` and a kill: a chance to</span>
+<span class="c">/// flush, not a negotiation.</span>
+<span class="t">Critical</span>,</code></pre></div><div class="doc"><p>How close the machine is to running out of memory, as the editor sees it.</p>
+<p>A GAME MAY USE ALL THE MEMORY THERE IS. THIS IS NOT A QUOTA.
+The editor is the parent, so it is the one process placed to watch the whole
+machine rather than its own heap alone. It does not budget the game a
+number. It watches how much memory the MACHINE has left and sends this only
+when the reserve the editor and the OS need is at risk. So these levels are
+a courtesy, not a limit: the guarantee that a game cannot take the editor
+down rests on the editor being able to stop it, not on the game obeying.</p></div></div></div><div class="typeblock"><div class="item" id="sym-CrashKind" data-name="crashkind"><div class="sig"><a class="anchor" href="#sym-CrashKind" aria-label="Link to CrashKind">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">CrashKind</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// A Rust panic unwound to the top of the game's frame. Message and</span>
+<span class="c">/// location are the panic's own; the backtrace is captured in the hook.</span>
+<span class="t">Panic</span>,
+<span class="c">/// A fatal signal — a segfault, a bus error, an abort. `signal` is the</span>
+<span class="c">/// number. Best-effort: a signal handler cannot allocate, so the backtrace</span>
+<span class="c">/// may be empty and the message is the signal's name.</span>
+<span class="t">Signal</span> { signal: i32 },
+<span class="c">/// The editor stopped the game to protect the machine's memory. Not a bug,</span>
+<span class="c">/// and the report says so plainly so the panel does not read it as one.</span>
+<span class="t">OutOfMemory</span>,
+<span class="c">/// A non-zero exit no other kind explains. The editor synthesises this from</span>
+<span class="c">/// the status when the game sent nothing.</span>
+<span class="t">Exit</span> { code: i32 },</code></pre></div><div class="doc"><p>Why a game process ended, when it ended badly.</p>
+<p>Four kinds from three producers. <code>Panic</code> and <code>Signal</code> are the game's own,
+carried by <code>ToEditor::Crash</code>. <code>OutOfMemory</code> is the editor's, set when the
+editor is the one doing the killing. <code>Exit</code> is the editor's fallback for a
+non-zero status that arrived with no report to explain it.</p></div></div></div><div class="typeblock"><div class="item" id="sym-CrashReport" data-name="crashreport"><div class="sig"><a class="anchor" href="#sym-CrashReport" aria-label="Link to CrashReport">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">CrashReport</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="k">pub</span> kind: <span class="t">CrashKind</span>,
+<span class="c">/// The panic message, the signal's name, or a one-line summary.</span>
+<span class="k">pub</span> message: <span class="t">String</span>,
+<span class="c">/// Where a panic fired, as `file:line:col`. None for a signal or an exit.</span>
+<span class="k">pub</span> location: <span class="t">Option</span>&lt;<span class="t">String</span>&gt;,
+<span class="c">/// A formatted backtrace, newest frame first. Empty when none could be</span>
+<span class="c">/// captured — a signal handler, or a build with backtraces off.</span>
+<span class="k">pub</span> backtrace: <span class="t">String</span>,
+<span class="c">/// The game's memory footprint at death, in bytes, or 0 if unknown.</span>
+<span class="k">pub</span> footprint_bytes: u64,</code></pre></div><div class="doc"><p>What a game says on its way out, or what the editor reconstructs when the
+game could not say anything.</p>
+<p>ONE TYPE, TWO PRODUCERS, so the crash surface has one renderer and not two
+that drift. The game's panic hook fills a rich one — message, location, a
+backtrace. The editor fills a coarse one from an exit status when no report
+arrived. A panel that had a private path for each would draw the common case
+and be wrong on the rare one, which is the case that matters most.</p></div></div></div><div class="typeblock"><div class="item" id="sym-ToGame" data-name="togame"><div class="sig"><a class="anchor" href="#sym-ToGame" aria-label="Link to ToGame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">ToGame</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// What the transport says the world should be doing.</span>
+<span class="c">/// </span>
+<span class="c">/// `state` is the `PlayState` discriminant rather than the enum, so this</span>
+<span class="c">/// protocol does not force a serde derive onto a type whose whole point is</span>
+<span class="c">/// to be two atomics read from a render loop.</span>
+<span class="c">/// </span>
+<span class="c">/// `debug` rides with it because it is part of the same press. The play</span>
+<span class="c">/// bar has two boot buttons and the only difference between them is that</span>
+<span class="c">/// flag, which the editor used to set in a static the linked game read</span>
+<span class="c">/// directly. Out of process that static is in the wrong address space, so</span>
+<span class="c">/// Debug booted the ordinary configuration and looked identical to Play.</span>
+<span class="t">Transport</span> { state: u8, debug: bool },
+<span class="c">/// Run exactly one pass while paused.</span>
+<span class="t">Step</span>,
+<span class="c">/// The Game panel is this many physical pixels now.</span>
+<span class="c">/// </span>
+<span class="c">/// The game answers by allocating a surface and sending `Surface` back. It</span>
+<span class="c">/// is not required to answer immediately, and the editor keeps drawing the</span>
+<span class="c">/// old surface until it does — a resize that blanked the panel for a frame</span>
+<span class="c">/// would flicker on every drag of a dock splitter.</span>
+<span class="t">Resize</span> { width: u32, height: u32 },
+<span class="c">/// What a person did, in the picture's own coordinates.</span>
+<span class="c">/// </span>
+<span class="c">/// A batch and not one message per event: a pointer moving across the</span>
+<span class="c">/// panel produces one of these per frame, and a JSON line each would be</span>
+<span class="c">/// the per-frame traffic this protocol is built to avoid.</span>
+<span class="t">Input</span> { events: <span class="t">Vec</span>&lt;input::<span class="t">InputEvent</span>&gt; },
+<span class="c">/// Whether keys are aimed at the Game panel.</span>
+<span class="c">/// </span>
+<span class="c">/// The dock already knows this and the game cannot: the game's window is</span>
+<span class="c">/// not the window the person is typing into.</span>
+<span class="t">Focus</span> { has: bool },
+<span class="c">/// Whether the Game panel is on screen at all.</span>
+<span class="c">/// </span>
+<span class="c">/// THE ONE FACT THE GAME CANNOT WORK OUT AND PAYS THE MOST FOR</span>
+<span class="c">/// ----------------------------------------------------------</span>
+<span class="c">/// A hosted game renders into a surface, so nothing on its side ever goes</span>
+<span class="c">/// dark. Its window is hidden by construction, the surface it draws into</span>
+<span class="c">/// is a page of memory, and both stay exactly as valid when the panel is</span>
+<span class="c">/// behind a sibling tab as when it is in front. So the game rendered at</span>
+<span class="c">/// sixty hertz — the scene pass, the post chain, the CRT filter and the</span>
+<span class="c">/// publish blit — into an image the editor was not sampling, for as long</span>
+<span class="c">/// as a person left the Tickets board raised.</span>
+<span class="c">/// </span>
+<span class="c">/// The editor has the fact and had nowhere to put it. `game_view_rect` is</span>
+<span class="c">/// published as a side effect of the panel drawing and expires when it</span>
+<span class="c">/// stops, which is already the exact question; `pump_hostlink` read it,</span>
+<span class="c">/// printed one line about it and sent nothing.</span>
+<span class="c">/// </span>
+<span class="c">/// A want, on the change, like `Console` and `Profile`. It differs from</span>
+<span class="c">/// those three in which way it fails: a want that never arrives leaves</span>
+<span class="c">/// those panels empty, and a want that never arrives here leaves the game</span>
+<span class="c">/// RENDERING. That is deliberate — the game defaults to visible, so an</span>
+<span class="c">/// older editor, a dropped line and a detach all fall back to the</span>
+<span class="c">/// behaviour that existed before this message.</span>
+<span class="t">Visible</span> { want: bool },
+<span class="c">/// How many physical pixels the panel puts in one layout unit.</span>
+<span class="c">/// </span>
+<span class="c">/// `Resize` carries PHYSICAL PIXELS and always has. A renderer that lays a</span>
+<span class="c">/// document out cannot use that number alone: it has to know how much of</span>
+<span class="c">/// it is display density and how much is room. Given 1600x1000 on a retina</span>
+<span class="c">/// display and no scale, a page reflows as though it had 1600 CSS pixels</span>
+<span class="c">/// of width and every 16px font on it lands at 8 points — half the size of</span>
+<span class="c">/// the label beside it in the editor's own chrome.</span>
+<span class="c">/// </span>
+<span class="c">/// This is the same arithmetic the native views do with `zoom`, sent</span>
+<span class="c">/// rather than computed, because the browser child is the one process that</span>
+<span class="c">/// cannot see the window.</span>
+<span class="c">/// </span>
+<span class="c">/// A GAME IGNORES IT, AND THAT IS NOT AN OVERSIGHT. A game renders a</span>
+<span class="c">/// scene, not a document: it wants every pixel it was given and has no</span>
+<span class="c">/// layout to reflow. The guest reads this arm and does nothing, so the</span>
+<span class="c">/// meaning stays "for a renderer that lays out text".</span>
+<span class="c">/// </span>
+<span class="c">/// On the change, like `Resize` and `Visible`. It moves when a window is</span>
+<span class="c">/// dragged to a display of a different density, which is rarely.</span>
+<span class="t">Scale</span> { factor: f32 },
+<span class="c">/// Go to this address.</span>
+<span class="c">/// </span>
+<span class="c">/// A GAME IGNORES IT, for the reason it ignores `Scale`: a game has no</span>
+<span class="c">/// address. The arm is read and dropped on that side.</span>
+<span class="c">/// </span>
+<span class="c">/// Without this the browser child could only ever show the page it was</span>
+<span class="c">/// built with, which made every panel above it a browser that cannot</span>
+<span class="c">/// browse. It is a message and not an argument to the launch because a</span>
+<span class="c">/// panel navigates over and over and starts a process once.</span>
+<span class="t">Navigate</span> { url: <span class="t">String</span> },
+<span class="c">/// Move in the history the child is keeping, or load the page again.</span>
+<span class="c">/// </span>
+<span class="c">/// Separate from `Navigate` because none of these three has an address.</span>
+<span class="c">/// The history belongs to the browser and this side does not have it — the</span>
+<span class="c">/// native route infers Back and Forward from a `TabSet` it keeps beside</span>
+<span class="c">/// the view, and a composited child has the real thing.</span>
+<span class="c">/// </span>
+<span class="c">/// A GAME IGNORES IT, as it ignores `Scale` and `Navigate`.</span>
+<span class="t">Browse</span> { action: <span class="t">Browse</span> },
+<span class="c">/// Whether a profiler is open on the editor's side.</span>
+<span class="c">/// </span>
+<span class="c">/// It carries a want and not a "start"/"stop" pair, because the state that</span>
+<span class="c">/// matters is whether anybody is LOOKING, and an editor that crashed with</span>
+<span class="c">/// a profiler open would never send the stop. The game re-arms a clock</span>
+<span class="c">/// from each of these and the instrumentation lapses on its own when they</span>
+<span class="c">/// stop arriving — the census's brake, over a socket.</span>
+<span class="t">Profile</span> { want: bool },
+<span class="c">/// Whether a Performance panel is open on the editor's side, showing the</span>
+<span class="c">/// GAME rather than the editor.</span>
+<span class="c">/// </span>
+<span class="c">/// The panel this arms had the same failure as the census and the console,</span>
+<span class="c">/// and hid it better than either. Its four figures come from statics the</span>
+<span class="c">/// render loop fills — `RENDER_DRAW_US` and the two beside it, plus the</span>
+<span class="c">/// scene pass's instance counter — and out of process every one of them is</span>
+<span class="c">/// filled by the EDITOR'S render loop. So the panel did not go blank. It</span>
+<span class="c">/// drew the editor's own chrome, at a steady sixty, under a status line</span>
+<span class="c">/// reading "game running", and the only visible symptom was a population</span>
+<span class="c">/// of zero on a world with sixty thousand instances in it.</span>
+<span class="c">/// </span>
+<span class="c">/// A want and not a start/stop, re-armed per frame on the game's side,</span>
+<span class="c">/// exactly as `Profile` is and for the same reason: an editor that died</span>
+<span class="c">/// with the panel open would never send the stop.</span>
+<span class="t">Perf</span> { want: bool },
+<span class="c">/// How the game image should look: the HDR chain, the CRT filter, the</span>
+<span class="c">/// anti-aliasing, the two depth-of-field passes and the lighting model.</span>
+<span class="c">/// </span>
+<span class="c">/// The Post-processing section edits one global, and it used to be enough</span>
+<span class="c">/// that it did. Every viewport in the process read it and the picture</span>
+<span class="c">/// changed on the next frame. Out of process the picture is composed by</span>
+<span class="c">/// the CHILD, off the child's own copy of that global — which starts at</span>
+<span class="c">/// `DisplaySettings::DEFAULT` and had no writer. So a person turning</span>
+<span class="c">/// bloom down watched the editor's own idea of bloom change and the game</span>
+<span class="c">/// keep exactly the look it booted with.</span>
+<span class="c">/// </span>
+<span class="c">/// THE SERDE DERIVE THAT `Transport` REFUSED</span>
+<span class="c">/// -----------------------------------------</span>
+<span class="c">/// `Transport` sends the `PlayState` discriminant rather than the enum,</span>
+<span class="c">/// on the grounds that this protocol should not force serde onto an</span>
+<span class="c">/// engine type. That reasoning does not reach here and the difference is</span>
+<span class="c">/// the type, not the rule: `PlayState` is two atomics read from a render</span>
+<span class="c">/// loop, and `DisplaySettings` is a POD of `bool` and `f32` that is</span>
+<span class="c">/// already copied out from under a mutex every time anything reads it.</span>
+<span class="c">/// Restating forty fields in a wire struct would buy nothing but a second</span>
+<span class="c">/// place for a new field to be forgotten.</span>
+<span class="c">/// </span>
+<span class="c">/// Sent on the CHANGE, like `Resize` and unlike a frame. A drag on a</span>
+<span class="c">/// slider therefore costs one line per frame while the pointer is down</span>
+<span class="c">/// and nothing at all afterwards, which is the same traffic `Input`</span>
+<span class="c">/// already makes and for the same reason.</span>
+<span class="t">Display</span> { settings: <span class="k">crate</span>::types::<span class="t">DisplaySettings</span> },
+<span class="c">/// What the Hierarchy is asking the world for.</span>
+<span class="c">/// </span>
+<span class="c">/// The census channel is a set of process globals, and the Hierarchy's</span>
+<span class="c">/// half of it wrote every one of them in the wrong process. `want_census`</span>
+<span class="c">/// is the load-bearing case: the publisher's first line is a check on it,</span>
+<span class="c">/// so a game whose copy nobody had ever set returned before building a</span>
+<span class="c">/// single row. The panel drew "the world publishes no census" over a world</span>
+<span class="c">/// with forty thousand things in it.</span>
+<span class="c">/// </span>
+<span class="c">/// All three fields are the panel's ASK and not its state, which is why</span>
+<span class="c">/// they travel together and are applied together. `want` re-arms the</span>
+<span class="c">/// publisher's brake the way `Profile` does. `expanded` is what stops a</span>
+<span class="c">/// census being forty thousand rows — the publisher sends full rows for</span>
+<span class="c">/// open nodes and a count for the rest, and a publisher told nothing sends</span>
+<span class="c">/// everything. `inspect` is the subject, carried because the Inspector's</span>
+<span class="c">/// row is open whatever the tree says and a publisher that did not know</span>
+<span class="c">/// which row that was would leave that panel permanently blank.</span>
+<span class="c">/// </span>
+<span class="c">/// Sent on the CHANGE, like `Display`. Opening a node is a click and a</span>
+<span class="c">/// hover is a frame, so the traffic is a person's hand and not the clock.</span>
+<span class="t">Census</span> {
+    want: bool,
+    expanded: <span class="t">Vec</span>&lt;<span class="k">crate</span>::panels::census::<span class="t">EntityId</span>&gt;,
+    inspect: <span class="k">crate</span>::panels::census::<span class="t">EntityId</span>,
+},
+<span class="c">/// What a person did to a row: clicks, edited values, the hover.</span>
+<span class="c">/// </span>
+<span class="c">/// SEPARATE FROM `Census` BECAUSE ONE IS A LEVEL AND ONE IS AN EVENT</span>
+<span class="c">/// ----------------------------------------------------------------</span>
+<span class="c">/// The ask above is idempotent — resending it changes nothing, and a</span>
+<span class="c">/// dropped one is corrected by the next. These are not. A click delivered</span>
+<span class="c">/// twice selects twice, and a click delivered never does nothing at all,</span>
+<span class="c">/// so this message is sent when there is something in it and the queues it</span>
+<span class="c">/// drains are emptied by the sending. Folding them into one message would</span>
+<span class="c">/// force the ask to be re-sent on every frame that had a click in it, or</span>
+<span class="c">/// the clicks to be held until the ask changed.</span>
+<span class="c">/// </span>
+<span class="c">/// `highlight` rides here rather than above because it is the same</span>
+<span class="c">/// pointer's doing, and 0 means "over nothing" exactly as it does in the</span>
+<span class="c">/// channel it is going into.</span>
+<span class="t">CensusInput</span> {
+    requests: <span class="t">Vec</span>&lt;<span class="k">crate</span>::panels::census::<span class="t">Request</span>&gt;,
+    edits: <span class="t">Vec</span>&lt;<span class="k">crate</span>::panels::census::<span class="t">Edit</span>&gt;,
+    highlight: <span class="k">crate</span>::panels::census::<span class="t">EntityId</span>,
+},
+<span class="c">/// Whether a Debug Console panel is open in the editor.</span>
+<span class="c">/// </span>
+<span class="c">/// The console channel is process globals, like the census one next door,</span>
+<span class="c">/// and it failed in the same place first: the game's publisher opens with</span>
+<span class="c">/// `if !console_wanted() { return }`, and nothing in the game's process</span>
+<span class="c">/// had ever armed that. So the game did not merely fail to send its</span>
+<span class="c">/// scrollback — it never built one, and the panel drew "0 lines" against a</span>
+<span class="c">/// console with a screenful of output in it.</span>
+<span class="c">/// </span>
+<span class="c">/// A want and not a start/stop, re-armed on the game's side every frame,</span>
+<span class="c">/// exactly as `Profile` is. Sent on the CHANGE: a panel is opened and</span>
+<span class="c">/// closed by a person, so this is two lines a session and not sixty a</span>
+<span class="c">/// second.</span>
+<span class="t">Console</span> { want: bool },
+<span class="c">/// Commands typed into that panel, oldest first.</span>
+<span class="c">/// </span>
+<span class="c">/// SEPARATE FROM `Console` FOR THE REASON `CensusInput` IS SEPARATE</span>
+<span class="c">/// ---------------------------------------------------------------</span>
+<span class="c">/// The want above is a level and resending it changes nothing. A command</span>
+<span class="c">/// is an event: delivered twice it runs twice, and `cd learn` before `ls`</span>
+<span class="c">/// is not the same session as after it. So this carries the drained queue</span>
+<span class="c">/// in order, and is sent only on the frames a person pressed Return.</span>
+<span class="c">/// </span>
+<span class="c">/// The engine still never learns what a console command is. This is a</span>
+<span class="c">/// String on a socket, handed to `devconsole::submit` at the far end and</span>
+<span class="c">/// run by whatever the game runs commands with.</span>
+<span class="t">Command</span> { lines: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt; },
+<span class="c">/// Rebinds made on the Control Map, for the game to perform.</span>
+<span class="c">/// </span>
+<span class="c">/// THE GAME OWNS THE TABLE, AND IT HAS TO</span>
+<span class="c">/// -------------------------------------</span>
+<span class="c">/// This is the one panel whose edits cannot be applied where they are</span>
+<span class="c">/// made. The binding table is what the game's INPUT PASS reads — `held`</span>
+<span class="c">/// and `pressed` are called from the game's own frame — so a rebind that</span>
+<span class="c">/// changed only the editor's copy would repaint the board correctly and</span>
+<span class="c">/// leave the key doing what it did before. Every other panel here carries</span>
+<span class="c">/// a want or a level; this carries an instruction.</span>
+<span class="c">/// </span>
+<span class="c">/// It is also why the store stays on the game's side. Both processes read</span>
+<span class="c">/// the same file from the same config directory, and only the game has the</span>
+<span class="c">/// catalog that says which lines in it are live.</span>
+<span class="c">/// </span>
+<span class="c">/// A queue and not one edit, for the reason `Command` carries one: a</span>
+<span class="c">/// rebind is an EVENT. Two clicks are two rebinds, and Reset All followed</span>
+<span class="c">/// by a single rebind is not the same table as the other order.</span>
+<span class="t">Rebind</span> { edits: <span class="t">Vec</span>&lt;<span class="k">crate</span>::panels::bindings::<span class="t">Edit</span>&gt; },
+<span class="c">/// The machine is low on memory, and this is the editor asking for some of</span>
+<span class="c">/// it back before anyone is stopped for it.</span>
+<span class="c">/// </span>
+<span class="c">/// NOT A CAP, AND THE GUARANTEE DOES NOT REST ON THE GAME OBEYING</span>
+<span class="c">/// -------------------------------------------------------------</span>
+<span class="c">/// The editor watches how much memory the MACHINE has left, not how much</span>
+<span class="c">/// this game holds, and sends this only when the reserve it keeps for</span>
+<span class="c">/// itself and the OS is at risk. `Warn` asks the game to shed what it can;</span>
+<span class="c">/// the game stays up. `Critical` is the last word before `Shutdown` and a</span>
+<span class="c">/// kill, sent so a game with unsaved state gets the chance the X button</span>
+<span class="c">/// gives it. A game that ignores this is doing nothing wrong — shedding</span>
+<span class="c">/// only moves the stop further away, and the editor can always stop it.</span>
+<span class="t">MemoryPressure</span> { level: <span class="t">MemoryPressureLevel</span> },
+<span class="c">/// Save and exit. Sent before the editor resorts to killing the process,</span>
+<span class="c">/// so a game with unsaved state gets the chance the X button would give it.</span>
+<span class="t">Shutdown</span>,</code></pre></div><div class="doc"><p>Editor to game.</p></div></div></div><div class="typeblock"><div class="item" id="sym-ToEditor" data-name="toeditor"><div class="sig"><a class="anchor" href="#sym-ToEditor" aria-label="Link to ToEditor">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">ToEditor</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Attached, and here is who. The pid is for the editor's own diagnostics:</span>
+<span class="c">/// a game that hangs is killed by pid, and the editor should not have to</span>
+<span class="c">/// ask the OS what it just spawned.</span>
+<span class="t">Ready</span> { pid: u32 },
+<span class="c">/// The look this game booted with.</span>
+<span class="c">/// </span>
+<span class="c">/// Both processes start their own copy of `DisplaySettings` at</span>
+<span class="c">/// `DisplaySettings::DEFAULT`, which is every effect off, and only the game</span>
+<span class="c">/// knows what its picture is supposed to be. The editor answers `Ready`</span>
+<span class="c">/// with a `ToGame::Display`, so without this the editor's untouched panel</span>
+<span class="c">/// told a game with an HDR chain and a CRT filter to turn both off, on the</span>
+<span class="c">/// frame it attached, every session — and Stella Nova came up flat under</span>
+<span class="c">/// the editor and graded from a shell.</span>
+<span class="c">/// </span>
+<span class="c">/// Sent BEFORE `Ready`, and the order is the whole contract: the editor</span>
+<span class="c">/// decides what to send while it handles `Ready`, so it has to be holding</span>
+<span class="c">/// this already. One socket carries the two in order.</span>
+<span class="c">/// </span>
+<span class="c">/// A first look and not a running one. The editor owns the settings once a</span>
+<span class="c">/// game is up, exactly as the Post-processing section says it does, and the</span>
+<span class="c">/// game never sends this again.</span>
+<span class="t">Display</span> { settings: <span class="k">crate</span>::types::<span class="t">DisplaySettings</span> },
+<span class="c">/// A surface exists and is published under this name.</span>
+<span class="c">/// </span>
+<span class="c">/// Sent on first frame and after every resize. The dimensions ride along</span>
+<span class="c">/// because the host needs them to build a texture and reading them back</span>
+<span class="c">/// off the surface would be a second source of truth for one fact.</span>
+<span class="t">Surface</span> {
+    name: <span class="t">String</span>,
+    width: u32,
+    height: u32,
+},
+<span class="c">/// The game could not make a surface. The editor keeps showing the boot</span>
+<span class="c">/// terminal, which is where a reason belongs.</span>
+<span class="t">NoSurface</span> { why: <span class="t">String</span> },
+<span class="c">/// The scope rings exist and are published under this name.</span>
+<span class="c">/// </span>
+<span class="c">/// Sent once, at attach, and never again — the rings are a fixed-size</span>
+<span class="c">/// block that no resize or device change reallocates, so unlike `Surface`</span>
+<span class="c">/// there is nothing later to correct.</span>
+<span class="c">/// </span>
+<span class="c">/// THE SAMPLES ARE NOT IN THIS MESSAGE, AND CANNOT BE</span>
+<span class="c">/// --------------------------------------------------</span>
+<span class="c">/// This carries a name for the same reason `Surface` does: what is being</span>
+<span class="c">/// shared is too big and too frequent for the channel. A frame does not</span>
+<span class="c">/// travel here and neither does a waveform — two lanes at 44.1 kHz is a</span>
+<span class="c">/// third of a megabyte a second before JSON turns each float into decimal</span>
+<span class="c">/// text. The editor maps the page instead and reads the rings the audio</span>
+<span class="c">/// callback is already filling.</span>
+<span class="t">Audio</span> { name: <span class="t">String</span> },
+<span class="c">/// A quarter second of the game's frames, named span by span.</span>
+<span class="c">/// </span>
+<span class="c">/// THIS IS NOT THE PER-FRAME MESSAGE THIS FILE REFUSES</span>
+<span class="c">/// ---------------------------------------------------</span>
+<span class="c">/// The header above says a frame does not travel on this channel and that</span>
+<span class="c">/// the channel carries only what changes state. A span tree at sixty hertz</span>
+<span class="c">/// would be exactly the traffic it rules out, so this is not one: the game</span>
+<span class="c">/// reduces a WINDOW of frames to a single Report and sends four a second.</span>
+<span class="c">/// </span>
+<span class="c">/// What that buys is the reading the Performance panel cannot give. Its</span>
+<span class="c">/// timing atomics are filled by whichever process fills them, so in the</span>
+<span class="c">/// editor they are the editor's own chrome — the game's frame is in</span>
+<span class="c">/// another address space and no clock here starts when its work does. A</span>
+<span class="c">/// Report is the game's own instrumentation, measured where the work is</span>
+<span class="c">/// and named where the names are.</span>
+<span class="c">/// </span>
+<span class="c">/// Sent only while the editor has asked for it. See `ToGame::Profile`.</span>
+<span class="t">Profile</span> { report: <span class="k">crate</span>::panels::profile::<span class="t">Report</span> },
+<span class="c">/// The game's own frames, phase by phase, in a batch.</span>
+<span class="c">/// </span>
+<span class="c">/// WHY A BATCH AND NOT A FRAME, AND WHY IT IS NOT THE PROFILER'S JOB</span>
+<span class="c">/// -----------------------------------------------------------------</span>
+<span class="c">/// The Performance panel's unit is one column per frame — that is what</span>
+<span class="c">/// makes a spike one column wide and findable — so unlike a Report this</span>
+<span class="c">/// cannot be reduced at the source without becoming a different panel. It</span>
+<span class="c">/// is still not a per-frame message: the game accumulates its columns and</span>
+<span class="c">/// sends a quarter second of them at once, on `Profile`'s cadence, which</span>
+<span class="c">/// is four lines a second carrying fifteen samples of four floats each.</span>
+<span class="c">/// </span>
+<span class="c">/// A `Sample` is sixteen bytes of numbers and the panel's own type. It</span>
+<span class="c">/// crosses as itself for the reason a `Report` does — one type means the</span>
+<span class="c">/// panel has one renderer rather than two that drift, and the local path</span>
+<span class="c">/// exercises the wire format every session.</span>
+<span class="c">/// </span>
+<span class="c">/// The counts ride along rather than travelling on their own, because a</span>
+<span class="c">/// population and the frames it was drawn in are one reading. They are the</span>
+<span class="c">/// LAST scene pass's and not one per sample: the counter is a global the</span>
+<span class="c">/// pass overwrites, so there is no per-frame history of it to send, and</span>
+<span class="c">/// claiming one by pairing the current counts with each sample would</span>
+<span class="c">/// fabricate fifteen readings from one.</span>
+<span class="c">/// </span>
+<span class="c">/// Sent only while the editor has asked for it. See `ToGame::Perf`.</span>
+<span class="t">Perf</span> {
+    samples: <span class="t">Vec</span>&lt;<span class="k">crate</span>::panels::perf::<span class="t">Sample</span>&gt;,
+    counts: <span class="t">Option</span>&lt;<span class="k">crate</span>::render::<span class="t">InstanceCounts</span>&gt;,
+},
+<span class="c">/// What the world says exists, as the publisher built it.</span>
+<span class="c">/// </span>
+<span class="c">/// THIS ONE IS BIG, AND THE BRAKE IS ALREADY IN THE CHANNEL</span>
+<span class="c">/// -------------------------------------------------------</span>
+<span class="c">/// A census is rows of Strings, and Stella Nova's selectables cache runs</span>
+<span class="c">/// to about forty-two thousand of them. That is not something to put on a</span>
+<span class="c">/// socket, and it is not what is on it: the channel was built inverted for</span>
+<span class="c">/// this exact cost, and a publisher sends full rows for the nodes the</span>
+<span class="c">/// panel has OPEN and a bare COUNT for everything else. A live census is</span>
+<span class="c">/// tens of rows, at the publisher's own rate of ten a second — the same</span>
+<span class="c">/// order as `Profile`, and for the same reason it was allowed.</span>
+<span class="c">/// </span>
+<span class="c">/// The generation inside it is the PUBLISHER'S and is installed verbatim.</span>
+<span class="c">/// The editor's own counter would be a number the game has never issued,</span>
+<span class="c">/// and every click drawn from this snapshot would name it and be refused</span>
+<span class="c">/// as aged out — a hierarchy that lists the world correctly and does</span>
+<span class="c">/// nothing when a person clicks it.</span>
+<span class="c">/// </span>
+<span class="c">/// The other two fields are the publisher's half of a two-way channel and</span>
+<span class="c">/// have to arrive with the rows they name. `inspect` is a CORRECTION: ids</span>
+<span class="c">/// are indices into a table the publisher rebuilds, so the row the</span>
+<span class="c">/// Inspector is holding is renumbered under it on every publish, and the</span>
+<span class="c">/// publisher owes it the id that same object has now. `reveal` is a</span>
+<span class="c">/// one-shot — a selection made in the game window, which the panel answers</span>
+<span class="c">/// by scrolling to it once.</span>
+<span class="t">Census</span> {
+    census: <span class="k">crate</span>::panels::census::<span class="t">Census</span>,
+    inspect: <span class="k">crate</span>::panels::census::<span class="t">EntityId</span>,
+    reveal: <span class="k">crate</span>::panels::census::<span class="t">EntityId</span>,
+},
+<span class="c">/// The game's console scrollback, whole.</span>
+<span class="c">/// </span>
+<span class="c">/// WHY THE WHOLE BUFFER AND NOT THE NEW LINES</span>
+<span class="c">/// ------------------------------------------</span>
+<span class="c">/// An append-only stream is the build that looks right until somebody</span>
+<span class="c">/// types `cls`. A scrollback is also CLEARED and also DROPS ITS OLDEST</span>
+<span class="c">/// LINES at its cap, and neither is an append — so a panel fed appends</span>
+<span class="c">/// keeps showing lines the game no longer has, permanently and with</span>
+<span class="c">/// nothing on screen to say so. The channel's unit is a snapshot for that</span>
+<span class="c">/// reason, and putting a diff on the wire would reintroduce here exactly</span>
+<span class="c">/// what the channel refused.</span>
+<span class="c">/// </span>
+<span class="c">/// It is affordable because it is rare: the game only builds a snapshot</span>
+<span class="c">/// when its revision moved, which is when a command ran or something</span>
+<span class="c">/// printed. An idle game sends nothing at all.</span>
+<span class="c">/// </span>
+<span class="c">/// `revision` is the GAME'S counter and is installed verbatim, like the</span>
+<span class="c">/// census generation. It is compared for equality and never interpreted,</span>
+<span class="c">/// so a game that restarts and counts from zero again is not a problem —</span>
+<span class="c">/// the editor's copy of it belongs to whichever game is attached.</span>
+<span class="t">Console</span> {
+    revision: u64,
+    lines: <span class="t">Vec</span>&lt;<span class="k">crate</span>::devconsole::<span class="t">Line</span>&gt;,
+},
+<span class="c">/// Every word Tab can complete to, from the game's command table.</span>
+<span class="c">/// </span>
+<span class="c">/// Sent once per game, because a command table is fixed at build time. It</span>
+<span class="c">/// is a separate message rather than a field on `Console` so that the</span>
+<span class="c">/// snapshot — the frequent one — does not carry a few hundred words that</span>
+<span class="c">/// never change on every print.</span>
+<span class="t">ConsoleWords</span> { words: <span class="t">Vec</span>&lt;<span class="t">String</span>&gt; },
+<span class="c">/// The game's binding table, whole: every action it declared and every</span>
+<span class="c">/// override the person has on it.</span>
+<span class="c">/// </span>
+<span class="c">/// WHAT THIS FIXES IS THE PANEL'S EMPTY STATE BEING RIGHT</span>
+<span class="c">/// -----------------------------------------------------</span>
+<span class="c">/// `bindings::register` fills a process static, and the only caller is the</span>
+<span class="c">/// application that owns the controls. Out of process that call happens in</span>
+<span class="c">/// the game, and the Control Map reads the editor's static — so the panel</span>
+<span class="c">/// drew "no controls declared" over a game with a full scheme in it. It</span>
+<span class="c">/// was not wrong; there genuinely were no controls declared in the process</span>
+<span class="c">/// doing the drawing. This is the pattern the header names, one more time.</span>
+<span class="c">/// </span>
+<span class="c">/// Sent at attach and then on every change of the game's own revision,</span>
+<span class="c">/// which is a rebind — one line per click of a key chip, and nothing at</span>
+<span class="c">/// all while a game is merely running. A catalog is a hundred actions of</span>
+<span class="c">/// short strings, so the snapshot is sent whole for the reason the console</span>
+<span class="c">/// scrollback is: a diff would have to describe a reset, and a reset is a</span>
+<span class="c">/// removal.</span>
+<span class="c">/// </span>
+<span class="c">/// It carries the OVERRIDES as well as the catalog, and must. The editor</span>
+<span class="c">/// could load the same file itself — it is one config directory — but it</span>
+<span class="c">/// cannot tell which of those lines belong to actions the game declares</span>
+<span class="c">/// without the catalog it is being sent anyway.</span>
+<span class="t">Controls</span> { snapshot: <span class="k">crate</span>::panels::bindings::<span class="t">Snapshot</span> },
+<span class="c">/// Which screen the game is on, in the game's own words.</span>
+<span class="c">/// </span>
+<span class="c">/// THIS IS THE JOIN THE STORYBOARD WAS MISSING</span>
+<span class="c">/// -------------------------------------------</span>
+<span class="c">/// A storyboard names its screens twice: a title for people, and a</span>
+<span class="c">/// `state_id` for "what the code calls it". The second was documentation</span>
+<span class="c">/// with no reader — nothing could check it, and nothing could use it. This</span>
+<span class="c">/// message is what it is for. The game says `title_screen`, the editor</span>
+<span class="c">/// photographs the frame, and the card whose `state_id` is `title_screen`</span>
+<span class="c">/// shows what the screen actually looks like.</span>
+<span class="c">/// </span>
+<span class="c">/// It is a message and not a global for the reason this whole file</span>
+<span class="c">/// exists: the game's phase is a value in the game's address space, and</span>
+<span class="c">/// the panel that wants it draws in the editor's.</span>
+<span class="c">/// </span>
+<span class="c">/// SENT ON CHANGE, WHICH IS THE ONLY TIME IT SAYS ANYTHING. A game sits on</span>
+<span class="c">/// one screen for seconds at a time, so this is a handful of lines per</span>
+<span class="c">/// session — not the per-frame traffic the header refuses.</span>
+<span class="t">Screen</span> { id: <span class="t">String</span> },
+<span class="c">/// The game is about to die, and here is why, in the game's own words.</span>
+<span class="c">/// </span>
+<span class="c">/// WHY, WHEN THE EXIT STATUS ALREADY SAYS THE GAME DIED</span>
+<span class="c">/// ---------------------------------------------------</span>
+<span class="c">/// The editor already learns a game left, from `try_wait`, and already</span>
+<span class="c">/// prints the status. "exited 101" or "killed by signal 11" tells a person</span>
+<span class="c">/// that something broke and nothing about what. This carries the panic</span>
+<span class="c">/// message, the line it fired on and a backtrace, so the crash reaches the</span>
+<span class="c">/// person who must fix it instead of a log they must go and find.</span>
+<span class="c">/// </span>
+<span class="c">/// Sent by the game's panic hook, which runs where it can still allocate and</span>
+<span class="c">/// still reach the socket. A fatal SIGNAL cannot send this — a signal</span>
+<span class="c">/// handler may not allocate — so a segfault leaves a marker in a file the</span>
+<span class="c">/// editor reads instead. One `CrashReport` carries both, and the editor</span>
+<span class="c">/// builds a third kind itself when it is the one doing the killing.</span>
+<span class="t">Crash</span> { report: <span class="t">CrashReport</span> },
+<span class="c">/// The game's live memory footprint, as the game's own allocator counts it.</span>
+<span class="c">/// </span>
+<span class="c">/// The editor watches the machine's free memory to decide WHEN to act; that</span>
+<span class="c">/// number cannot say how much of the pressure is this game. This can — the</span>
+<span class="c">/// bytes the game's global allocator holds — sent on a coarse cadence so a</span>
+<span class="c">/// meter can show it and a warning can name the game rather than guess.</span>
+<span class="c">/// </span>
+<span class="c">/// A LEVEL: a later reading replaces a waiting one rather than piling up.</span>
+<span class="c">/// See `supersedes`.</span>
+<span class="t">Mem</span> { bytes: u64, peak: u64 },</code></pre></div><div class="doc"><p>Game to editor.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Shared" data-name="shared"><div class="sig"><a class="anchor" href="#sym-Shared" aria-label="Link to Shared">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Shared</span></code></div><div class="doc"><p>A frame buffer both processes hold.</p>
+<p>Not Clone. Two owners would mean two <code>CFRelease</code> calls for one retain,
+and the second is a use-after-free of a buffer the other process is
+still rendering into.</p></div></div><details class="members"><summary>11 methods</summary><div class="item" id="sym-Shared-create" data-name="shared::create"><div class="sig"><a class="anchor" href="#sym-Shared-create" aria-label="Link to Shared::create">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">create</span>(width: u32, height: u32) -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div><div class="doc"><p>Allocate. The guest process calls this, because the guest renders.</p></div></div><div class="item" id="sym-Shared-adopt" data-name="shared::adopt"><div class="sig"><a class="anchor" href="#sym-Shared-adopt" aria-label="Link to Shared::adopt">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">adopt</span>(raw: <span class="t">IOSurfaceRef</span>) -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div><div class="doc"><p>Take ownership of a share in a surface somebody else allocated.</p>
+<p>For a producer that hands out an <code>IOSurfaceRef</code> of its own — an
+off-screen browser's paint callback, a capture session, anything
+that renders where warp does not. The caller keeps its reference;
+this takes one of its own.</p>
+<p>None when the surface is null, has no extent, or is not BGRA. The
+format check is the load-bearing one — see the module header for
+what a silent mismatch costs.</p></div></div><div class="item" id="sym-Shared-lookup" data-name="shared::lookup"><div class="sig"><a class="anchor" href="#sym-Shared-lookup" aria-label="Link to Shared::lookup">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">lookup</span>(name: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div><div class="doc"><p>Attach to a surface another process made and published.</p></div></div><div class="item" id="sym-Shared-publish" data-name="shared::publish"><div class="sig"><a class="anchor" href="#sym-Shared-publish" aria-label="Link to Shared::publish">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">publish</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">String</span>&gt;</code></div><div class="doc"><p>Make this surface reachable, and return the name to send over the
+JSON channel. None when the namespace refused the registration, in
+which case the host simply never gets a picture — it does not fail.</p></div></div><div class="item" id="sym-Shared-width" data-name="shared::width"><div class="sig"><a class="anchor" href="#sym-Shared-width" aria-label="Link to Shared::width">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">width</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div></div><div class="item" id="sym-Shared-height" data-name="shared::height"><div class="sig"><a class="anchor" href="#sym-Shared-height" aria-label="Link to Shared::height">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">height</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div></div><div class="item" id="sym-Shared-stride" data-name="shared::stride"><div class="sig"><a class="anchor" href="#sym-Shared-stride" aria-label="Link to Shared::stride">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stride</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>Bytes per row. Deliberately exposed rather than computed from the
+width: the OS pads rows for alignment, so <code>width * 4</code> is wrong for
+most widths and the error is a sheared image.</p></div></div><div class="item" id="sym-Shared-as_raw" data-name="shared::as_raw"><div class="sig"><a class="anchor" href="#sym-Shared-as_raw" aria-label="Link to Shared::as_raw">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">as_raw</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">IOSurfaceRef</span></code></div><div class="doc"><p>For the texture import, which lives next to the device it imports
+into rather than here.</p></div></div><div class="item" id="sym-Shared-create" data-name="shared::create"><div class="sig"><a class="anchor" href="#sym-Shared-create" aria-label="Link to Shared::create">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">create</span>(_width: u32, _height: u32) -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div></div><div class="item" id="sym-Shared-adopt" data-name="shared::adopt"><div class="sig"><a class="anchor" href="#sym-Shared-adopt" aria-label="Link to Shared::adopt">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">adopt</span>(_raw: <span class="t">IOSurfaceRef</span>) -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div></div><div class="item" id="sym-Shared-lookup" data-name="shared::lookup"><div class="sig"><a class="anchor" href="#sym-Shared-lookup" aria-label="Link to Shared::lookup">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">lookup</span>(_name: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div></div></details></div><h4>Constants</h4><div class="item" id="sym-SOCKET_FLAG" data-name="socket_flag"><div class="sig"><a class="anchor" href="#sym-SOCKET_FLAG" aria-label="Link to SOCKET_FLAG">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">SOCKET_FLAG</span>: &amp;str = <span class="s">"--warp-hostlink"</span></code></div><div class="doc"><p>The argv flag the editor passes the game so it knows to attach.</p>
+<p>Named here rather than in either binary, because the writer and the reader
+of a command line that do not share a constant drift apart in exactly one
+direction: silently, into a game that launches standalone and looks fine.</p></div></div><h3 id="mod-hostlink--audio" class="modhead"><code>warp_sdk::hostlink::audio</code></h3><h4>Types</h4><div class="typeblock"><div class="item" id="sym-SharedRings" data-name="sharedrings"><div class="sig"><a class="anchor" href="#sym-SharedRings" aria-label="Link to SharedRings">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">SharedRings</span></code></div><div class="doc"><p>A block of scope rings both processes have mapped.</p>
+<p>Not Clone: the mapping is unmapped on drop, and a second owner would
+unmap a region the audio callback in the other process is still
+writing into.</p></div></div><details class="members"><summary>5 methods</summary><div class="item" id="sym-SharedRings-create" data-name="sharedrings::create"><div class="sig"><a class="anchor" href="#sym-SharedRings-create" aria-label="Link to SharedRings::create">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">create</span>() -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div><div class="doc"><p>Allocate a segment, stamp it as a block, and keep it mapped.</p>
+<p>The game calls this, because the game is where the audio callback
+runs. An editor that allocated would be publishing rings before
+knowing whether a process exists to fill them.</p></div></div><div class="item" id="sym-SharedRings-attach" data-name="sharedrings::attach"><div class="sig"><a class="anchor" href="#sym-SharedRings-attach" aria-label="Link to SharedRings::attach">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">attach</span>(name: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div><div class="doc"><p>Map a segment another process created and published.</p>
+<p>A miss is reported and dropped rather than retried. The name comes
+off the channel and is valid for the life of the game that sent it,
+so a failure here is a real one — a build mismatch or a game that
+died between sending and this call — and retrying a dead name is a
+spin, not a recovery.</p></div></div><div class="item" id="sym-SharedRings-name" data-name="sharedrings::name"><div class="sig"><a class="anchor" href="#sym-SharedRings-name" aria-label="Link to SharedRings::name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">name</span>(&amp;<span class="k">self</span>) -&gt; &amp;str</code></div><div class="doc"><p>The name to send over the JSON channel.</p></div></div><div class="item" id="sym-SharedRings-as_ptr" data-name="sharedrings::as_ptr"><div class="sig"><a class="anchor" href="#sym-SharedRings-as_ptr" aria-label="Link to SharedRings::as_ptr">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">as_ptr</span>(&amp;<span class="k">self</span>) -&gt; *<span class="k">mut</span> <span class="t">Block</span></code></div><div class="doc"><p>For <code>scope::adopt</code>, which is the only thing that should hold it.</p></div></div><div class="item" id="sym-SharedRings-attach" data-name="sharedrings::attach"><div class="sig"><a class="anchor" href="#sym-SharedRings-attach" aria-label="Link to SharedRings::attach">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">attach</span>(_name: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div></div></details></div><h3 id="mod-hostlink--child" class="modhead"><code>warp_sdk::hostlink::child</code></h3><h4>Functions</h4><div class="item" id="sym-poll" data-name="poll"><div class="sig"><a class="anchor" href="#sym-poll" aria-label="Link to poll">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">poll</span>()</code></div><div class="doc"><p>Drain the channel and act on it. Once a frame.</p></div></div><div class="item" id="sym-memory_pressure" data-name="memory_pressure"><div class="sig"><a class="anchor" href="#sym-memory_pressure" aria-label="Link to memory_pressure">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">memory_pressure</span>() -&gt; <span class="t">Option</span>&lt;<span class="t">MemoryPressureLevel</span>&gt;</code></div><div class="doc"><p>The memory-pressure level the editor last sent, or None when it has sent
+none. Read by <code>memcap</code> once a frame.</p>
+<p>None both in a game with no editor and in a hosted game the editor has not
+warned — the same answer, because both are "nobody is asking for memory
+back", which is the case where a game keeps everything it has.</p></div></div><div class="item" id="sym-attach" data-name="attach"><div class="sig"><a class="anchor" href="#sym-attach" aria-label="Link to attach">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">attach</span>() -&gt; bool</code></div><div class="doc"><p>Connect, if this process was launched by an editor.</p>
+<p>Returns whether it did. Call once, before any window or GPU work, so the
+first frame already knows what it is rendering into.</p></div></div><div class="item" id="sym-hosted" data-name="hosted"><div class="sig"><a class="anchor" href="#sym-hosted" aria-label="Link to hosted">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">hosted</span>() -&gt; bool</code></div><div class="doc"><p>Whether this process has an editor. False is the shipped game.</p></div></div><div class="item" id="sym-report_crash" data-name="report_crash"><div class="sig"><a class="anchor" href="#sym-report_crash" aria-label="Link to report_crash">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">report_crash</span>(report: &amp;<span class="k">crate</span>::hostlink::<span class="t">CrashReport</span>) -&gt; bool</code></div><div class="doc"><p>Send a crash report to the editor, if one is attached and reachable.</p>
+<p><code>try_lock</code>, NOT <code>lock</code>. This is called from the panic hook, which may be
+running on the very thread that holds the session lock — a game that
+panicked inside a pump, say. A blocking lock there would replace a legible
+crash with a deadlock, so a contended session simply falls back to the
+crash file the hook also writes.</p></div></div><div class="item" id="sym-detach" data-name="detach"><div class="sig"><a class="anchor" href="#sym-detach" aria-label="Link to detach">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">detach</span>()</code></div><div class="doc"><p>Drop the connection and every surface with it. For tests, and for a clean
+exit path that wants the socket closed before the window goes.</p></div></div><div class="item" id="sym-report_screen" data-name="report_screen"><div class="sig"><a class="anchor" href="#sym-report_screen" aria-label="Link to report_screen">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">report_screen</span>(id: &amp;str)</code></div><div class="doc"><p>Say which screen the game is on, in the game's own words.</p>
+<p>Called from the game's frame loop with whatever it calls the phase it is
+in — <code>title_screen</code>, <code>briefing</code>, <code>playing</code>. Cheap enough to call every
+frame: a game with no editor returns on the first line, and one with an
+editor compares two strings.</p>
+<p>The name is the game's to choose and the storyboard's to match. A card
+whose <code>state_id</code> is this string is the card that gets the picture, and a
+name nothing on the board claims simply files a PNG nobody draws — which
+is the correct outcome for a screen the storyboard has not been told
+about yet.</p></div></div><div class="item" id="sym-pump_screen" data-name="pump_screen"><div class="sig"><a class="anchor" href="#sym-pump_screen" aria-label="Link to pump_screen">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pump_screen</span>()</code></div><div class="doc"><p>Send the screen if it moved. Once a frame, beside the other pumps.</p>
+<p>Split from <code>report_screen</code> so the game can report from wherever the phase
+is decided — which is not necessarily a place holding a socket — and the
+send still happens once, on the frame loop's own terms.</p></div></div><div class="item" id="sym-pump_census" data-name="pump_census"><div class="sig"><a class="anchor" href="#sym-pump_census" aria-label="Link to pump_census">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pump_census</span>()</code></div><div class="doc"><p>Forward the census the world just published, when it published one. Once a
+frame, after the application has rendered.</p>
+<p>AFTER, because the publisher builds its rows from a cache that is rebuilt
+during the frame, and a pump that ran first would forward last frame's
+world — every position one frame stale, which on a moving body is a row
+that never quite matches the picture beside it.</p>
+<h2>WHAT ARMS THE PUBLISHER IS THE FIRST LINE, NOT THE LAST</h2>
+<p><code>census_wanted</code> is the publisher's own brake and it is checked before a
+single row is built. In one process the panel set it directly. Here the
+panel's ask arrives as a message, is parked in <code>CENSUS_WANT</code>, and is
+re-asserted from this function on every frame — which is what makes the
+claim expire the way the channel says it does. Applying it once on receipt
+would leave a game publishing forever for an editor that had closed the
+panel, or died with it open.</p>
+<h2>THE GATE IS THE PUBLISHER'S GENERATION, WHICH IS WHY THIS IS NOT PER-FRAME</h2>
+<p>The header next door refuses per-frame messages, and a census is the
+largest thing on this channel — so it is sent when the publisher says
+there is a new one and not when a frame ends. Stella Nova publishes one
+frame in six; forwarding on every frame would encode identical rows five
+times out of six to redraw a panel that cannot tell the difference.</p>
+<p>The two ids ride with the rows because they NAME rows in them. <code>inspecting</code>
+is the publisher's correction for its own renumbering — ids are indices
+into a table it rebuilds, so the subject moves under the Inspector on every
+publish — and sending it separately would let it arrive against a census it
+does not describe.</p></div></div><div class="item" id="sym-pump_profile" data-name="pump_profile"><div class="sig"><a class="anchor" href="#sym-pump_profile" aria-label="Link to pump_profile">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pump_profile</span>()</code></div><div class="doc"><p>Carry the frame just closed into the profile window, and send a Report when
+one is ready. Once a frame, after <code>profile::frame()</code>.</p>
+<p>Cheap in the shipped game and cheap in a hosted one nobody is profiling:
+both leave on the first line, and the second costs one relaxed load.</p>
+<h2>WHY THE GAME REDUCES AND THE EDITOR DOES NOT</h2>
+<p>The obvious build ships every frame's spans across and windows them on the
+editor's side, where the panel already windows its own. It is wrong on the
+only axis this channel cares about: that is sixty JSON encodes a second of
+a payload that grows with how well the game is instrumented, to produce a
+picture that is redrawn four times a second. Reducing at the source sends
+the same reading in one message.</p>
+<p>The Report is the same type the editor builds for its own frames, so the
+two sources reach the panel identically and neither has a private path.</p></div></div><div class="item" id="sym-pump_perf" data-name="pump_perf"><div class="sig"><a class="anchor" href="#sym-pump_perf" aria-label="Link to pump_perf">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pump_perf</span>()</code></div><div class="doc"><p>Take this frame's cost and send a quarter second of them at a time. Once a
+frame, after the render loop has stored its three spans.</p>
+<h2>WHY THE PANEL COULD NOT JUST READ THE ATOMICS</h2>
+<p>It did, and that was the bug. <code>RENDER_DRAW_US</code> and the two beside it are
+process globals filled by whichever render loop is running, so a
+Performance panel in the editor was reading the EDITOR'S frames — and
+reporting them under a status line that said the game was running. The
+panel was not empty and did not error; it drew a healthy sixty at two
+milliseconds while the game next door did whatever it was doing.</p>
+<p>This is the same static, read where it is written. The interval is measured
+here too rather than sent as a fourth span, because the gap between two
+calls of this function IS the game's frame period — the same argument the
+panel makes for timing its own <code>poll</code>, one process over.</p>
+<h2>AFTER THE FRAME, AND AFTER <code>pump_profile</code></h2>
+<p><code>RENDER_GPU_US</code> is stored when the submission returns, which is the last
+thing the frame arm does before these pumps run. A sample taken any earlier
+carries the previous frame's GPU span beside this frame's draw — three
+numbers from two frames, summed into one column.</p></div></div><div class="item" id="sym-pump_console" data-name="pump_console"><div class="sig"><a class="anchor" href="#sym-pump_console" aria-label="Link to pump_console">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pump_console</span>()</code></div><div class="doc"><p>Keep the console publisher armed, and send the scrollback when it moved.
+Once a frame, AFTER the game has published — which is after its own frame,
+because the publisher is part of the game's gui and not of the engine.</p>
+<h2>THE ARM MUST HAPPEN EVEN THOUGH IT IS A FRAME LATE</h2>
+<p><code>devconsole::want_console</code> is what the game's publisher checks first, and
+nothing in this process was ever going to set it: the panel that used to
+set it is now in the editor, writing the editor's copy of the static. So a
+game with a Debug Console open on it did not build a snapshot to send. It
+built nothing at all, which is why the panel's failure looked like an empty
+console rather than a stale one.</p>
+<p>Arming here rather than in <code>poll</code> costs one frame at the moment a panel is
+opened and buys the property that the whole console bridge is one function.
+A frame is nothing against a person reaching for a panel; the want then
+stays armed for as long as the editor keeps saying so.</p>
+<h2>WHY THE REVISION IS READ AND NOT THE BUFFER</h2>
+<p>Most frames print nothing, and on those this is two relaxed loads and a
+comparison. The buffer is only cloned on the frames the game's own
+publisher decided something changed, which is what keeps a channel that
+carries a whole scrollback off the per-frame list this protocol refuses.</p></div></div><div class="item" id="sym-pump_controls" data-name="pump_controls"><div class="sig"><a class="anchor" href="#sym-pump_controls" aria-label="Link to pump_controls">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pump_controls</span>()</code></div><div class="doc"><p>Forward the binding table when it has moved. Once a frame.</p>
+<h2>NO WANT, UNLIKE EVERY PUMP ABOVE IT</h2>
+<p>The census, the profiler and the console are all gated on somebody
+looking, because each of them costs the game real work to BUILD — rows off
+a forty-thousand-entry cache, a span tree, a scrollback clone. A binding
+table costs a revision load on the frames nothing changed, and on the
+frames something did it is a hundred short strings. There is nothing here
+to brake.</p>
+<p>Ungated also means the panel is populated the moment it is opened, with no
+round trip. A want would put an empty Control Map on screen for the frame
+after a person clicked the tab — which is exactly the state this whole
+message exists to stop showing.</p>
+<h2>WHY THE GAME'S REVISION AND NOT THE EDITOR'S ASK</h2>
+<p>The rebinds arriving on <code>ToGame::Rebind</code> move this counter themselves, so
+one comparison covers both directions: an edit made in the panel comes back
+as the table the game actually has, and a rebind the GAME made — its own
+settings screen, a default that moved in a new build — reaches the panel by
+the same path with nothing extra to arrange.</p></div></div><div class="item" id="sym-pump_mem" data-name="pump_mem"><div class="sig"><a class="anchor" href="#sym-pump_mem" aria-label="Link to pump_mem">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pump_mem</span>()</code></div><div class="doc"><p>Give memory back if the editor asked, and report the footprint. Once a
+frame, beside the other pumps.</p>
+<h2>TWO JOBS, BOTH CHEAP WHEN NOTHING IS HAPPENING</h2>
+<p>The shed runs first and does nothing unless the editor has raised pressure
+and raised it further than last time — see <code>memcap::shed_if</code>. The report is
+throttled to a second a sample, because the editor measures this process
+from outside as well: this figure is the game-attributed meter, not the
+governor's input, so it does not need frame-rate freshness.</p></div></div><div class="item" id="sym-requested_size" data-name="requested_size"><div class="sig"><a class="anchor" href="#sym-requested_size" aria-label="Link to requested_size">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">requested_size</span>() -&gt; <span class="t">Option</span>&lt;(u32, u32)&gt;</code></div><div class="doc"><p>What the editor last asked the game image to be. None before it has asked,
+which is every frame before the panel has a rect.</p></div></div><div class="item" id="sym-take_resize" data-name="take_resize"><div class="sig"><a class="anchor" href="#sym-take_resize" aria-label="Link to take_resize">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">take_resize</span>() -&gt; <span class="t">Option</span>&lt;(u32, u32)&gt;</code></div><div class="doc"><p>The requested size, once, on the frame it changes — for the caller that
+owns the WINDOW.</p>
+<h2>WHY THE WINDOW AND NOT JUST THE SURFACE</h2>
+<p><code>requested_size</code> above is enough to allocate an IOSurface of the panel's
+shape, and for a long time that was the whole of the resize path. It is not
+enough to DRAW at the panel's shape. A hosted game renders at its own
+window's size — the manifest size, set once at launch and never touched —
+and <code>present::publish_frame</code> filled the panel-shaped surface with a
+fullscreen triangle over that image. The sampler stretched it. A panel of
+any other aspect than the launch window's got a non-uniformly scaled
+picture, and nothing in the chain said so.</p>
+<p>It also meant the game's own layout never learned the panel existed. Its
+window stayed at the launch size, so every reflow, every anchored HUD
+element and every <code>available_rect</code> inside the game was computed against a
+shape the person looking at it could not see.</p>
+<p>So the size goes to the window. Everything downstream — the surface config,
+the render dimensions, the post chain, the game's egui screen rect — is
+already wired to a window resize and follows for free, and the publish blit
+becomes 1:1 because the two sizes are finally the same number.</p>
+<p>Returns None when nothing changed, so the frame loop pays one atomic load
+on the overwhelming majority of frames. Marks the size applied on the way
+out: a caller that drops the value still will not be handed it again, which
+is correct, because the next real change supersedes it anyway.</p></div></div><div class="item" id="sym-focused" data-name="focused"><div class="sig"><a class="anchor" href="#sym-focused" aria-label="Link to focused">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">focused</span>() -&gt; bool</code></div><div class="doc"><p>Whether keys are aimed at the Game panel. Always false with no editor,
+because then nothing else is competing for them.</p></div></div><div class="item" id="sym-visible" data-name="visible"><div class="sig"><a class="anchor" href="#sym-visible" aria-label="Link to visible">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">visible</span>() -&gt; bool</code></div><div class="doc"><p>Whether anybody is looking at the game image.</p>
+<p>True with no editor, because then the window is the picture and the person
+looking at it is the only opinion there is. The <code>hosted</code> test is first so
+a shipped game answers on one relaxed atomic load and never reads the flag
+an editor would have written.</p>
+<h2>WHAT A FALSE ANSWER IS ALLOWED TO STOP</h2>
+<p>The publish blit, and the RATE of the frame loop. Not the loop itself: it
+still drains the channel, still takes a resize, still answers <code>Shutdown</code>,
+and still renders — a hidden panel raised again must show a picture of the
+world as it is now, and a loop that had stopped would show the frame it
+stopped on until it caught up.</p>
+<p>It is therefore a throttle and not a switch, and the consequence is worth
+stating where somebody will find it: a game that runs its world inside its
+own render call runs that world at the idle rate while its panel is hidden.
+Warp cannot fix that from here, because <code>render</code> is the one call where the
+application walks its own world and the engine has no way to separate the
+two halves of it.</p></div></div><div class="item" id="sym-should_exit" data-name="should_exit"><div class="sig"><a class="anchor" href="#sym-should_exit" aria-label="Link to should_exit">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">should_exit</span>() -&gt; bool</code></div><div class="doc"><p>The editor went away, or asked for a clean exit.</p></div></div><div class="item" id="sym-ensure_surface" data-name="ensure_surface"><div class="sig"><a class="anchor" href="#sym-ensure_surface" aria-label="Link to ensure_surface">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">ensure_surface</span>(width: u32, height: u32) -&gt; bool</code></div><div class="doc"><p>Allocate and publish a surface, when the size has changed.</p>
+<p>Idempotent at a given size, so a caller can put it in the frame loop and
+pay a comparison for every frame that did not resize.</p>
+<p>Returns whether a surface is available at the requested size afterwards.</p></div></div><div class="item" id="sym-surface_generation" data-name="surface_generation"><div class="sig"><a class="anchor" href="#sym-surface_generation" aria-label="Link to surface_generation">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">surface_generation</span>() -&gt; u64</code></div><div class="doc"><p>Which allocation the current surface is. See <code>SURFACE_GEN</code>.</p>
+<p>Starts at 0 and is bumped before the first surface exists, so a cache that
+initialises to 0 is stale on the first frame rather than accidentally
+current — the value is only ever compared, never counted from.</p></div></div><div class="item" id="sym-with_surface" data-name="with_surface"><div class="sig"><a class="anchor" href="#sym-with_surface" aria-label="Link to with_surface">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> with_surface&lt;<span class="t">R</span>&gt;(f: <span class="k">impl</span> <span class="t">FnOnce</span>(&amp;<span class="t">Shared</span>) -&gt; <span class="t">R</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">R</span>&gt;</code></div><div class="doc"><p>Borrow the surface being rendered into, if there is one.</p>
+<p>A closure rather than a returned reference, because the surface lives
+behind the session mutex and handing out a borrow of it would either leak
+the guard or need a lifetime nobody at the call site can satisfy.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Session" data-name="session"><div class="sig"><a class="anchor" href="#sym-Session" aria-label="Link to Session">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Session</span></code></div></div></div><h3 id="mod-hostlink--import" class="modhead"><code>warp_sdk::hostlink::import</code></h3><h4>Functions</h4><div class="item" id="sym-texture_from_shared" data-name="texture_from_shared"><div class="sig"><a class="anchor" href="#sym-texture_from_shared" aria-label="Link to texture_from_shared">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">texture_from_shared</span>(device: &amp;wgpu::<span class="t">Device</span>, shared: &amp;<span class="t">Shared</span>) -&gt; <span class="t">Option</span>&lt;wgpu::<span class="t">Texture</span>&gt;</code></div></div><div class="item" id="sym-texture_from_shared" data-name="texture_from_shared"><div class="sig"><a class="anchor" href="#sym-texture_from_shared" aria-label="Link to texture_from_shared">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">texture_from_shared</span>(_device: &amp;wgpu::<span class="t">Device</span>, _shared: &amp;<span class="t">Shared</span>) -&gt; <span class="t">Option</span>&lt;wgpu::<span class="t">Texture</span>&gt;</code></div><div class="doc"><p>See <code>surface.rs</code>'s stub note: a host that cannot import shows the boot
+terminal, which is what it shows before the first frame anyway.</p></div></div><div class="item" id="sym-adopt_device" data-name="adopt_device"><div class="sig"><a class="anchor" href="#sym-adopt_device" aria-label="Link to adopt_device">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">adopt_device</span>(device: &amp;wgpu::<span class="t">Device</span>)</code></div><div class="doc"><p>Tell <code>surface.rs</code> which GPU device to allocate shared surfaces on.</p>
+<p>Windows only in effect, and a no-op everywhere else, so the GPU init calls
+it unconditionally and carries no <code>cfg</code> of its own. Call it once, right
+after the device is made and before any surface is created: every
+<code>Shared::create</code> and <code>Shared::lookup</code> on Windows fails until it has run.</p>
+<p>It lives here and not in <code>surface.rs</code> because it needs <code>as_hal</code>, and this
+file is the one place in warp that touches wgpu-hal.</p></div></div><div class="item" id="sym-adopt_device" data-name="adopt_device"><div class="sig"><a class="anchor" href="#sym-adopt_device" aria-label="Link to adopt_device">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">adopt_device</span>(_device: &amp;wgpu::<span class="t">Device</span>)</code></div><div class="doc"><p>The no-op half. macOS allocates an IOSurface with no device at all.</p></div></div><h4>Constants</h4><div class="item" id="sym-IMPORT_FORMAT" data-name="import_format"><div class="sig"><a class="anchor" href="#sym-IMPORT_FORMAT" aria-label="Link to IMPORT_FORMAT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">IMPORT_FORMAT</span>: wgpu::<span class="t">TextureFormat</span> = wgpu::<span class="t">TextureFormat</span>::<span class="t">Bgra8UnormSrgb</span></code></div><div class="doc"><p>What an imported texture always is.</p>
+<p>sRGB, and the SRGB IS THE LOAD-BEARING PART. An IOSurface's pixel format
+is a byte layout — 'BGRA' — and carries no colour space, so this is a free
+choice about how the bytes are read. It has to match the pipeline that
+writes them, and that pipeline is the CRT blit, which is built for the
+window surface format. On macOS that is <code>Bgra8UnormSrgb</code>.</p>
+<p>It was <code>Bgra8Unorm</code> and the mismatch was not a wrong colour. wgpu refuses
+a render pass whose attachment format differs from the pipeline's, so the
+game panicked inside the publish blit — the surface handshake completed,
+the editor imported a texture, and the process died on the first frame it
+tried to draw. <code>a_launched_process_attaches_and_publishes_a_surface</code> now
+outlives the publish for exactly this reason.
+On Windows the free choice is already made: a D3D12 resource carries a
+typed format, and <code>surface.rs</code> creates it as <code>B8G8R8A8_UNORM_SRGB</code>, which
+is what wgpu-hal maps this constant to. The two must agree there as well,
+and there the disagreement is caught — a view in a format the resource
+cannot be cast to is refused by the runtime.</p></div></div><h3 id="mod-hostlink--input" class="modhead"><code>warp_sdk::hostlink::input</code></h3><h4>Functions</h4><div class="item" id="sym-accept" data-name="accept"><div class="sig"><a class="anchor" href="#sym-accept" aria-label="Link to accept">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">accept</span>(events: <span class="t">Vec</span>&lt;<span class="t">InputEvent</span>&gt;)</code></div><div class="doc"><p>Queue events for the next <code>replay</code>. From <code>child::poll</code>, and from a game
+that makes its own events. A gamepad cursor is the second case: the game
+turns the pad into these events, so that egui and the input helper read
+the pad as a pointer.</p></div></div><div class="item" id="sym-forget" data-name="forget"><div class="sig"><a class="anchor" href="#sym-forget" aria-label="Link to forget">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">forget</span>()</code></div><div class="doc"><p>Drop anything queued. On detach, so a game that loses its editor does not
+replay a click from it afterwards.</p></div></div><div class="item" id="sym-pending" data-name="pending"><div class="sig"><a class="anchor" href="#sym-pending" aria-label="Link to pending">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pending</span>() -&gt; bool</code></div><div class="doc"><p>True when <code>accept</code> queued events that no <code>replay</code> took yet. The event loop
+replays when this is true, so a game with no editor reaches <code>replay</code> too.</p></div></div><div class="item" id="sym-replay" data-name="replay"><div class="sig"><a class="anchor" href="#sym-replay" aria-label="Link to replay">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">replay</span>(window_px: (u32, u32), surface_px: (u32, u32)) -&gt; <span class="t">Vec</span>&lt;<span class="t">WindowEvent</span>&lt;<span class="a">'static</span>&gt;&gt;</code></div><div class="doc"><p>Take the queue as events the child's own window could have produced, and
+mirror every key press onto the focus-immune raw ring on the way past.</p>
+<p>Empty when nothing arrived, which is most frames — a person is not moving
+the mouse on most of them.</p>
+<h2>THE RING IS WRITTEN HERE AND NOWHERE ELSE IN THIS PROCESS</h2>
+<p>The engine writes the ring from the primary window's <code>WindowEvent</code> arm. A
+hosted game's window is hidden and produces no window events, so nothing
+wrote the ring in a launched game at all. Every action that reads the ring
+AND the input helper lived on its helper half and hid that; an action that
+reads the ring alone answered nothing. The game's debug console is
+single-path on the ring on purpose — the two paths double-fired one press
+against each other — so its key opened nothing under the editor and opened
+the console in the same game started from a shell.</p>
+<p><code>push_raw_key</code> and not <code>push_raw_key_from</code>: this process has no panels,
+<code>game_view_embedded</code> is false in it, and <code>capture</code> already applied
+<code>game_keys_from</code> before the key crossed the socket. A second gate here would
+be answered by the wrong window.</p>
+<h2>KEY ROUTING, THE SAME THREE ARMS A REAL EVENT GETS</h2>
+<p>The window arm in <code>lib.rs</code> decides which of three places a key lands in:
+a pointer-release key drops the pointer grab, a key under keyboard capture
+goes to the capture queue, and everything else mirrors onto the raw ring.
+A hosted game reaches no window arm, so this function is where a hosted
+game answers the same three questions.</p>
+<p>Keyboard capture was the arm that was missing. <code>INPUT_CAPTURED</code> was set by
+the app, nothing ever wrote <code>CAPTURED_KEYS</code>, and the subsystem holding the
+keyboard — the game's DOOM framebuffer — drained an empty queue for every
+key. The same game answered the keyboard when it was started from a shell.</p>
+<p>Every key still reaches <code>out</code>, capture or not. That is what the window arm
+does: it feeds egui before it routes, and capture diverts the RING, not the
+window's own egui half.</p></div></div><div class="item" id="sym-capture" data-name="capture"><div class="sig"><a class="anchor" href="#sym-capture" aria-label="Link to capture">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">capture</span>( vp: <span class="k">crate</span>::types::<span class="t">ViewportId</span>, event: &amp;<span class="t">WindowEvent</span>, window_px: (u32, u32), render_px: (u32, u32), )</code></div><div class="doc"><p>Tap one window event on its way to the editor's own game hooks.</p>
+<p><code>vp</code> is the window the event came from, which is not always the primary
+one — the Game panel can be torn off, and then that window's pointer is
+the game's.</p></div></div><div class="item" id="sym-drain" data-name="drain"><div class="sig"><a class="anchor" href="#sym-drain" aria-label="Link to drain">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">drain</span>() -&gt; <span class="t">Vec</span>&lt;<span class="t">InputEvent</span>&gt;</code></div><div class="doc"><p>Take what has been tapped since the last call. Once a frame, by the editor.</p></div></div><div class="item" id="sym-forwarding" data-name="forwarding"><div class="sig"><a class="anchor" href="#sym-forwarding" aria-label="Link to forwarding">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">forwarding</span>() -&gt; bool</code></div></div><div class="item" id="sym-set_forwarding" data-name="set_forwarding"><div class="sig"><a class="anchor" href="#sym-set_forwarding" aria-label="Link to set_forwarding">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">set_forwarding</span>(on: bool)</code></div><div class="doc"><p>Arm or disarm the tap.</p>
+<p>Off by default and off in every shipped game, so <code>capture</code> costs one
+relaxed load on a path that runs for every window event in the editor.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-InputEvent" data-name="inputevent"><div class="sig"><a class="anchor" href="#sym-InputEvent" aria-label="Link to InputEvent">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">InputEvent</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Pointer position in GAME IMAGE pixels. See the header.</span>
+<span class="t">PointerMoved</span> { x: f32, y: f32 },
+<span class="c">/// The pointer left the picture. Not the window: leaving the panel is what</span>
+<span class="c">/// the game must hear, and it happens far more often.</span>
+<span class="t">PointerGone</span>,
+<span class="t">Button</span> { button: <span class="t">MouseButton</span>, state: <span class="t">ElementState</span> },
+<span class="c">/// Lines, not pixels. A trackpad's pixel delta is converted at the tap, so</span>
+<span class="c">/// the child replays one kind and the game reads one kind.</span>
+<span class="t">Scroll</span> { dx: f32, dy: f32 },
+<span class="t">Key</span> {
+    code: <span class="t">Option</span>&lt;<span class="t">VirtualKeyCode</span>&gt;,
+    scancode: u32,
+    state: <span class="t">ElementState</span>,
+},
+<span class="c">/// A typed character. Separate from `Key` because winit reports it</span>
+<span class="c">/// separately and egui needs it: a layout that produces "@" from two keys</span>
+<span class="c">/// cannot be reconstructed from the key events.</span>
+<span class="t">Text</span> { ch: char },
+<span class="t">Modifiers</span> { mods: <span class="t">ModifiersState</span> },</code></pre></div><div class="doc"><p>One input event, in the picture's own coordinates.</p>
+<p>The winit types are carried as themselves rather than as numbers of our
+own, which is what winit's <code>serde</code> feature is for. A key code re-encoded as
+a u32 here would be a second table to keep in step with winit's, and the
+failure of such a table is a keyboard where most keys work.</p></div></div></div><h3 id="mod-hostlink--present" class="modhead"><code>warp_sdk::hostlink::present</code></h3><h4>Functions</h4><div class="item" id="sym-publish_frame" data-name="publish_frame"><div class="sig"><a class="anchor" href="#sym-publish_frame" aria-label="Link to publish_frame">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">publish_frame</span>( device: &amp;wgpu::<span class="t">Device</span>, encoder: &amp;<span class="k">mut</span> wgpu::<span class="t">CommandEncoder</span>, pipeline: &amp;wgpu::<span class="t">RenderPipeline</span>, bind_group: &amp;wgpu::<span class="t">BindGroup</span>, gui_pipeline: &amp;wgpu::<span class="t">RenderPipeline</span>, gui_bind_group: &amp;wgpu::<span class="t">BindGroup</span>, )</code></div><div class="doc"><p>Draw the composed frame into the editor's surface.</p>
+<p><code>pipeline</code> and <code>bind_group</code> are the ones the window blit uses, and must
+stay that way: the pipeline is built for the surface format, the imported
+texture is <code>Bgra8Unorm</code>, and on macOS those are the same format. Handing a
+pipeline built for anything else is a wgpu validation failure at encode.</p>
+<p><code>gui_pipeline</code> and <code>gui_bind_group</code> are the chrome composite, and they are
+the SECOND HALF of the same frame rather than an extra. The game's own GUI
+stopped being inside the image <code>bind_group</code> reads the day it got its own
+target; without this draw a hosted game publishes a picture with no menu on
+it, and the editor panel shows a game nobody can drive.</p></div></div><div class="item" id="sym-forget" data-name="forget"><div class="sig"><a class="anchor" href="#sym-forget" aria-label="Link to forget">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">forget</span>()</code></div><div class="doc"><p>Release the imported texture.</p>
+<p>Called on detach, so a process that loses its editor is not holding a
+GPU texture over an IOSurface nobody will read again.</p></div></div><h3 id="mod-hostlink--surface" class="modhead"><code>warp_sdk::hostlink::surface</code></h3><h4>Functions</h4><div class="item" id="sym-register_device" data-name="register_device"><div class="sig"><a class="anchor" href="#sym-register_device" aria-label="Link to register_device">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">register_device</span>(raw: *<span class="k">mut</span> c_void)</code></div><div class="doc"><p>Name the device to allocate on. <code>import.rs</code> calls this, because
+<code>import.rs</code> owns the one <code>as_hal</code> call in warp.</p>
+<p>Takes ONE reference and never gives it back. The device outlives every
+surface made on it, and a release here is a use-after-free inside
+whichever driver thread reads it next.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-IOSurfaceRef" data-name="iosurfaceref"><div class="sig"><a class="anchor" href="#sym-IOSurfaceRef" aria-label="Link to IOSurfaceRef">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">type</span> <span class="t">IOSurfaceRef</span> = *<span class="k">mut</span> c_void</code></div></div></div><div class="typeblock"><div class="item" id="sym-IOSurfaceRef" data-name="iosurfaceref"><div class="sig"><a class="anchor" href="#sym-IOSurfaceRef" aria-label="Link to IOSurfaceRef">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">type</span> <span class="t">IOSurfaceRef</span> = *<span class="k">mut</span> std::ffi::c_void</code></div></div></div><div class="typeblock"><div class="item" id="sym-Shared" data-name="shared"><div class="sig"><a class="anchor" href="#sym-Shared" aria-label="Link to Shared">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Shared</span></code></div><div class="doc"><p>A frame buffer both processes hold.</p>
+<p>Not Clone. Two owners would mean two <code>CFRelease</code> calls for one retain,
+and the second is a use-after-free of a buffer the other process is
+still rendering into.</p></div></div><details class="members"><summary>11 methods</summary><div class="item" id="sym-Shared-create" data-name="shared::create"><div class="sig"><a class="anchor" href="#sym-Shared-create" aria-label="Link to Shared::create">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">create</span>(width: u32, height: u32) -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div><div class="doc"><p>Allocate. The guest process calls this, because the guest renders.</p></div></div><div class="item" id="sym-Shared-adopt" data-name="shared::adopt"><div class="sig"><a class="anchor" href="#sym-Shared-adopt" aria-label="Link to Shared::adopt">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">adopt</span>(raw: <span class="t">IOSurfaceRef</span>) -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div><div class="doc"><p>Take ownership of a share in a surface somebody else allocated.</p>
+<p>For a producer that hands out an <code>IOSurfaceRef</code> of its own — an
+off-screen browser's paint callback, a capture session, anything
+that renders where warp does not. The caller keeps its reference;
+this takes one of its own.</p>
+<p>None when the surface is null, has no extent, or is not BGRA. The
+format check is the load-bearing one — see the module header for
+what a silent mismatch costs.</p></div></div><div class="item" id="sym-Shared-lookup" data-name="shared::lookup"><div class="sig"><a class="anchor" href="#sym-Shared-lookup" aria-label="Link to Shared::lookup">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">lookup</span>(name: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div><div class="doc"><p>Attach to a surface another process made and published.</p></div></div><div class="item" id="sym-Shared-publish" data-name="shared::publish"><div class="sig"><a class="anchor" href="#sym-Shared-publish" aria-label="Link to Shared::publish">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">publish</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">String</span>&gt;</code></div><div class="doc"><p>Make this surface reachable, and return the name to send over the
+JSON channel. None when the namespace refused the registration, in
+which case the host simply never gets a picture — it does not fail.</p></div></div><div class="item" id="sym-Shared-width" data-name="shared::width"><div class="sig"><a class="anchor" href="#sym-Shared-width" aria-label="Link to Shared::width">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">width</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div></div><div class="item" id="sym-Shared-height" data-name="shared::height"><div class="sig"><a class="anchor" href="#sym-Shared-height" aria-label="Link to Shared::height">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">height</span>(&amp;<span class="k">self</span>) -&gt; u32</code></div></div><div class="item" id="sym-Shared-stride" data-name="shared::stride"><div class="sig"><a class="anchor" href="#sym-Shared-stride" aria-label="Link to Shared::stride">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stride</span>(&amp;<span class="k">self</span>) -&gt; usize</code></div><div class="doc"><p>Bytes per row. Deliberately exposed rather than computed from the
+width: the OS pads rows for alignment, so <code>width * 4</code> is wrong for
+most widths and the error is a sheared image.</p></div></div><div class="item" id="sym-Shared-as_raw" data-name="shared::as_raw"><div class="sig"><a class="anchor" href="#sym-Shared-as_raw" aria-label="Link to Shared::as_raw">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">as_raw</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">IOSurfaceRef</span></code></div><div class="doc"><p>For the texture import, which lives next to the device it imports
+into rather than here.</p></div></div><div class="item" id="sym-Shared-create" data-name="shared::create"><div class="sig"><a class="anchor" href="#sym-Shared-create" aria-label="Link to Shared::create">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">create</span>(_width: u32, _height: u32) -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div></div><div class="item" id="sym-Shared-adopt" data-name="shared::adopt"><div class="sig"><a class="anchor" href="#sym-Shared-adopt" aria-label="Link to Shared::adopt">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">adopt</span>(_raw: <span class="t">IOSurfaceRef</span>) -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div></div><div class="item" id="sym-Shared-lookup" data-name="shared::lookup"><div class="sig"><a class="anchor" href="#sym-Shared-lookup" aria-label="Link to Shared::lookup">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">lookup</span>(_name: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="k">Self</span>&gt;</code></div></div></details></div><h2 id="see-also">See also</h2><ul><li><a href="editor-panels.html" data-slug="editor-panels">Editor panels</a></li><li><a href="gpu.html" data-slug="gpu">GPU module</a></li><li><a href="census.html" data-slug="census">Census</a></li><li><a href="audio.html" data-slug="audio">Audio</a></li><li><a href="renderer.html" data-slug="renderer">Renderer and run</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/hostlink/mod.rs</code> - <code>It exists because the editor used to LINK the game.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_core/src/hostlink/child/mod.rs</code> - <code>A GAME WITH NO EDITOR IS THE NORMAL CASE</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/hostlink/mod.rs</code> - <code>THERE IS NO PER-FRAME MESSAGE, AND THAT IS THE POINT</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/hostlink/mod.rs</code> - <code>a unix domain socket on</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_core/src/hostlink/child/mod.rs</code> - <code>TRUE BY DEFAULT, AND THAT IS THE WHOLE SAFETY ARGUMENT</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_core/src/hostlink/mod.rs</code> - <code>reap_ends_what_the_shell_started_and_not_only_the_shell</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_core/src/hostlink/message.rs</code> - <code>SENT ON CHANGE, WHICH IS THE ONLY TIME IT SAYS ANYTHING.</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_core/src/hostlink/child/mod.rs</code> - <code>WHO OWNS THE SURFACE, AND WHY IT IS THIS SIDE</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_core/src/hostlink/surface.rs</code> - <code>WHY THE HANDLE IS NOT AN INTEGER</code></li><li id="ref-10"><a class="back" href="#cite-10" aria-label="Back to the text">^</a> <code>warp_core/src/hostlink/child/mod.rs</code> - <code>`WANT` alone cannot drive a window resize, because it is a level and not an</code></li><li id="ref-11"><a class="back" href="#cite-11" aria-label="Back to the text">^</a> <code>warp_core/src/hostlink/present.rs</code> - <code>correctness of this pass is a property of a resize two files away.</code></li><li id="ref-12"><a class="back" href="#cite-12" aria-label="Back to the text">^</a> <code>warp_core/src/hostlink/input/mod.rs</code> - <code>WHY REPLAY WINIT EVENTS AND NOT egui EVENTS</code></li><li id="ref-13"><a class="back" href="#cite-13" aria-label="Back to the text">^</a> <code>warp_core/src/hostlink/input/mod.rs</code> - <code>THREE COORDINATE SPACES, AND THE TWO CONVERSIONS BETWEEN THEM</code></li><li id="ref-14"><a class="back" href="#cite-14" aria-label="Back to the text">^</a> <code>warp_core/src/hostlink/input/mod.rs</code> - <code>A SHUT KEY GATE PAYS OUT ITS RELEASES</code></li><li id="ref-15"><a class="back" href="#cite-15" aria-label="Back to the text">^</a> <code>warp_core/src/hostlink/audio.rs</code> - <code>THE NAME IS UNLINKED LATE, AND THAT LEAKS ON A CRASH</code></li></ol><table class="navbox"><tr><th><a href="category-editor-channels.html">Editor channels</a></th></tr><tr><td><a href="editor-panels.html" data-slug="editor-panels">Editor panels</a> · <a href="census.html" data-slug="census">Census</a> · <a href="devconsole.html" data-slug="devconsole">Dev console</a> · <a href="bindings.html" data-slug="bindings">Bindings</a> · <a href="audio.html" data-slug="audio">Audio</a> · <a href="palette.html" data-slug="palette">Palette roles</a> · <a href="profile.html" data-slug="profile">Profiler</a> · <b>Host link</b> · <a href="window.html" data-slug="window">Custom windows</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-editor-channels.html">Editor channels</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

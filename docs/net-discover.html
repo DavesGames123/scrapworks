@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LAN discovery - Warp Wiki</title>
+<meta name="description" content="UDP beacons that let a guest list the hosts on its local network">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="net-discover">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#usage">Usage</a></li><li><a href="#the-beacon">The beacon</a></li><li><a href="#the-listener">The listener</a></li><li><a href="#when-the-port-is-not-available">When the port is not available</a></li><li><a href="#security">Security</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">LAN discovery</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">UDP beacons that let a guest list the hosts on its local network</p><table class="infobox"><caption>LAN discovery</caption><tr><th>Category</th><td><a href="category-networking.html">Networking</a></td></tr><tr><th>Module</th><td><code>warp_sdk::net::discover</code></td></tr><tr><th>Source</th><td><code>warp_net/src/discover.rs</code></td></tr><tr><th>Feature</th><td><code>net</code></td></tr><tr><th>Public items</th><td><a href="#reference">12</a></td></tr></table><p><strong>LAN discovery</strong> is the Warp SDK's local host listing: a host announces its session by UDP broadcast, and a guest lists the hosts it hears. It lives in <a class="sym" href="net-discover.html"><code>warp_sdk::net::discover</code></a>, re-exported from <code>warp_net</code>. The application holds one <a class="sym" href="#sym-Discovery"><code>Discovery</code></a> value. A beacon never holds the join code, so discovery only helps a guest find an address.</p>
+<h2 id="usage">Usage</h2>
+<p><a class="sym" href="#sym-DiscoveryConfig"><code>DiscoveryConfig</code></a> sets four fields, and <a class="sym" href="#sym-Discovery-new"><code>Discovery::new</code></a> takes it.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>magic</code></td>
+<td>The first four bytes of each datagram, so another application on the LAN is not heard</td>
+</tr>
+<tr>
+<td><code>port</code></td>
+<td>The UDP port of the beacon and the listener</td>
+</tr>
+<tr>
+<td><code>build</code></td>
+<td>The build string of this process, cut to 64 bytes</td>
+</tr>
+<tr>
+<td><code>proto</code></td>
+<td>The wire version of this process</td>
+</tr>
+</tbody>
+</table>
+<p><a class="sym" href="#sym-DEFAULT_DISCOVERY_PORT"><code>DEFAULT_DISCOVERY_PORT</code></a> is 47475, for an application with no port of its own. The magic tag is how two applications on one LAN stay apart. <sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<p>A host calls <a class="sym" href="#sym-Discovery-announce"><code>Discovery::announce</code></a> with the game port, the seat count, an application payload, and a closure that gives the player count. A guest calls <a class="sym" href="#sym-Discovery-nearby"><code>Discovery::nearby</code></a> and shows the <a class="sym" href="#sym-Nearby"><code>Nearby</code></a> list. Nearby::addr is where to connect, <code>players</code> and <code>max</code> give the counts, and <code>build_ok</code> is false when the host runs another build or wire version. The guest still joins with the code, through <a class="sym" href="net-session.html#sym-Session-join_tcp"><code>Session::join_tcp</code></a> or an invite.</p>
+<p><a class="sym" href="#sym-lan_address"><code>lan_address</code></a> gives the address that other machines on the LAN reach this one at. A UDP connect picks a route and sends nothing. <a class="sym" href="net-session.html#sym-host_invite"><code>host_invite</code></a> uses it too. <sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
+<h2 id="the-beacon">The beacon</h2>
+<p>While a session is hosted, one beacon thread sends one UDP datagram per second to the discovery port. The targets are the LAN broadcast address <code>255.255.255.255</code>, the directed broadcast of the LAN address, and <code>127.0.0.1</code> for a second copy on this machine. A /24 is assumed for the directed broadcast, because the standard library cannot read the netmask. <sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<p>The datagram holds the magic tag, a format version, the game port, the players now, the seats, the wire version, the build, a random session id and the application payload, up to 256 bytes. The payload can hold a host name, for example, and <code>warp_net</code> never reads it.</p>
+<p>The thread reads the player count through the closure each period, and holds no lock while it calls the closure. <a class="sym" href="#sym-Discovery-announce"><code>Discovery::announce</code></a> replaces a running beacon and returns the session id of the new one, or None in a wasm build. <a class="sym" href="#sym-Discovery-stop_announce"><code>Discovery::stop_announce</code></a> stops it at once, and so does dropping the <a class="sym" href="#sym-Discovery"><code>Discovery</code></a> value. <a class="sym" href="#sym-Discovery-announcing"><code>Discovery::announcing</code></a> reports whether one runs. <sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<h2 id="the-listener">The listener</h2>
+<p>The first call of <a class="sym" href="#sym-Discovery-nearby"><code>Discovery::nearby</code></a> starts one listener thread on <code>0.0.0.0</code> at the discovery port. With no <a class="sym" href="#sym-Discovery-nearby"><code>nearby</code></a> call for 30 seconds, the thread stops, and the next call starts it again. A game therefore pays for listening only while its join screen polls. <sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<p>The listener parses each datagram strictly. It must be at most 512 bytes, with the magic and the version, no trailing bytes, a nonzero port, at least one seat, players not above seats, a build of at most 64 bytes in UTF-8, and a payload of at most 256 bytes. <sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<p>The table keys an entry by sender IP, port and session id, keeps at most 32 entries, and forgets an entry not heard for 3 seconds. A full table drops its oldest entry. <a class="sym" href="#sym-Discovery-nearby"><code>Discovery::nearby</code></a> lists newest first and skips the beacons that this <a class="sym" href="#sym-Discovery"><code>Discovery</code></a> value sent, so a host does not see itself.</p>
+<h2 id="when-the-port-is-not-available">When the port is not available</h2>
+<p>The bind does not set SO_REUSEADDR. A second copy of the application on one machine therefore cannot listen, and macOS can refuse the port when Local Network access is off. A failed bind does not panic. <a class="sym" href="#sym-Discovery-nearby"><code>Discovery::nearby</code></a> gives an empty list and tries again after 5 seconds, and <a class="sym" href="#sym-Discovery-listen_error"><code>Discovery::listen_error</code></a> gives the text for the interface. The log shows each new error one time. <sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<h2 id="security">Security</h2>
+<p>Anyone on the LAN can send a false beacon. A false entry can only point the guest at an address, and that address still needs the join code through SPAKE2, so the worst result is a failed join. A listener learns only the port, the counts, the build and the payload. <sup class="ref"><a href="#ref-8" id="cite-8">[8]</a></sup></p>
+<p>The payload is not trusted, and the application must clean any text in it before it shows the text. The listener parses at most 200 datagrams per second and drops the rest unread, and the table cap limits the memory that a flood can use. <sup class="ref"><a href="#ref-9" id="cite-9">[9]</a></sup></p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>Discovery reaches only the broadcast domain of the LAN. An internet guest needs an <a href="net-invite.html" data-slug="net-invite">invite</a>.</li>
+<li>Only one listener can bind the port per machine.</li>
+<li>The directed broadcast assumes a /24, so a network with another mask relies on the limited broadcast.</li>
+<li>The announcement and the join code are separate. A guest that finds a host still needs the code.</li>
+</ul><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 12 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-net--discover" class="modhead"><code>warp_sdk::net::discover</code> <span class="feat">feature <code>net</code></span></h3><h4>Functions</h4><div class="item" id="sym-lan_address" data-name="lan_address"><div class="sig"><a class="anchor" href="#sym-lan_address" aria-label="Link to lan_address">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">lan_address</span>() -&gt; <span class="t">Option</span>&lt;<span class="t">IpAddr</span>&gt;</code></div><div class="doc"><p>The address other machines on the LAN reach this one at. A UDP
+"connect" picks a route and sends nothing.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Discovery" data-name="discovery"><div class="sig"><a class="anchor" href="#sym-Discovery" aria-label="Link to Discovery">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Discovery</span></code></div><div class="doc"><p>The LAN discovery of one application: one listener and at most one
+beacon. The application holds the value. Two values in one process
+(for example two sessions in one test) hear the beacons of each other,
+but each value skips its own.</p></div></div><details class="members"><summary>7 methods</summary><div class="item" id="sym-Discovery-new" data-name="discovery::new"><div class="sig"><a class="anchor" href="#sym-Discovery-new" aria-label="Link to Discovery::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(cfg: <span class="t">DiscoveryConfig</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A value with no listener thread and no beacon yet.</p></div></div><div class="item" id="sym-Discovery-config" data-name="discovery::config"><div class="sig"><a class="anchor" href="#sym-Discovery-config" aria-label="Link to Discovery::config">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">config</span>(&amp;<span class="k">self</span>) -&gt; &amp;<span class="t">DiscoveryConfig</span></code></div><div class="doc"><p>The configuration this value uses.</p></div></div><div class="item" id="sym-Discovery-nearby" data-name="discovery::nearby"><div class="sig"><a class="anchor" href="#sym-Discovery-nearby" aria-label="Link to Discovery::nearby">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">nearby</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Vec</span>&lt;<span class="t">Nearby</span>&gt;</code></div><div class="doc"><p>The hosts heard in the last few seconds, newest first, without the
+beacons of this value. The first call starts the listener.</p></div></div><div class="item" id="sym-Discovery-listen_error" data-name="discovery::listen_error"><div class="sig"><a class="anchor" href="#sym-Discovery-listen_error" aria-label="Link to Discovery::listen_error">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">listen_error</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">Option</span>&lt;<span class="t">String</span>&gt;</code></div><div class="doc"><p>Why the listener cannot hear the LAN (the last bind failed), or None.</p></div></div><div class="item" id="sym-Discovery-announce" data-name="discovery::announce"><div class="sig"><a class="anchor" href="#sym-Discovery-announce" aria-label="Link to Discovery::announce">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">announce</span>( &amp;<span class="k">self</span>, port: u16, max: u8, payload: <span class="t">Vec</span>&lt;u8&gt;, players: <span class="k">impl</span> <span class="t">Fn</span>() -&gt; u8 + <span class="t">Send</span> + <span class="a">'static</span>, ) -&gt; <span class="t">Option</span>&lt;u64&gt;</code></div><div class="doc"><p>Start the announcement for a session hosted on <code>port</code> with <code>max</code>
+seats and the application <code>payload</code> (cut to PAYLOAD_CAP bytes).
+<code>players</code> gives the player count each period. A running beacon
+stops first. Returns the session id of the new beacon, or None in a
+wasm build.</p></div></div><div class="item" id="sym-Discovery-stop_announce" data-name="discovery::stop_announce"><div class="sig"><a class="anchor" href="#sym-Discovery-stop_announce" aria-label="Link to Discovery::stop_announce">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">stop_announce</span>(&amp;<span class="k">self</span>)</code></div><div class="doc"><p>Stop the announcement, if any.</p></div></div><div class="item" id="sym-Discovery-announcing" data-name="discovery::announcing"><div class="sig"><a class="anchor" href="#sym-Discovery-announcing" aria-label="Link to Discovery::announcing">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">announcing</span>(&amp;<span class="k">self</span>) -&gt; bool</code></div><div class="doc"><p>True while a beacon of this value runs.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-DiscoveryConfig" data-name="discoveryconfig"><div class="sig"><a class="anchor" href="#sym-DiscoveryConfig" aria-label="Link to DiscoveryConfig">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">DiscoveryConfig</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The first four bytes of each datagram. Use a tag of the</span>
+<span class="c">/// application, so that another application on the LAN is not heard.</span>
+<span class="k">pub</span> magic: [u8; <span class="n">4</span>],
+<span class="c">/// The UDP port of the beacon and the listener.</span>
+<span class="k">pub</span> port: u16,
+<span class="c">/// The build string of this process. Cut to BUILD_CAP bytes.</span>
+<span class="k">pub</span> build: <span class="t">String</span>,
+<span class="c">/// The wire version of this process.</span>
+<span class="k">pub</span> proto: u32,</code></pre></div><div class="doc"><p>What the application gives to Discovery.</p></div></div></div><div class="typeblock"><div class="item" id="sym-Nearby" data-name="nearby"><div class="sig"><a class="anchor" href="#sym-Nearby" aria-label="Link to Nearby">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">Nearby</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Where to connect: the sender IP and the port it announced.</span>
+<span class="k">pub</span> addr: <span class="t">SocketAddr</span>,
+<span class="k">pub</span> players: u8,
+<span class="k">pub</span> max: u8,
+<span class="c">/// False when the host runs another build or wire version.</span>
+<span class="k">pub</span> build_ok: bool,
+<span class="c">/// The application payload of the beacon, not trusted.</span>
+<span class="k">pub</span> payload: <span class="t">Vec</span>&lt;u8&gt;,</code></pre></div><div class="doc"><p>One host heard on the LAN.</p></div></div></div><h4>Constants</h4><div class="item" id="sym-DEFAULT_DISCOVERY_PORT" data-name="default_discovery_port"><div class="sig"><a class="anchor" href="#sym-DEFAULT_DISCOVERY_PORT" aria-label="Link to DEFAULT_DISCOVERY_PORT">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">DEFAULT_DISCOVERY_PORT</span>: u16 = <span class="n">47475</span></code></div><div class="doc"><p>The UDP port of the beacon and the listener, when the application has
+no port of its own.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="net.html" data-slug="net">Networking</a></li><li><a href="net-session.html" data-slug="net-session">Network sessions</a></li><li><a href="net-invite.html" data-slug="net-invite">Network invites</a></li><li><a href="net-transports.html" data-slug="net-transports">Network transports</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_net/src/discover.rs</code> - <code>a four-byte magic tag of its own (two applications on one LAN do not</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_net/src/discover.rs</code> - <code>The address other machines on the LAN reach this one at. A UDP</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_net/src/discover.rs</code> - <code>the directed broadcast of the LAN address (a /24 is</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_net/src/discover.rs</code> - <code>gives. The thread holds no lock of ours while it calls the closure.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_net/src/discover.rs</code> - <code>With no nearby() call for this long, the listener thread stops.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_net/src/discover.rs</code> - <code>strictly (decode): at most MAX_DATAGRAM bytes, the magic and the</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_net/src/discover.rs</code> - <code>The bind does not set SO_REUSEADDR. Thus a second copy of the</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_net/src/discover.rs</code> - <code>Anyone on the LAN can send a false beacon. A false entry can only point</code></li><li id="ref-9"><a class="back" href="#cite-9" aria-label="Back to the text">^</a> <code>warp_net/src/discover.rs</code> - <code>The payload is not trusted: the</code></li></ol><table class="navbox"><tr><th><a href="category-networking.html">Networking</a></th></tr><tr><td><a href="net.html" data-slug="net">Networking</a> · <a href="net-session.html" data-slug="net-session">Network sessions</a> · <a href="net-invite.html" data-slug="net-invite">Network invites</a> · <a href="net-transports.html" data-slug="net-transports">Network transports</a> · <b>LAN discovery</b></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-networking.html">Networking</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>

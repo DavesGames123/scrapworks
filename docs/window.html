@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Custom windows - Warp Wiki</title>
+<meta name="description" content="an application panel in the editor, from two methods">
+<script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="assets/wiki.css">
+<script src="../shared/scrap-brand.js" defer></script>
+<script src="assets/wiki.js" defer></script>
+</head>
+<body class="" data-slug="window">
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
+  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <div class="search" role="search">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <kbd>/</kbd>
+    <div class="results" id="results" hidden></div>
+  </div>
+  <div class="tools"><a href="../index.html">Scrap home</a>
+  <button class="theme" type="button" aria-label="Switch colour theme">Theme</button></div>
+</header>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Main menu">
+    <div class="portal"><h2>Main menu</h2><ul>
+      <li><a href="index.html">Main page</a></li>
+      <li><a href="all-articles.html">All articles</a></li>
+      <li><a href="symbols.html">Symbol index</a></li>
+      <li><a href="shader-catalog.html">Shader catalog</a></li>
+      <li><a href="recent-changes.html">Recent changes</a></li>
+      <li><a href="random.html" id="rnd">Random article</a></li>
+    </ul></div>
+    <div class="portal"><h2>Libraries</h2><ul><li><a href="category-introduction.html">Introduction</a></li><li><a href="category-getting-started.html">Getting started</a></li><li><a href="category-front-end.html">Front end</a></li><li><a href="category-look.html">Look</a></li><li><a href="category-shader-library.html">Shader library</a></li><li><a href="category-information.html">Information</a></li><li><a href="category-world-and-simulation.html">World and simulation</a></li><li><a href="category-game-systems.html">Game systems</a></li><li><a href="category-networking.html">Networking</a></li><li><a href="category-engine.html">Engine</a></li><li><a href="category-editor-channels.html">Editor channels</a></li><li><a href="category-guides.html">Guides</a></li></ul></div>
+    <nav class="toc" aria-label="Contents"><h2>Contents</h2><ul><li><a href="#top">(Top)</a></li><li><a href="#usage">Usage</a></li><li><a href="#the-spec">The spec</a></li><li><a href="#design">Design</a></li><li><a href="#registration">Registration</a></li><li><a href="#what-it-is-not">What it is not</a></li><li><a href="#the-surface-a-window-may-name">The surface a window may name</a></li><li><a href="#limitations">Limitations</a></li><li><a href="#history">History</a></li><li><a href="#reference">Reference</a></li><li><a href="#see-also">See also</a></li><li><a href="#references">References</a></li></ul></nav>
+  </aside>
+  <main id="content"><a id="top"></a>
+    <h1 class="firstHeading">Custom windows</h1>
+    <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
+    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">an application panel in the editor, from two methods</p><table class="infobox"><caption>Custom windows</caption><tr><th>Category</th><td><a href="category-editor-channels.html">Editor channels</a></td></tr><tr><th>Module</th><td><code>warp_sdk::window</code></td></tr><tr><th>Source</th><td><code>warp_core/src/window/mod.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">26</a></td></tr></table><p><strong>Custom windows</strong> are panels that an application adds to the Warp editor without editing the editor. The <a class="sym" href="window.html"><code>window</code></a> module of <code>warp_core</code>, re-exported by <code>warp_sdk</code>, holds the facts of a window as one struct and one trait, and keeps a process-wide table of them. An author implements <a class="sym" href="#sym-WarpWindow"><code>WarpWindow</code></a>, with its two methods <a class="sym" href="#sym-WarpWindow-spec"><code>spec</code></a> and <a class="sym" href="#sym-WarpWindow-ui"><code>ui</code></a>, calls <a class="sym" href="#sym-register"><code>register</code></a> before <a class="sym" href="renderer.html#sym-run"><code>run</code></a>, and gets a tab, a row in the View menu, a place in the layout, and a tear-off to a real OS window.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+<h2 id="usage">Usage</h2>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust"><span class="k">use</span> warp_sdk::window::{<span class="t">Group</span>, <span class="t">WarpWindow</span>, <span class="t">WindowSpec</span>};
+
+<span class="a">#[derive(Default)]</span>
+<span class="k">pub</span> <span class="k">struct</span> <span class="t">MeterWindow</span> {
+    samples: u32,
+}
+
+<span class="k">impl</span> <span class="t">WarpWindow</span> <span class="k">for</span> <span class="t">MeterWindow</span> {
+    <span class="k">fn</span> <span class="f">spec</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">WindowSpec</span> {
+        <span class="t">WindowSpec</span>::<span class="f">new</span>(<span class="s">"meter"</span>, <span class="s">"Meter"</span>)
+            .<span class="f">group</span>(<span class="t">Group</span>::<span class="t">Debug</span>)
+            .<span class="f">summary</span>(<span class="s">"What the frame cost, as a number."</span>)
+    }
+
+    <span class="k">fn</span> <span class="f">ui</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ui: &amp;<span class="k">mut</span> warp_sdk::egui::<span class="t">Ui</span>) {
+        ui.<span class="f">label</span>(format!(<span class="s">"{} samples"</span>, <span class="k">self</span>.samples));
+    }
+}</code></pre></div>
+<p>Register it from <code>main</code>, before <a class="sym" href="renderer.html#sym-run"><code>run</code></a>:</p>
+<div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code class="lang-rust">warp_sdk::window::<span class="f">register</span>(<span class="t">Box</span>::<span class="f">new</span>(<span class="t">MeterWindow</span>::<span class="f">default</span>())).<span class="f">ok</span>();   <span class="c">// once, before run</span></code></pre></div>
+<p><a class="sym" href="#sym-WarpWindow-spec"><code>WarpWindow::spec</code></a> is read each frame, so a title can carry live state. <a class="sym" href="#sym-WarpWindow-on_close"><code>WarpWindow::on_close</code></a> is an optional third method for a window that holds something to release.</p>
+<h2 id="the-spec">The spec</h2>
+<p><a class="sym" href="#sym-WindowSpec-new"><code>WindowSpec::new</code></a> takes a bare name and a title. The id gets the <a class="sym" href="#sym-KIND_PREFIX"><code>KIND_PREFIX</code></a>, <code>window.</code>, added once, whether or not the caller wrote it.</p>
+<table class="wikitable">
+<thead>
+<tr>
+<th>Builder</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="sym" href="#sym-WindowSpec-group"><code>WindowSpec::group</code></a></td>
+<td>Which View menu group it is filed under</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-WindowSpec-pinned"><code>WindowSpec::pinned</code></a></td>
+<td>It cannot be closed</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-WindowSpec-primary_only"><code>WindowSpec::primary_only</code></a></td>
+<td>It cannot leave the primary window</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-WindowSpec-standalone"><code>WindowSpec::standalone</code></a></td>
+<td>It may become its own process</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-WindowSpec-undocked"><code>WindowSpec::undocked</code></a></td>
+<td>Kept out of a reset layout; the View menu still has it</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-WindowSpec-source"><code>WindowSpec::source</code></a></td>
+<td>The file that the Windows panel shows beside it</td>
+</tr>
+<tr>
+<td><a class="sym" href="#sym-WindowSpec-summary"><code>WindowSpec::summary</code></a></td>
+<td>One line about its purpose</td>
+</tr>
+</tbody>
+</table>
+<p>The defaults are closable, tearable, docked and not standalone. <a class="sym" href="#sym-Group"><code>Group</code></a> has Scene, Assets, Code, Debug and Tools, and Tools is the default. The engine names no menu: these are coarse kinds that an editor maps to its groups.</p>
+<h2 id="design">Design</h2>
+<p>The dock was always open. It holds a panel id, which is a string, and asks a host for everything else. The closed part was the host: one panel's facts were written at fourteen <code>match</code> sites in the editor, and each site ended in a default arm. A forgotten site returned the wrong answer and still compiled.<sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup> A <a class="sym" href="#sym-WindowSpec"><code>WindowSpec</code></a> answers all fourteen from one value, so a registered window is complete or absent, with no state between.</p>
+<p><a class="sym" href="window.html"><code>window</code></a> is published and <code>dock</code> is not, and that is one decision. An author wants to say what a panel is called and to draw it. <code>dock</code> is the same want with a tree of rects, a drag protocol and a tear-off across processes attached.<sup class="ref"><a href="#ref-3" id="cite-3">[3]</a></sup></p>
+<p>The table is global, like the other things that an application declares, such as the atlas set in <a href="image.html" data-slug="image">Image atlases</a> and the scene layers in <a href="render.html" data-slug="render">Render passes</a>. The engine must not name the application, so the application hands its declarations in. A window must be sendable between threads, because the table is a static reachable from any thread. Nothing draws off the main thread.</p>
+<h2 id="registration">Registration</h2>
+<p><a class="sym" href="#sym-register"><code>register</code></a> returns a result. It fails for an empty name, and for a name with a <code>:</code>, which the dock reads as an instance separator. So the full kind is <code>window.hello</code>, never <code>window:hello</code>.</p>
+<p>A second window of a name already registered replaces the first and returns an error. Two windows of one id would give the dock a panel that it could show twice and close once, and silently keeping the first is the failure that takes longest to see.<sup class="ref"><a href="#ref-4" id="cite-4">[4]</a></sup></p>
+<p>The host uses <a class="sym" href="#sym-owns"><code>owns</code></a>, <a class="sym" href="#sym-specs"><code>specs</code></a>, <a class="sym" href="#sym-spec_of"><code>spec_of</code></a>, <a class="sym" href="#sym-count"><code>count</code></a>, <a class="sym" href="#sym-draw"><code>draw</code></a> and <a class="sym" href="#sym-close_all"><code>close_all</code></a>. <a class="sym" href="#sym-owns"><code>owns</code></a> tests the prefix and nothing else, so a host holds no list of ids.</p>
+<p><a class="sym" href="#sym-draw"><code>draw</code></a> holds the lock for the body of one window, and it uses <code>try_lock</code>. A window that drew itself from inside itself would deadlock, so it gets a line of text saying which window did it.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p>
+<p><a class="sym" href="#sym-register_disable"><code>register_disable</code></a> and <a class="sym" href="#sym-disable"><code>disable</code></a> hold a closure per panel kind that releases reopenable GPU resources, because freeing a tool's texture id needs the egui renderer. A tool that owns a target need not be a <a class="sym" href="#sym-WarpWindow"><code>WarpWindow</code></a>. A second disabler replaces the first and returns an error, the same contract as <a class="sym" href="#sym-register"><code>register</code></a>.</p>
+<h2 id="what-it-is-not">What it is not</h2>
+<p>It is not dynamic loading. There is no <code>libloading</code>, <code>dlopen</code> or wasm host in the workspace. A registered window is code compiled into the binary that runs it, so a rebuild is part of authoring, and there is no reload.<sup class="ref"><a href="#ref-6" id="cite-6">[6]</a></sup></p>
+<h2 id="the-surface-a-window-may-name">The surface a window may name</h2>
+<p>A window keeps to the published surface of <code>warp_sdk</code>. A window that keeps to it builds in a crate of its own, and a window that reaches past it cannot leave the repository. Widening what a window may name means one reviewed line of <code>warp_sdk/src/lib.rs</code>.<sup class="ref"><a href="#ref-7" id="cite-7">[7]</a></sup></p>
+<p>Windows that ship with the editor sit in <code>warp_editor/src/windows/</code>, one file each. They name <code>warp_core</code>, and a test still holds them to the published surface by reading the allow-list from <code>warp_sdk/src/lib.rs</code>.</p>
+<p>The <strong>Windows</strong> panel of the editor lists registered windows. It shows the source of the selected window beside the window itself, running, as the same registered object that the dock draws. Its API tab draws <code>warp_sdk/API.md</code>. Pressing Create writes a file from a template, and adds the lines that declare it. The panel prints the build command and does not run it, because a binary cannot replace itself while it is the running process.</p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>A rebuild is part of authoring.</li>
+<li>There is one window per name.</li>
+<li>A window must be sendable between threads.</li>
+<li>The scaffold needs a source tree, so a shipped binary with no <code>warp_editor/src/windows</code> beside it has nowhere to write.</li>
+</ul>
+<h2 id="history">History</h2>
+<p>The module was added on 2026-08-20.</p><h2 id="reference">Reference</h2><p class="refnote">This section lists every public item, as the source defines it.</p><div class="reffilter"><input type="search" placeholder="Filter 26 items on this page" aria-label="Filter items"><span class="refcount"></span></div><h3 id="mod-window" class="modhead"><code>warp_sdk::window</code></h3><h4>Functions</h4><div class="item" id="sym-register" data-name="register"><div class="sig"><a class="anchor" href="#sym-register" aria-label="Link to register">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">register</span>(window: <span class="t">Box</span>&lt;<span class="k">dyn</span> <span class="t">WarpWindow</span>&gt;) -&gt; <span class="t">Result</span>&lt;(), <span class="t">String</span>&gt;</code></div><div class="doc"><p>Add a window. Call before <code>run</code>, from the application's <code>main</code>.</p>
+<p>A second window of a name already registered REPLACES the first and says
+so. Two windows of one id would give the dock a panel it could show twice
+and close once, and silently keeping the first is the failure that takes
+longest to see.</p></div></div><div class="item" id="sym-owns" data-name="owns"><div class="sig"><a class="anchor" href="#sym-owns" aria-label="Link to owns">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">owns</span>(kind: &amp;str) -&gt; bool</code></div><div class="doc"><p>Is this panel id one of ours?</p>
+<p>The prefix and nothing else, so a host can ask before it has a spec and
+without holding a list.</p></div></div><div class="item" id="sym-specs" data-name="specs"><div class="sig"><a class="anchor" href="#sym-specs" aria-label="Link to specs">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">specs</span>() -&gt; <span class="t">Vec</span>&lt;<span class="t">WindowSpec</span>&gt;</code></div><div class="doc"><p>Every registered window's facts, in registration order.</p></div></div><div class="item" id="sym-spec_of" data-name="spec_of"><div class="sig"><a class="anchor" href="#sym-spec_of" aria-label="Link to spec_of">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">spec_of</span>(kind: &amp;str) -&gt; <span class="t">Option</span>&lt;<span class="t">WindowSpec</span>&gt;</code></div><div class="doc"><p>One window's facts, by kind.</p></div></div><div class="item" id="sym-count" data-name="count"><div class="sig"><a class="anchor" href="#sym-count" aria-label="Link to count">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">count</span>() -&gt; usize</code></div><div class="doc"><p>How many windows are registered.</p></div></div><div class="item" id="sym-close_all" data-name="close_all"><div class="sig"><a class="anchor" href="#sym-close_all" aria-label="Link to close_all">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">close_all</span>()</code></div><div class="doc"><p>Tear down every registered window, in registration order.</p>
+<p>The host calls this once at shutdown, so a registered tool reaps a port, a
+child process, or a target the way the built-in panels do. It generalises
+the editor's hand-written stop list: a tool the shell never names still gets
+its <code>on_close</code>. A poisoned table is skipped, because a panic on the quit
+path would strand the very resources this reaps.</p></div></div><div class="item" id="sym-register_disable" data-name="register_disable"><div class="sig"><a class="anchor" href="#sym-register_disable" aria-label="Link to register_disable">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">register_disable</span>( kind: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;, f: <span class="k">impl</span> <span class="t">Fn</span>(&amp;<span class="k">mut</span> egui_wgpu::<span class="t">Renderer</span>) + <span class="t">Send</span> + <span class="a">'static</span>, ) -&gt; <span class="t">Result</span>&lt;(), <span class="t">String</span>&gt;</code></div><div class="doc"><p>Register the closure that releases a panel kind's reopenable resources.</p>
+<p>A tool calls this once, before <code>run</code>. A second disabler for a kind already
+registered REPLACES the first and returns <code>Err</code>, the same contract as
+<code>register</code>, so a double registration is seen and not silent.</p></div></div><div class="item" id="sym-disable" data-name="disable"><div class="sig"><a class="anchor" href="#sym-disable" aria-label="Link to disable">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">disable</span>(kind: &amp;str, gui: &amp;<span class="k">mut</span> egui_wgpu::<span class="t">Renderer</span>) -&gt; bool</code></div><div class="doc"><p>Release a panel kind's reopenable resources. False when no kind matches.</p>
+<p>The dock calls this on per-panel close, with the renderer it holds at close
+time. A poisoned table is skipped, so a close gesture cannot panic. A
+disabler must not call back into this registry, because the table stays
+locked for the call, the same rule <code>close_all</code> keeps for <code>on_close</code>.</p></div></div><div class="item" id="sym-draw" data-name="draw"><div class="sig"><a class="anchor" href="#sym-draw" aria-label="Link to draw">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">draw</span>(kind: &amp;str, ui: &amp;<span class="k">mut</span> egui::<span class="t">Ui</span>) -&gt; bool</code></div><div class="doc"><p>Draw one window's body. False when no window has that kind.</p>
+<p><code>try_lock</code> and not <code>lock</code>: see the module header. A window that draws
+itself from inside itself gets a line of text, not a frozen editor.</p></div></div><h4>Types</h4><div class="typeblock"><div class="item" id="sym-Group" data-name="group"><div class="sig"><a class="anchor" href="#sym-Group" aria-label="Link to Group">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">enum</span> <span class="t">Group</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// Looked at to change how the project renders.</span>
+<span class="t">Scene</span>,
+<span class="c">/// Looked at to read or write a file of the project.</span>
+<span class="t">Assets</span>,
+<span class="c">/// Looked at to write code.</span>
+<span class="t">Code</span>,
+<span class="c">/// Looked at to measure something that is running.</span>
+<span class="t">Debug</span>,
+<span class="c">/// Everything else, and the default.</span>
+<span class="t">Tools</span>,</code></pre></div><div class="doc"><p>Where a window asks to be filed in the View menu.</p>
+<p>The engine names no menu. These are the coarse kinds an editor can map onto
+whatever groups it has, and <code>Tools</code> is the answer for a window that does
+not care — which is most of them, and is what the editor already does with
+a panel no group arm names.</p></div></div><details class="members"><summary>1 method</summary><div class="item" id="sym-Group-title" data-name="group::title"><div class="sig"><a class="anchor" href="#sym-Group-title" aria-label="Link to Group::title">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">title</span>(<span class="k">self</span>) -&gt; &amp;<span class="a">'static</span> str</code></div><div class="doc"><p>The group's name, for a host with no mapping of its own.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-WindowSpec" data-name="windowspec"><div class="sig"><a class="anchor" href="#sym-WindowSpec" aria-label="Link to WindowSpec">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">struct</span> <span class="t">WindowSpec</span></code></div><div class="code body"><pre><code class="lang-rust"><span class="c">/// The panel kind. `KIND_PREFIX` is prepended by `new`, so an author</span>
+<span class="c">/// writes "hello" and the dock sees "window.hello".</span>
+<span class="k">pub</span> id: <span class="t">String</span>,
+<span class="c">/// What the tab says.</span>
+<span class="k">pub</span> title: <span class="t">String</span>,
+<span class="c">/// Which View menu group it is filed under.</span>
+<span class="k">pub</span> group: <span class="t">Group</span>,
+<span class="c">/// False for a window that cannot be closed.</span>
+<span class="k">pub</span> closable: bool,
+<span class="c">/// False for a window that can only be drawn in the primary window.</span>
+<span class="c">/// </span>
+<span class="c">/// True is the right default and a native view is the reason to change it:</span>
+<span class="c">/// a panel that places an NSView as a subview of one window cannot travel</span>
+<span class="c">/// to another.</span>
+<span class="k">pub</span> tearable: bool,
+<span class="c">/// True for a window that reads only the filesystem and can therefore</span>
+<span class="c">/// become its own process.</span>
+<span class="k">pub</span> standalone: bool,
+<span class="c">/// True to put it in a reset layout beside the game, rather than leaving</span>
+<span class="c">/// it to the View menu.</span>
+<span class="k">pub</span> docked: bool,
+<span class="c">/// The file that declares it. Dormant plumbing: no panel reads it now,</span>
+<span class="c">/// after the Windows panel was removed. It stays because a window</span>
+<span class="c">/// carries its own source path at no cost, and a later viewer can read it.</span>
+<span class="c">/// </span>
+<span class="c">/// `None` is legal and means the window came from somewhere this build</span>
+<span class="c">/// cannot point at — another crate, or a macro.</span>
+<span class="k">pub</span> source: <span class="t">Option</span>&lt;<span class="t">PathBuf</span>&gt;,
+<span class="c">/// One line saying what the window is for, shown above its source.</span>
+<span class="k">pub</span> summary: <span class="t">String</span>,</code></pre></div><div class="doc"><p>Everything about a window that is not its body.</p>
+<p>One value answers every question the fourteen host sites ask. A field added
+here is a question the host can start asking without a new lookup.</p></div></div><details class="members"><summary>9 methods</summary><div class="item" id="sym-WindowSpec-new" data-name="windowspec::new"><div class="sig"><a class="anchor" href="#sym-WindowSpec-new" aria-label="Link to WindowSpec::new">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">new</span>(name: &amp;str, title: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>A window of this name and title, with every permission at its default.</p>
+<p><code>name</code> is bare. The prefix is added here so that no caller writes it,
+and so that a caller who writes it anyway does not get it twice.</p></div></div><div class="item" id="sym-WindowSpec-group" data-name="windowspec::group"><div class="sig"><a class="anchor" href="#sym-WindowSpec-group" aria-label="Link to WindowSpec::group">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">group</span>(<span class="k">mut</span> <span class="k">self</span>, group: <span class="t">Group</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>File it under this group in the View menu.</p></div></div><div class="item" id="sym-WindowSpec-pinned" data-name="windowspec::pinned"><div class="sig"><a class="anchor" href="#sym-WindowSpec-pinned" aria-label="Link to WindowSpec::pinned">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">pinned</span>(<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Cannot be closed.</p></div></div><div class="item" id="sym-WindowSpec-primary_only" data-name="windowspec::primary_only"><div class="sig"><a class="anchor" href="#sym-WindowSpec-primary_only" aria-label="Link to WindowSpec::primary_only">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">primary_only</span>(<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Cannot leave the primary window.</p></div></div><div class="item" id="sym-WindowSpec-standalone" data-name="windowspec::standalone"><div class="sig"><a class="anchor" href="#sym-WindowSpec-standalone" aria-label="Link to WindowSpec::standalone">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">standalone</span>(<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Can become its own process.</p></div></div><div class="item" id="sym-WindowSpec-undocked" data-name="windowspec::undocked"><div class="sig"><a class="anchor" href="#sym-WindowSpec-undocked" aria-label="Link to WindowSpec::undocked">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">undocked</span>(<span class="k">mut</span> <span class="k">self</span>) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>Keep it out of a reset layout. It stays reachable from the View menu.</p></div></div><div class="item" id="sym-WindowSpec-source" data-name="windowspec::source"><div class="sig"><a class="anchor" href="#sym-WindowSpec-source" aria-label="Link to WindowSpec::source">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">source</span>(<span class="k">mut</span> <span class="k">self</span>, path: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">PathBuf</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>The file that declares this window.</p></div></div><div class="item" id="sym-WindowSpec-summary" data-name="windowspec::summary"><div class="sig"><a class="anchor" href="#sym-WindowSpec-summary" aria-label="Link to WindowSpec::summary">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">summary</span>(<span class="k">mut</span> <span class="k">self</span>, text: <span class="k">impl</span> <span class="t">Into</span>&lt;<span class="t">String</span>&gt;) -&gt; <span class="k">Self</span></code></div><div class="doc"><p>One line about what it is for.</p></div></div><div class="item" id="sym-WindowSpec-name" data-name="windowspec::name"><div class="sig"><a class="anchor" href="#sym-WindowSpec-name" aria-label="Link to WindowSpec::name">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">fn</span> <span class="f">name</span>(&amp;<span class="k">self</span>) -&gt; &amp;str</code></div><div class="doc"><p>The name without the prefix, for a panel that lists windows by name.</p></div></div></details></div><div class="typeblock"><div class="item" id="sym-WarpWindow" data-name="warpwindow"><div class="sig"><a class="anchor" href="#sym-WarpWindow" aria-label="Link to WarpWindow">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">trait</span> <span class="t">WarpWindow</span>: <span class="t">Send</span></code></div><div class="doc"><p>One window: what it is, and how it draws.</p>
+<p>Two methods, and the first is a constant for almost every implementation.
+That is the whole contract — an author who implements this and registers it
+has a panel with a tab, a menu row, a place in the layout, and a tear-off
+to a real window.</p></div></div><details class="members"><summary>3 methods</summary><div class="item" id="sym-WarpWindow-spec" data-name="warpwindow::spec"><div class="sig"><a class="anchor" href="#sym-WarpWindow-spec" aria-label="Link to WarpWindow::spec">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">spec</span>(&amp;<span class="k">self</span>) -&gt; <span class="t">WindowSpec</span></code></div><div class="doc"><p>Everything about this window that is not its body. Read every frame,
+so a title may carry live state the way the Code panel's does.</p></div></div><div class="item" id="sym-WarpWindow-ui" data-name="warpwindow::ui"><div class="sig"><a class="anchor" href="#sym-WarpWindow-ui" aria-label="Link to WarpWindow::ui">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">ui</span>(&amp;<span class="k">mut</span> <span class="k">self</span>, ui: &amp;<span class="k">mut</span> egui::<span class="t">Ui</span>)</code></div><div class="doc"><p>Draw the body. The <code>Ui</code> is already clipped to the panel's rect and
+already inside the panel frame, so an implementation draws content and
+nothing else.</p></div></div><div class="item" id="sym-WarpWindow-on_close" data-name="warpwindow::on_close"><div class="sig"><a class="anchor" href="#sym-WarpWindow-on_close" aria-label="Link to WarpWindow::on_close">#</a><code class="lang-rust"><span class="k">fn</span> <span class="f">on_close</span>(&amp;<span class="k">mut</span> <span class="k">self</span>)</code></div><div class="doc"><p>Release what <code>Drop</code> never reaches. The host calls this once when it
+tears the tool down, so a window that holds a port, a child process, a
+pipeline, or a render target can reap it. The default does nothing,
+because most windows own only what <code>Drop</code> already frees.</p>
+<p>This is the registered-tool twin of the built-in panel stops the editor
+runs at quit. A tool reached this way needs no editor code that names it.</p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-KIND_PREFIX" data-name="kind_prefix"><div class="sig"><a class="anchor" href="#sym-KIND_PREFIX" aria-label="Link to KIND_PREFIX">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">KIND_PREFIX</span>: &amp;str = <span class="s">"window."</span></code></div><div class="doc"><p>What every registered window's id starts with.</p>
+<p>The prefix is the whole of the editor's answer to "is this one of mine".
+A host tests the prefix and then asks this module, which means the host
+holds no list of registered ids and cannot fall out of date with one.</p>
+<p>It is not <code>INSTANCE_SEP</code>'s separator. The dock cuts an id at ':' to find a
+kind, so a registered window's full kind is <code>window.hello</code> and never
+<code>window:hello</code> — the second would make every registered window an instance
+of one kind called <code>window</code>.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="editor-panels.html" data-slug="editor-panels">Editor panels</a></li><li><a href="widgets.html" data-slug="widgets">Panel widgets</a></li><li><a href="palette.html" data-slug="palette">Palette roles</a></li><li><a href="scale.html" data-slug="scale">Interface scale</a></li><li><a href="renderer.html" data-slug="renderer">Renderer and run</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/window/mod.rs</code> - <code>A warp window is a title, a placement, a few permissions and a body that</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_core/src/window/mod.rs</code> - <code>so a site somebody forgets returns the WRONG ANSWER and does not fail to</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/lib.rs</code> - <code>`window` IS IN AND `dock` IS OUT, WHICH IS ONE DECISION</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/window/mod.rs</code> - <code>A second window of a name already registered REPLACES the first and says</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_core/src/window/mod.rs</code> - <code>DRAWING TAKES THE LOCK, AND WILL NOT WAIT FOR IT</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_core/src/window/mod.rs</code> - <code>It is not dynamic loading.</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>docs/warp-windows.md</code> - <code>The rule is what separates a window from a patch to the editor.</code></li></ol><table class="navbox"><tr><th><a href="category-editor-channels.html">Editor channels</a></th></tr><tr><td><a href="editor-panels.html" data-slug="editor-panels">Editor panels</a> · <a href="census.html" data-slug="census">Census</a> · <a href="devconsole.html" data-slug="devconsole">Dev console</a> · <a href="bindings.html" data-slug="bindings">Bindings</a> · <a href="audio.html" data-slug="audio">Audio</a> · <a href="palette.html" data-slug="palette">Palette roles</a> · <a href="profile.html" data-slug="profile">Profiler</a> · <a href="hostlink.html" data-slug="hostlink">Host link</a> · <b>Custom windows</b></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-editor-channels.html">Editor channels</a></div>
+    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+  </main>
+</div>
+</body>
+</html>
