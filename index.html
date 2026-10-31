@@ -187,6 +187,8 @@
     .final .cta, .final .plat { justify-content: flex-start; }
   }
   @media (prefers-reduced-motion: reduce) { .rise { transition: none; } .cur { animation: none; } }
+  /* The plate hold: 0.6 screens of scroll after panel 01 (HOLD_D in the scene script). */
+  .hold { height: 60vh; height: 60svh; }
 </style>
 </head>
 <body>
@@ -234,6 +236,7 @@
     </div>
   </div></div></div></div></section>
 
+  <div class="hold" aria-hidden="true"></div>
   <section data-stage="2"><div class="col"><div class="term"><div class="glass"><div class="tx">
     <div class="h type">02 // SCRAP</div>
     <div class="s type">Scrap packs the art and organizes the code.</div>
@@ -303,14 +306,14 @@
   window.addEventListener('focus', back);
   window.SCRAP = {
     fixed: fixed,
-    target: function () { return fixed != null ? fixed : Math.min(4, window.scrollY / unit()); }
+    target: function () { return fixed != null ? fixed : Math.min(4.6, window.scrollY / unit()); }   // 4.6: four screens plus the 0.6 plate hold (HOLD_D)
   };
-  // ?bench=SECONDS: sweep the scroll target 0 -> 4 over SECONDS (after a 1 s settle), record every
+  // ?bench=SECONDS: sweep the scroll target 0 -> 4.6 over SECONDS (after a 1 s settle), record every
   // frame interval, and log one "SCRAP_BENCH {json}" line. Measurement only; a normal visit skips it.
   if (q.has('bench')) {
     window.SCRAP.benchOn = true;
     var dur = parseFloat(q.get('bench')) || 12, t0 = 0, dts = [], seg = {}, last = 0;
-    window.SCRAP.target = function () { return t0 ? Math.min(4, Math.max(0, (performance.now() - t0) / 1000 / dur * 4)) : 0; };
+    window.SCRAP.target = function () { return t0 ? Math.min(4.6, Math.max(0, (performance.now() - t0) / 1000 / dur * 4.6)) : 0; };
     var tick = function (now) {
       if (last && t0) {
         var dt = now - last, pp = window.SCRAP.target(), k = (Math.floor(pp * 2) / 2).toFixed(1);
@@ -336,7 +339,7 @@
   if (fixed != null) {
     // Headless screenshots break on scrolled pages with fixed layers, so show only section N.
     window.addEventListener('DOMContentLoaded', function () {
-      document.querySelectorAll('section').forEach(function (sec, i) { if (i !== Math.round(fixed)) sec.style.display = 'none'; });
+      document.querySelectorAll('section').forEach(function (sec, i) { if (i !== Math.round(fixed < 1 ? fixed : fixed < 2.6 ? 1 : fixed - 0.6)) sec.style.display = 'none'; });
       document.querySelector('footer').style.display = 'none';
     });
   }
@@ -388,7 +391,8 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
 /*
- * Scroll story (P = scroll position in screens, spring-smoothed):
+ * Scroll story (P = scene position; the scroll in screens, spring-smoothed, through sceneP(), which holds
+ * the scene at 1.3 for 0.6 screens while the tool plates run):
  *   0-0.5     the logo wrench assembles itself: head, handle, nut; at 0.42 the
  *             halves swap for the solid mesh (no seam)
  *   0.5-0.95  the wrench rises above the back wall; the enclosure tray arrives
@@ -397,6 +401,8 @@ import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js'
  *             pay out of the hub, each with two branch arms (hex socket, driver)
  *   1.0-1.24  SOURCE: three tool windows (Photoshop, Aseprite, Blender, real logos) rise
  *   1.12-1.3  arm 2 sets a clear deck on four posts in the open box
+ *   1.3 hold  TPLATES: six more tools (Krita, Figma, Spine, Maya, Houdini, Cinema 4D) rise;
+ *             each arm pulls two logo cartridges out and feeds them into the floor drawer
  *   1.4-1.96  the asset cards stream around the sheet sides into the atlas sheet;
  *             arms 1 and 2 guide them up the face into their cells
  *   1.42-1.98 MIDDLE: code modules (real barnes-hut types) leave the box in a tangle;
@@ -1197,6 +1203,7 @@ BEATS.forEach(b => { b.ph = b.obj === lid ? PH_LID : b.obj === deck ? PH_DECK : 
 // Between two tiles of one arm, the arm goes straight to its next pickup, not back to the hub: an idle
 // arm crossing the lanes passed under the other arms' tiles in flight.
 BEATS.forEach(b => { if (b.cell != null) b.next = BEATS.find(n => n.cell != null && n.arm === b.arm && n.a > b.a) || null; });
+BEATS.forEach(b => { b.first = b.cell != null && !BEATS.some(p => p.next === b); });   // each arm's first tile: it comes from the tool rack
 function nextPick(nb, out) { out.copy(_cellP[nb.cell]).addScaledVector(SN_N, 0.16); out.z += nb.top + TIP_HOVER; return out; }
 const FAR_IN = { deck: V(0, 9, 1.2), lid: V(9, -1, 1.6) }, _lq = new THREE.Quaternion();
 const LID_ARMS = [0, 2], LID_GRIPS = [V(-1.16, 0, 0), V(1.16, 0, 0)];   // opposite short edges
@@ -1911,6 +1918,136 @@ const conduitMat = new THREE.MeshBasicMaterial({ map: dashTex, transparent: true
 const conduits = [0, 1, 2].map(() => { const m = new THREE.Mesh(new THREE.BufferGeometry(), conduitMat); m.visible = false; m.frustumCulled = false; asm.add(m); return m; });
 let conduitLayout = -1;
 
+/* ---------- tool tplates: six more tools, each with a logo cartridge that an arm pulls out ----------
+ * The scroll holds the scene at HOLD_A for HOLD_D screens (see sceneP). In that hold the tplates rise, and
+ * each arm takes two cartridges with its suction cup: in square to the plate, pull the cartridge out along
+ * the plate normal, carry it over to the front of the box, tilt it face-up, and let go. A released
+ * cartridge slides into the floor drawer, the drawer the atlas sheet comes out of when the scene resumes.
+ *   HOLD_A  HOLD_D  sceneP()  TPLATES  PLATE_POS  CHIP_T  updatePlates()  (proxies: gatherProxies)
+ */
+const HOLD_A = 1.3, HOLD_D = 0.6;
+// Raw scroll (screens) to scene P, and back. The plate clock PL_ runs 0..1 inside the hold.
+const sceneP = R => R < HOLD_A ? R : R < HOLD_A + HOLD_D ? HOLD_A : R - HOLD_D;
+const rawOf = p => p <= HOLD_A ? p : p + HOLD_D;
+let PL_ = 0, R_ = 0;
+const TPLATES = [{ label: 'Krita', logo: 'krita' }, { label: 'Figma', logo: 'figma' }, { label: 'Spine', logo: 'spine' },
+  { label: 'Maya', logo: 'maya' }, { label: 'Houdini', logo: 'houdini' }, { label: 'Cinema 4D', logo: 'cinema4d-light' }];
+const NPL = TPLATES.length, PL_W = 0.62, PL_T = 0.05, CH_W = 0.3, CH_T = 0.04, CH_OUT = 0.055;   // CH_OUT: cartridge center off the plate face
+// Device frame. Plate i belongs to arm i % 3 (arm 0 left, arm 1 back, arm 2 right). Desktop, phone.
+const PLATE_POS = [
+  [V(-2.25, 1.15, 1.75), V(-1.5, 2.1, 2.55), V(2.25, 1.15, 1.75), V(-1.7, -2.4, 0.45), V(1.5, 2.1, 2.55), V(1.7, -2.4, 0.45)],
+  [V(-0.74, 0.2, 1.3), V(0, 0.45, 1.5), V(0.74, 0.2, 1.3), V(-0.74, 0.2, 1.3), V(0, 0.45, 1.5), V(0.74, 0.2, 1.3)]];   // phone: round 2 takes the round 1 slots
+const PLATE_SC = [1, 0.8];
+// Feed points: in front of the box, tilted face-up like the sheet, one per arm.
+const FEED_X = [-0.55, 0, 0.55], FEED_Y = [-1.45, -1.12], FEED_Z = [0.66, 0.7], FEED_Q = qE(0.61, 0, 0);   // phone: nearer the box, above the text panel
+// Cartridge job of plate i in plate-clock time: [start, end]. Two rounds; the arms start a little apart.
+const CHIP_T = TPLATES.map((p, i) => { const a = 0.12 + Math.floor(i / 3) * 0.39 + (i % 3) * 0.035; return [a, a + 0.34]; });
+const CHIP_IN = 0.07;                                  // the slide into the drawer after release
+const CHIP_REACH = 0.21;                               // the nearest the drawn tip may be to a held face: the suction tool at full reach (0.14 x EFS) and a margin
+// One canvas: plate faces on the top row, cartridge faces below. Drawn once the logos load.
+const PLC = document.createElement('canvas'); PLC.width = 256 * NPL; PLC.height = 512;
+const plTex = new THREE.CanvasTexture(PLC); plTex.colorSpace = THREE.SRGBColorSpace; plTex.anisotropy = 4;
+function drawPlates() {
+  const g = PLC.getContext('2d');
+  TPLATES.forEach((p, i) => {
+    const x = i * 256;
+    g.fillStyle = '#0d0f13'; g.fillRect(x, 0, 256, 256);
+    g.strokeStyle = 'rgba(255,176,0,0.55)'; g.lineWidth = 4; g.strokeRect(x + 6, 6, 244, 244);
+    g.fillStyle = '#06070a'; g.fillRect(x + 62, 46, 132, 132);   // the empty socket under the cartridge
+    g.strokeStyle = 'rgba(255,176,0,0.3)'; g.lineWidth = 2; g.strokeRect(x + 62, 46, 132, 132);
+    g.font = '600 26px "IBM Plex Sans", system-ui, sans-serif'; g.fillStyle = '#e4e2dc'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(p.label, x + 128, 210);
+    g.font = '15px "Share Tech Mono", ui-monospace, monospace'; g.fillStyle = '#c9a24a'; g.fillText('EXPORT', x + 128, 236);
+    g.fillStyle = '#16181d'; g.fillRect(x, 256, 256, 256);
+    g.strokeStyle = 'rgba(255,176,0,0.8)'; g.lineWidth = 6; g.strokeRect(x + 5, 261, 246, 246);
+    if (p.img) g.drawImage(p.img, x + 48, 304, 160, 160);
+  });
+  plTex.needsUpdate = true;
+}
+let plLeft = NPL;
+TPLATES.forEach(p => { const im = new Image(); im.src = 'media/logos/' + p.logo + '.svg'; im.onload = () => { p.img = im; if (--plLeft === 0) drawPlates(); }; im.onerror = () => { if (--plLeft === 0) drawPlates(); }; });
+drawPlates();
+const plFaceGeo = (i, row, w) => { const g = new THREE.PlaneGeometry(w, w), uv = g.attributes.uv;
+  for (let n = 0; n < uv.count; n++) uv.setXY(n, (i + uv.getX(n)) / NPL, (1 - row) * 0.5 + uv.getY(n) * 0.5); return g; };
+const plFaceMat = new THREE.MeshBasicMaterial({ map: plTex, toneMapped: false, color: new THREE.Color(0.95, 0.95, 0.95) });
+const tplates = TPLATES.map((p, i) => {
+  const g = new THREE.Group(); g.visible = false; asm.add(g);
+  g.add(new THREE.Mesh(k.soft.box(PL_W + 0.06, PL_W + 0.06, PL_T, 0.02), winBackMat));
+  const f = new THREE.Mesh(plFaceGeo(i, 0, PL_W), plFaceMat); f.position.z = PL_T / 2 + 0.002; g.add(f);
+  const c = new THREE.Group(); c.visible = false; asm.add(c);
+  c.add(new THREE.Mesh(k.soft.box(CH_W, CH_W, CH_T, 0.012), brassD));
+  const cf = new THREE.Mesh(plFaceGeo(i, 1, CH_W - 0.03), plFaceMat); cf.position.z = CH_T / 2 + 0.002; c.add(cf);
+  return { g, c, chipOn: false };
+});
+const _plQ = new THREE.Quaternion(), _plN = new THREE.Vector3(), _plX = new THREE.Vector3(), _plA = new THREE.Vector3(), _plB = new THREE.Vector3(), _plC = new THREE.Vector3();
+// A plate in and out from beyond its side of the frame, at full size (nothing scales into existence).
+// Phones have room for three: each plate comes in just before its job and leaves once its cartridge is out.
+function platePose(i, L, out) {
+  const a = CHIP_T[i][0], d = CHIP_T[i][1] - a;
+  const tIn = L ? Math.max(0, a - 0.11) : i * 0.025, tOut = L ? a + 0.55 * d : 0.9 + (i % 3) * 0.02;
+  const p = PLATE_POS[L][i], e = easeOut(clamp((PL_ - tIn) / 0.1)) - easeIO(clamp((PL_ - tOut) / 0.09));
+  const sg = p.x < -0.1 ? -1 : p.x > 0.1 ? 1 : 0, off = 1 - e;
+  out.copy(p).add(_plA.set(sg * 6 * off, (p.y > 0 ? 3 : -2) * off, 2 * off));
+  return e;
+}
+// The cartridge in its plate at rest (the plate settled and facing the lens): out of the face along the normal.
+const plRest = new THREE.Object3D(); asm.add(plRest);
+function chipRest(i, L, out, q) {
+  plRest.position.copy(PLATE_POS[L][i]); plRest.lookAt(cam.position); q.copy(plRest.quaternion);
+  _plN.set(0, 0, 1).applyQuaternion(q); return out.copy(PLATE_POS[L][i]).addScaledVector(_plN, (PL_T / 2 + CH_OUT) * PLATE_SC[L]);
+}
+function updatePlates(A, L) {
+  const on = R_ > HOLD_A - 0.001 && R_ < HOLD_A + HOLD_D, sc = PLATE_SC[L];
+  for (let i = 0; i < NPL; i++) {
+    const pl = tplates[i], g = pl.g, c = pl.c;
+    const e = on ? platePose(i, L, g.position) : 0;
+    g.visible = e > 0.001; if (g.visible) { g.scale.setScalar(sc); g.lookAt(cam.position); }
+    const [a, b] = CHIP_T[i], u = clamp((PL_ - a) / (b - a)), j = i % 3, tp = armTips[j];
+    c.visible = on && PL_ < b + CHIP_IN && (g.visible || PL_ >= a); pl.chipOn = c.visible;
+    if (!c.visible) continue;
+    c.scale.setScalar(sc);
+    chipRest(i, L, _plA, _plQ); _plN.set(0, 0, 1).applyQuaternion(_plQ);
+    // The feed point, and the pull-out point (along the plate normal, clear of the plate).
+    _plB.set(FEED_X[j], FEED_Y[L], FEED_Z[L]);
+    _plC.copy(_plA).addScaledVector(_plN, 0.42 * sc);
+    if (PL_ < a) { _plN.set(0, 0, 1).applyQuaternion(g.quaternion); c.position.copy(g.position).addScaledVector(_plN, (PL_T / 2 + CH_OUT) * sc); c.quaternion.copy(g.quaternion); }   // in the moving plate
+    else if (PL_ < b) {
+      if (u < 0.4) { c.position.copy(_plA); c.quaternion.copy(_plQ); }
+      else if (u < 0.52) { c.position.lerpVectors(_plA, _plC, easeIO((u - 0.4) / 0.12)); c.quaternion.copy(_plQ); }
+      else if (u < 0.84) {
+        // From a plate behind the box the path passes over the hub: there it travels 0.5 above the arm roots, which cannot move aside.
+        const f = easeIO((u - 0.52) / 0.32), top = Math.max(_plC.z, HW + 0.95, _plC.y > 0 ? Math.max(A[0].z, A[1].z, A[2].z) + 0.5 : 0);
+        _P0.copy(_plC); _P1.set(_plC.x, _plC.y, top); _P2.set(_plB.x, _plB.y, top); _P3.copy(_plB);
+        pathAt(c.position, _P0, _P1, _P2, _P3, f * pathL(_P0, _P1, _P2, _P3));
+        c.quaternion.copy(_plQ).slerp(FEED_Q, ss(0.1, 0.8, f));
+      } else { c.position.copy(_plB); c.quaternion.copy(FEED_Q); }
+      // Held, the cartridge follows the drawn tool: on a fast scroll it never runs into the lagging cup.
+      if (u >= 0.4 && armS[j].init) { _plX.set(0, 0, 1).applyQuaternion(c.quaternion);
+        _plN.copy(armS[j].tip).sub(c.position); const d = _plN.dot(_plX) - CH_T / 2 * sc, lat = _plN.addScaledVector(_plX, -_plN.dot(_plX)).length();
+        if (d < CHIP_REACH && d > -0.05 && lat < CH_W * sc) c.position.addScaledVector(_plX, Math.max(d - CHIP_REACH, -0.2)); }   // only under the tool, and by little
+      // The arm job: square to the cartridge face, grip from 0.3, let go at 0.9, then on to its next plate.
+      _plX.set(0, 0, 1).applyQuaternion(c.quaternion);
+      tp.has = true; tp.mode = 'flat'; tp.nrm.copy(_plX); tp.con.copy(c.position).addScaledVector(_plX, CH_T / 2 * sc);
+      tp.side.set(1, 0, 0).applyQuaternion(c.quaternion); tp.own = ID_CHIP + i; tp.lift = 0;
+      tp.grip = tp.work = u > 0.3 && u < 0.9;
+      tp.tip.copy(tp.con).addScaledVector(_plX, TIP_HOVER);
+      if (u >= 0.9) { const nx = i + 3 < NPL ? i + 3 : -1, r = easeIO((u - 0.9) / 0.1);
+        if (nx >= 0) { chipRest(nx, L, _plA, _plQ); _plN.set(0, 0, 1).applyQuaternion(_plQ); _plA.addScaledVector(_plN, CH_T / 2 * sc + TIP_HOVER); } else idleTip(j, A[j], _plA);
+        tp.tip.lerp(_plA, r); tp.tip.addScaledVector(_plX, 0.1 * Math.sin(Math.PI * r)); tp.mode = r > 0.5 ? 'guide' : 'flat'; }
+    } else {
+      // Released: down to the floor in front of the box, flat, then into the drawer slot.
+      const f = clamp((PL_ - b) / CHIP_IN), yOut = -THt / 2 - CH_W / 2 - 0.12, zd = -TB / 2;
+      if (f < 0.55) { const h = easeIO(f / 0.55); _plA.set(FEED_X[j], yOut, zd); _plC.set(FEED_X[j], Math.min(yOut, _plB.y) - 0.1, zd + 0.3);
+        c.position.copy(bez(_plB, _plC, _plA, h)); c.quaternion.copy(FEED_Q).slerp(qI, h); }
+      else { c.position.set(FEED_X[j], mix(yOut, 0, easeIO((f - 0.55) / 0.45)), zd); c.quaternion.copy(qI); }
+    }
+  }
+  // Between its two cartridges an arm waits over its next plate, once that plate has settled.
+  if (on) for (let j = 0; j < 3; j++) { const tp = armTips[j]; if (tp.has) continue;
+    const nx = TPLATES.findIndex((p, i) => i % 3 === j && PL_ < CHIP_T[i][0]);
+    if (nx >= 0 && tplates[nx].g.visible && PL_ > CHIP_T[nx][0] - 0.2) { chipRest(nx, L, _plA, _plQ); _plN.set(0, 0, 1).applyQuaternion(_plQ);
+      tp.has = true; tp.mode = 'guide'; tp.nrm.copy(_plN); tp.tip.copy(_plA).addScaledVector(_plN, CH_T / 2 * sc + TIP_HOVER); } }
+}
 /* ---- live engine objects: a star, six planets, an asteroid belt ---- */
 // The live system orbits above every arm lane (lanes top out near 1.5), so orbits never cross the arms.
 const LIVE_C = [V(0, 0.1, 2.15), V(0, 0.1, 2.15)];
@@ -2457,7 +2594,7 @@ const obbY = Array.from({ length: NOBB }, () => new THREE.Vector3()), obbZ = Arr
 const obbH = Array.from({ length: NOBB }, () => new THREE.Vector3()), obbK = new Uint8Array(NOBB), obbId = new Int16Array(NOBB);
 let nSph = 0, nObb = 0;
 const PXK = ['', 'planet', 'asteroid', 'card', 'conduit', 'window', 'sheet', 'tile', 'deck', 'lid', 'arm', 'panel', 'code', 'rack', 'link', 'cradle', 'toolrack', 'docked'];
-const ID_CARD = 100, ID_TILE = 200, ID_LID = 300, ID_DECK = 400, ID_WIN = 500, ID_SHEET = 600, ID_HUD = 700, ID_CODE = 800, ID_RACK = 900;
+const ID_CARD = 100, ID_TILE = 200, ID_LID = 300, ID_DECK = 400, ID_WIN = 500, ID_SHEET = 600, ID_HUD = 700, ID_CODE = 800, ID_RACK = 900, ID_PLATE = 1100, ID_CHIP = 1200;
 const _pv = new THREE.Vector3(), _pv2 = new THREE.Vector3(), _pv3 = new THREE.Vector3();
 function addSph(p, r, k, id) { if (nSph >= NSPH || r <= 0) return; sphC[nSph].copy(p); sphR[nSph] = r; sphK[nSph] = k; sphId[nSph] = id; nSph++; }
 // An oriented box: center offset and half extents in the object's local frame (before its scale). obj is a child of asm.
@@ -2489,6 +2626,8 @@ function gatherProxies() {
   conduits.forEach((m, w) => { if (!m.visible || !conduitCurve[w]) return;
     for (let n = 0; n <= 16; n++) addSph(conduitCurve[w].getPoint(n / 16, _pv), 0.012, 4, 90 + w); });
   windows.forEach((w, i) => { if (w.obj.visible) addObb(w.obj, 0, 0, 0, WIN_W / 2 + 0.035, WIN_H / 2 + 0.035, 0.025, 5, ID_WIN + i); });
+  tplates.forEach((p, i) => { if (p.g.visible) addObb(p.g, 0, 0, 0, PL_W / 2 + 0.03, PL_W / 2 + 0.03, PL_T / 2, 5, ID_PLATE + i);
+    if (p.c.visible) addObb(p.c, 0, 0, 0, CH_W / 2, CH_W / 2, CH_T / 2, 3, ID_CHIP + i); });
   if (sheet.visible) addObb(sheet, 0, 0.045, 0, SH_W / 2 + 0.1, SH_H / 2 + 0.145, 0.035, 6, ID_SHEET);
   tiles.forEach((tl, i) => { if (tl.obj.visible) addObb(tl.obj, 0, 0, 0.006, TILE * 0.49, TILE * 0.49, 0.012, 7, ID_TILE + i); });
   if (deck.visible) addObb(deck, 0, 0, DECK_H - DECK_PT / 2, DECK.w / 2, DECK.h / 2, DECK_PT / 2, 8, ID_DECK);
@@ -3087,6 +3226,7 @@ function efTools(tm) {
       bbAdd(bb, efCapA[b], r); bbAdd(bb, efCapB[b], r); } }
 }
 function bbAdd(bb, v, r) { bb[0] = Math.min(bb[0], v.x - r); bb[1] = Math.min(bb[1], v.y - r); bb[2] = Math.min(bb[2], v.z - r); bb[3] = Math.max(bb[3], v.x + r); bb[4] = Math.max(bb[4], v.y + r); bb[5] = Math.max(bb[5], v.z + r); }
+if (COLLIDE) window.SCRAP._plDbg = () => ({ R: R_, PL: PL_, chips: tplates.map(p => p.c.visible ? p.c.position.toArray().map(v => +v.toFixed(2)) : null), tips: armTips.map(t => [t.has, t.mode, t.grip, t.tip.toArray().map(v => +v.toFixed(2))]) });   // ?collide: the plate job state
 if (COLLIDE) window.SCRAP._efScr = () => efA.map(e => { const v = e.O.clone().applyMatrix4(asm.matrixWorld).project(cam); return [+((v.x + 1) / 2).toFixed(3), +((1 - v.y) / 2).toFixed(3), e.t, +e.gT.toFixed(2), +e.q.toFixed(3)]; });   // screenshots: where each tool is
 // Final pass, after every arm and tool is drawn: an arm whose chain or tool still touches a component or
 // another arm (a fast scroll moves the parts and the other arms after this arm solved) is solved again
@@ -3234,6 +3374,7 @@ let lastP = -99;
 const wq = new THREE.Quaternion(), wsv = new THREE.Vector3();
 
 function update(P, t) {
+  R_ = P; PL_ = clamp((P - HOLD_A) / HOLD_D); P = sceneP(P);   // raw scroll -> scene P (the plate hold)
   narrow = canvas.clientWidth / canvas.clientHeight < 0.85;
   const force = Math.abs(P - lastP) > 1e-5; lastP = P;
   const mob = narrow;
@@ -3315,6 +3456,7 @@ function update(P, t) {
   for (let j = 0; j < ARMS; j++) { const tp = armTips[j]; tp.grip = tp.work = tp.has = tp.blink = false; tp.lift = tp.w = tp.dIn = tp.R = tp.unlock = 0; tp.own = -1; tp.mode = ''; tp.side.set(0, 0, 0); }
   inFlight.length = 0;
   updatePipeline(P, t, A);
+  updatePlates(A, narrow ? 1 : 0);
   lidFly = false;
   for (const bt of BEATS) {
     const u = clamp((P - bt.a) / (bt.b - bt.a)), o = bt.obj;
@@ -3373,7 +3515,9 @@ function update(P, t) {
       }
       tp.has = true; tp.grip = grip && u > 0.04; tp.work = grip; tp.lift = lift;
       tp.own = two ? ID_LID : bt.cell != null ? ID_TILE + tiles.findIndex(tl => tl.obj === o) : o === deck ? ID_DECK : -1;
-      if (!grip && u < ph.grow) { tp.tip.copy(_P0); tp.tip.z += bt.top + TIP_HOVER; if (two) { _e.set(1, 0, 0).applyQuaternion(o.quaternion); tp.tip.copy(_P0).addScaledVector(_e, (n ? 1 : -1) * (LUG_X + 0.45)); tp.tip.z += 0.6; tp.mode = 'guide'; tp.nrm.set(0, 0, 1); } tp.grip = tp.work = false; continue; }   // the lid edges: wait above and out   // wait at the hand-over
+      if (!grip && u < ph.grow) { tp.tip.copy(_P0); tp.tip.z += bt.top + TIP_HOVER;
+        if (bt.first) { const sd = _lag.copy(armS[j].tip).sub(sheet.position).dot(SN_N); if (sd < 0.2) tp.tip.addScaledVector(SN_N, 0.5 - sd); }   // an arm's first tile, from behind the sheet (a fast scroll after its swap): out in front of the face first, never round its edge
+        if (two) { _e.set(1, 0, 0).applyQuaternion(o.quaternion); tp.tip.copy(_P0).addScaledVector(_e, (n ? 1 : -1) * (LUG_X + 0.45)); tp.tip.z += 0.6; tp.mode = 'guide'; tp.nrm.set(0, 0, 1); } tp.grip = tp.work = false; continue; }   // the lid edges: wait above and out   // wait at the hand-over
       if (!grip) { const r = easeIO((u - ph.rel) / (1 - ph.rel)); if (bt.next) nextPick(bt.next, _e); else idleTip(j, A[j], _e); tp.tip.lerp(_e, r); tp.tip.z += 0.08 * Math.sin(Math.PI * r); }  // recoil, then relax
     }
   }
@@ -3408,7 +3552,7 @@ function update(P, t) {
 
   // Draw the arms: deploy staggered (arm 0 first), retract in reverse order. Each arm is a FABRIK chain
   // from its root at the neck to a sprung tip; the sub-arms root near the tip and react a little later.
-  const dt = armDt(t, P);
+  const dt = armDt(t, R_);
   gatherProxies(); prevChains = drawnChains.slice(); drawnChains.length = 0;
   for (let j = 0; j < ARMS; j++) {
     const a = A[j], st = armS[j], tp = armTips[j], c = mains[j];
@@ -3492,12 +3636,12 @@ const KS = 120, KD = 2 * Math.sqrt(KS);
 let P = window.SCRAP.target(), vel = 0, lastDraw = -1, bootAt = -1;
 window.SCRAP.snap = () => { P = window.SCRAP.target(); vel = 0; };
 function screenTick(t, still) {
-  const on = P > SCREEN_ON;
+  const sp = sceneP(P), on = sp > SCREEN_ON;
   if (on && bootAt < 0) bootAt = t;
   if (!on) bootAt = -1;
   if (still || t - lastDraw > 1 / 20) { lastDraw = t; drawScreen(on, still ? 3 : t - bootAt); }
   // Start loading the trailer a little before power-on, play it while the display is on.
-  if (P > SCREEN_ON - 0.4) preloadVideo();
+  if (sp > SCREEN_ON - 0.4) preloadVideo();
   videoState(on && !document.hidden);
 }
 function frame(t, dt) {
@@ -3511,7 +3655,7 @@ function frame(t, dt) {
   runSweeps(t);
   governor(dt);
   const b2 = bench ? performance.now() : 0;
-  screenTick(t, window.SCRAP.fixed != null && P > SCREEN_ON && t > 1.5);
+  screenTick(t, window.SCRAP.fixed != null && sceneP(P) > SCREEN_ON && t > 1.5);
   if (bench) {   // ?bench only: split the frame into update, sweeps + governor, and screen time
     const b3 = performance.now(), bt = window.SCRAP.bt = window.SCRAP.bt || { n: 0, upd: 0, misc: 0, screen: 0 };
     bt.n++; bt.upd += b1 - b0; bt.misc += b2 - b1; bt.screen += b3 - b2;
@@ -3525,7 +3669,7 @@ function frame(t, dt) {
  */
 // A few stages are enough: the compile covers every program; these renders catch the post passes
 // and the screen. (41 positions cost seconds on phones, and the hero waited on them.)
-const WARM_AT = [0.2, 1.0, 1.2, 1.7, 2.15, 2.5, 3.2];
+const WARM_AT = [0.2, 1.0, 1.2, 1.7, 2.15, 2.5, 3.2];   // scene P (rawOf() maps them to scroll)
 // Pick the resolution before the canvas shows, so a normal visit never reallocates on screen.
 // Time a few forced renders of the heaviest stage, then take the highest DPR whose predicted cost
 // (scaled by pixel count) fits 75% of the refresh interval. gl.finish() returns at once under
@@ -3535,7 +3679,7 @@ let started = false;
 function probeDpr() {
   if (started || DPR_FIXED) return;
   const gl = s.renderer.getContext(), px = new Uint8Array(4);
-  const timed = () => { const t0 = performance.now(); update(2.5, 2); s.render(true); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); return performance.now() - t0; };
+  const timed = () => { const t0 = performance.now(); update(rawOf(2.5), 2); s.render(true); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); return performance.now() - t0; };
   timed();
   const ts = [timed(), timed(), timed(), timed(), timed()].sort((a, b) => a - b), c = ts[2], d0 = dpr, budget = refreshDt * 1000 * 0.75;
   let best = DPR_MIN;
@@ -3547,7 +3691,7 @@ function startScene() {
   if (started) return; started = true;
   P = window.SCRAP.target(); vel = 0;
   if (s.reduceMotion) {
-    const still = () => { P = window.SCRAP.target(); update(P, 1.5); runSweeps(99); drawScreen(P > SCREEN_ON, 3); s.render(true); };
+    const still = () => { P = window.SCRAP.target(); update(P, 1.5); runSweeps(99); drawScreen(sceneP(P) > SCREEN_ON, 3); s.render(true); };
     window.addEventListener('scroll', still, { passive: true });
     window.addEventListener('resize', still);
     still();
@@ -3560,7 +3704,7 @@ function startScene() {
 // Safety: start after 2.5 s even if warm-up has not finished (a slow GPU or a stalled compile),
 // so no visitor waits on a blank canvas. A late warm-up then skips the probe.
 Promise.race([
-  Promise.all([measureRefresh(), Promise.all([spritesReady, pipeReady, hudReady]).then(() => s.warm(WARM_AT.map(wp => () => { update(wp, 2); runSweeps(99); drawScreen(wp > SCREEN_ON, 3); })))]).then(probeDpr),
+  Promise.all([measureRefresh(), Promise.all([spritesReady, pipeReady, hudReady]).then(() => s.warm(WARM_AT.map(wp => () => { update(rawOf(wp), 2); runSweeps(99); drawScreen(wp > SCREEN_ON, 3); })))]).then(probeDpr),
   new Promise(r => setTimeout(r, 2500))
 ]).then(startScene);
 document.body.classList.add('live'); document.body.classList.remove('no-webgl');
