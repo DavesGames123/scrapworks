@@ -7,7 +7,7 @@ module: post
 example: starter, settings
 see: visual, lit2d, art-direction, render, gpu, types
 ---
-**Post effects** is the Warp module that controls tonemapping, bloom, colour grade, antialiasing, depth of field, motion blur and the CRT tube through one value with one switch per effect. It lives in `warp_sdk::post`. `Post` is a view of the post fields of `DisplaySettings`, grouped by effect, and a game sets it with one line from `new`, from `gui` or from a worker thread. A switch that is off skips the GPU passes of that effect.[[src:warp_sdk/src/post.rs|switch that is off skips that effect's passes on the GPU]] The [[art-direction#Lighting and visuals|art direction]] requires this module and not raw `DisplaySettings` fields.
+**Post effects** is the SCRAP module that controls tonemapping, bloom, colour grade, antialiasing, depth of field, motion blur and the CRT tube through one value with one switch per effect. It lives in `warp_sdk::post`. `Post` is a view of the post fields of `DisplaySettings`, grouped by effect, and a game sets it with one line from `new`, from `gui` or from a worker thread. A switch that is off skips the GPU passes of that effect.[[src:warp_sdk/src/post.rs|switch that is off skips that effect's passes on the GPU]] The [[art-direction#Lighting and visuals|art direction]] requires this module and not raw `DisplaySettings` fields.
 
 ## The effects
 

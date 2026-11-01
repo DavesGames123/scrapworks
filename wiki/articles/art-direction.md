@@ -1,15 +1,15 @@
 ---
 title: Art direction
-short: Rules for how a Warp game looks, reads and teaches
+short: Rules for how a SCRAP game looks, reads and teaches
 category: Guides
 order: 20
 see: visual, semiotics, post, lit2d, fonts, front-menu
 ---
-**Art direction** is the Warp guide of rules that make a game look like a product and not like a prototype, covering text, menus, fonts, lighting, density and interface behaviour. It is the document `docs/art-direction.md`, which a game author reads before the first line of a game. Where [[building-a-game]] makes a game run, this guide decides how it looks.[[src:docs/art-direction.md|like a product and not like a prototype.]] Each rule names the SDK kit that implements it, where one exists.
+**Art direction** is the SCRAP guide of rules that make a game look like a product and not like a prototype, covering text, menus, fonts, lighting, density and interface behaviour. It is the document `docs/art-direction.md`, which a game author reads before the first line of a game. Where [[building-a-game]] makes a game run, this guide decides how it looks.[[src:docs/art-direction.md|like a product and not like a prototype.]] Each rule names the SDK kit that implements it, where one exists.
 
 ## The principle
 
-A Warp game is code that makes an image. It is not generated prose and not generated art. The look comes from math: shaders, signed distance fields, noise, lighting and simulation, combined and recombined.[[src:docs/art-direction.md|noise, lighting and simulation, combined and recombined.]] Two outcomes follow. A game shows its quality in the first frame, before the player reads a word. Each game also looks different from every other Warp game, so one font, one glow and one circle sprite shared by two games is a failure.
+A SCRAP game is code that makes an image. It is not generated prose and not generated art. The look comes from math: shaders, signed distance fields, noise, lighting and simulation, combined and recombined.[[src:docs/art-direction.md|noise, lighting and simulation, combined and recombined.]] Two outcomes follow. A game shows its quality in the first frame, before the player reads a word. Each game also looks different from every other SCRAP game, so one font, one glow and one circle sprite shared by two games is a failure.
 
 ## Text
 
@@ -120,7 +120,7 @@ Every expansion and retraction animates, and information that the player never n
 
 ## Gameplay you can see
 
-A Warp game tells the player what to do by sight. The guide ties each requirement to a kit.
+A SCRAP game tells the player what to do by sight. The guide ties each requirement to a kit.
 
 | Requirement | Kit |
 |---|---|

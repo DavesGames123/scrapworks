@@ -7,7 +7,7 @@ module: fluid
 example: fluid
 see: fluid-ocean, fluid-solver, fluid-particles, world-terrain, perf, post
 ---
-**Fluid kit** is the family of Warp SDK modules that simulates moving water and the particles that ride it on the GPU. It lives in `warp_sdk::fluid`, which has three submodules and re-exports `Ocean` and `OceanConfig`. The one call path for a game is `Ocean`: the solver, the particles and an optional terrain in one value, with a `perf` budget.[[src:warp_sdk/src/fluid/mod.rs|The one call path for a game is]]
+**Fluid kit** is the family of SCRAP SDK modules that simulates moving water and the particles that ride it on the GPU. It lives in `warp_sdk::fluid`, which has three submodules and re-exports `Ocean` and `OceanConfig`. The one call path for a game is `Ocean`: the solver, the particles and an optional terrain in one value, with a `perf` budget.[[src:warp_sdk/src/fluid/mod.rs|The one call path for a game is]]
 
 ## Parts
 

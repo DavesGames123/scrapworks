@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Material shaders - Warp Wiki</title>
+<title>Material shaders - SCRAP Wiki</title>
 <meta name="description" content="WGSL procedural surfaces that return a MaterialSample">
 <script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="assets/wiki.css">
@@ -14,9 +14,9 @@
 <a class="skip" href="#content">Skip to content</a>
 <header class="top">
   <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
-  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <a class="brand" href="index.html" aria-label="SCRAP Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Wiki</b><small>The engine SDK reference</small></span></a>
   <div class="search" role="search">
-    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search SCRAP Wiki" autocomplete="off" spellcheck="false">
     <kbd>/</kbd>
     <div class="results" id="results" hidden></div>
   </div>
@@ -39,7 +39,7 @@
   <main id="content"><a id="top"></a>
     <h1 class="firstHeading">Material shaders</h1>
     <div class="tabs"><a class="on" href="#top">Article</a></div>
-    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">WGSL procedural surfaces that return a MaterialSample</p><p><strong>Material shaders</strong> are the <code>material/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL functions that compute a lit surface at a world position and return it as a MaterialSample. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::material</code></a>. It covers rock, loose ground, metal, wood, ice, flesh and volcanic surfaces, and it adds tools that blend, wet and wear those samples. The main consumer is the <a href="lit2d.html" data-slug="lit2d">Lit2d</a> kit, whose material function has the same return type.</p>
+    <p class="tagline">From SCRAP Wiki, the reference for the SCRAP engine SDK</p><p class="shortdesc">WGSL procedural surfaces that return a MaterialSample</p><p><strong>Material shaders</strong> are the <code>material/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL functions that compute a lit surface at a world position and return it as a MaterialSample. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::material</code></a>. It covers rock, loose ground, metal, wood, ice, flesh and volcanic surfaces, and it adds tools that blend, wet and wear those samples. The main consumer is the <a href="lit2d.html" data-slug="lit2d">Lit2d</a> kit, whose material function has the same return type.</p>
 <h2 id="files">Files</h2>
 <table class="wikitable">
 <thead>
@@ -263,7 +263,7 @@
 </ul>
 <h2 id="limitations">Limitations</h2>
 <p>The header of <code>material/common.wgsl</code> calls its noise tools private to the material files. Materials therefore do not share random fields with the <code>noise_</code> functions. A float <code>seed</code> is not interchangeable with the <code>u32</code> seeds of the noise files.</p><h2 id="see-also">See also</h2><ul><li><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></li><li><a href="lit2d.html" data-slug="lit2d">Lit2d</a></li><li><a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a></li><li><a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a></li><li><a href="art-direction.html" data-slug="art-direction">Art direction</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/material/common.wgsl</code> - <code>// Conventions for all material files:</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/material/rock.wgsl</code> - <code>layer random, detail). Use it for your own colour on the same relief.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/material/volcanic.wgsl</code> - <code>// Basalt albedo is 0.04..0.1 linear. Lava emissive goes above 1 (feeds bloom).</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/material/flesh.wgsl</code> - <code>// MaterialSample has no subsurface slot. This file puts the subsurface tint</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/material/layer.wgsl</code> - <code>// material/layer.wgsl — tools that act on MaterialSample values: linear</code></li></ol><table class="navbox"><tr><th><a href="category-shader-library.html">Shader library</a></th></tr><tr><td><a href="shaderlib.html" data-slug="shaderlib">Shader library</a> · <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a> · <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> · <b>Material shaders</b> · <a href="shader-water.html" data-slug="shader-water">Water shaders</a> · <a href="shader-post.html" data-slug="shader-post">Post shaders</a> · <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> · <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> · <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> · <a href="shader-pattern.html" data-slug="shader-pattern">Pattern shaders</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-shader-library.html">Shader library</a></div>
-    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+    <footer class="foot"><p>Generated from SCRAP commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
   </main>
 </div>
 </body>

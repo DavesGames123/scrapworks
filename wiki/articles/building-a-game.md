@@ -6,7 +6,7 @@ order: 10
 example: starter, pong, snake, observatory
 see: getting-started, renderer, smoke, art-direction, squircle, census
 ---
-**Building a game** in Warp is a guide to the order of work for an application on `warp_sdk`, from the first plan to a passing test suite. It collects what to read, which kit answers which need, how to draw and move things, and which paths to leave alone. The method is a one-shot loop: build a playable path first, prove it with a headless test, and then add systems one at a time.
+**Building a game** in SCRAP is a guide to the order of work for an application on `warp_sdk`, from the first plan to a passing test suite. It collects what to read, which kit answers which need, how to draw and move things, and which paths to leave alone. The method is a one-shot loop: build a playable path first, prove it with a headless test, and then add systems one at a time.
 
 ## Reading order
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HUD minimap - Warp Wiki</title>
+<title>HUD minimap - SCRAP Wiki</title>
 <meta name="description" content="corner map with fog of war that unfolds to a full-screen map">
 <script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="assets/wiki.css">
@@ -14,9 +14,9 @@
 <a class="skip" href="#content">Skip to content</a>
 <header class="top">
   <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
-  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <a class="brand" href="index.html" aria-label="SCRAP Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Wiki</b><small>The engine SDK reference</small></span></a>
   <div class="search" role="search">
-    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search SCRAP Wiki" autocomplete="off" spellcheck="false">
     <kbd>/</kbd>
     <div class="results" id="results" hidden></div>
   </div>
@@ -39,7 +39,7 @@
   <main id="content"><a id="top"></a>
     <h1 class="firstHeading">HUD minimap</h1>
     <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
-    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">corner map with fog of war that unfolds to a full-screen map</p><table class="infobox"><caption>HUD minimap</caption><tr><th>Category</th><td><a href="category-information.html">Information</a></td></tr><tr><th>Module</th><td><code>warp_sdk::hud::minimap</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/hud/minimap.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">32</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example hud_map</code></td></tr></table><p><strong>The HUD minimap</strong> is a corner map in a squircle frame that unfolds to a full-screen map on a click or a key. It lives in <a class="sym" href="hud-minimap.html"><code>warp_sdk::hud::minimap</code></a>. The compact map follows the player from under the key row of a <a href="squircle.html" data-slug="squircle">squircle deck</a>. The full map pans with a drag and zooms with the wheel. The map key, Escape, or the close key in its corner retracts it <sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup>.</p>
+    <p class="tagline">From SCRAP Wiki, the reference for the SCRAP engine SDK</p><p class="shortdesc">corner map with fog of war that unfolds to a full-screen map</p><table class="infobox"><caption>HUD minimap</caption><tr><th>Category</th><td><a href="category-information.html">Information</a></td></tr><tr><th>Module</th><td><code>warp_sdk::hud::minimap</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/hud/minimap.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">32</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example hud_map</code></td></tr></table><p><strong>The HUD minimap</strong> is a corner map in a squircle frame that unfolds to a full-screen map on a click or a key. It lives in <a class="sym" href="hud-minimap.html"><code>warp_sdk::hud::minimap</code></a>. The compact map follows the player from under the key row of a <a href="squircle.html" data-slug="squircle">squircle deck</a>. The full map pans with a drag and zooms with the wheel. The map key, Escape, or the close key in its corner retracts it <sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup>.</p>
 <h2 id="how-it-works">How it works</h2>
 <p>A game keeps one <a class="sym" href="#sym-Minimap"><code>Minimap</code></a> in its state, because that value owns the terrain cache. It samples the terrain once with <a class="sym" href="#sym-Minimap-paint_terrain"><code>Minimap::paint_terrain</code></a>, calls <a class="sym" href="#sym-Minimap-reveal"><code>Minimap::reveal</code></a> each frame with the player position and its sight radius, and calls <a class="sym" href="#sym-Minimap-show"><code>Minimap::show</code></a> each frame with a <a class="sym" href="#sym-MapFrame"><code>MapFrame</code></a>. <a class="sym" href="#sym-MapFrame"><code>MapFrame</code></a> holds what changes every frame, and every field but <code>player</code> can stay empty.</p>
 <h3 id="draw-order">Draw order</h3>
@@ -79,7 +79,7 @@
 <tr>
 <td><code>y_up</code></td>
 <td>true</td>
-<td>World y grows up, as in the Warp 2D view</td>
+<td>World y grows up, as in the SCRAP 2D view</td>
 </tr>
 <tr>
 <td><a class="sym" href="#sym-Minimap-corner"><code>corner</code></a></td>
@@ -218,7 +218,7 @@ unknown, never open space.</p></div></div><div class="item" id="sym-Minimap-set_
 <p><code>ignore
 let r = map.show(ctx, &amp;MapFrame { player, heading, ..Default::default() });
 if r.hovered { /* do not pick in the viewport */ }</code></p></div></div></details></div><h2 id="see-also">See also</h2><ul><li><a href="hud.html" data-slug="hud">HUD</a></li><li><a href="hud-markers.html" data-slug="hud-markers">HUD markers</a></li><li><a href="squircle.html" data-slug="squircle">Squircle kit</a></li><li><a href="world-reveal.html" data-slug="world-reveal">Reveal grid</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/minimap.rs</code> - <code>with the wheel. The map key, Esc, or the close key in its corner retracts</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/minimap.rs</code> - <code>draws as open water, so the map never says &quot;empty&quot; where it does not</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/minimap.rs</code> - <code>with `TextureHandle::set_partial`. A frame with no change uploads nothing.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/minimap.rs</code> - <code>// Keep the world point under the pointer still.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/hud/minimap.rs</code> - <code>if !self.prog.settled() || self.hover != h_target || !f.objectives.is_empty() {</code></li></ol><table class="navbox"><tr><th><a href="category-information.html">Information</a></th></tr><tr><td><a href="squircle.html" data-slug="squircle">Squircle kit</a> · <a href="hud.html" data-slug="hud">HUD</a> · <a href="hud-cues.html" data-slug="hud-cues">HUD cues</a> · <a href="hud-markers.html" data-slug="hud-markers">HUD markers</a> · <b>HUD minimap</b> · <a href="hud-progress.html" data-slug="hud-progress">HUD progress</a> · <a href="teach.html" data-slug="teach">Teach kit</a> · <a href="widgets.html" data-slug="widgets">Panel widgets</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-information.html">Information</a></div>
-    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+    <footer class="foot"><p>Generated from SCRAP commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
   </main>
 </div>
 </body>

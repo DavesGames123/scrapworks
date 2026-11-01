@@ -6,7 +6,7 @@ order: 40
 module: widgets
 see: window, squircle, palette, editor-panels
 ---
-**Panel widgets** are the standard inspector controls of the Warp editor, re-exported for a game's own tool panel. The module is `warp_sdk::widgets`, a re-export of a chosen set from `warp_core/src/ui/widgets`. Each control takes the full width and reads its colour from the style the engine installs, so a game panel matches the chrome around it [[src:warp_sdk/src/lib.rs|width and reads its color from the Style the engine installs for a game by]]. It is for a panel docked in the editor. What a player sees over the game belongs to the [[squircle|squircle kit]] or to [[front]].
+**Panel widgets** are the standard inspector controls of the SCRAP editor, re-exported for a game's own tool panel. The module is `warp_sdk::widgets`, a re-export of a chosen set from `warp_core/src/ui/widgets`. Each control takes the full width and reads its colour from the style the engine installs, so a game panel matches the chrome around it [[src:warp_sdk/src/lib.rs|width and reads its color from the Style the engine installs for a game by]]. It is for a panel docked in the editor. What a player sees over the game belongs to the [[squircle|squircle kit]] or to [[front]].
 
 ## Purpose
 

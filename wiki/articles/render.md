@@ -6,7 +6,7 @@ order: 23
 module: render
 see: gpu, renderer, scene, image, post, lit2d
 ---
-**Render passes** are the ordered draws that make up a Warp frame, and the `render` module of `warp_core`, re-exported by `warp_sdk`, is the code that owns them. The module holds three things: the table that walks the draw order, the seam through which an application registers scene layers, and a declared frame graph that the engine validates. Layering in the scene is entirely the order of the table.
+**Render passes** are the ordered draws that make up a SCRAP frame, and the `render` module of `warp_core`, re-exported by `warp_sdk`, is the code that owns them. The module holds three things: the table that walks the draw order, the seam through which an application registers scene layers, and a declared frame graph that the engine validates. Layering in the scene is entirely the order of the table.
 
 :: An application pass with its own bind groups uses `Renderer::scene_underlay` or `Renderer::scene_overlay`. See [[renderer]].
 

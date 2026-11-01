@@ -7,7 +7,7 @@ module: icon
 example: icon
 see: boot, renderer, semiotics, visual
 ---
-**The application icon** kit draws an icon in code, so that no Warp application ships without one, in the `warp_sdk::icon` module. `IconSpec::from_name` makes a distinct icon from the application name, and a game that wants its own look sets the fields of an `IconSpec`. One drawing goes to three places: the window, the `.png` and `.ico` files, and the `.exe` file. The renderer runs on the CPU and needs no GPU and no image crate.
+**The application icon** kit draws an icon in code, so that no SCRAP application ships without one, in the `warp_sdk::icon` module. `IconSpec::from_name` makes a distinct icon from the application name, and a game that wants its own look sets the fields of an `IconSpec`. One drawing goes to three places: the window, the `.png` and `.ico` files, and the `.exe` file. The renderer runs on the CPU and needs no GPU and no image crate.
 
 ## Usage
 

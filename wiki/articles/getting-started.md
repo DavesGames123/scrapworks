@@ -4,9 +4,9 @@ short: New project, the starter game, cargo run, the panels, and the smoke test
 category: Introduction
 order: 20
 example: starter, pong, snake
-see: warp, renderer, building-a-game, smoke, shell, manifest
+see: scrap, renderer, building-a-game, smoke, shell, manifest
 ---
-**Getting started** with Warp means making a Rust crate that depends on `warp_sdk`, implements `Renderer`, and starts the engine with `run`. The usual route is to copy the worked starter, which the editor's New Project command also writes. The starter is a small complete game, so a new project begins with a title screen, a pause menu, saves and passing tests. This article covers the project layout, the first run, the editor panels, and the headless test loop.
+**Getting started** with SCRAP means making a Rust crate that depends on `warp_sdk`, implements `Renderer`, and starts the engine with `run`. The usual route is to copy the worked starter, which the editor's New Project command also writes. The starter is a small complete game, so a new project begins with a title screen, a pause menu, saves and passing tests. This article covers the project layout, the first run, the editor panels, and the headless test loop.
 
 ## A new project
 

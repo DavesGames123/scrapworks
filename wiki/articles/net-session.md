@@ -7,7 +7,7 @@ module: net::session
 example: pong_link
 see: net, net-invite, net-transports, net-discover
 ---
-**Network sessions** are the top layer of Warp's networking: the host and guest objects that run the handshake, hold seats, carry application channels and blobs, and survive a dropped link. They live in `warp_sdk::net::session`, re-exported from the `warp_net` crate. A session is one host and a set of guests, on any transport that gives a `FrameIo`. The session layer does not know which transport it runs on.
+**Network sessions** are the top layer of SCRAP's networking: the host and guest objects that run the handshake, hold seats, carry application channels and blobs, and survive a dropped link. They live in `warp_sdk::net::session`, re-exported from the `warp_net` crate. A session is one host and a set of guests, on any transport that gives a `FrameIo`. The session layer does not know which transport it runs on.
 
 ## What a session does
 

@@ -7,7 +7,7 @@ module: semiotics
 example: semiotics
 see: visual, fonts, hud-cues, teach, palette-kit, art-direction
 ---
-**Semiotics** is the Warp standard for game iconography, a small visual language in which each action has one meaning class, and each class owns a frame shape, a colour role and a motion. Its code is `warp_sdk::semiotics` and its text is the document `docs/visual-semiotics.md`, which requires that a disagreement between the two is fixed in one commit.[[src:docs/visual-semiotics.md|the two disagree, fix the code or change this document in the same commit.]] A one-shot game has almost no text, so its icons carry the rules of the game.[[src:warp_sdk/src/semiotics.rs|A one-shot game has almost no text. Its icons carry the rules.]] A player who learns one icon can read the next icon of the same class without help.
+**Semiotics** is the SCRAP standard for game iconography, a small visual language in which each action has one meaning class, and each class owns a frame shape, a colour role and a motion. Its code is `warp_sdk::semiotics` and its text is the document `docs/visual-semiotics.md`, which requires that a disagreement between the two is fixed in one commit.[[src:docs/visual-semiotics.md|the two disagree, fix the code or change this document in the same commit.]] A one-shot game has almost no text, so its icons carry the rules of the game.[[src:warp_sdk/src/semiotics.rs|A one-shot game has almost no text. Its icons carry the rules.]] A player who learns one icon can read the next icon of the same class without help.
 
 ## Grounding
 

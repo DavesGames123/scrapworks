@@ -6,7 +6,7 @@ order: 60
 module: gamepad
 see: bindings, teach, hud, juice, front-settings
 ---
-**Gamepad** is the input feel layer of the Warp SDK: one set of named verbs over keyboard, mouse and gamepad, with input buffering, coyote time, tap and hold gestures, dead zones, rumble and device-aware button prompts. It lives in the `gamepad` module of `warp_sdk`. A game names its verbs once, and each frame it asks about a verb and never about a device. Each part also works alone, with plain `f64` seconds.
+**Gamepad** is the input feel layer of the SCRAP SDK: one set of named verbs over keyboard, mouse and gamepad, with input buffering, coyote time, tap and hold gestures, dead zones, rumble and device-aware button prompts. It lives in the `gamepad` module of `warp_sdk`. A game names its verbs once, and each frame it asks about a verb and never about a device. Each part also works alone, with plain `f64` seconds.
 
 ## Design
 
@@ -123,4 +123,4 @@ A `Rumble` has a heavy motor strength `low`, a light motor strength `high`, and 
 
 ## History
 
-The module was added to the SDK on 2026-10-29. The `gilrs` backend came later on the same day, with a commit that added a window icon to every Warp window.
+The module was added to the SDK on 2026-10-29. The `gilrs` backend came later on the same day, with a commit that added a window icon to every SCRAP window.

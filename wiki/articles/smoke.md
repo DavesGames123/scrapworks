@@ -7,7 +7,7 @@ module: smoke
 example: starter, pong
 see: renderer, getting-started, building-a-game, shell, census, perf
 ---
-**The smoke test** is the headless proof that a Warp game runs and that a player can play it, with no window and no GPU requirement. It lives in the `warp_sdk::smoke` module. `boot` drives the frame loop of a `Renderer` for a number of frames, and `play` also sends a `Script` of keys and mouse events and reports which screens the game went through. A panic fails the run, and a clean return is a game that runs.
+**The smoke test** is the headless proof that a SCRAP game runs and that a player can play it, with no window and no GPU requirement. It lives in the `warp_sdk::smoke` module. `boot` drives the frame loop of a `Renderer` for a number of frames, and `play` also sends a `Script` of keys and mouse events and reports which screens the game went through. A panic fails the run, and a clean return is a game that runs.
 
 ## Design
 

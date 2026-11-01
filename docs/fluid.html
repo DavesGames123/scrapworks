@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fluid kit - Warp Wiki</title>
+<title>Fluid kit - SCRAP Wiki</title>
 <meta name="description" content="GPU stable fluids and the particles that ride them">
 <script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="assets/wiki.css">
@@ -14,9 +14,9 @@
 <a class="skip" href="#content">Skip to content</a>
 <header class="top">
   <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
-  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <a class="brand" href="index.html" aria-label="SCRAP Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Wiki</b><small>The engine SDK reference</small></span></a>
   <div class="search" role="search">
-    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search SCRAP Wiki" autocomplete="off" spellcheck="false">
     <kbd>/</kbd>
     <div class="results" id="results" hidden></div>
   </div>
@@ -39,7 +39,7 @@
   <main id="content"><a id="top"></a>
     <h1 class="firstHeading">Fluid kit</h1>
     <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
-    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">GPU stable fluids and the particles that ride them</p><table class="infobox"><caption>Fluid kit</caption><tr><th>Category</th><td><a href="category-world-and-simulation.html">World and simulation</a></td></tr><tr><th>Module</th><td><code>warp_sdk::fluid</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/fluid/mod.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">18</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example fluid</code></td></tr></table><p><strong>Fluid kit</strong> is the family of Warp SDK modules that simulates moving water and the particles that ride it on the GPU. It lives in <a class="sym" href="fluid.html"><code>warp_sdk::fluid</code></a>, which has three submodules and re-exports <a class="sym" href="#sym-Ocean"><code>Ocean</code></a> and <a class="sym" href="#sym-OceanConfig"><code>OceanConfig</code></a>. The one call path for a game is <a class="sym" href="#sym-Ocean"><code>Ocean</code></a>: the solver, the particles and an optional terrain in one value, with a <a class="sym" href="perf.html"><code>perf</code></a> budget.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+    <p class="tagline">From SCRAP Wiki, the reference for the SCRAP engine SDK</p><p class="shortdesc">GPU stable fluids and the particles that ride them</p><table class="infobox"><caption>Fluid kit</caption><tr><th>Category</th><td><a href="category-world-and-simulation.html">World and simulation</a></td></tr><tr><th>Module</th><td><code>warp_sdk::fluid</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/fluid/mod.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">18</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example fluid</code></td></tr></table><p><strong>Fluid kit</strong> is the family of SCRAP SDK modules that simulates moving water and the particles that ride it on the GPU. It lives in <a class="sym" href="fluid.html"><code>warp_sdk::fluid</code></a>, which has three submodules and re-exports <a class="sym" href="#sym-Ocean"><code>Ocean</code></a> and <a class="sym" href="#sym-OceanConfig"><code>OceanConfig</code></a>. The one call path for a game is <a class="sym" href="#sym-Ocean"><code>Ocean</code></a>: the solver, the particles and an optional terrain in one value, with a <a class="sym" href="perf.html"><code>perf</code></a> budget.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
 <h2 id="parts">Parts</h2>
 <table class="wikitable">
 <thead>
@@ -161,7 +161,7 @@ let cfg = OceanConfig::new([-8.0, -4.5, 8.0, 4.5]);</code></p></div></div><div c
 half of the GPU budget.</p>
 <p><code>ignore
 let s = OceanConfig::new(rect).solver_config();</code></p></div></div></details></div><h2 id="see-also">See also</h2><ul><li><a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a></li><li><a href="fluid-solver.html" data-slug="fluid-solver">Fluid solver</a></li><li><a href="fluid-particles.html" data-slug="fluid-particles">Fluid particles</a></li><li><a href="world-terrain.html" data-slug="world-terrain">Terrain</a></li><li><a href="perf.html" data-slug="perf">Perf</a></li><li><a href="post.html" data-slug="post">Post effects</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/mod.rs</code> - <code>The one call path for a game is</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/solver.rs</code> - <code>The CPU never reads the fields back.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/fluid/particles.rs</code> - <code>The CPU only spawns</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/examples/fluid.rs</code> - <code>The water and the particles hit</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/examples/fluid.rs</code> - <code>real water in a seeded cave, with snow and bubbles</code></li></ol><table class="navbox"><tr><th><a href="category-world-and-simulation.html">World and simulation</a></th></tr><tr><td><a href="world.html" data-slug="world">World kit</a> · <a href="world-terrain.html" data-slug="world-terrain">Terrain</a> · <a href="world-collide.html" data-slug="world-collide">Surface collision</a> · <a href="world-biome.html" data-slug="world-biome">Biomes</a> · <a href="world-reveal.html" data-slug="world-reveal">Reveal grid</a> · <b>Fluid kit</b> · <a href="fluid-solver.html" data-slug="fluid-solver">Fluid solver</a> · <a href="fluid-particles.html" data-slug="fluid-particles">Fluid particles</a> · <a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a> · <a href="procgen.html" data-slug="procgen">Procedural generation</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-world-and-simulation.html">World and simulation</a></div>
-    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+    <footer class="foot"><p>Generated from SCRAP commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
   </main>
 </div>
 </body>

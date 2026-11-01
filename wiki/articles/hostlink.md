@@ -7,7 +7,7 @@ module: hostlink, hostlink::audio, hostlink::child, hostlink::import, hostlink::
 example: observatory, front, cine
 see: editor-panels, gpu, census, audio, renderer
 ---
-**The host link** is the channel between the Warp editor and a game that it launched as a separate process. The `hostlink` module of `warp_core`, re-exported by `warp_sdk`, carries a transport that the editor drives, a surface that the game publishes, and each panel channel. It exists because the editor used to link the game, so a project that did not compile took the tool for fixing it down with it.[[src:warp_core/src/hostlink/mod.rs|It exists because the editor used to LINK the game.]] Every call on the game side costs almost nothing when no editor is listening. The module is native only.
+**The host link** is the channel between the SCRAP editor and a game that it launched as a separate process. The `hostlink` module of `warp_core`, re-exported by `warp_sdk`, carries a transport that the editor drives, a surface that the game publishes, and each panel channel. It exists because the editor used to link the game, so a project that did not compile took the tool for fixing it down with it.[[src:warp_core/src/hostlink/mod.rs|It exists because the editor used to LINK the game.]] Every call on the game side costs almost nothing when no editor is listening. The module is native only.
 
 ## Design
 

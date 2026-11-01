@@ -6,7 +6,7 @@ order: 13
 module: world::biome
 see: world, world-terrain, world-reveal, hud-cues, palette-kit, post
 ---
-**Biomes** are places in a Warp game that play differently, not only look different. The module `warp_sdk::world::biome` defines each place as a `Biome`, places the set of them in bands with `BiomeSet`, and gives a blended rule set `Env` at any point. A biome is a reason to go somewhere.[[src:warp_sdk/src/world/biome.rs|A biome is a reason to go somewhere.]]
+**Biomes** are places in a SCRAP game that play differently, not only look different. The module `warp_sdk::world::biome` defines each place as a `Biome`, places the set of them in bands with `BiomeSet`, and gives a blended rule set `Env` at any point. A biome is a reason to go somewhere.[[src:warp_sdk/src/world/biome.rs|A biome is a reason to go somewhere.]]
 
 ## Design
 

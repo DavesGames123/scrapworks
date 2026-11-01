@@ -6,7 +6,7 @@ order: 29
 module: scale
 see: renderer, widgets, palette, front-settings, hud
 ---
-**Interface scale** is the factor by which Warp enlarges every interface measurement and font. The `scale` module of `warp_sdk` exposes nine items from the theme code of `warp_core`, and it is the one part of that theme code that a game receives. The scale is the fix for a problem that every game has, and the palette beside it stays behind.[[src:warp_sdk/src/lib.rs|the scale is the fix for a bug every game has.]]
+**Interface scale** is the factor by which SCRAP enlarges every interface measurement and font. The `scale` module of `warp_sdk` exposes nine items from the theme code of `warp_core`, and it is the one part of that theme code that a game receives. The scale is the fix for a problem that every game has, and the palette beside it stays behind.[[src:warp_sdk/src/lib.rs|the scale is the fix for a bug every game has.]]
 
 ## Why a game needs it
 

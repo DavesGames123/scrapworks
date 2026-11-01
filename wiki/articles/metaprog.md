@@ -6,7 +6,7 @@ order: 50
 module: metaprog
 see: quest, economy, challenge, teach, front-save
 ---
-**Metaprogression** is the Warp SDK's model of progress that lasts past one moment and past one run: an unlock tree, growth stages, upgrades with levels, milestones and a codex. It lives in the `metaprog` module of `warp_sdk`. A game declares its progression as data once, reports what the player does, and reads the events that come back. `Meta::save` and `Meta::load` keep the state on disk.
+**Metaprogression** is the SCRAP SDK's model of progress that lasts past one moment and past one run: an unlock tree, growth stages, upgrades with levels, milestones and a codex. It lives in the `metaprog` module of `warp_sdk`. A game declares its progression as data once, reports what the player does, and reads the events that come back. `Meta::save` and `Meta::load` keep the state on disk.
 
 ## Design
 

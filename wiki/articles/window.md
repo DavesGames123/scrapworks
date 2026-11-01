@@ -6,7 +6,7 @@ order: 90
 module: window
 see: editor-panels, widgets, palette, scale, renderer
 ---
-**Custom windows** are panels that an application adds to the Warp editor without editing the editor. The `window` module of `warp_core`, re-exported by `warp_sdk`, holds the facts of a window as one struct and one trait, and keeps a process-wide table of them. An author implements `WarpWindow`, with its two methods `spec` and `ui`, calls `register` before `run`, and gets a tab, a row in the View menu, a place in the layout, and a tear-off to a real OS window.[[src:warp_core/src/window/mod.rs|A warp window is a title, a placement, a few permissions and a body that]]
+**Custom windows** are panels that an application adds to the SCRAP editor without editing the editor. The `window` module of `warp_core`, re-exported by `warp_sdk`, holds the facts of a window as one struct and one trait, and keeps a process-wide table of them. An author implements `WarpWindow`, with its two methods `spec` and `ui`, calls `register` before `run`, and gets a tab, a row in the View menu, a place in the layout, and a tear-off to a real OS window.[[src:warp_core/src/window/mod.rs|A warp window is a title, a placement, a few permissions and a body that]]
 
 ## Usage
 

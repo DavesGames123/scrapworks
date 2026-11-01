@@ -50,7 +50,7 @@ The full map pans only once the unfold has finished. The wheel zooms about the p
 | Setting | Default | Meaning |
 |---|---|---|
 | Grid | 128 x 128 | Cells; each side clamps to 2 through 2046, and `Minimap::grid` clears the cache |
-| `y_up` | true | World y grows up, as in the Warp 2D view |
+| `y_up` | true | World y grows up, as in the SCRAP 2D view |
 | `corner` | Corner::TopRight | Corner of the compact map |
 | `below_keys` | true | Sit below the key row of a deck in the same corner |
 | `side` | 0.0 | Side of the compact map; zero takes three deck keys wide |

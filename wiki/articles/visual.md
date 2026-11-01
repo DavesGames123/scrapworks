@@ -7,7 +7,7 @@ module: visual
 example: visual
 see: semiotics, palette-kit, hud-cues, teach, hud-minimap, art-direction
 ---
-**Visual language** is the Warp system that gives each kind of thing in a game one role, and each role one colour and one shape, so that a game shows meaning without words. It lives in `warp_sdk::visual` and its main type is `Language`. The same role always looks the same, in the world, in the HUD and on the map.[[src:warp_sdk/src/visual.rs|colour and one shape. The same role always looks the same, in the world,]] The module also holds a vector icon set, colour-blindness simulation, and the bridge to the [[semiotics]] icon standard. It implements the [[art-direction#Gameplay you can see|art direction rule]] that colour has one meaning.
+**Visual language** is the SCRAP system that gives each kind of thing in a game one role, and each role one colour and one shape, so that a game shows meaning without words. It lives in `warp_sdk::visual` and its main type is `Language`. The same role always looks the same, in the world, in the HUD and on the map.[[src:warp_sdk/src/visual.rs|colour and one shape. The same role always looks the same, in the world,]] The module also holds a vector icon set, colour-blindness simulation, and the bridge to the [[semiotics]] icon standard. It implements the [[art-direction#Gameplay you can see|art direction rule]] that colour has one meaning.
 
 ## Roles
 

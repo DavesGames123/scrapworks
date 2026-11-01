@@ -7,7 +7,7 @@ module: net::tcp, net::p2p, net::msg
 example: pong_link
 see: net, net-session, net-invite, net-discover
 ---
-**Network transports** are the three carriers under a Warp session: TCP, direct P2P over QUIC, and a message-sink adapter for platform networks. They live in `warp_sdk::net::tcp`, `warp_sdk::net::p2p` and `warp_sdk::net::msg`, re-exported from `warp_net`. Each one gives a `FrameIo`, and the session layer runs the same handshake and seal on each. A game picks a transport by what the players can reach.
+**Network transports** are the three carriers under a SCRAP session: TCP, direct P2P over QUIC, and a message-sink adapter for platform networks. They live in `warp_sdk::net::tcp`, `warp_sdk::net::p2p` and `warp_sdk::net::msg`, re-exported from `warp_net`. Each one gives a `FrameIo`, and the session layer runs the same handshake and seal on each. A game picks a transport by what the players can reach.
 
 ## The transport contract
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>World kit - Warp Wiki</title>
+<title>World kit - SCRAP Wiki</title>
 <meta name="description" content="terrain as a surface field, with collision, biomes, and reveal">
 <script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="assets/wiki.css">
@@ -14,9 +14,9 @@
 <a class="skip" href="#content">Skip to content</a>
 <header class="top">
   <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
-  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <a class="brand" href="index.html" aria-label="SCRAP Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Wiki</b><small>The engine SDK reference</small></span></a>
   <div class="search" role="search">
-    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search SCRAP Wiki" autocomplete="off" spellcheck="false">
     <kbd>/</kbd>
     <div class="results" id="results" hidden></div>
   </div>
@@ -39,7 +39,7 @@
   <main id="content"><a id="top"></a>
     <h1 class="firstHeading">World kit</h1>
     <div class="tabs"><a class="on" href="#top">Article</a></div>
-    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">terrain as a surface field, with collision, biomes, and reveal</p><table class="infobox"><caption>World kit</caption><tr><th>Category</th><td><a href="category-world-and-simulation.html">World and simulation</a></td></tr><tr><th>Module</th><td><code>warp_sdk::world</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/world/mod.rs</code></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example world</code></td></tr></table><p><strong>World kit</strong> is the family of Warp SDK modules that models a playable place as a surface field, with terrain, collision, biomes, and exploration state. It lives in <a class="sym" href="world.html"><code>warp_sdk::world</code></a>, which holds no code of its own and only declares four submodules. Each submodule has one owner, and games use the full path, for example <a class="sym" href="world-biome.html"><code>warp_sdk::world::biome</code></a>.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+    <p class="tagline">From SCRAP Wiki, the reference for the SCRAP engine SDK</p><p class="shortdesc">terrain as a surface field, with collision, biomes, and reveal</p><table class="infobox"><caption>World kit</caption><tr><th>Category</th><td><a href="category-world-and-simulation.html">World and simulation</a></td></tr><tr><th>Module</th><td><code>warp_sdk::world</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/world/mod.rs</code></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example world</code></td></tr></table><p><strong>World kit</strong> is the family of SCRAP SDK modules that models a playable place as a surface field, with terrain, collision, biomes, and exploration state. It lives in <a class="sym" href="world.html"><code>warp_sdk::world</code></a>, which holds no code of its own and only declares four submodules. Each submodule has one owner, and games use the full path, for example <a class="sym" href="world-biome.html"><code>warp_sdk::world::biome</code></a>.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
 <h2 id="submodules">Submodules</h2>
 <table class="wikitable">
 <thead>
@@ -93,7 +93,7 @@ t.<span class="f">dig</span>(<span class="t">Vec2</span>::<span class="f">new</s
 <p><a href="fluid.html" data-slug="fluid">The fluid kit</a> takes a <a class="sym" href="world-terrain.html#sym-Terrain"><code>Terrain</code></a> by value through <code>Ocean::with_terrain</code>. <a href="lit2d.html" data-slug="lit2d">Lit2d</a> can draw a chunk with one quad and a material that reads the terrain SDF, and <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> holds the WGSL for that material and for the fog of war. <a href="procgen.html" data-slug="procgen">Procedural generation</a> is separate. It places props through closures and does not depend on these modules, although a game often uses both from one seed.</p>
 <h2 id="history">History</h2>
 <p><a class="sym" href="world-terrain.html"><code>world::terrain</code></a> and <a class="sym" href="world-collide.html"><code>world::collide</code></a> landed in commit <code>4e564d42</code>, and <a class="sym" href="world-biome.html"><code>world::biome</code></a> and <a class="sym" href="world-reveal.html"><code>world::reveal</code></a> in commit <code>ccc8f737</code>, both dated 2026-10-29. An earlier commit that day, <code>3258f8c5</code>, registered the module names as placeholders.</p><h2 id="see-also">See also</h2><ul><li><a href="world-terrain.html" data-slug="world-terrain">Terrain</a></li><li><a href="world-collide.html" data-slug="world-collide">Surface collision</a></li><li><a href="world-biome.html" data-slug="world-biome">Biomes</a></li><li><a href="world-reveal.html" data-slug="world-reveal">Reveal grid</a></li><li><a href="fluid.html" data-slug="fluid">Fluid kit</a></li><li><a href="procgen.html" data-slug="procgen">Procedural generation</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/mod.rs</code> - <code>Each submodule has one owner</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/collide.rs</code> - <code>Every query reads one function</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/world/reveal.rs</code> - <code>so the grid works with any terrain</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/examples/world.rs</code> - <code>digs a disc, the right button fills one</code></li></ol><table class="navbox"><tr><th><a href="category-world-and-simulation.html">World and simulation</a></th></tr><tr><td><b>World kit</b> · <a href="world-terrain.html" data-slug="world-terrain">Terrain</a> · <a href="world-collide.html" data-slug="world-collide">Surface collision</a> · <a href="world-biome.html" data-slug="world-biome">Biomes</a> · <a href="world-reveal.html" data-slug="world-reveal">Reveal grid</a> · <a href="fluid.html" data-slug="fluid">Fluid kit</a> · <a href="fluid-solver.html" data-slug="fluid-solver">Fluid solver</a> · <a href="fluid-particles.html" data-slug="fluid-particles">Fluid particles</a> · <a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a> · <a href="procgen.html" data-slug="procgen">Procedural generation</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-world-and-simulation.html">World and simulation</a></div>
-    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+    <footer class="foot"><p>Generated from SCRAP commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
   </main>
 </div>
 </body>

@@ -5,9 +5,9 @@ category: Getting started
 order: 10
 module: (root)
 example: starter, pong
-see: warp, getting-started, shell, smoke, post, display-mode
+see: scrap, getting-started, shell, smoke, post, display-mode
 ---
-**Renderer and run** are the entry point of a Warp game: `Renderer` is the trait that a game implements, and `run` is the function that opens the window and calls it once per frame. Both are re-exported at the root of `warp_sdk`, with `Config`, `RenderContext`, `DisplaySettings` and `SharedGpu`. A game is one type that implements `Renderer`. For a game with title and pause screens, [[shell]] offers `run_shell` as an alternative to writing those screens.
+**Renderer and run** are the entry point of a SCRAP game: `Renderer` is the trait that a game implements, and `run` is the function that opens the window and calls it once per frame. Both are re-exported at the root of `warp_sdk`, with `Config`, `RenderContext`, `DisplaySettings` and `SharedGpu`. A game is one type that implements `Renderer`. For a game with title and pause screens, [[shell]] offers `run_shell` as an alternative to writing those screens.
 
 ## Starting a game
 

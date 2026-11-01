@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-tools/wiki/build.py - write the Warp wiki to docs/.
+tools/wiki/build.py - write the SCRAP wiki to docs/.
 
 Input:
     wiki/articles/*.md     one article each, with a front-matter block
-    wiki/surface.json      the Warp public surface, from tools/wiki/extract.py
+    wiki/surface.json      the SCRAP public surface, from tools/wiki/extract.py
 Output:
     docs/*.html            one static page for each article, plus index pages
     docs/data/*.json       the search index and the hover previews
@@ -15,7 +15,7 @@ Use:
     python3 tools/wiki/build.py --lint SLUG...  report on those articles
 
 The build stops with exit code 1 on a broken [[link]], a module with no home
-article, a source reference to a file that Warp does not have, or a private
+article, a source reference to a file that SCRAP does not have, or a private
 name in the output. An unresolved `Symbol` in an article is a lint report: it
 is a warning at build time and it is an error for an article author.
 
@@ -51,11 +51,11 @@ SITE = pathlib.Path(__file__).resolve().parent.parent.parent
 WIKI = SITE / "wiki"
 OUT = SITE / "docs"
 WARP = SITE.parent / "warp"
-SITE_NAME = "Warp Wiki"
-TAGLINE = "From Warp Wiki, the reference for the Warp engine SDK"
+SITE_NAME = "SCRAP Wiki"
+TAGLINE = "From SCRAP Wiki, the reference for the SCRAP engine SDK"
 
 CATEGORIES = [
-    ("Introduction", "What Warp is, and how a game starts."),
+    ("Introduction", "What SCRAP is, and how a game starts."),
     ("Getting started", "The entry point, the shell, and the headless proof."),
     ("Front end", "Title screens, saves, settings, type, and boot."),
     ("Look", "Colour, icons, light, post effects, camera, and feel."),
@@ -433,7 +433,7 @@ def layout(title, body, *, toc=None, tabs="", desc="", extra_head="", page_class
 <a class="skip" href="#content">Skip to content</a>
 <header class="top">
   <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
-  <a class="brand" href="index.html" aria-label="{SITE_NAME} home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <a class="brand" href="index.html" aria-label="{SITE_NAME} home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Wiki</b><small>The engine SDK reference</small></span></a>
   <div class="search" role="search">
     <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search {SITE_NAME}" autocomplete="off" spellcheck="false">
     <kbd>/</kbd>
@@ -459,7 +459,7 @@ def layout(title, body, *, toc=None, tabs="", desc="", extra_head="", page_class
     <h1 class="firstHeading">{title if '<' in title else html.escape(title)}</h1>
     {tabs}
     {body}
-    <footer class="foot"><p>Generated from Warp commit <code>{SURF['commit']}</code> of {SURF['date']}. The reference sections come directly from the source.</p></footer>
+    <footer class="foot"><p>Generated from SCRAP commit <code>{SURF['commit']}</code> of {SURF['date']}. The reference sections come directly from the source.</p></footer>
   </main>
 </div>
 </body>
@@ -561,17 +561,17 @@ def all_articles(articles):
         body.append(f'<h2 id="az-{k}">{k}</h2><ul>' + "".join(
             f'<li><a href="{a["slug"]}.html" data-slug="{a["slug"]}">{html.escape(a["title"])}</a></li>' for a in group) + "</ul>")
     body.append("</div>")
-    return layout("All articles", "".join(body), desc="Every article in the Warp Wiki, A to Z.")
+    return layout("All articles", "".join(body), desc="Every article in the SCRAP Wiki, A to Z.")
 
 
 def recent_page(data):
     days = {}
     for r in data["recent"]:
         days.setdefault(r["date"], []).append(r["subject"])
-    body = ['<p>These are the latest changes to the SDK, as the commit log of Warp records them.</p>']
+    body = ['<p>These are the latest changes to the SDK, as the commit log of SCRAP records them.</p>']
     for d, subs in days.items():
         body.append(f'<h2 id="d{d}">{d}</h2><ul>' + "".join(f"<li>{html.escape(s)}</li>" for s in subs) + "</ul>")
-    return layout("Recent changes", "".join(body), desc="The latest changes to the Warp SDK.")
+    return layout("Recent changes", "".join(body), desc="The latest changes to the SCRAP SDK.")
 
 
 def catalog_page(data):
@@ -589,7 +589,7 @@ def catalog_page(data):
     out = re.sub(r"<h2>(.*?)</h2>", lambda m: f'<h2 id="{slugify_heading(m.group(1))}">{m.group(1)}</h2>', out)
     return layout("Shader catalog", '<p class="shortdesc">Every WGSL file in the shader library, grouped by family.</p>'
                   '<div class="reffilter"><input type="search" id="catq" placeholder="Filter by tag or function" aria-label="Filter the catalog"><span class="refcount"></span></div>'
-                  f'<div id="catalog">{out}</div>', desc="Every WGSL file in the Warp shader library.")
+                  f'<div id="catalog">{out}</div>', desc="Every WGSL file in the SCRAP shader library.")
 
 
 def symbols_page(n):
@@ -597,7 +597,7 @@ def symbols_page(n):
                   f'<p class="shortdesc">Search all {n:,} public items of the SDK by name.</p>'
                   '<div class="reffilter"><input type="search" id="symq" placeholder="Type a name, for example Deck or spring" aria-label="Filter symbols"><span class="refcount"></span></div>'
                   '<table class="wikitable symtable"><thead><tr><th>Item</th><th>Kind</th><th>Module</th></tr></thead><tbody id="symrows"></tbody></table>',
-                  desc="Every public item of the Warp SDK.", page_class="symbols")
+                  desc="Every public item of the SCRAP SDK.", page_class="symbols")
 
 
 def main_page(articles, data, total):
@@ -614,12 +614,12 @@ def main_page(articles, data, total):
     page = Page(fake, slugs, SURFACE)
     intro, _ = page.render()
     news = "".join(f"<li><b>{r['date']}</b> {html.escape(r['subject'])}</li>" for r in data["recent"][:9])
-    body = (f'<div class="mpwelcome"><h2>Welcome to Warp Wiki,</h2><p>the reference for the Warp engine SDK.</p>'
+    body = (f'<div class="mpwelcome"><h2>Welcome to SCRAP Wiki,</h2><p>the reference for the SCRAP engine SDK.</p>'
             f'<p class="count"><b>{len(articles)}</b> articles · <b>{total:,}</b> documented items · <b>{len(data["shaders"])}</b> shader files</p></div>'
             f'<div class="mpgrid"><div class="mpmain">{intro}</div>'
             f'<aside class="mpnews"><section class="mpbox"><h2><a href="recent-changes.html">Recent changes</a></h2><ul>{news}</ul></section></aside></div>'
             f'<div class="mpcards">{"".join(cards)}</div>')
-    return layout("Main page", body, desc="The reference for the Warp engine SDK.", page_class="mainpage")
+    return layout("Main page", body, desc="The reference for the SCRAP engine SDK.", page_class="mainpage")
 
 
 # ── Data files ──────────────────────────────────────────────────────────────

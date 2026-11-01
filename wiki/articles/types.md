@@ -36,7 +36,7 @@ The display store holds `DisplayMode`, `DisplayWindow` and `MonitorInfo`, with `
 
 ## Keyboard channels
 
-`RawKey` is a physical key as winit reports it. Warp has two paths that bypass egui and the winit input helper.
+`RawKey` is a physical key as winit reports it. SCRAP has two paths that bypass egui and the winit input helper.
 
 ### The raw key ring
 

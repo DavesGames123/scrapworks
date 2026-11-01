@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Editor panels - Warp Wiki</title>
+<title>Editor panels - SCRAP Wiki</title>
 <meta name="description" content="every panel a game can feed, and the channels that feed them">
 <script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="assets/wiki.css">
@@ -14,9 +14,9 @@
 <a class="skip" href="#content">Skip to content</a>
 <header class="top">
   <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
-  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <a class="brand" href="index.html" aria-label="SCRAP Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Wiki</b><small>The engine SDK reference</small></span></a>
   <div class="search" role="search">
-    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search SCRAP Wiki" autocomplete="off" spellcheck="false">
     <kbd>/</kbd>
     <div class="results" id="results" hidden></div>
   </div>
@@ -39,7 +39,7 @@
   <main id="content"><a id="top"></a>
     <h1 class="firstHeading">Editor panels</h1>
     <div class="tabs"><a class="on" href="#top">Article</a></div>
-    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">every panel a game can feed, and the channels that feed them</p><table class="infobox"><caption>Editor panels</caption><tr><th>Category</th><td><a href="category-editor-channels.html">Editor channels</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example starter</code><br><code>cargo run -p warp_sdk --example pong</code><br><code>cargo run -p warp_sdk --example observatory</code></td></tr></table><p><strong>Editor panels</strong> are the tool views of the Warp editor that a running game fills with its own data. Each panel a game drives is one channel, re-exported through <code>warp_sdk</code>. A game publishes to the channels for which it has data, and a game with no editor attached pays almost nothing. The channels share one rule: the game owns the facts, the panel draws them, and anything the panel wants done travels back as data.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+    <p class="tagline">From SCRAP Wiki, the reference for the SCRAP engine SDK</p><p class="shortdesc">every panel a game can feed, and the channels that feed them</p><table class="infobox"><caption>Editor panels</caption><tr><th>Category</th><td><a href="category-editor-channels.html">Editor channels</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example starter</code><br><code>cargo run -p warp_sdk --example pong</code><br><code>cargo run -p warp_sdk --example observatory</code></td></tr></table><p><strong>Editor panels</strong> are the tool views of the SCRAP editor that a running game fills with its own data. Each panel a game drives is one channel, re-exported through <code>warp_sdk</code>. A game publishes to the channels for which it has data, and a game with no editor attached pays almost nothing. The channels share one rule: the game owns the facts, the panel draws them, and anything the panel wants done travels back as data.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
 <h2 id="the-channel-table">The channel table</h2>
 <table class="wikitable">
 <thead>
@@ -140,7 +140,7 @@
 }</code></pre></div>
 <h2 id="limitations">Limitations</h2>
 <p>The Storyboard edges are edited in the panel, not by the game. <code>warp_sdk</code> does not re-export the editor's <code>shaderlab</code> and <code>story</code> panels, which sit behind an editor feature of <code>warp_core</code>.<sup class="ref"><a href="#ref-5" id="cite-5">[5]</a></sup></p><h2 id="see-also">See also</h2><ul><li><a href="census.html" data-slug="census">Census</a></li><li><a href="bindings.html" data-slug="bindings">Bindings</a></li><li><a href="devconsole.html" data-slug="devconsole">Dev console</a></li><li><a href="audio.html" data-slug="audio">Audio</a></li><li><a href="profile.html" data-slug="profile">Profiler</a></li><li><a href="window.html" data-slug="window">Custom windows</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/panels/census/mod.rs</code> - <code>The application publishes rows. The panel draws them and pushes requests.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_core/src/devconsole.rs</code> - <code>The console lives in the application, and the dependency runs one way:</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/panels/census/interest.rs</code> - <code>So the panel re-asserts on every frame it draws, and the assertion expires.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/hostlink/mod.rs</code> - <code>EVERY PANEL THAT READ A GLOBAL IS A MESSAGE HERE</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/lib.rs</code> - <code>Do not re-add these here.</code></li></ol><table class="navbox"><tr><th><a href="category-editor-channels.html">Editor channels</a></th></tr><tr><td><b>Editor panels</b> · <a href="census.html" data-slug="census">Census</a> · <a href="devconsole.html" data-slug="devconsole">Dev console</a> · <a href="bindings.html" data-slug="bindings">Bindings</a> · <a href="audio.html" data-slug="audio">Audio</a> · <a href="palette.html" data-slug="palette">Palette roles</a> · <a href="profile.html" data-slug="profile">Profiler</a> · <a href="hostlink.html" data-slug="hostlink">Host link</a> · <a href="window.html" data-slug="window">Custom windows</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-editor-channels.html">Editor channels</a></div>
-    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+    <footer class="foot"><p>Generated from SCRAP commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
   </main>
 </div>
 </body>

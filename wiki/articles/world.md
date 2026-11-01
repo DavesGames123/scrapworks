@@ -7,7 +7,7 @@ module: world
 example: world
 see: world-terrain, world-collide, world-biome, world-reveal, fluid, procgen
 ---
-**World kit** is the family of Warp SDK modules that models a playable place as a surface field, with terrain, collision, biomes, and exploration state. It lives in `warp_sdk::world`, which holds no code of its own and only declares four submodules. Each submodule has one owner, and games use the full path, for example `warp_sdk::world::biome`.[[src:warp_sdk/src/world/mod.rs|Each submodule has one owner]]
+**World kit** is the family of SCRAP SDK modules that models a playable place as a surface field, with terrain, collision, biomes, and exploration state. It lives in `warp_sdk::world`, which holds no code of its own and only declares four submodules. Each submodule has one owner, and games use the full path, for example `warp_sdk::world::biome`.[[src:warp_sdk/src/world/mod.rs|Each submodule has one owner]]
 
 ## Submodules
 

@@ -7,7 +7,7 @@ module: lit2d
 example: lit2d
 see: shaderlib, shader-material, post, camera, art-direction, gpu
 ---
-**Lit2d** is the Warp deferred lighting renderer for 2D sprites, which shades each sprite as a surface with albedo, normal, roughness, metallic, height and emissive channels. It lives in `warp_sdk::lit2d` and its main type is `Lit2d`. One key light, a hemisphere ambient term and up to `MAX_POINT_LIGHTS` (256) point lights shade the surfaces, so a flat scene shows the specular highlights and bevel shading of a 3D scene, as Stella Nova does.[[src:warp_sdk/src/lit2d/mod.rs|scene then shows the specular highlights and the bevel shading of a 3D]] It is the code form of the [[art-direction#Everything is a lit material|art direction rule]] that every object is a lit material.
+**Lit2d** is the SCRAP deferred lighting renderer for 2D sprites, which shades each sprite as a surface with albedo, normal, roughness, metallic, height and emissive channels. It lives in `warp_sdk::lit2d` and its main type is `Lit2d`. One key light, a hemisphere ambient term and up to `MAX_POINT_LIGHTS` (256) point lights shade the surfaces, so a flat scene shows the specular highlights and bevel shading of a 3D scene, as Stella Nova does.[[src:warp_sdk/src/lit2d/mod.rs|scene then shows the specular highlights and the bevel shading of a 3D]] It is the code form of the [[art-direction#Everything is a lit material|art direction rule]] that every object is a lit material.
 
 ## How it works
 

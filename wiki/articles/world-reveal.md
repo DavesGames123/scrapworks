@@ -6,7 +6,7 @@ order: 14
 module: world::reveal
 see: world, world-terrain, shader-terrain, hud-minimap, world-biome
 ---
-**Reveal grid** is the Warp SDK structure that records what the player has seen and what the player sees now. It is the type `RevealGrid` in `warp_sdk::world::reveal`, and it drives fog of war, a minimap, and cut-away rock. The grid covers a world rectangle with square cells, and each cell keeps two soft values from 0 to 1.[[src:warp_sdk/src/world/reveal.rs|keeps two soft values, 0..1]]
+**Reveal grid** is the SCRAP SDK structure that records what the player has seen and what the player sees now. It is the type `RevealGrid` in `warp_sdk::world::reveal`, and it drives fog of war, a minimap, and cut-away rock. The grid covers a world rectangle with square cells, and each cell keeps two soft values from 0 to 1.[[src:warp_sdk/src/world/reveal.rs|keeps two soft values, 0..1]]
 
 ## Overview
 

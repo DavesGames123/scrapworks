@@ -8,7 +8,7 @@ example: lit2d
 see: lit2d, shader-noise, shader-material, shader-sdf, post, renderer
 demo: shaderplay
 ---
-**Shader library** is the collection of WGSL function files that a Warp game composes into its own shaders. It lives in the module `warp_sdk::shaderlib`, with one `.wgsl` file for each block under `warp_sdk/shaderlib/`, embedded at compile time and validated by `cargo test`. A game names the files it wants, receives one WGSL string, and appends its own entry points. The library holds functions and structs only. It holds no pipelines, no bind groups and no entry points.
+**Shader library** is the collection of WGSL function files that a SCRAP game composes into its own shaders. It lives in the module `warp_sdk::shaderlib`, with one `.wgsl` file for each block under `warp_sdk/shaderlib/`, embedded at compile time and validated by `cargo test`. A game names the files it wants, receives one WGSL string, and appends its own entry points. The library holds functions and structs only. It holds no pipelines, no bind groups and no entry points.
 
 
 {{demo:shaderplay}}

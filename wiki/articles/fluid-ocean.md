@@ -7,7 +7,7 @@ module: fluid::ocean
 example: fluid
 see: fluid, fluid-solver, fluid-particles, world-terrain, perf, smoke
 ---
-**Ocean** is the Warp SDK value that combines moving water, the particles that ride it, and the terrain they both hit. It is the type `Ocean` in `warp_sdk::fluid::ocean`, re-exported as `fluid::Ocean`. It is the one call path for a game that wants moving water.[[src:warp_sdk/src/fluid/ocean.rs|The one call path for a game that wants moving water.]] An `Ocean` owns a `Solver`, a `Particles` system and, as an option, a `Terrain`.
+**Ocean** is the SCRAP SDK value that combines moving water, the particles that ride it, and the terrain they both hit. It is the type `Ocean` in `warp_sdk::fluid::ocean`, re-exported as `fluid::Ocean`. It is the one call path for a game that wants moving water.[[src:warp_sdk/src/fluid/ocean.rs|The one call path for a game that wants moving water.]] An `Ocean` owns a `Solver`, a `Particles` system and, as an option, a `Terrain`.
 
 ## Overview
 

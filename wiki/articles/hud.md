@@ -7,7 +7,7 @@ module: hud
 example: hud_map, hud_progress
 see: hud-cues, hud-markers, hud-minimap, hud-progress, squircle, teach
 ---
-**The HUD kit** is the family of Warp modules that show a player in-game information with icons and motion in place of prose. It lives in `warp_sdk::hud`, which holds four submodules that a game reaches by full path, for example `warp_sdk::hud::cues` [[src:warp_sdk/src/hud/mod.rs|`warp_sdk::hud::cues`.]]. The `hud` module has no items of its own. Each submodule answers one question a player asks during play.
+**The HUD kit** is the family of SCRAP modules that show a player in-game information with icons and motion in place of prose. It lives in `warp_sdk::hud`, which holds four submodules that a game reaches by full path, for example `warp_sdk::hud::cues` [[src:warp_sdk/src/hud/mod.rs|`warp_sdk::hud::cues`.]]. The `hud` module has no items of its own. Each submodule answers one question a player asks during play.
 
 ## Overview
 
@@ -18,7 +18,7 @@ see: hud-cues, hud-markers, hud-minimap, hud-progress, squircle, teach
 | `hud::minimap` | [[hud-minimap]] | What is around me? | `Minimap`, `MapFrame` |
 | `hud::progress` | [[hud-progress]] | How far am I, and what do I do now? | `Meter`, `Objectives` |
 
-The Warp documentation groups the family with the [[squircle|squircle kit]] and [[teach]] as the information kits of the SDK. The squircle kit is the interface an application operates. The HUD kits report the game state to a player, and `teach` shows the player how to play.
+The SCRAP documentation groups the family with the [[squircle|squircle kit]] and [[teach]] as the information kits of the SDK. The squircle kit is the interface an application operates. The HUD kits report the game state to a player, and `teach` shows the player how to play.
 
 ## Design
 
@@ -34,7 +34,7 @@ Each kit keeps its state in a plain value that the game owns. `Minimap`, `Marker
 
 The kits with their own clock offer two forms. A `show` method ticks by the egui frame time and draws on a foreground layer. For a game that runs its logic with no window, separate `tick` and `draw` methods let the game step the state from its own clock, as the `hud_progress` example does [[src:warp_sdk/examples/hud_progress.rs|`Meter`, one `Objectives` and one `Cues`, ticks them with the game clock,]].
 
-World positions reach the screen through a closure. `Cues::show` and `Markers::show` take a function from a world point to a screen point, so any camera works. `markers::Camera` is a small default that matches the Warp 2D view, and the minimap builds its own view from the player position.
+World positions reach the screen through a closure. `Cues::show` and `Markers::show` take a function from a world point to a screen point, so any camera works. `markers::Camera` is a small default that matches the SCRAP 2D view, and the minimap builds its own view from the player position.
 
 ## Colour
 

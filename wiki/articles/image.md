@@ -6,7 +6,7 @@ order: 25
 module: image, image::cache, image::pak
 see: assets, manifest, render, scene, gpu, renderer
 ---
-**Image atlases** are the texture arrays from which Warp draws sprites, and the `image` module of `warp_core`, re-exported by `warp_sdk`, manages them. It holds two atlas kinds, the descriptor through which an application declares them, a disk cache of processed layers, and the packed file format of distribution builds. Which atlases exist and which directories fill them is application data, not engine data.
+**Image atlases** are the texture arrays from which SCRAP draws sprites, and the `image` module of `warp_core`, re-exported by `warp_sdk`, manages them. It holds two atlas kinds, the descriptor through which an application declares them, a disk cache of processed layers, and the packed file format of distribution builds. Which atlases exist and which directories fill them is application data, not engine data.
 
 ## Design
 

@@ -6,7 +6,7 @@ order: 10
 example: starter, pong, observatory
 see: census, bindings, devconsole, audio, profile, window
 ---
-**Editor panels** are the tool views of the Warp editor that a running game fills with its own data. Each panel a game drives is one channel, re-exported through `warp_sdk`. A game publishes to the channels for which it has data, and a game with no editor attached pays almost nothing. The channels share one rule: the game owns the facts, the panel draws them, and anything the panel wants done travels back as data.[[src:warp_core/src/panels/census/mod.rs|The application publishes rows. The panel draws them and pushes requests.]]
+**Editor panels** are the tool views of the SCRAP editor that a running game fills with its own data. Each panel a game drives is one channel, re-exported through `warp_sdk`. A game publishes to the channels for which it has data, and a game with no editor attached pays almost nothing. The channels share one rule: the game owns the facts, the panel draws them, and anything the panel wants done travels back as data.[[src:warp_core/src/panels/census/mod.rs|The application publishes rows. The panel draws them and pushes requests.]]
 
 ## The channel table
 

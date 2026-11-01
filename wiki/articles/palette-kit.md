@@ -7,7 +7,7 @@ module: palette_kit
 see: visual, fonts, semiotics, shader-pattern, art-direction, palette
 demo: harmony
 ---
-**Palette kit** is the Warp module of palettes, colour maths and taste rules, which turns a mood word and a seed into a checked set of colours. It lives in `warp_sdk::palette_kit`. `pick` returns a `Swatch` with one paper colour (`bg`) and one to five inks, and the seed changes the palette choice, the ink order and a small hue and chroma turn, so two games with two seeds do not get the same look.[[src:warp_sdk/src/palette_kit.rs|two seeds do not get the same look.]] It is not `warp_sdk::palette`, the [[palette|editor chrome palette]]. The module is a port of the Pattern Designer tool: its palette table, its colour functions, its density limits and its taste rules.
+**Palette kit** is the SCRAP module of palettes, colour maths and taste rules, which turns a mood word and a seed into a checked set of colours. It lives in `warp_sdk::palette_kit`. `pick` returns a `Swatch` with one paper colour (`bg`) and one to five inks, and the seed changes the palette choice, the ink order and a small hue and chroma turn, so two games with two seeds do not get the same look.[[src:warp_sdk/src/palette_kit.rs|two seeds do not get the same look.]] It is not `warp_sdk::palette`, the [[palette|editor chrome palette]]. The module is a port of the Pattern Designer tool: its palette table, its colour functions, its density limits and its taste rules.
 
 ## Colour
 

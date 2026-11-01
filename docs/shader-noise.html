@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Noise shaders - Warp Wiki</title>
+<title>Noise shaders - SCRAP Wiki</title>
 <meta name="description" content="WGSL hashes, lattice noise, fBm, curl, domain warp and dither">
 <script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="assets/wiki.css">
@@ -14,9 +14,9 @@
 <a class="skip" href="#content">Skip to content</a>
 <header class="top">
   <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
-  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <a class="brand" href="index.html" aria-label="SCRAP Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Wiki</b><small>The engine SDK reference</small></span></a>
   <div class="search" role="search">
-    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search SCRAP Wiki" autocomplete="off" spellcheck="false">
     <kbd>/</kbd>
     <div class="results" id="results" hidden></div>
   </div>
@@ -39,7 +39,7 @@
   <main id="content"><a id="top"></a>
     <h1 class="firstHeading">Noise shaders</h1>
     <div class="tabs"><a class="on" href="#top">Article</a></div>
-    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">WGSL hashes, lattice noise, fBm, curl, domain warp and dither</p><p><strong>Noise shaders</strong> are the <code>noise/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL files that give hashes, lattice and cellular noise, fractal sums, curl fields, domain warp and per-pixel dither. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::noise</code></a>. The terrain, post and pattern categories build on it, and every other noise in the library rests on its hash file. All functions start with <code>noise_</code>.</p>
+    <p class="tagline">From SCRAP Wiki, the reference for the SCRAP engine SDK</p><p class="shortdesc">WGSL hashes, lattice noise, fBm, curl, domain warp and dither</p><p><strong>Noise shaders</strong> are the <code>noise/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL files that give hashes, lattice and cellular noise, fractal sums, curl fields, domain warp and per-pixel dither. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::noise</code></a>. The terrain, post and pattern categories build on it, and every other noise in the library rests on its hash file. All functions start with <code>noise_</code>.</p>
 <h2 id="files">Files</h2>
 <table class="wikitable">
 <thead>
@@ -206,7 +206,7 @@
 <li>The <a href="lit2d.html" data-slug="lit2d">Lit2d</a> example composes <code>noise/fbm.wgsl</code> for its material.</li>
 <li>CPU-side generation is a separate system. See <a href="procgen.html" data-slug="procgen">Procedural generation</a>.</li>
 </ul><h2 id="see-also">See also</h2><ul><li><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></li><li><a href="shader-material.html" data-slug="shader-material">Material shaders</a></li><li><a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a></li><li><a href="shader-water.html" data-slug="shader-water">Water shaders</a></li><li><a href="procgen.html" data-slug="procgen">Procedural generation</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/noise/gradient.wgsl</code> - <code>// n = normalize(vec3(-k * d.yz, 1.0)) for a height field k * value.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/noise/hash.wgsl</code> - <code>// Quintic fade 6t^5 - 15t^4 + 10t^3 and its derivative.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/noise/simplex.wgsl</code> - <code>// not repeat and works with a seed. Kernel radius squared is 0.5, so</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/noise/cellular.wgsl</code> - <code>// True distance to the nearest cell border, not the F2 - F1 estimate.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/noise/fbm.wgsl</code> - <code>// shifts the domain, so the lattices of the octaves do not line up and</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/noise/curl.wgsl</code> - <code>// Output: a velocity vector. The vector is not unit length: slow zones</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/noise/warp.wgsl</code> - <code>// Two-stage warp f(p + a r(p + a q(p))). Costs five fBm calls.</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/noise/dither.wgsl</code> - <code>// Triangle-distributed white noise in (-1, 1). Triangle dither removes</code></li></ol><table class="navbox"><tr><th><a href="category-shader-library.html">Shader library</a></th></tr><tr><td><a href="shaderlib.html" data-slug="shaderlib">Shader library</a> · <b>Noise shaders</b> · <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> · <a href="shader-material.html" data-slug="shader-material">Material shaders</a> · <a href="shader-water.html" data-slug="shader-water">Water shaders</a> · <a href="shader-post.html" data-slug="shader-post">Post shaders</a> · <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> · <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> · <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> · <a href="shader-pattern.html" data-slug="shader-pattern">Pattern shaders</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-shader-library.html">Shader library</a></div>
-    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+    <footer class="foot"><p>Generated from SCRAP commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
   </main>
 </div>
 </body>

@@ -8,7 +8,7 @@ example: camera
 see: juice, lit2d, cine, render, teach, world
 demo: shake
 ---
-**Camera** is the Warp 2D game camera, a rig that follows a target with look-ahead and damping, stays inside level bounds, frames groups, shakes from trauma and plays scripted shots. It lives in `warp_sdk::camera` and its main type is `Camera2d`. A game makes one camera, calls `Camera2d::update` once per frame with the frame time and the target position, and sends the result to the renderer. The module header describes it as a camera that works like a camera operator.[[src:warp_sdk/src/camera.rs|a 2D game camera that works like a camera operator.]]
+**Camera** is the SCRAP 2D game camera, a rig that follows a target with look-ahead and damping, stays inside level bounds, frames groups, shakes from trauma and plays scripted shots. It lives in `warp_sdk::camera` and its main type is `Camera2d`. A game makes one camera, calls `Camera2d::update` once per frame with the frame time and the target position, and sends the result to the renderer. The module header describes it as a camera that works like a camera operator.[[src:warp_sdk/src/camera.rs|a 2D game camera that works like a camera operator.]]
 
 ## Units
 

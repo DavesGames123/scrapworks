@@ -7,7 +7,7 @@ module: procgen
 see: world, world-terrain, world-collide, world-biome
 demo: streams
 ---
-**Procedural generation** in Warp is the module `warp_sdk::procgen`, a set of seeded tools that make a world that is the same on every run. A game makes its world from one `u64` seed, and each feature takes its own named stream, so a new feature does not move the old ones.[[src:warp_sdk/src/procgen.rs|named stream, so a new feature does not move the old ones]] The module also holds Poisson-disc scatter, weighted tables, clusters, surface placement, fair start search, and seed reports. It has no GPU code and depends on no other kit.
+**Procedural generation** in SCRAP is the module `warp_sdk::procgen`, a set of seeded tools that make a world that is the same on every run. A game makes its world from one `u64` seed, and each feature takes its own named stream, so a new feature does not move the old ones.[[src:warp_sdk/src/procgen.rs|named stream, so a new feature does not move the old ones]] The module also holds Poisson-disc scatter, weighted tables, clusters, surface placement, fair start search, and seed reports. It has no GPU code and depends on no other kit.
 
 ## Design
 

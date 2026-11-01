@@ -1,16 +1,16 @@
 ---
-title: Warp
+title: SCRAP
 short: 2D sprite engine on wgpu, its editor, and the SDK a game is written on
 category: Introduction
 order: 10
 example: starter
 see: getting-started, building-a-game, renderer, shell, smoke, net
 ---
-**Warp** is a 2D sprite engine built on wgpu, together with an editor built on that engine and an SDK crate that games are written against. A game on Warp is a Rust crate that depends on `warp_sdk` and implements one trait, `Renderer`. The engine owns the window, the GPU device and the frame loop, and it calls the game once per frame. The editor opens such a crate as a project and drives its panels from what the game publishes.
+**SCRAP** is a 2D sprite engine built on wgpu, together with an editor built on that engine and an SDK crate that games are written against. A game on SCRAP is a Rust crate that depends on `warp_sdk` and implements one trait, `Renderer`. The engine owns the window, the GPU device and the frame loop, and it calls the game once per frame. The editor opens such a crate as a project and drives its panels from what the game publishes.
 
 ## Crate layout
 
-The repository is a Cargo workspace. Warp is not itself a game, and a game is a separate crate outside the workspace.[[src:warp_core/src/lib.rs|WarpCore - 2D sprite rendering engine built on wgpu.]]
+The repository is a Cargo workspace. SCRAP is not itself a game, and a game is a separate crate outside the workspace.[[src:warp_core/src/lib.rs|WarpCore - 2D sprite rendering engine built on wgpu.]]
 
 | Crate | Role |
 |---|---|
@@ -35,7 +35,7 @@ Some choices at this boundary are single decisions with two halves:
 
 ## What a game is
 
-Three rules hold for an application on Warp: it is written in Rust on this engine, it names the one crate `warp_sdk`, and it connects the editor panels that it has data for.
+Three rules hold for an application on SCRAP: it is written in Rust on this engine, it names the one crate `warp_sdk`, and it connects the editor panels that it has data for.
 
 The game draws in `Renderer::render`, reads input in `Renderer::input`, and draws interface in `Renderer::gui`. `run` opens the window and calls those methods. A game that wants a title screen and pause menu without writing them implements `ShellGame` and starts with `run_shell` instead. See [[renderer]] and [[shell]].
 

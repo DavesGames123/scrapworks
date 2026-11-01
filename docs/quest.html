@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Quest kit - Warp Wiki</title>
+<title>Quest kit - SCRAP Wiki</title>
 <meta name="description" content="objectives and goal chains as plain data, for icons, counts and markers">
 <script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="assets/wiki.css">
@@ -14,9 +14,9 @@
 <a class="skip" href="#content">Skip to content</a>
 <header class="top">
   <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
-  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <a class="brand" href="index.html" aria-label="SCRAP Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Wiki</b><small>The engine SDK reference</small></span></a>
   <div class="search" role="search">
-    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search SCRAP Wiki" autocomplete="off" spellcheck="false">
     <kbd>/</kbd>
     <div class="results" id="results" hidden></div>
   </div>
@@ -39,7 +39,7 @@
   <main id="content"><a id="top"></a>
     <h1 class="firstHeading">Quest kit</h1>
     <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
-    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">objectives and goal chains as plain data, for icons, counts and markers</p><table class="infobox"><caption>Quest kit</caption><tr><th>Category</th><td><a href="category-game-systems.html">Game systems</a></td></tr><tr><th>Module</th><td><code>warp_sdk::quest</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/quest.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">45</a></td></tr></table><p><strong>Quest kit</strong> is the objective system of the Warp SDK: goal chains held as plain data, with a tracker that counts progress and gives the HUD what to draw. It lives in the <a class="sym" href="quest.html"><code>quest</code></a> module of <code>warp_sdk</code>. A game defines a book of <a class="sym" href="#sym-Objective"><code>Objective</code></a> values, starts one, and sends the tracker signals as things happen. The tracker keeps a small number of objectives active and reports starts and completions as events.</p>
+    <p class="tagline">From SCRAP Wiki, the reference for the SCRAP engine SDK</p><p class="shortdesc">objectives and goal chains as plain data, for icons, counts and markers</p><table class="infobox"><caption>Quest kit</caption><tr><th>Category</th><td><a href="category-game-systems.html">Game systems</a></td></tr><tr><th>Module</th><td><code>warp_sdk::quest</code></td></tr><tr><th>Source</th><td><code>warp_sdk/src/quest.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">45</a></td></tr></table><p><strong>Quest kit</strong> is the objective system of the SCRAP SDK: goal chains held as plain data, with a tracker that counts progress and gives the HUD what to draw. It lives in the <a class="sym" href="quest.html"><code>quest</code></a> module of <code>warp_sdk</code>. A game defines a book of <a class="sym" href="#sym-Objective"><code>Objective</code></a> values, starts one, and sends the tracker signals as things happen. The tracker keeps a small number of objectives active and reports starts and completions as events.</p>
 <h2 id="design">Design</h2>
 <p>The module rests on one rule: a game tells the player what to do with icons, counts and markers, not with prose. The tracker never shows text. Each objective has an icon id, a <a class="sym" href="#sym-Target"><code>Target</code></a>, an optional world position for a marker, reward ids, and the objectives that come next. The HUD maps an icon id to a picture. <sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
 <p>Every id is a <code>u32</code> that the game defines: objective, icon, counter, item, place, kind, flag and reward ids. The kit gives none of them a meaning. A reward id is delivered in an event, and the game decides what it pays. <sup class="ref"><a href="#ref-2" id="cite-2">[2]</a></sup></p>
@@ -351,7 +351,7 @@ t.add(0, 2);
 let back = Tracker::load(book, &amp;t.save()).unwrap();
 assert_eq!(back.views()[0].count, (2, 3));</code></p></div></div></details></div><h4>Constants</h4><div class="item" id="sym-MAX_ACTIVE" data-name="max_active"><div class="sig"><a class="anchor" href="#sym-MAX_ACTIVE" aria-label="Link to MAX_ACTIVE">#</a><code class="lang-rust"><span class="k">pub</span> <span class="k">const</span> <span class="t">MAX_ACTIVE</span>: usize = <span class="n">3</span></code></div><div class="doc"><p>The most objectives that a [<code>Tracker</code>] keeps active at one time.</p>
 <p><code>assert_eq!(warp_sdk::quest::MAX_ACTIVE, 3);</code></p></div></div><h2 id="see-also">See also</h2><ul><li><a href="teach.html" data-slug="teach">Teach kit</a></li><li><a href="hud.html" data-slug="hud">HUD</a></li><li><a href="hud-markers.html" data-slug="hud-markers">HUD markers</a></li><li><a href="metaprog.html" data-slug="metaprog">Metaprogression</a></li><li><a href="economy.html" data-slug="economy">Economy kit</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/src/quest.rs</code> - <code>A game tells the player what to do with icons, counts and markers, not</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/src/quest.rs</code> - <code>flag ids and reward ids are all `u32` values that the game defines.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/src/quest.rs</code> - <code>The queue head fills the freed slot before the new branches.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/src/quest.rs</code> - <code>An objective completed. This occurs once for each objective.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/src/quest.rs</code> - <code>are not in `book` drop from the active list and the queue.</code></li></ol><table class="navbox"><tr><th><a href="category-game-systems.html">Game systems</a></th></tr><tr><td><a href="challenge.html" data-slug="challenge">Challenge kit</a> · <a href="economy.html" data-slug="economy">Economy kit</a> · <b>Quest kit</b> · <a href="metaprog.html" data-slug="metaprog">Metaprogression</a> · <a href="gamepad.html" data-slug="gamepad">Gamepad</a> · <a href="soundtrack.html" data-slug="soundtrack">Soundtrack</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-game-systems.html">Game systems</a></div>
-    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+    <footer class="foot"><p>Generated from SCRAP commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
   </main>
 </div>
 </body>

@@ -6,7 +6,7 @@ order: 30
 module: economy
 see: quest, metaprog, challenge, hud
 ---
-**Economy kit** is the resource model of the Warp SDK: resource kinds, stores with capacity, costs, recipes, steady flows, and a ledger of recent changes. It lives in the `economy` module of `warp_sdk`. Its purpose is to give the player a reason to collect a thing and a reason to bring it back. A game registers its kinds, makes one `Economy`, and changes amounts only through it, so each change is recorded for the HUD.
+**Economy kit** is the resource model of the SCRAP SDK: resource kinds, stores with capacity, costs, recipes, steady flows, and a ledger of recent changes. It lives in the `economy` module of `warp_sdk`. Its purpose is to give the player a reason to collect a thing and a reason to bring it back. A game registers its kinds, makes one `Economy`, and changes amounts only through it, so each change is recorded for the HUD.
 
 ## Design
 

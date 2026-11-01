@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Terrain shaders - Warp Wiki</title>
+<title>Terrain shaders - SCRAP Wiki</title>
 <meta name="description" content="WGSL caves, DLA ridges, heightfields, strata, reveal and map shading">
 <script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="assets/wiki.css">
@@ -14,9 +14,9 @@
 <a class="skip" href="#content">Skip to content</a>
 <header class="top">
   <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
-  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <a class="brand" href="index.html" aria-label="SCRAP Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Wiki</b><small>The engine SDK reference</small></span></a>
   <div class="search" role="search">
-    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search SCRAP Wiki" autocomplete="off" spellcheck="false">
     <kbd>/</kbd>
     <div class="results" id="results" hidden></div>
   </div>
@@ -39,7 +39,7 @@
   <main id="content"><a id="top"></a>
     <h1 class="firstHeading">Terrain shaders</h1>
     <div class="tabs"><a class="on" href="#top">Article</a></div>
-    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">WGSL caves, DLA ridges, heightfields, strata, reveal and map shading</p><p><strong>Terrain shaders</strong> are the <code>terrain/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL functions for side-view caves, top-down heightfields and the shading of ground. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::terrain</code></a>. It gives solid and empty fields with signed distance, a per-pixel DLA ridge height, rock strata, line of sight and fog of war, and map colours. All functions start with <code>terrain_</code>. The CPU world kits are separate. See <a href="world-terrain.html" data-slug="world-terrain">Terrain</a> and <a href="world-reveal.html" data-slug="world-reveal">Reveal grid</a>.</p>
+    <p class="tagline">From SCRAP Wiki, the reference for the SCRAP engine SDK</p><p class="shortdesc">WGSL caves, DLA ridges, heightfields, strata, reveal and map shading</p><p><strong>Terrain shaders</strong> are the <code>terrain/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL functions for side-view caves, top-down heightfields and the shading of ground. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::terrain</code></a>. It gives solid and empty fields with signed distance, a per-pixel DLA ridge height, rock strata, line of sight and fog of war, and map colours. All functions start with <code>terrain_</code>. The CPU world kits are separate. See <a href="world-terrain.html" data-slug="world-terrain">Terrain</a> and <a href="world-reveal.html" data-slug="world-reveal">Reveal grid</a>.</p>
 <h2 id="files">Files</h2>
 <table class="wikitable">
 <thead>
@@ -218,7 +218,7 @@
 <li><code>water_sim_terrain</code> in <a href="shader-water.html" data-slug="shader-water">Water shaders</a> is a separate map colour for a simulation height.</li>
 <li><code>organic_encrust</code> in <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> accepts a host distance from <code>terrain_cave_sdf</code>.</li>
 </ul><h2 id="see-also">See also</h2><ul><li><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></li><li><a href="world-terrain.html" data-slug="world-terrain">Terrain</a></li><li><a href="world-reveal.html" data-slug="world-reveal">Reveal grid</a></li><li><a href="shader-material.html" data-slug="shader-material">Material shaders</a></li><li><a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a></li><li><a href="hud-minimap.html" data-slug="hud-minimap">HUD minimap</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/terrain/cave.wgsl</code> - <code>//   TerrainCave fields (world units, y up):</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/terrain/cave.wgsl</code> - <code>// Physics must use the same function on the CPU. Keep a Rust twin of</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/terrain/dla.wgsl</code> - <code>// 3x3 search of parent cells finds every segment near p. A node near the</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/terrain/heightfield.wgsl</code> - <code>// Shadow cost: 48 texture reads. AO cost: 48 texture reads. Bake both into</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/terrain/shade.wgsl</code> - <code>// terrain/shade.wgsl — terrain surface choice and edge light. Side view:</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/terrain/reveal.wgsl</code> - <code>// fade in space: a reveal value 0..1 per pixel, never a hard cut.</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/terrain/map.wgsl</code> - <code>//   terrain_hillshade(n, light) -&gt; 0.28..1.15 multiplier</code></li></ol><table class="navbox"><tr><th><a href="category-shader-library.html">Shader library</a></th></tr><tr><td><a href="shaderlib.html" data-slug="shaderlib">Shader library</a> · <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a> · <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> · <a href="shader-material.html" data-slug="shader-material">Material shaders</a> · <a href="shader-water.html" data-slug="shader-water">Water shaders</a> · <a href="shader-post.html" data-slug="shader-post">Post shaders</a> · <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> · <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> · <b>Terrain shaders</b> · <a href="shader-pattern.html" data-slug="shader-pattern">Pattern shaders</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-shader-library.html">Shader library</a></div>
-    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+    <footer class="foot"><p>Generated from SCRAP commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
   </main>
 </div>
 </body>

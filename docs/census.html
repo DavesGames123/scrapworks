@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Census - Warp Wiki</title>
+<title>Census - SCRAP Wiki</title>
 <meta name="description" content="the rows a game publishes for the Hierarchy and Inspector panels">
 <script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="assets/wiki.css">
@@ -14,9 +14,9 @@
 <a class="skip" href="#content">Skip to content</a>
 <header class="top">
   <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
-  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <a class="brand" href="index.html" aria-label="SCRAP Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Wiki</b><small>The engine SDK reference</small></span></a>
   <div class="search" role="search">
-    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search SCRAP Wiki" autocomplete="off" spellcheck="false">
     <kbd>/</kbd>
     <div class="results" id="results" hidden></div>
   </div>
@@ -39,7 +39,7 @@
   <main id="content"><a id="top"></a>
     <h1 class="firstHeading">Census</h1>
     <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
-    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">the rows a game publishes for the Hierarchy and Inspector panels</p><table class="infobox"><caption>Census</caption><tr><th>Category</th><td><a href="category-editor-channels.html">Editor channels</a></td></tr><tr><th>Module</th><td><code>warp_sdk::census</code></td></tr><tr><th>Source</th><td><code>warp_core/src/panels/census/mod.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">51</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example pong</code><br><code>cargo run -p warp_sdk --example starter</code></td></tr></table><p><strong>The census</strong> is the channel through which a running application tells the Hierarchy and Inspector panels what exists. The <a class="sym" href="census.html"><code>census</code></a> module of <code>warp_core</code>, re-exported by <code>warp_sdk</code>, carries rows from the application to the panel, and clicks and edits back. A hierarchy panel needs a list of what is alive and a way to say "that one" to its owner, and the engine can supply neither. Each row is a string, an id and a flag word, so the engine never learns what a planet is.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+    <p class="tagline">From SCRAP Wiki, the reference for the SCRAP engine SDK</p><p class="shortdesc">the rows a game publishes for the Hierarchy and Inspector panels</p><table class="infobox"><caption>Census</caption><tr><th>Category</th><td><a href="category-editor-channels.html">Editor channels</a></td></tr><tr><th>Module</th><td><code>warp_sdk::census</code></td></tr><tr><th>Source</th><td><code>warp_core/src/panels/census/mod.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">51</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example pong</code><br><code>cargo run -p warp_sdk --example starter</code></td></tr></table><p><strong>The census</strong> is the channel through which a running application tells the Hierarchy and Inspector panels what exists. The <a class="sym" href="census.html"><code>census</code></a> module of <code>warp_core</code>, re-exported by <code>warp_sdk</code>, carries rows from the application to the panel, and clicks and edits back. A hierarchy panel needs a list of what is alive and a way to say "that one" to its owner, and the engine can supply neither. Each row is a string, an id and a flag word, so the engine never learns what a planet is.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
 <h2 id="design">Design</h2>
 <p>The census is a channel, and the truth lives in the application. The <a href="scene.html" data-slug="scene">Scene</a> module looks similar and is the opposite: it owns its objects. A hosted game keeps publishing a census of its own world.</p>
 <h3 id="the-panel-asks-for-what-it-draws">The panel asks for what it draws</h3>
@@ -359,7 +359,7 @@ still be alive at the next one.</p></div></div><div class="item" id="sym-REQUEST
 <p>A publisher that stops draining — a paused transport, a game mid-load —
 must not let a person's clicking grow a Vec without limit. Dropping the
 oldest keeps the most recent intent, which is the one they meant.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="editor-panels.html" data-slug="editor-panels">Editor panels</a></li><li><a href="hostlink.html" data-slug="hostlink">Host link</a></li><li><a href="scene.html" data-slug="scene">Scene</a></li><li><a href="devconsole.html" data-slug="devconsole">Dev console</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/panels/census/mod.rs</code> - <code>so the engine never learns</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_core/src/panels/census/mod.rs</code> - <code>THE PANEL ASKS FOR WHAT IT DRAWS</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/panels/census/mod.rs</code> - <code>A REQUEST NAMES THE CENSUS IT CAME FROM</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/panels/census/mod.rs</code> - <code>Edits COALESCE rather than queue</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_core/src/panels/census/snapshot.rs</code> - <code>Going BACKWARDS is refused.</code></li></ol><table class="navbox"><tr><th><a href="category-editor-channels.html">Editor channels</a></th></tr><tr><td><a href="editor-panels.html" data-slug="editor-panels">Editor panels</a> · <b>Census</b> · <a href="devconsole.html" data-slug="devconsole">Dev console</a> · <a href="bindings.html" data-slug="bindings">Bindings</a> · <a href="audio.html" data-slug="audio">Audio</a> · <a href="palette.html" data-slug="palette">Palette roles</a> · <a href="profile.html" data-slug="profile">Profiler</a> · <a href="hostlink.html" data-slug="hostlink">Host link</a> · <a href="window.html" data-slug="window">Custom windows</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-editor-channels.html">Editor channels</a></div>
-    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+    <footer class="foot"><p>Generated from SCRAP commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
   </main>
 </div>
 </body>

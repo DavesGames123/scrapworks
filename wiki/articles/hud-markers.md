@@ -55,7 +55,7 @@ The pulse is kept per id, so `Marker.id` must stay stable between frames. `Marke
 
 ## The camera
 
-The world to screen map is a closure, so any camera works. `Camera` is the small default. It matches the Warp 2D view: `set_view_pos` and `set_view_scale` show the scale in world units from the screen centre to the top edge, with world y up [[src:warp_sdk/src/hud/markers.rs|`set_view_scale(s)` show `s` world units from the screen centre to the top]]. `Camera::view` builds one from the same values that `render` sends, and `Camera::world_to_screen` applies it. This `Camera` is separate from the [[camera|camera kit]].
+The world to screen map is a closure, so any camera works. `Camera` is the small default. It matches the SCRAP 2D view: `set_view_pos` and `set_view_scale` show the scale in world units from the screen centre to the top edge, with world y up [[src:warp_sdk/src/hud/markers.rs|`set_view_scale(s)` show `s` world units from the screen centre to the top]]. `Camera::view` builds one from the same values that `render` sends, and `Camera::world_to_screen` applies it. This `Camera` is separate from the [[camera|camera kit]].
 
 ## Usage
 

@@ -6,7 +6,7 @@ order: 70
 module: soundtrack
 see: audio, juice, front-settings, world-biome
 ---
-**Soundtrack** is the game-audio layer of the Warp SDK: the player's music, the world's ambience, and sound effects. It lives in the `soundtrack` module of `warp_sdk`. `Music` plays files from a folder that the player picks, `Ambience` crossfades looped beds by a tag, and `Sfx` plays one-shot effects with pan, variation and a voice limit. The module's central policy is that the game does not compose music.
+**Soundtrack** is the game-audio layer of the SCRAP SDK: the player's music, the world's ambience, and sound effects. It lives in the `soundtrack` module of `warp_sdk`. `Music` plays files from a folder that the player picks, `Ambience` crossfades looped beds by a tag, and `Sfx` plays one-shot effects with pan, variation and a voice limit. The module's central policy is that the game does not compose music.
 
 ## The policy
 

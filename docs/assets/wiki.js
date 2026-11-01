@@ -1,4 +1,4 @@
-/* Warp Wiki behaviour: search, hover previews, section spy, filters. */
+/* SCRAP Wiki behaviour: search, hover previews, section spy, filters. */
 (function () {
   'use strict';
   var $ = function (s, r) { return (r || document).querySelector(s); };

@@ -8,7 +8,7 @@ example: juice
 see: camera, cine, gamepad, audio, teach, art-direction
 demo: spring
 ---
-**Juice** is the Warp feedback kit, a single value that turns game events into short, time-based effects such as hit-stop, squash and stretch, flash, number pops, rings, button punch, rumble requests and sound requests. It lives in `warp_sdk::juice` and its hub type is `Juice`. A game holds one `Juice`, calls one method per event, advances it once per frame, and paints what it reports. The module header states the purpose as feedback that tells the player "that was correct", which [[art-direction#Teach by play|the art direction]] requires when a player does an action correctly.
+**Juice** is the SCRAP feedback kit, a single value that turns game events into short, time-based effects such as hit-stop, squash and stretch, flash, number pops, rings, button punch, rumble requests and sound requests. It lives in `warp_sdk::juice` and its hub type is `Juice`. A game holds one `Juice`, calls one method per event, advances it once per frame, and paints what it reports. The module header states the purpose as feedback that tells the player "that was correct", which [[art-direction#Teach by play|the art direction]] requires when a player does an action correctly.
 
 ## Design
 

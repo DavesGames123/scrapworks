@@ -8,7 +8,7 @@ example: observatory, hud_map
 see: hud, hud-minimap, widgets, teach, front, window
 demo: squircle
 ---
-**The squircle kit** is the default user interface of a Warp application, drawn over the viewport as corner clusters of squircle keys that unfold into panels. It lives in `warp_core/src/ui/squircle` and reaches games as `warp_sdk::squircle`. At rest the screen shows only the viewport and a small cluster of keys. A press on a key unfolds a panel out of it, and a second press retracts the panel into the key. Notices arrive as toasts, live values sit in readout chips, and a hovered data point gets a card that fades in beside it.
+**The squircle kit** is the default user interface of a SCRAP application, drawn over the viewport as corner clusters of squircle keys that unfold into panels. It lives in `warp_core/src/ui/squircle` and reaches games as `warp_sdk::squircle`. At rest the screen shows only the viewport and a small cluster of keys. A press on a key unfolds a panel out of it, and a second press retracts the panel into the key. Notices arrive as toasts, live values sit in readout chips, and a hovered data point gets a card that fades in beside it.
 
 ## Overview
 
@@ -29,7 +29,7 @@ The kit is not [[widgets|`widgets`]]. Those are the editor's inspector rows, for
 
 ## App UI rules
 
-The Warp project documentation sets six rules for every new application, and most of all for a scientific visualisation tool.
+The SCRAP project documentation sets six rules for every new application, and most of all for a scientific visualisation tool.
 
 1. Tools go in one deck at Corner::TopRight: data sources, view, layers, filters and actions.
 2. Data-following panels go in a deck at Corner::TopLeft, with `Panel::auto_open`, so that they open when there is data for them and retract when there is none.
@@ -230,7 +230,7 @@ During a reported viewport drag each unpinned panel fades to `form::DRAG_FADE` a
 
 ## Usage
 
-The full recipe from the Warp documentation places every surface in its own corner:
+The full recipe from the SCRAP documentation places every surface in its own corner:
 
 ```rust
 use warp_sdk::egui;

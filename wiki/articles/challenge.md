@@ -7,7 +7,7 @@ module: challenge
 example: challenge
 see: juice, teach, economy, quest, metaprog, hud
 ---
-**Challenge kit** is the combat simulation of the Warp SDK: damage kinds, status effects, tools, enemies that warn before they hit, and a director that sets the pace of waves. It lives in the `challenge` module of `warp_sdk`. Each enemy resists some damage kinds and is weak to others, so the player must choose a tool and not rely on one general attack. The kit draws nothing: the game reads its state and an event list and draws what it wants.
+**Challenge kit** is the combat simulation of the SCRAP SDK: damage kinds, status effects, tools, enemies that warn before they hit, and a director that sets the pace of waves. It lives in the `challenge` module of `warp_sdk`. Each enemy resists some damage kinds and is weak to others, so the player must choose a tool and not rely on one general attack. The kit draws nothing: the game reads its state and an event list and draws what it wants.
 
 ## Design
 

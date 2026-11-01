@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Organic shaders - Warp Wiki</title>
+<title>Organic shaders - SCRAP Wiki</title>
 <meta name="description" content="WGSL corals, plants, fungi and growth patterns as 2D distance fields">
 <script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="assets/wiki.css">
@@ -14,9 +14,9 @@
 <a class="skip" href="#content">Skip to content</a>
 <header class="top">
   <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
-  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <a class="brand" href="index.html" aria-label="SCRAP Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Wiki</b><small>The engine SDK reference</small></span></a>
   <div class="search" role="search">
-    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search SCRAP Wiki" autocomplete="off" spellcheck="false">
     <kbd>/</kbd>
     <div class="results" id="results" hidden></div>
   </div>
@@ -39,7 +39,7 @@
   <main id="content"><a id="top"></a>
     <h1 class="firstHeading">Organic shaders</h1>
     <div class="tabs"><a class="on" href="#top">Article</a></div>
-    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">WGSL corals, plants, fungi and growth patterns as 2D distance fields</p><p><strong>Organic shaders</strong> are the <code>organic/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL functions that draw corals, plants, fungi and growth patterns as 2D distance fields shaded into a MaterialSample. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::organic</code></a>. Forms are parametric and take one species record, so one seed gives one individual. All functions start with <code>organic_</code>. The ports come from Stella Nova reef and plant pages, rewritten for 2D.</p>
+    <p class="tagline">From SCRAP Wiki, the reference for the SCRAP engine SDK</p><p class="shortdesc">WGSL corals, plants, fungi and growth patterns as 2D distance fields</p><p><strong>Organic shaders</strong> are the <code>organic/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL functions that draw corals, plants, fungi and growth patterns as 2D distance fields shaded into a MaterialSample. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::organic</code></a>. Forms are parametric and take one species record, so one seed gives one individual. All functions start with <code>organic_</code>. The ports come from Stella Nova reef and plant pages, rewritten for 2D.</p>
 <h2 id="files">Files</h2>
 <table class="wikitable">
 <thead>
@@ -299,7 +299,7 @@
 <li><code>organic_encrust</code> takes a distance from any surface, such as <code>terrain_cave_sdf</code> in <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a>.</li>
 <li>Forms have their own smooth union, <code>organic_smin</code>, separate from <code>sdf_smooth_union_poly</code> in <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a>.</li>
 </ul><h2 id="see-also">See also</h2><ul><li><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></li><li><a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a></li><li><a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a></li><li><a href="shader-material.html" data-slug="shader-material">Material shaders</a></li><li><a href="lit2d.html" data-slug="lit2d">Lit2d</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/organic/common.wgsl</code> - <code>// the origin and the form grows along +y (side view), except where a file</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/organic/coral_soft.wgsl</code> - <code>//   flow            current at the form, local units; |flow| about 0..2.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/organic/tree.wgsl</code> - <code>// organic/tree.wgsl — fixed-depth iterated branching. WGSL has no</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/organic/coral_branch.wgsl</code> - <code>// .. 1 at a tip or rim, z = local limb radius. Cost: the staghorn material</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/organic/coral_massive.wgsl</code> - <code>// by two octaves of noise (domain warp), so valleys run side by side and</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/organic/growth.wgsl</code> - <code>// organic/growth.wgsl — growth patterns. Dendrite field: the look of</code></li></ol><table class="navbox"><tr><th><a href="category-shader-library.html">Shader library</a></th></tr><tr><td><a href="shaderlib.html" data-slug="shaderlib">Shader library</a> · <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a> · <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> · <a href="shader-material.html" data-slug="shader-material">Material shaders</a> · <a href="shader-water.html" data-slug="shader-water">Water shaders</a> · <a href="shader-post.html" data-slug="shader-post">Post shaders</a> · <b>Organic shaders</b> · <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> · <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> · <a href="shader-pattern.html" data-slug="shader-pattern">Pattern shaders</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-shader-library.html">Shader library</a></div>
-    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+    <footer class="foot"><p>Generated from SCRAP commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
   </main>
 </div>
 </body>

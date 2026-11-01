@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Post shaders - Warp Wiki</title>
+<title>Post shaders - SCRAP Wiki</title>
 <meta name="description" content="WGSL bloom, tonemapping, grading, colour science, sampling, beams and fire">
 <script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="assets/wiki.css">
@@ -14,9 +14,9 @@
 <a class="skip" href="#content">Skip to content</a>
 <header class="top">
   <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
-  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <a class="brand" href="index.html" aria-label="SCRAP Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Wiki</b><small>The engine SDK reference</small></span></a>
   <div class="search" role="search">
-    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search SCRAP Wiki" autocomplete="off" spellcheck="false">
     <kbd>/</kbd>
     <div class="results" id="results" hidden></div>
   </div>
@@ -39,7 +39,7 @@
   <main id="content"><a id="top"></a>
     <h1 class="firstHeading">Post shaders</h1>
     <div class="tabs"><a class="on" href="#top">Article</a></div>
-    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">WGSL bloom, tonemapping, grading, colour science, sampling, beams and fire</p><p><strong>Post shaders</strong> are the <code>post/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL functions for image processing and light effects. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::post</code></a>. It covers a bloom chain, tonemappers, grading, lens effects, film grain, dither, colour spaces, sample sets, beams, volumetric light and fire. All functions start with <code>post_</code>. These are functions and not passes. The engine post-processing chain is a separate kit, described in <a href="post.html" data-slug="post">Post effects</a>.</p>
+    <p class="tagline">From SCRAP Wiki, the reference for the SCRAP engine SDK</p><p class="shortdesc">WGSL bloom, tonemapping, grading, colour science, sampling, beams and fire</p><p><strong>Post shaders</strong> are the <code>post/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL functions for image processing and light effects. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::post</code></a>. It covers a bloom chain, tonemappers, grading, lens effects, film grain, dither, colour spaces, sample sets, beams, volumetric light and fire. All functions start with <code>post_</code>. These are functions and not passes. The engine post-processing chain is a separate kit, described in <a href="post.html" data-slug="post">Post effects</a>.</p>
 <h2 id="files">Files</h2>
 <table class="wikitable">
 <thead>
@@ -190,7 +190,7 @@
 <li><code>water/sim_view.wgsl</code> in <a href="shader-water.html" data-slug="shader-water">Water shaders</a> requires <code>post/color_science.wgsl</code>.</li>
 <li><code>post_glow_shape</code> takes distances from <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> or a glyph atlas.</li>
 </ul><h2 id="see-also">See also</h2><ul><li><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></li><li><a href="post.html" data-slug="post">Post effects</a></li><li><a href="shader-water.html" data-slug="shader-water">Water shaders</a></li><li><a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a></li><li><a href="palette-kit.html" data-slug="palette-kit">Palette kit</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/post/color_science.wgsl</code> - <code>// viridis, 6th order polynomial fit. sRGB encoded output.</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/post/dither.wgsl</code> - <code>// Add one quantum of triangular dither. Call this last, before the store.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/post/bloom.wgsl</code> - <code>// Chain: prefilter (soft-knee threshold), then downsample13 for each mip</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/post/glow.wgsl</code> - <code>// blurred sprite of the shape is the wrong method: it loses the thin</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/post/color_science.wgsl</code> - <code>// more accurate than post_kelvin_to_rgb (post/grade.wgsl) below 4000 K.</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/post/beam.wgsl</code> - <code>// half width w. The halo is 1/distance with an exponential cut, so a line</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/post/volumetric.wgsl</code> - <code>// smooth function of p, so the result has no hard edge, no polygon and</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/post/fire.wgsl</code> - <code>// Note: post_fire_planck integrates the spectrum in 41 steps of 10 nm.</code></li></ol><table class="navbox"><tr><th><a href="category-shader-library.html">Shader library</a></th></tr><tr><td><a href="shaderlib.html" data-slug="shaderlib">Shader library</a> · <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a> · <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> · <a href="shader-material.html" data-slug="shader-material">Material shaders</a> · <a href="shader-water.html" data-slug="shader-water">Water shaders</a> · <b>Post shaders</b> · <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> · <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> · <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> · <a href="shader-pattern.html" data-slug="shader-pattern">Pattern shaders</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-shader-library.html">Shader library</a></div>
-    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+    <footer class="foot"><p>Generated from SCRAP commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
   </main>
 </div>
 </body>

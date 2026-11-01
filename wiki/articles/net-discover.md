@@ -6,7 +6,7 @@ order: 50
 module: net::discover
 see: net, net-session, net-invite, net-transports
 ---
-**LAN discovery** is the Warp SDK's local host listing: a host announces its session by UDP broadcast, and a guest lists the hosts it hears. It lives in `warp_sdk::net::discover`, re-exported from `warp_net`. The application holds one `Discovery` value. A beacon never holds the join code, so discovery only helps a guest find an address.
+**LAN discovery** is the SCRAP SDK's local host listing: a host announces its session by UDP broadcast, and a guest lists the hosts it hears. It lives in `warp_sdk::net::discover`, re-exported from `warp_net`. The application holds one `Discovery` value. A beacon never holds the join code, so discovery only helps a guest find an address.
 
 ## Usage
 

@@ -6,7 +6,7 @@ order: 40
 module: quest
 see: teach, hud, hud-markers, metaprog, economy
 ---
-**Quest kit** is the objective system of the Warp SDK: goal chains held as plain data, with a tracker that counts progress and gives the HUD what to draw. It lives in the `quest` module of `warp_sdk`. A game defines a book of `Objective` values, starts one, and sends the tracker signals as things happen. The tracker keeps a small number of objectives active and reports starts and completions as events.
+**Quest kit** is the objective system of the SCRAP SDK: goal chains held as plain data, with a tracker that counts progress and gives the HUD what to draw. It lives in the `quest` module of `warp_sdk`. A game defines a book of `Objective` values, starts one, and sends the tracker signals as things happen. The tracker keeps a small number of objectives active and reports starts and completions as events.
 
 ## Design
 

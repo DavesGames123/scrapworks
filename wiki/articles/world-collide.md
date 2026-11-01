@@ -7,7 +7,7 @@ module: world::collide
 example: world
 see: world, world-terrain, fluid-particles, procgen
 ---
-**Surface collision** is the Warp SDK module that moves circles and casts rays against any signed distance field. It lives in `warp_sdk::world::collide`, and its main field is `Terrain`. A game uses it to move a body with `CircleBody::step`, to test sight, and to root props on the ground.
+**Surface collision** is the SCRAP SDK module that moves circles and casts rays against any signed distance field. It lives in `warp_sdk::world::collide`, and its main field is `Terrain`. A game uses it to move a body with `CircleBody::step`, to test sight, and to root props on the ground.
 
 ## Design
 

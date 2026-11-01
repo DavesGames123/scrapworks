@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pattern shaders - Warp Wiki</title>
+<title>Pattern shaders - SCRAP Wiki</title>
 <meta name="description" content="WGSL per-pixel line art, tilings, textiles and seamless pattern motion">
 <script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="assets/wiki.css">
@@ -14,9 +14,9 @@
 <a class="skip" href="#content">Skip to content</a>
 <header class="top">
   <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
-  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <a class="brand" href="index.html" aria-label="SCRAP Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Wiki</b><small>The engine SDK reference</small></span></a>
   <div class="search" role="search">
-    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search SCRAP Wiki" autocomplete="off" spellcheck="false">
     <kbd>/</kbd>
     <div class="results" id="results" hidden></div>
   </div>
@@ -39,7 +39,7 @@
   <main id="content"><a id="top"></a>
     <h1 class="firstHeading">Pattern shaders</h1>
     <div class="tabs"><a class="on" href="#top">Article</a></div>
-    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">WGSL per-pixel line art, tilings, textiles and seamless pattern motion</p><p><strong>Pattern shaders</strong> are the <code>pattern/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL functions that draw graphic patterns per pixel: grids, tilings, mazes, flow lines, textiles, optical art and a Hopf fibration. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::pattern</code></a>. Each function returns ink coverage, so a game maps it to its own palette. Two further files stack modifiers on any pattern and loop any pattern seamlessly. All functions start with <code>pattern_</code>.</p>
+    <p class="tagline">From SCRAP Wiki, the reference for the SCRAP engine SDK</p><p class="shortdesc">WGSL per-pixel line art, tilings, textiles and seamless pattern motion</p><p><strong>Pattern shaders</strong> are the <code>pattern/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL functions that draw graphic patterns per pixel: grids, tilings, mazes, flow lines, textiles, optical art and a Hopf fibration. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::pattern</code></a>. Each function returns ink coverage, so a game maps it to its own palette. Two further files stack modifiers on any pattern and loop any pattern seamlessly. All functions start with <code>pattern_</code>.</p>
 <h2 id="files">Files</h2>
 <table class="wikitable">
 <thead>
@@ -239,7 +239,7 @@
 <li><code>pattern/kit.wgsl</code> has its own noise, separate from <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a>, apart from the hash file.</li>
 <li>The polar functions in <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> give a related set of anti-aliased ring patterns.</li>
 </ul><h2 id="see-also">See also</h2><ul><li><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></li><li><a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a></li><li><a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a></li><li><a href="art-direction.html" data-slug="art-direction">Art direction</a></li><li><a href="visual.html" data-slug="visual">Visual language</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/pattern/kit.wgsl</code> - <code>// Conventions of the pattern files:</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/pattern/kit.wgsl</code> - <code>//   fwidth     only pattern_px calls fwidth. Call a pattern function in</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/pattern/distort.wgsl</code> - <code>// domain instead: it samples the base at the inverse of each lens and</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/pattern/paths.wgsl</code> - <code>// rule instead: each cell opens one of two walls from its own hash. The</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/pattern/modifiers.wgsl</code> - <code>// modifiers in the reverse order of the source stack, because each one</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/pattern/motion.wgsl</code> - <code>// Inputs: t in seconds, loop length l in seconds, cycles per loop (a whole</code></li></ol><table class="navbox"><tr><th><a href="category-shader-library.html">Shader library</a></th></tr><tr><td><a href="shaderlib.html" data-slug="shaderlib">Shader library</a> · <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a> · <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> · <a href="shader-material.html" data-slug="shader-material">Material shaders</a> · <a href="shader-water.html" data-slug="shader-water">Water shaders</a> · <a href="shader-post.html" data-slug="shader-post">Post shaders</a> · <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> · <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> · <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> · <b>Pattern shaders</b></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-shader-library.html">Shader library</a></div>
-    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+    <footer class="foot"><p>Generated from SCRAP commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
   </main>
 </div>
 </body>

@@ -7,7 +7,7 @@ module: net
 example: pong_link
 see: net-session, net-invite, net-transports, net-discover
 ---
-**Networking** in the Warp SDK is the `warp_sdk::net` module, a set of secure links that let two or more copies of one game share a session with no server that the developer runs. It is a curated view of the `warp_net` crate, behind the `net` feature. One peer hosts and holds the canonical state, and the other peers join it as guests. `warp_net` carries the bytes, keeps them secret, and keeps the link alive. The game decides what the state is and what a guest may send.
+**Networking** in the SCRAP SDK is the `warp_sdk::net` module, a set of secure links that let two or more copies of one game share a session with no server that the developer runs. It is a curated view of the `warp_net` crate, behind the `net` feature. One peer hosts and holds the canonical state, and the other peers join it as guests. `warp_net` carries the bytes, keeps them secret, and keeps the link alive. The game decides what the state is and what a guest may send.
 
 ## Roles
 

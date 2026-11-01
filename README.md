@@ -12,7 +12,7 @@ The Scrap website, served at https://scrapworks.website by GitHub Pages from `ma
                             Three.js kit (stage, materials, soft geometry)
     shared/BRIEF.md         rules for the early directions
     design/                 logo labs and the logo study (not linked)
-    docs/                   Warp Wiki, generated (do not edit the HTML)
+    docs/                   SCRAP Wiki, generated (do not edit the HTML)
     wiki/                   article sources and the extracted SDK surface
     tools/wiki/             the wiki generator and its checks
 
@@ -20,19 +20,19 @@ The early directions are frozen. Only index.html is developed.
 
 All product copy on the pages is placeholder text.
 
-## Warp Wiki
+## SCRAP Wiki
 
-After a Warp change, run these commands from this directory. Warp must be at
+After a SCRAP change, run these commands from this directory. SCRAP must be at
 `../warp`.
 
-    python3 tools/wiki/extract.py       # read the SDK surface from the Warp source
+    python3 tools/wiki/extract.py       # read the SDK surface from the SCRAP source
     python3 tools/wiki/shaderplay.py    # compose the playground shaders
     python3 tools/wiki/build.py         # write docs/
     python3 tools/wiki/check_links.py   # check each internal link
     tools/wiki/verify_harmony.sh ../warp   # compare the palette demo with Rust
 
 The build stops on a broken link, a module with no article, a source reference
-that Warp does not have, or a private name. `tools/wiki/check.mjs` drives headless Chrome
+that SCRAP does not have, or a private name. `tools/wiki/check.mjs` drives headless Chrome
 over the result. It needs `python3 -m http.server 8765` in this directory.
 
 ## Research notes

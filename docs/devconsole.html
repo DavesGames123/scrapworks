@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dev console - Warp Wiki</title>
+<title>Dev console - SCRAP Wiki</title>
 <meta name="description" content="the Console panel, a mirror of the game&#x27;s own scrollback">
 <script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="assets/wiki.css">
@@ -14,9 +14,9 @@
 <a class="skip" href="#content">Skip to content</a>
 <header class="top">
   <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
-  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <a class="brand" href="index.html" aria-label="SCRAP Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Wiki</b><small>The engine SDK reference</small></span></a>
   <div class="search" role="search">
-    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search SCRAP Wiki" autocomplete="off" spellcheck="false">
     <kbd>/</kbd>
     <div class="results" id="results" hidden></div>
   </div>
@@ -39,7 +39,7 @@
   <main id="content"><a id="top"></a>
     <h1 class="firstHeading">Dev console</h1>
     <div class="tabs"><a class="on" href="#top">Article</a><a href="#reference">Reference</a></div>
-    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">the Console panel, a mirror of the game&#x27;s own scrollback</p><table class="infobox"><caption>Dev console</caption><tr><th>Category</th><td><a href="category-editor-channels.html">Editor channels</a></td></tr><tr><th>Module</th><td><code>warp_sdk::devconsole</code></td></tr><tr><th>Source</th><td><code>warp_core/src/devconsole.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">20</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example pong</code><br><code>cargo run -p warp_sdk --example starter</code></td></tr></table><p><strong>The dev console</strong> is the channel behind the Console panel, a dock panel that shows the console an application already has and types back into it. The <a class="sym" href="devconsole.html"><code>devconsole</code></a> module of <code>warp_core</code>, re-exported by <code>warp_sdk</code>, is the whole of the part that the engine plays. There is one scrollback with two views: a line printed in the game appears in the panel, and a command entered in the panel runs in the game and prints in both.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
+    <p class="tagline">From SCRAP Wiki, the reference for the SCRAP engine SDK</p><p class="shortdesc">the Console panel, a mirror of the game&#x27;s own scrollback</p><table class="infobox"><caption>Dev console</caption><tr><th>Category</th><td><a href="category-editor-channels.html">Editor channels</a></td></tr><tr><th>Module</th><td><code>warp_sdk::devconsole</code></td></tr><tr><th>Source</th><td><code>warp_core/src/devconsole.rs</code></td></tr><tr><th>Public items</th><td><a href="#reference">20</a></td></tr><tr><th>Example</th><td><code>cargo run -p warp_sdk --example pong</code><br><code>cargo run -p warp_sdk --example starter</code></td></tr></table><p><strong>The dev console</strong> is the channel behind the Console panel, a dock panel that shows the console an application already has and types back into it. The <a class="sym" href="devconsole.html"><code>devconsole</code></a> module of <code>warp_core</code>, re-exported by <code>warp_sdk</code>, is the whole of the part that the engine plays. There is one scrollback with two views: a line printed in the game appears in the panel, and a command entered in the panel runs in the game and prints in both.<sup class="ref"><a href="#ref-1" id="cite-1">[1]</a></sup></p>
 <h2 id="design">Design</h2>
 <p>The console lives in the application, and the dependency runs one way, so the engine cannot name its commands or interpreter. The application publishes, and the engine draws. Every line that crosses is a string and three bytes of colour.</p>
 <h3 id="a-snapshot-and-a-revision">A snapshot and a revision</h3>
@@ -169,7 +169,7 @@ still be alive at the next one.</p></div></div><div class="item" id="sym-MAX_PEN
 runs no frames, and a person can keep pressing Return at a panel that looks
 alive. The oldest goes, which matches what a queue of intentions should do
 when it overflows — the newest command is the one still wanted.</p></div></div><h2 id="see-also">See also</h2><ul><li><a href="editor-panels.html" data-slug="editor-panels">Editor panels</a></li><li><a href="perf.html" data-slug="perf">Perf</a></li><li><a href="hostlink.html" data-slug="hostlink">Host link</a></li><li><a href="census.html" data-slug="census">Census</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_core/src/devconsole.rs</code> - <code>One scrollback, two views</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_core/src/devconsole.rs</code> - <code>WHY A REVISION AND NOT A HOOK ON THE PRINT</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_core/src/devconsole.rs</code> - <code>WHY THE WANT CLOCK COUNTS POLLS AND NOT PUBLISHES</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_core/src/devconsole.rs</code> - <code>What that costs is a frame of lag and nothing else.</code></li></ol><table class="navbox"><tr><th><a href="category-editor-channels.html">Editor channels</a></th></tr><tr><td><a href="editor-panels.html" data-slug="editor-panels">Editor panels</a> · <a href="census.html" data-slug="census">Census</a> · <b>Dev console</b> · <a href="bindings.html" data-slug="bindings">Bindings</a> · <a href="audio.html" data-slug="audio">Audio</a> · <a href="palette.html" data-slug="palette">Palette roles</a> · <a href="profile.html" data-slug="profile">Profiler</a> · <a href="hostlink.html" data-slug="hostlink">Host link</a> · <a href="window.html" data-slug="window">Custom windows</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-editor-channels.html">Editor channels</a></div>
-    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+    <footer class="foot"><p>Generated from SCRAP commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
   </main>
 </div>
 </body>

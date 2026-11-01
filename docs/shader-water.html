@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Water shaders - Warp Wiki</title>
+<title>Water shaders - SCRAP Wiki</title>
 <meta name="description" content="WGSL caustics, depth fog, plumes, flow, refraction and simulation display">
 <script>try{var t=localStorage.getItem('warp-wiki-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="assets/wiki.css">
@@ -14,9 +14,9 @@
 <a class="skip" href="#content">Skip to content</a>
 <header class="top">
   <button class="burger" type="button" aria-label="Main menu" aria-expanded="false">Menu</button>
-  <a class="brand" href="index.html" aria-label="Warp Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Warp Wiki</b><small>The engine SDK reference</small></span></a>
+  <a class="brand" href="index.html" aria-label="SCRAP Wiki home"><span class="brandmark" data-scrap-wordmark></span><span class="brandname"><b>Wiki</b><small>The engine SDK reference</small></span></a>
   <div class="search" role="search">
-    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search Warp Wiki" autocomplete="off" spellcheck="false">
+    <input id="q" type="search" placeholder="Search articles and symbols" aria-label="Search SCRAP Wiki" autocomplete="off" spellcheck="false">
     <kbd>/</kbd>
     <div class="results" id="results" hidden></div>
   </div>
@@ -39,7 +39,7 @@
   <main id="content"><a id="top"></a>
     <h1 class="firstHeading">Water shaders</h1>
     <div class="tabs"><a class="on" href="#top">Article</a></div>
-    <p class="tagline">From Warp Wiki, the reference for the Warp engine SDK</p><p class="shortdesc">WGSL caustics, depth fog, plumes, flow, refraction and simulation display</p><p><strong>Water shaders</strong> are the <code>water/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL files for underwater light, water surfaces, flow and the display of simulation textures. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::water</code></a>. It covers caustics, Beer-Lambert fog, light shafts, marine snow, vent plumes, glass refraction and colour for fluid fields. All functions start with <code>water_</code>. The GPU simulations themselves belong to the <a href="fluid.html" data-slug="fluid">Fluid kit</a> kit. These files only shade.</p>
+    <p class="tagline">From SCRAP Wiki, the reference for the SCRAP engine SDK</p><p class="shortdesc">WGSL caustics, depth fog, plumes, flow, refraction and simulation display</p><p><strong>Water shaders</strong> are the <code>water/</code> category of the <a href="shaderlib.html" data-slug="shaderlib">shader library</a>, a set of WGSL files for underwater light, water surfaces, flow and the display of simulation textures. The category is registered in <a class="sym" href="shaderlib.html"><code>shaderlib::water</code></a>. It covers caustics, Beer-Lambert fog, light shafts, marine snow, vent plumes, glass refraction and colour for fluid fields. All functions start with <code>water_</code>. The GPU simulations themselves belong to the <a href="fluid.html" data-slug="fluid">Fluid kit</a> kit. These files only shade.</p>
 <h2 id="files">Files</h2>
 <table class="wikitable">
 <thead>
@@ -163,7 +163,7 @@ out = c + (<span class="n">1.0</span> - c.a) * background;      <span class="c">
 <li><code>creature_jelly_species</code> and the plant forms in <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> use a <code>flow</code> vector that the game supplies.</li>
 <li>The <a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a> and <a href="fluid-solver.html" data-slug="fluid-solver">Fluid solver</a> articles cover the simulations whose fields these files display.</li>
 </ul><h2 id="see-also">See also</h2><ul><li><a href="shaderlib.html" data-slug="shaderlib">Shader library</a></li><li><a href="fluid.html" data-slug="fluid">Fluid kit</a></li><li><a href="fluid-ocean.html" data-slug="fluid-ocean">Ocean</a></li><li><a href="shader-post.html" data-slug="shader-post">Post shaders</a></li><li><a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a></li></ul><h2 id="references">References</h2><ol class="reflist"><li id="ref-1"><a class="back" href="#cite-1" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/water/noise.wgsl</code> - <code>// this file was written, the noise category registered only</code></li><li id="ref-2"><a class="back" href="#cite-2" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/water/caustics.wgsl</code> - <code>//      over the area of the new cell: E = 1 / |det(I - depth * k * H)|.</code></li><li id="ref-3"><a class="back" href="#cite-3" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/water/depth_fog.wgsl</code> - <code>// (Beer-Lambert). Red goes first, so deep water goes blue-green.</code></li><li id="ref-4"><a class="back" href="#cite-4" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/water/branched_flow.wgsl</code> - <code>// The intensity at the ray is 1 / |J|, so it peaks where rays focus.</code></li><li id="ref-5"><a class="back" href="#cite-5" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/water/marine_snow.wgsl</code> - <code>// Restrained mode. Marine snow is ambient detail, not a subject. A scene</code></li><li id="ref-6"><a class="back" href="#cite-6" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/water/plume.wgsl</code> - <code>// the next frame matches the last one. A threshold on the field gives</code></li><li id="ref-7"><a class="back" href="#cite-7" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/water/flow.wgsl</code> - <code>// resets; the two phases are half a period apart and cross-fade, so the</code></li><li id="ref-8"><a class="back" href="#cite-8" aria-label="Back to the text">^</a> <code>warp_sdk/shaderlib/water/sim_view.wgsl</code> - <code>//           (no sampler, so it works on unfilterable formats)</code></li></ol><table class="navbox"><tr><th><a href="category-shader-library.html">Shader library</a></th></tr><tr><td><a href="shaderlib.html" data-slug="shaderlib">Shader library</a> · <a href="shader-noise.html" data-slug="shader-noise">Noise shaders</a> · <a href="shader-sdf.html" data-slug="shader-sdf">SDF shaders</a> · <a href="shader-material.html" data-slug="shader-material">Material shaders</a> · <b>Water shaders</b> · <a href="shader-post.html" data-slug="shader-post">Post shaders</a> · <a href="shader-organic.html" data-slug="shader-organic">Organic shaders</a> · <a href="shader-creature.html" data-slug="shader-creature">Creature shaders</a> · <a href="shader-terrain.html" data-slug="shader-terrain">Terrain shaders</a> · <a href="shader-pattern.html" data-slug="shader-pattern">Pattern shaders</a></td></tr></table><div class="catlinks"><b>Category:</b> <a href="category-shader-library.html">Shader library</a></div>
-    <footer class="foot"><p>Generated from Warp commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
+    <footer class="foot"><p>Generated from SCRAP commit <code>677da2bc</code> of 2026-10-30. The reference sections come directly from the source.</p></footer>
   </main>
 </div>
 </body>
